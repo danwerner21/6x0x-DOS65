@@ -6,7 +6,8 @@
 ;	ORIGINALLY WRITTEN BY: DAN WERNER -- 1/1/2014
 ; 	Code cleanup: Dan Werner -- 1/22/2023
 ;
-;
+; ** NOTE THAT THIS BIOS NEEDS PAGED MEMORY TO OPERATE
+; ** K17 MUST BE OPEN FOR PAGED MEMORY TO OPERATE ON THE 6502 CPU
 ;__________________________________________________________________________________________________
 ;
 ; CONFIGURATION
@@ -14,6 +15,14 @@
 ;
 M6X0X_IOSPACE   = $E000
 M6X0X_SHADOW_ROM = $F000
+
+; PAGER
+M6X0X_ACT_TASK  = M6X0X_IOSPACE+$A00
+M6X0X_MAP_SETUP = M6X0X_IOSPACE+$A10
+M6X0X_MAP_SPACE = M6X0X_IOSPACE+$A20
+M6X0X_MMU_ENA   = M6X0X_IOSPACE+$A30
+
+;
 ;
 ;__________________________________________________________________________________________________
 ;
@@ -49,8 +58,8 @@ acmd            = $2a
 nemo            = $44
 tmp0            = $c1
 tmp2            = $c3
-stage           = $0210
-
+stage           = $0210         ; assembler stage area (SHARED WITH HOST BUFFER	)
+hstbuf          = $0200         ; 0200-03ff host buffer
 ;
 ; DRIVER WORKING STORAGE
 ;
@@ -65,25 +74,36 @@ seksec          = $050E         ; seek sector number
 debcyll         = $0510         ; DEBLOCKED CYLINDER LSB
 debcylm         = $0511         ; DEBLOCKED CYLINDER MSB
 debsehd         = $0512         ; DEBLOCKED SECTOR AND HEAD (HS)
-sekdsk          = $0513         ; seek disk number
-dskcfg          = $0514         ; 16 bytes disk configuration table
-DSKUNIT         = $0525         ; seek disk number
+Cdebcyll        = $0513         ; DEBLOCKED CYLINDER LSB (IN CACHE)
+Cdebcylm        = $0514         ; DEBLOCKED CYLINDER MSB (IN CACHE)
+Cdebsehd        = $0515         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
+sekdsk          = $0516         ; seek disk number
+dskcfg          = $0517         ; 16 bytes disk configuration table
+DSKUNIT         = $0528         ; seek disk number
+ST0             = $0529         ;
+FLERR           = $052A         ;
+FCMD            = $052B         ;
+FLRETRY         = $052C         ;
+FLRETRY1        = $052D         ;
+FLATCH_STORE    = $052E         ;
 
+
+
+
+        .SEGMENT "DRIVERS"
+;	dsky? (both)
+; 	rtc?
+        .INCLUDE "bios_ppp_hd.asm"
+        .INCLUDE "bios_diov3_flp.asm"
+        .INCLUDE "bios_diov3_ide.asm"
 
 
         .SEGMENT "TROM"
-
         .INCLUDE "miniassembler.asm"
         .INCLUDE "bios_ppp_common.asm"
         .INCLUDE "bios_serial.asm"
         .INCLUDE "bios_ppp_console.asm"
 
-; 	THESE NEED ADDED IN A BANK
-;	dsky? (both)
-; 	rtc?
-;	.INCLUDE "../dos65_os/DOSPPPHD.ASM"
-;	.INCLUDE "../dos65_os/DOSFLPV3.ASM"
-;	.INCLUDE "../dos65_os/DOSIDEV3.ASM"
 
 ;__COLD_START___________________________________________________
 ;
@@ -110,7 +130,9 @@ COLD_START:
 
 ;	INIT HARDWARE
         JSR     INIT_PPP        ;
-        JSR     SERIALINIT
+        JSR     SERIALINIT      ;
+        JSR     INITPAGES       ;
+
 
         LDA     #<STARTUP       ; OUTPUT STARTUP STRING
         STA     STRPTR          ;
@@ -644,12 +666,14 @@ INCTEMPWORD2:
 
 ;__OUTASCII_____________________________________________________
 ;
-; PRINT CHAR IF VALID, ELS PRINT '.'
+; PRINT CHAR IF VALID, ELSE PRINT '.'
 ;
 ;_______________________________________________________________
 OUTASCII:
         CMP     #$20            ; IS < 20
-        BMI     :+              ; YES, SKIP
+        BCC     :+              ; YES, SKIP
+        CMP     #$80
+        BCS     :+
         JMP     IOF_OUTCH       ; NO, PRINT CHAR AND RETURN
 :
         LDA     #$2E            ; A= '.'
@@ -987,6 +1011,47 @@ CONSTATUSSERIAL:
         RTS
 
 
+;__INITPAGES____________________________________________________
+;
+; SETUP MMU FOR BIOS PAGED MEMORY OPERATION
+;
+; SETUP:
+; 	TASK 0, NORMAL OPERATION
+;   TASK 1, ADDITIONAL ROM DRIVERS PAGED INTO C000-D000
+;	TASKS 2-15 -- OPEN FOR OS/USER USE
+;_______________________________________________________________
+INITPAGES:
+        LDA     #$00            ; ENSURE MMU IS DISABLED (SHOULD BE ALREADY, BUT . . . )
+        STA     M6X0X_MMU_ENA
+        STA     M6X0X_MAP_SETUP ; START WITH TASK 0
+        JSR     INITPAGE        ; FILL TASK 0 WITH A 1:1 MAP
+        LDA     #$01
+        STA     M6X0X_MAP_SETUP ; NOW TASK 2
+        JSR     INITPAGE        ; FILL TASK 2 WITH A 1:1 MAP
+        LDA     #$8C            ; BUT, MAP Cxxx AND Dxxx TO ROM Cxxx AND Dxxx RATHER THAN RAM
+        STA     M6X0X_MAP_SPACE+$0C
+        LDA     #$8D
+        STA     M6X0X_MAP_SPACE+$0D
+;
+        LDA     #$00
+        STA     M6X0X_ACT_TASK  ; SET ACTIVE TASK TO 00
+        LDA     #$01
+        STA     M6X0X_MMU_ENA   ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
+        RTS
+
+
+INITPAGE:
+        LDX     #$00
+:
+        TXA
+        STA     M6X0X_MAP_SPACE,X; CREATE A 1:1 MAP OF BANK
+        INX
+        CPX     #$10
+        BNE     :-
+        RTS
+
+
+        RTS
 ; COMMAND PROCESSOR JUMP TABLE
 COMMAND_LOOKUP_TABLE:
         .BYTE   "REGISTER",0,<PRINT_REG,>PRINT_REG
@@ -1025,7 +1090,7 @@ STARTUP:
         .BYTE   "888    888   X88K   888    888   X88K ",$0D,$0A
         .BYTE   "Y88b  d88P .d8  8b. Y88b  d88P .d8  8b. ",$0D,$0A
         .BYTE   "  Y8888P   888  888   Y8888P   888  888 ",$0D,$0A,$0D,$0A
-        .BYTE   "  6502 MONITOR ",$0D,$0A,$00
+        .BYTE   "  6502 MONITOR",$0D,$0A,$00
 
 ;BIOS JUMP TABLE
         .SEGMENT "JUMPTABLE"
@@ -1039,16 +1104,15 @@ STARTUP:
         JMP     WRSER1          ; write a byte from serial port  ('A' POINTS TO BYTE)
         JMP     RDSER1W         ; read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
         JMP     SERIALSTATUS    ; GET UART STATUS
-;FLPSETUPVEC:	JMP	SETUPDRIVE		;FFD1
-;FLPREADVEC:	JMP 	READFL			;FFD4
-;FLPWRITEVEC:	JMP 	WRITEFL			;FFD7
-;PPPWRITEVEC:   	JMP 	PPP_WRITE_SECTOR	;FFDA
-;LOADVEC:    	JMP 	LOAD			;FFDD
-;IDESETUPVEC:	JMP 	IDE_SOFT_RESET		;FFE0
-;IDEREADVEC:	JMP 	IDE_READ_SECTOR		;FFE3
-;IDEWRITEVEC:	JMP 	IDE_WRITE_SECTOR	;FFE6
-;PPPSETUPVEC:    	JMP 	PPP_SOFT_RESET		;FFE9
-;PPPREADVEC:    	JMP 	PPP_READ_SECTOR		;FFEC
+        JMP     SETUPDRIVE      ; init floppy drive
+        JMP     READFL          ; read sector from floppy
+        JMP     WRITEFL         ; write sector to floppy
+        JMP     PPP_SOFT_RESET  ; reset ppp sd drive
+        JMP     PPP_READ_SECTOR ; read ppp sd drive sector
+        JMP     PPP_WRITE_SECTOR; write ppp sd drive sector
+        JMP     IDE_SOFT_RESET  ; reset ide drive
+        JMP     IDE_READ_SECTOR ; ide read sector
+        JMP     IDE_WRITE_SECTOR; ide write sector
 
 
 

@@ -11,12 +11,7 @@ pemjmp	        =	$0103		; jump to pem
 iostat	        =	$0106		; i/o status
 dflfcb	        =	$0107		; default fcb
 dflbuf	        =	$0128		; default buffer
-memmovr         =	$0200		; 0200-02ff subr to move data from ram/rom disks
-MD_PAGERA       =   $0200       ; PAGE DRIVER ADDRESS
-
-IO              =   $0300       ; 0300-03FF Memory mapped IO
-MPCL_ROM	    =	$037C		; ROM MAPPER
-MPCL_RAM	    =	$0378		; RAM MAPPER
+hstbuf         =	$0200		; 0200-03ff host buffer
 
 MD_PAGEBU       =   $0400       ; 0400-04FF PAGE BUFFER ADDRESS
 MD_PAGESE       =   pointr      ; PAGE SECTOR STORAGE

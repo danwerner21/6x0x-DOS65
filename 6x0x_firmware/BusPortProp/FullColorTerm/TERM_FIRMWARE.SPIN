@@ -66,8 +66,8 @@ PUB start | i, j, k
   PrintAt(0,29,0,string("________________________________________________________________________________"))
 '                       "01234567890123456789012345678901234567890123456789012345678901234567890123456789"
 '                       "          1         2         3         4         5         6         7         "
- PrintAt(60,30,4,string("N8VEM PROJECT V0.1"))
- PrintAt(2,30,2,string("ANSI TERM/BUS ATTACHED"))                       
+ PrintAt(68,30,4,string("RetroBrew"))
+ PrintAt(2,30,2,string("ANSI TERM"))                       
 
   Process_Char($102)
   Process_Char($111)
