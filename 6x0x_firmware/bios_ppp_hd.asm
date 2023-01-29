@@ -18,18 +18,18 @@
 PPP_READ_SECTOR:
 
 
-        LDA     debsehd         ;
-        CMP     Cdebsehd        ;
-        BNE     PPP_READ_SECTOR_DIRTY
-        LDA     debcyll         ;
-        CMP     Cdebcyll        ;
-        BNE     PPP_READ_SECTOR_DIRTY
-        LDA     debcylm         ;
-        CMP     Cdebcylm        ;
-        BNE     PPP_READ_SECTOR_DIRTY
+    ;    LDA     debsehd         ;
+    ;    CMP     Cdebsehd        ;
+    ;    BNE     PPP_READ_SECTOR_DIRTY
+    ;    LDA     debcyll         ;
+    ;    CMP     Cdebcyll        ;
+    ;    BNE     PPP_READ_SECTOR_DIRTY
+    ;    LDA     debcylm         ;
+    ;    CMP     Cdebcylm        ;
+    ;    BNE     PPP_READ_SECTOR_DIRTY
 
-        LDA     #$00
-        RTS
+    ;    LDA     #$00
+    ;    RTS
 
 PPP_READ_SECTOR_DIRTY:
         LDA     debcyll         ; STORE CURRENT PARMS

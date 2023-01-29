@@ -2,6 +2,7 @@
 ;
 ;	DOS/65 primitive execution module (pem)
 ;
+;
 ;________________________________________________________________________________________________________________________________
 
 ;main program
@@ -1094,18 +1095,11 @@ nxtdir:
         BNE     *+5
         INC     dirnum+1
 
-;        LDA     maxdir          ;if not at limit continue
-;        CMP     dirnum
-;        LDA     maxdir+1
-;        SBC     dirnum+1
-        LDA     dirnum+1        ; Dan's compare (if not at limit continue)
-        CMP     maxdir+1
-        BCC     gtnxdr          ;then continue
-        BNE     nxtdir_done     ;exit out
-        LDA     dirnum          ; low byte
-        CMP     maxdir
-        BCC     gtnxdr          ;then continue
-nxtdir_done:
+        LDA     maxdir          ;if not at limit continue
+        CMP     dirnum
+        LDA     maxdir+1
+        SBC     dirnum+1
+        BCS     gtnxdr          ;then continue
         PLA                     ;else clear stack
         TAX                     ;and set x
         JMP     cldrnm          ;set to invalid

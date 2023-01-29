@@ -6,7 +6,7 @@ all:  	rom.hex
 	ld65 6x0xbios.o -vm -v -m 6x0xbios.map -C dos65.cfg -o 6x0xbios.out
 
 rom.hex: 6x0xbios.out
-	srec_cat  6x0xbios.out -binary -exclude 0x0000 0xEF00 -offset 0x0100 -o rom.hex  -intel -address-length=2
+	srec_cat  6x0xbios.out -binary -exclude 0x0000 0xBF00 -offset 0x0100 -o rom.hex  -intel -address-length=2
 	cp rom.hex ../bin/
 
 pretty:

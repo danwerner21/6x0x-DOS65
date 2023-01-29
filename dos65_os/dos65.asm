@@ -50,15 +50,15 @@
 ;	page zero 0 & 1 not used
 ;	allow _ in file names
 
-.include "dosdefn.asm" 		; base addresses and definitions
+        .INCLUDE "DOSDEFN.ASM"  ; base addresses and definitions
 
 
 
-		.PC02
-                .segment "OS"
-		.ORG $D000
-		.include "ccm215.asm"
-		.include "pem215.asm"
-		.include "simrbc.asm"
+        .PC02
+        .SEGMENT "OS"
+        .ORG    $B800
+        .INCLUDE "ccm215.asm"
+        .INCLUDE "pemrbc.asm"
+        .INCLUDE "simrbc.asm"
 
-	.end
+        .END

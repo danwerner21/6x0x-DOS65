@@ -6,128 +6,92 @@
 ;________________________________________________________________________________________________________________________________
 
 ;base addresses and definitions
-btejmp	        =	$0100		; warm boot jump
-pemjmp	        =	$0103		; jump to pem
-iostat	        =	$0106		; i/o status
-dflfcb	        =	$0107		; default fcb
-dflbuf	        =	$0128		; default buffer
-hstbuf         =	$0200		; 0200-03ff host buffer
-
-MD_PAGEBU       =   $0400       ; 0400-04FF PAGE BUFFER ADDRESS
-MD_PAGESE       =   pointr      ; PAGE SECTOR STORAGE
+btejmp          = $0100         ; warm boot jump
+pemjmp          = $0103         ; jump to pem
+iostat          = $0106         ; i/o status
+dflfcb          = $0107         ; default fcb
+dflbuf          = $0128         ; default buffer
+hstbuf          = $0200         ; 0200-03ff host buffer
 
 ;
 ; DRIVER WORKING STORAGE
 ;
-DSKY_BUF        =       $0500	        ; Eight Bytes DSKY display buffer
-DSKY_BUFLEN	    =       8               ;
-DSKY_HEXBUF     =       $0508           ; Four Bytes DSKY hex buffer
-DSKY_HEXBUFLEN	=       4               ;
-sektrk          =       $050C		    ; seek track number
-seksec          =       $050E		    ; seek sector number
-debcyll         =       $0510	        ; DEBLOCKED CYLINDER LSB
-debcylm         =	    $0511           ; DEBLOCKED CYLINDER MSB
-debsehd         =	    $0512           ; DEBLOCKED SECTOR AND HEAD (HS)
-sekdsk          =       $0513           ; seek disk number
-dskcfg          =       $0514           ; 16 bytes disk configuration table
-DSKUNIT         =       $0525           ; seek disk number
 
+DSKY_BUF        = $0500         ; Eight Bytes DSKY display buffer
+DSKY_BUFLEN     = 8             ;
+DSKY_HEXBUF     = $0508         ; Four Bytes DSKY hex buffer
+DSKY_HEXBUFLEN  = 4             ;
+sektrk          = $050C         ; seek track number
+seksec          = $050E         ; seek sector number
+debcyll         = $0510         ; DEBLOCKED CYLINDER LSB
+debcylm         = $0511         ; DEBLOCKED CYLINDER MSB
+debsehd         = $0512         ; DEBLOCKED SECTOR AND HEAD (HS)
+sekdsk          = $0516         ; seek disk number
+dskcfg          = $0517         ; 16 bytes disk configuration table
+DSKUNIT         = $0528         ; seek disk number
 
-tea	=	$800		;tea start
+tea             = $800          ;tea start
 
 ;zero page for setup
-addinp	=	$02		;initialized to a,y
-bufadd	=	$04		;buffer address
-alcpnt	=	$06		;allocation map pointer
-chkpnt	=	$08		;checksum map pointer
-numvar	=	8		;eight bytes
+addinp          = $02           ;initialized to a,y
+bufadd          = $04           ;buffer address
+alcpnt          = $06           ;allocation map pointer
+chkpnt          = $08           ;checksum map pointer
+numvar          = 8             ;eight bytes
 
-trknum	=	$02			;current track
-dcbadd	=	$04			;dcb address
-nmsstr	=	$06			;number system tracks
-nsectr	=	$08			;number sectors per track
-ttlsec	=	$0A			;total sectors to write
-trkcnt	=	ttlsec
-size	=	$0B			;ascii size
-lokim	=	$0D			;low kim limit
-hikim	=	$0F			;high kim limit
-offset	=	$11			;relocation offset
-kimcnt	=	$13			;kim counter
-pointr	=	$14			;pointer
-lengt	=	$16			;inst length
-point	=	$17			;relocate pointer
-adjust	=	$19			;relocate distance
-kimpnt	=	$1B			;kim file index
-savex	=	$1C			;save for x
-savey	=	$1D			;save for y
-number	=	$1E			;input pack buffer
-dstdrv	=	$20			;destination drive
-defalt	=	$21			;default drive
-seccnt	=	$22			;sector count
-secnum	=	$24			;sector number
-curccm	=	$26			;start of current ccm
-simlng	=	$28			;length of sim
-room	=	$2A			;memory needed for sysgen
-stksav	=	$2C			;save stack register
-frstsc	=	$2D			;first sector number of disk
-dskcfpc	=	$2E			;pointer to disk configuration table
-cmdlnp	=	$30			;pointer to command line buffer
-farfunct=   $32         ;function to call in driver area
-farpointer= $33         ;WORD POINTER to call in driver area
-IRQVECTOR=	$35   		; VECTOR FOR USER IRQ RTN
-NMIVECTOR=	$37   		; VECTOR FOR USER NMI RTN
-zptemp	=	$39
-CONSOLE	=	$3A
-lastzp	=	$3B
-
+IRQVECTOR       = $35           ; VECTOR FOR USER IRQ RTN
+NMIVECTOR       = $37           ; VECTOR FOR USER NMI RTN
+CONSOLE         = $3A
 
 ;page zero and system ram assignments
-dmaadr	=	$f4		;pointer for r/w
-mvepnt	=	$f2		;host buffer location
-OUTMSG_W =	$F0		;pointer for OutMsg
-SRC	 =	$EE		;pointer for OutMsg
-DEST	 =	$EC		;pointer for OutMsg
-
-nsects	=	(simstart-ccm)/128	;number sectors
+DEST            = $EC           ;pointer for OutMsg
+SRC             = $EE           ;pointer for OutMsg
+OUTMSG_W        = $F0           ;pointer for OutMsg
+dmaadr          = $f4           ;pointer for r/w
 
 
 ;pem constants on entry to write
-wrall	=	0		;write to allocated
-wrdir	=	1		;write to directory
-wrual	=	2		;write to unallocated
+wrall           = 0             ;write to allocated
+wrdir           = 1             ;write to directory
+wrual           = 2             ;write to unallocated
 
 ;fixed parameters
-lf	    =	$a		;linefeeed
-cr	    =	$d		;return
-eof	    =	$1a		;end of file
-null	=	0		;null
-ctlc	=	3		;abort
-ctle	=	5		;physical cr lf
-ctli	=	9		;tab character
-ctlp	=	$10		;toggle printer
-ctlr	=	$12		;repeat line
-ctls	=	$13		;freeze
-ctlx	=	$18		;cancel
-semico	=	$3b		;semicolon
-delete	=	$08		;delete character
-numcmd	=	36		;number commands
+lf              = $a            ;linefeeed
+cr              = $d            ;return
+eof             = $1a           ;end of file
+null            = 0             ;null
+ctlc            = 3             ;abort
+ctle            = 5             ;physical cr lf
+ctli            = 9             ;tab character
+ctlp            = $10           ;toggle printer
+ctlr            = $12           ;repeat line
+ctls            = $13           ;freeze
+ctlx            = $18           ;cancel
+semico          = $3b           ;semicolon
+delete          = $08           ;delete character
+numcmd          = 36            ;number commands
+DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
 
+M6X0X_IOSPACE   = $E000
+M6X0X_SHADOW_ROM = $F000
 
-USEECB		=	0	; SET TO ONE IF HOST PROCESSOR MODE (0= STAND ALONE)
-USESERIAL 	= 	0	; SET TO ONE FOR STAND ALONE SERIAL CONSOLE IO
-USECONPPP 	= 	1	; SET TO ONE FOR STAND ALONE PAR-PORT-PROP CONSOLE IO
-USEFLOPPYA 	= 	0	; SET TO ONE FOR STAND ALONE FLOPPY = "A"
-USEPPPSDA 	= 	1	; SET TO ONE FOR STAND ALONE ParPortProp SD Card  = "A"
-USEFLOPPYB 	= 	1	; SET TO ONE FOR STAND ALONE FLOPPY = "B"
-USEIDEC 	= 	1	; SET TO ONE FOR STAND ALONE IDE HDD="C"
-USEDSKY 	= 	1	; SEND DEBUGGING INFO TO DSKY
-DEFDRV  	=	0	; SET TO DEFAULT DRIVE LETTER
-USEDISKIOV1     = 	0	; Floppy and IDE card is  DISK IO V1
-USEDISKIOV3     = 	1	; Floppy and IDE card is  DISK IO V3
-
-
-COLOSSUS6X0X	=	1	; USE COLOSSUS 6X0X HARDWARE
-ORIGINAL6X0X	=	0	; USE ORIGINAL 6X0X HARDWARE
-
-M6X0X_IOSPACE		=	$E000
-M6X0X_SHADOW_ROM 	=	$F000
+; BIOS JUMP TABLE
+IOF_CONIN       = $FD00         ; read a byte from CONSOLE ('A' POINTS TO BYTE)
+IOF_CONINW      = $FD03         ; read a byte from CONSOLE ('A' POINTS TO BYTE, WAIT FOR BYTE)
+IOF_OUTCH       = $FD06         ; write a byte from CONSOLE  ('A' POINTS TO BYTE)
+IOF_CONSTATUS   = $FD09         ; RETURN CONSOLE STATUS
+SERIALINIT      = $FD0C         ; called during OS init
+RDSER1          = $FD0F         ; read a byte from serial port ('A' POINTS TO BYTE)
+WRSER1          = $FD12         ; write a byte from serial port  ('A' POINTS TO BYTE)
+RDSER1W         = $FD15         ; read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
+SERIALSTATUS    = $FD18         ; GET UART STATUS
+SETUPDRIVE      = $FD1B         ; init floppy drive
+READFL          = $FD1E         ; read sector from floppy
+WRITEFL         = $FD21         ; write sector to floppy
+PPP_SOFT_RESET  = $FD24         ; reset ppp sd drive
+PPP_READ_SECTOR = $FD27         ; read ppp sd drive sector
+PPP_WRITE_SECTOR = $FD2A        ; write ppp sd drive sector
+IDE_SOFT_RESET  = $FD2D         ; reset ide drive
+IDE_READ_SECTOR = $FD30         ; ide read sector
+IDE_WRITE_SECTOR = $FD33        ; ide write sector
+LOADS19         = $FD33         ; load s19 from serial port into ram

@@ -359,58 +359,61 @@ EXIT_MONITOR:
 ;
 ; BOOT OS
 ;
-; B X
+; BOOT X
 ;_______________________________________________________________
 IOF_BOOT:
 ;
-;	        LDA #(INBUFFER & $FF)   	; SETUP WORK BUFFER
-;        	STA WORKPTR			;
-;       	LDA #(INBUFFER >> 8)    	;
-;      	STA WORKPTR +1 			;
-;		LDA #4
-;		JSR INCWORKPTRX			; JUMP OVER "BOOT"
+        LDA     #<INBUFFER      ; SETUP WORK BUFFER
+        STA     WORKPTR         ;
+        LDA     #>INBUFFER      ;
+        STA     WORKPTR +1      ;
 
-;		JSR EATWHITESPACE		; SKIP OVER THE WHITESPACE
-;        	JSR HEXIN			;
-;       	STA UNIT			;
+        LDA     #4
+        JSR     INCWORKPTRX     ; JUMP OVER "BOOT"
 
-;      	LDA UNIT			;
-;     	CMP #$01			;
-;    	BEQ BOOTFDD
-;
-;   	LDA UNIT			;
-;  	CMP #$04			;
-; 	BEQ BOOTHDD
+        JSR     EATWHITESPACE   ; SKIP OVER THE WHITESPACE
+        JSR     HEXIN           ;
+        STA     DSKUNIT         ;
 
-;          	JSR PPP_SOFT_RESET		;
-;	LDA #$00
-;    	STA debsec			;
-;   	STA debcyl			;
-;  	STA debhead			;
-; 	JSR PPP_READ_SECTOR		;
-;		JMP $0200			;
+        LDA     DSKUNIT         ;
+        CMP     #$01            ;
+        BEQ     BOOTFDD
 ;
-;BOOTHDD:
+        LDA     DSKUNIT         ;
+        CMP     #$04            ;
+        BEQ     BOOTHDD
+
+        JSR     PPP_SOFT_RESET  ;
+        LDA     #$00
+        STA     DSKUNIT
+        STA     debcyll         ;
+        STA     debcylm         ;
+        STA     debsehd         ;
+        JSR     PPP_READ_SECTOR ;
+        JMP     hstbuf          ;
 ;
-;		JSR IDE_SOFT_RESET		;
-;		LDA #$00
-;        	STA debsec			;
-;       	STA debcyl			;
-;      	STA debhead			;
-;     	JSR IDE_READ_SECTOR		;
-;		JMP $0200			;
-;BOOTFDD:
+BOOTHDD:
 ;
-;		lda #$01			;
-;		STA sekdsk			;
-;		STA UNIT			;
-;		JSR SETUPDRIVE			;
-;		LDA #$00
-;         	STA debsec			;
-;         	STA debcyl			;
-;         	STA debhead			;
-;		JSR READFL			;
-;		JMP $0200			;
+        JSR     IDE_SOFT_RESET  ;
+        LDA     #$00
+        STA     DSKUNIT
+        STA     debcyll         ;
+        STA     debcylm         ;
+        STA     debsehd         ;
+        JSR     IDE_READ_SECTOR ;
+        JMP     hstbuf          ;
+BOOTFDD:
+;
+        LDA     #$01            ;
+        STA     sekdsk          ;
+        JSR     SETUPDRIVE      ;
+        LDA     #$00
+        STA     DSKUNIT
+        STA     debcyll         ;
+        STA     debcylm         ;
+        STA     debsehd         ;
+        JSR     READFL          ;
+        JMP     hstbuf          ;
         BRK
 
 ;__GO______________________________________________________
@@ -1050,8 +1053,65 @@ INITPAGE:
         BNE     :-
         RTS
 
-
+P_SETUPDRIVE:                   ; init floppy drive
+        JSR     PAGE_ENTER
+        JSR     SETUPDRIVE
+        JMP     PAGE_EXIT
+P_READFL:                       ; read sector from floppy
+        JSR     PAGE_ENTER
+        JSR     READFL
+        JMP     PAGE_EXIT
+P_WRITEFL:                      ; write sector to floppy
+        JSR     PAGE_ENTER
+        JSR     WRITEFL
+        JMP     PAGE_EXIT
+P_PPP_SOFT_RESET:               ; reset ppp sd drive
+        JSR     PAGE_ENTER
+        JSR     PPP_SOFT_RESET
+        JMP     PAGE_EXIT
+P_PPP_READ_SECTOR:              ; read ppp sd drive sector
+        JSR     PAGE_ENTER
+        JSR     PPP_READ_SECTOR
+        JMP     PAGE_EXIT
+P_PPP_WRITE_SECTOR:             ; write ppp sd drive sector
+        JSR     PAGE_ENTER
+        JSR     PPP_WRITE_SECTOR
+        JMP     PAGE_EXIT
+P_IDE_SOFT_RESET:               ; reset ide drive
+        JSR     PAGE_ENTER
+        JSR     IDE_SOFT_RESET
+        JMP     PAGE_EXIT
+P_IDE_READ_SECTOR:              ; ide read sector
+        JSR     PAGE_ENTER
+        JSR     IDE_READ_SECTOR
+        JMP     PAGE_EXIT
+P_IDE_WRITE_SECTOR:             ; ide write sector
+        JSR     PAGE_ENTER
+        JSR     IDE_WRITE_SECTOR
+        JMP     PAGE_EXIT
+PAGE_EXIT:
+        PHA
+        LDA     #$00
+        STA     M6X0X_ACT_TASK  ; SET ACTIVE TASK TO 00
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        PLA
         RTS
+PAGE_ENTER:
+        PHA
+        LDA     #$01
+        STA     M6X0X_ACT_TASK  ; SET ACTIVE TASK TO 00
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        PLA
+        RTS
+
 ; COMMAND PROCESSOR JUMP TABLE
 COMMAND_LOOKUP_TABLE:
         .BYTE   "REGISTER",0,<PRINT_REG,>PRINT_REG
@@ -1090,7 +1150,6 @@ STARTUP:
         .BYTE   "888    888   X88K   888    888   X88K ",$0D,$0A
         .BYTE   "Y88b  d88P .d8  8b. Y88b  d88P .d8  8b. ",$0D,$0A
         .BYTE   "  Y8888P   888  888   Y8888P   888  888 ",$0D,$0A,$0D,$0A
-        .BYTE   "  6502 MONITOR",$0D,$0A,$00
 
 ;BIOS JUMP TABLE
         .SEGMENT "JUMPTABLE"
@@ -1104,15 +1163,16 @@ STARTUP:
         JMP     WRSER1          ; write a byte from serial port  ('A' POINTS TO BYTE)
         JMP     RDSER1W         ; read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
         JMP     SERIALSTATUS    ; GET UART STATUS
-        JMP     SETUPDRIVE      ; init floppy drive
-        JMP     READFL          ; read sector from floppy
-        JMP     WRITEFL         ; write sector to floppy
-        JMP     PPP_SOFT_RESET  ; reset ppp sd drive
-        JMP     PPP_READ_SECTOR ; read ppp sd drive sector
-        JMP     PPP_WRITE_SECTOR; write ppp sd drive sector
-        JMP     IDE_SOFT_RESET  ; reset ide drive
-        JMP     IDE_READ_SECTOR ; ide read sector
-        JMP     IDE_WRITE_SECTOR; ide write sector
+        JMP     P_SETUPDRIVE    ; init floppy drive
+        JMP     P_READFL        ; read sector from floppy
+        JMP     P_WRITEFL       ; write sector to floppy
+        JMP     P_PPP_SOFT_RESET; reset ppp sd drive
+        JMP     P_PPP_READ_SECTOR; read ppp sd drive sector
+        JMP     P_PPP_WRITE_SECTOR; write ppp sd drive sector
+        JMP     P_IDE_SOFT_RESET; reset ide drive
+        JMP     P_IDE_READ_SECTOR; ide read sector
+        JMP     P_IDE_WRITE_SECTOR; ide write sector
+        JMP     LOAD            ; load s19 file into memory
 
 
 

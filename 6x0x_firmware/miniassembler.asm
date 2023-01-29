@@ -21,18 +21,8 @@ DISASSEMBLE:
         LDA     #>INBUFFER      ;
         STA     WORKPTR +1      ;
 
-        JSR     INCWORKPTR      ; JUMP OVER "D"
-        JSR     INCWORKPTR      ; JUMP OVER "I"
-        JSR     INCWORKPTR      ; JUMP OVER "S"
-        JSR     INCWORKPTR      ; JUMP OVER "S"
-        JSR     INCWORKPTR      ; JUMP OVER "A"
-        JSR     INCWORKPTR      ; JUMP OVER "S"
-        JSR     INCWORKPTR      ; JUMP OVER "S"
-        JSR     INCWORKPTR      ; JUMP OVER "E"
-        JSR     INCWORKPTR      ; JUMP OVER "M"
-        JSR     INCWORKPTR      ; JUMP OVER "B"
-        JSR     INCWORKPTR      ; JUMP OVER "L"
-        JSR     INCWORKPTR      ; JUMP OVER "E"
+        LDA     #11
+        JSR     INCWORKPTRX     ; JUMP OVER "DISASSEMBLE"
 
         JSR     EATWHITESPACE   ; SKIP OVER THE WHITESPACE
         JSR     GETNUMBER       ; GET THE STARTING ADDRESS
@@ -291,14 +281,8 @@ ASSEMBLE:
         LDA     #(INBUFFER >> 8);
         STA     WORKPTR +1      ;
 
-        JSR     INCWORKPTR      ; JUMP OVER "A"
-        JSR     INCWORKPTR      ; JUMP OVER "S"
-        JSR     INCWORKPTR      ; JUMP OVER "S"
-        JSR     INCWORKPTR      ; JUMP OVER "E"
-        JSR     INCWORKPTR      ; JUMP OVER "M"
-        JSR     INCWORKPTR      ; JUMP OVER "B"
-        JSR     INCWORKPTR      ; JUMP OVER "L"
-        JSR     INCWORKPTR      ; JUMP OVER "E"
+        LDA     #8
+        JSR     INCWORKPTRX     ; JUMP OVER "ASSEMBLE"
 
         JSR     EATWHITESPACE   ; SKIP OVER ANY WHITESPACE
         JSR     GETNUMBER       ; GET NUMBER
