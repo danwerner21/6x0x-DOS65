@@ -20,6 +20,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_diov3_ide.asm bios_diov3_ide.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_diov3_flp.asm bios_diov3_flp.asm
 
+
 clean:
 	@rm -f *.o
 	@rm -f *.out

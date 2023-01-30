@@ -29,6 +29,8 @@ debsehd         = $0512         ; DEBLOCKED SECTOR AND HEAD (HS)
 sekdsk          = $0516         ; seek disk number
 dskcfg          = $0517         ; 16 bytes disk configuration table
 DSKUNIT         = $0528         ; seek disk number
+slicetmp        = $0531         ; (word)
+CURRENT_IDE_DRIVE = $0534
 
 tea             = $800          ;tea start
 
@@ -38,6 +40,11 @@ bufadd          = $04           ;buffer address
 alcpnt          = $06           ;allocation map pointer
 chkpnt          = $08           ;checksum map pointer
 numvar          = 8             ;eight bytes
+
+
+msgptr          = chkpnt+2      ;message pointer
+movptr          = msgptr        ;and move pointer
+dcbloc          = msgptr+2      ;pointer to dcb
 
 IRQVECTOR       = $35           ; VECTOR FOR USER IRQ RTN
 NMIVECTOR       = $37           ; VECTOR FOR USER NMI RTN
@@ -95,3 +102,5 @@ IDE_SOFT_RESET  = $FD2D         ; reset ide drive
 IDE_READ_SECTOR = $FD30         ; ide read sector
 IDE_WRITE_SECTOR = $FD33        ; ide write sector
 LOADS19         = $FD33         ; load s19 from serial port into ram
+PPP_INITIALIZE  = $FD39         ; Initialize/Detect SD card
+IDE_INITIALIZE  = $FD3C         ; Initialize/Detect IDE

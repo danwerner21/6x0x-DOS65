@@ -73,6 +73,10 @@ boot:
         CPX     #$10
         BNE     :-
 
+        JSR     PPP_INITIALIZE
+        JSR     IDE_INITIALIZE
+
+
 setup:
         LDX     #0              ;clear index
 ;first clear key dba variables
@@ -88,10 +92,6 @@ setupl:
         LDY     #>dflbuf        ;and high
         JSR     setdma          ;and set
         LDA     sekdsk          ;get disk
-
-;            JSR     SETUPDRIVE
-        JSR     PPP_SOFT_RESET
-;    JSR     IDE_SOFT_RESET
 
 ;.IF     USEDSKY=1
 ;    JSR     DSKYINIT
@@ -181,91 +181,69 @@ selsec:
 
 ;__READ__________________________________________________________________________________________________
 ;
-; 	PERFORM DOS/65 SECTOR READ
+; PERFORM DOS / 65 SECTOR READ
 ;________________________________________________________________________________________________________
 read:
-
-        JSR     CONVERT_SECTOR_DOS;
-        JSR     READlow         ;
-        CMP     #$00            ;
-        BNE     RDABEND         ;
-        JSR     DEBSECR         ;
-        LDA     #$00            ;
+        JSR     GET_DRIVE_DEVICE;
+        AND     #$F0            ; only want first nybble
+        CMP     #$00
+        BNE     :+              ; not SD drive
+;SD
+        JSR     CONVERT_SECTOR_LBA
+        JSR     PPP_READ_SECTOR ; sd read sector
+        JSR     DEBSECR
+        RTS
+:
+        CMP     #$20
+        BNE     :+              ; not floppy drive
+;FD
+        LDA     #$ff
         RTS                     ;
-RDABEND:                        ;
-        LDA     #$FF            ;
+:
+        CMP     #$30
+        BNE     :+              ; invalid drive
+;PPIDE
+        JSR     CONVERT_SECTOR_LBA
+        JSR     IDE_READ_SECTOR ; sd read sector
+        JSR     DEBSECR
+        RTS
+:
+        LDA     #$FF            ; signal error
         RTS                     ;
-
-;__READlow_______________________________________________________________________________________________
-;
-; 	PERFORM LOW LEVEL SECTOR READ
-;________________________________________________________________________________________________________
-READlow:
-        LDA     sekdsk          ; GET DRIVE
-        CMP     #$00            ;
-        BNE     RDNOTA          ;
-
-		LDA #$0D
-		JSR $FD06
-		LDA #$0A
-		JSR $FD06
-		LDA 	$0512
-		JSR 	$F92A
-		LDA 	$0510
-		JSR 	$F92A
-		LDA 	$0511
-		JSR 	$F92A
-		LDA #':'
-		JSR $FD06
-		LDA 	$0515
-		JSR 	$F92A
-		LDA 	$0513
-		JSR 	$F92A
-		LDA 	$0514
-		JSR 	$F92A
-
-        JSR     PPP_READ_SECTOR
-		RTS
-RDNOTA: ;
-
-RDlowABEND:                     ;
-        LDA     #$FF            ;
-        RTS                     ;
-
 
 
 ;__WRITE_________________________________________________________________________________________________
 ;
-; 	PERFORM DOS/65 SECTOR WRITE
+; PERFORM DOS / 65 SECTOR WRITE
 ;________________________________________________________________________________________________________
 write:
-        JSR     CONVERT_SECTOR_DOS;
-        JSR     READlow         ;
-        CMP     #$00            ;
-        BNE     WRABEND         ;
-        JSR     BLKSECR         ;
-;
-        LDA     sekdsk          ; GET DRIVE
-        CMP     #$00            ;
-        BNE     WRNOTA          ;
-;
-        JSR     PPP_WRITE_SECTOR
-        JMP     WREND           ;
+        JSR     GET_DRIVE_DEVICE;
+        AND     #$F0            ; only want first nybble
 
-        JMP     WRABEND         ;
-;
-WRNOTA: ;
-        JMP     WRABEND         ;
+        CMP     #$00
+        BNE     :+              ; not SD drive
+;SD
+        JSR     CONVERT_SECTOR_LBA
+        JSR     BLKSECR
+        JSR     PPP_WRITE_SECTOR; sd read sector
+        RTS
+        CMP     #$20
+        BNE     :+              ; not floppy drive
+;FD
+        LDA     #$ff
+        RTS                     ;
+:
+        CMP     #$30
+        BNE     :+              ; invalid drive
+;PPIDE
+        JSR     CONVERT_SECTOR_LBA
+        JSR     BLKSECR
+        JSR     IDE_WRITE_SECTOR; sd read sector
+        RTS
+:
+        LDA     #$FF            ; signal error
+        RTS                     ;
 
-WREND:  ;
-        CMP     #$00            ;
-        BNE     WRABEND         ;
-        JSR     DEBSECR         ;
-        LDA     #$00            ;
-        RTS                     ;
-WRABEND:                        ;
-        LDA     #$FF            ;
-        RTS                     ;
 
 ;__SETDMA________________________________________________________________________________________________
 ;
@@ -336,14 +314,11 @@ ENDOUTSTR:
         RTS                     ; RETURN
 
 
-;___CONVERT_SECTOR_DOS________________________________________________________________________________
+;___CONVERT_SECTOR_LBA___________________________________________________________________________________
 ;
-; 	TRANSLATE SECTORS
+; 	TRANSLATE LBA SECTORS
 ;________________________________________________________________________________________________________
-CONVERT_SECTOR_DOS:
-;        LDA     sekdsk          ; GET DISK TYPE
-;        CMP     #$02
-;        BEQ     CONVERT_SECTOR_DOS1; NOT ZERO, DO FULL TRANSLATE
+CONVERT_SECTOR_LBA:
         LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
         AND     #$0F            ; ISOLATE HEAD IN LOW 4 BITS
         ASL     a               ; MOVE TO HIGH BYTE
@@ -392,6 +367,36 @@ CONVERT_SECTOR_DOS:
         LDA     debcyll
         ROR     A
         STA     debcyll
+;	ADD SLICE OFFSET
+        LDA     sekdsk          ; GET DRIVE#
+        AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
+        ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
+        TAX                     ; MOVE TO X REGISTER
+        INX                     ; WANT SECOND BYTE OF ENTRY
+        LDA     dskcfg,X        ; GET SLICE#
+        STA     slicetmp+1      ; SLICE OFFSET MSB
+        LDA     #0              ; GET SLICE#
+        STA     slicetmp        ; SLICE OFFSET LSB
+        CLC                     ; VOODOO MATH TO TAKE SLICE*$4000
+        ROR     slicetmp+1
+        ROR     slicetmp
+        ROR     slicetmp+1
+        ROR     slicetmp
+
+        LDA     dskcfg,X        ; GET SLICE#
+        CLC
+        ADC     slicetmp
+        STA     slicetmp
+; ADD SLICE OFFSET TO TRACK #
+        CLC                     ; clear carry
+        LDA     slicetmp
+        ADC     debcyll
+        STA     debcyll         ; store sum of LSBs
+        LDA     slicetmp+1
+        ADC     debcylm         ; add the MSBs using carry from
+        STA     debcylm         ; the previous calculation
+
+
 
 ;   .IF     USEDSKY=1
 ;       LDA     sekdsk
@@ -460,6 +465,7 @@ CONVERT_SECTOR_DOS:
 ;
 ;________________________________________________________________________________________________________
 DEBSECR:
+        PHA
         LDA     seksec          ;
         AND     #$03            ; GET SECTOR INDEX
         CLC                     ;
@@ -475,6 +481,7 @@ DEBSECR:
         LDA     dmaadr+1        ;
         STA     DEST+1          ;
         JSR     COPY_DOS_SECTOR ;
+        PLA
         RTS
 
 DEBTAB:
@@ -524,6 +531,35 @@ COPY_DOS_SECTOR1:
         BNE     COPY_DOS_SECTOR1;
         RTS
 
+;___GET_DRIVE_DEVICE_____________________________________________________________________________________
+;
+; GET SELECTED DEVICE TYPE AND UNIT, RETURN IN "A"
+;
+;________________________________________________________________________________________________________
+GET_DRIVE_DEVICE:
+        PHX
+        LDA     sekdsk          ; GET DRIVE
+        AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
+        ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
+        TAX                     ; MOVE TO X REGISTER
+        LDA     dskcfg, X       ; GET device
+        AND     #$0F
+        STA     CURRENT_IDE_DRIVE
+        LDA     dskcfg, X       ; GET device
+; SETUP FLOPPY CONTROL WHILE WE ARE HERE
+        AND     #$01
+        CMP     #$00
+        BNE     :+
+        LDA     #%00010000
+        STA     DSKUNIT
+        JMP     GET_DRIVE_DEVICE_1
+:
+        LDA     #%00100001
+        STA     DSKUNIT
+GET_DRIVE_DEVICE_1:
+        LDA     dskcfg, X       ; GET device
+        PLX
+        RTS
 
 ;------------------------------------------------------------------------------------
 
@@ -536,7 +572,7 @@ dcba:
         .BYTE   2               ;block size = 4096
         .WORD   511             ;max directory number
         .WORD   almpa           ;address of map for a
-        .BYTE   0               ;do checksums
+        .BYTE   128             ;no checksums
         .WORD   ckmp            ;checksum map
 dcbb:
         .WORD   2047            ;max block number
@@ -545,7 +581,7 @@ dcbb:
         .BYTE   2               ;block size = 4096
         .WORD   511             ;max directory number
         .WORD   almpb           ;address of map for a
-        .BYTE   0               ;do checksums
+        .BYTE   128             ;no checksums
         .WORD   ckmp            ;checksum map
 dcbc:
         .WORD   2047            ;max block number
@@ -554,7 +590,7 @@ dcbc:
         .BYTE   2               ;block size = 4096
         .WORD   511             ;max directory number
         .WORD   almpc           ;address of map for a
-        .BYTE   0               ;do checksums
+        .BYTE   128             ;no checksums
         .WORD   ckmp            ;checksum map
 dcbd:
         .WORD   2047            ;max block number
@@ -563,7 +599,7 @@ dcbd:
         .BYTE   2               ;block size = 4096
         .WORD   511             ;max directory number
         .WORD   almpd           ;address of map for a
-        .BYTE   0               ;do checksums
+        .BYTE   128             ;no checksums
         .WORD   ckmp            ;checksum map
 dcbe:
         .WORD   2047            ;max block number
@@ -572,7 +608,7 @@ dcbe:
         .BYTE   2               ;block size = 4096
         .WORD   511             ;max directory number
         .WORD   almpe           ;address of map for a
-        .BYTE   0               ;do checksums
+        .BYTE   128             ;no checksums
         .WORD   ckmp            ;checksum map
 dcbf:
         .WORD   2047            ;max block number
@@ -581,7 +617,7 @@ dcbf:
         .BYTE   2               ;block size = 4096
         .WORD   511             ;max directory number
         .WORD   almpf           ;address of map for a
-        .BYTE   0               ;do checksums
+        .BYTE   128             ;no checksums
         .WORD   ckmp            ;checksum map
 dcbg:
         .WORD   2047            ;max block number
@@ -590,7 +626,7 @@ dcbg:
         .BYTE   2               ;block size = 4096
         .WORD   511             ;max directory number
         .WORD   almpg           ;address of map for a
-        .BYTE   0               ;do checksums
+        .BYTE   128             ;no checksums
         .WORD   ckmp            ;checksum map
 dcbh:
         .WORD   2047            ;max block number
@@ -599,7 +635,7 @@ dcbh:
         .BYTE   2               ;block size = 4096
         .WORD   511             ;max directory number
         .WORD   almph           ;address of map for a
-        .BYTE   0               ;do checksums
+        .BYTE   128             ;no checksums
         .WORD   ckmp            ;checksum map
 
 ;data area
@@ -640,33 +676,38 @@ DEBDIRTY:
 
 ;allocation maps
 almpa:
-        .RES    254
+        .RES    256
 almpb:
-        .RES    254
+        .RES    256
 almpc:
-        .RES    254
+        .RES    256
 almpd:
-        .RES    254
+        .RES    256
 almpe:
-        .RES    254
+        .RES    256
 almpf:
-        .RES    254
+        .RES    256
 almpg:
-        .RES    254
+        .RES    256
 almph:
-        .RES    254
+        .RES    256
 
 ;checksum maps
 ;drive a
 ckmp:
         .RES    128
 
+
+; $00 = sd card
+; $20 = diskIO V3 Floppy card
+; $30 = diskIO V3 IDE card
+
 dftdskcfg:
-        .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks)
-        .BYTE   $00, $00        ; disk B: unit, slice (invalid for floppy and RAM disks)
-        .BYTE   $00, $00        ; disk C: unit, slice
-        .BYTE   $00, $00        ; disk D: unit, slice
-        .BYTE   $00, $00        ; disk E: unit, slice
-        .BYTE   $00, $00        ; disk F: unit, slice
-        .BYTE   $00, $00        ; disk G: unit, slice
-        .BYTE   $00, $00        ; disk H: unit, slice
+        .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy disks)
+        .BYTE   $30, $00        ; disk B: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk C: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk D: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk E: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk F: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk G: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk H: unit, slice (invalid for floppy disks)

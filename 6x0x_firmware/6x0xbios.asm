@@ -86,11 +86,16 @@ FCMD            = $052B         ;
 FLRETRY         = $052C         ;
 FLRETRY1        = $052D         ;
 FLATCH_STORE    = $052E         ;
+PPIDETIMEOUT    = $052F         ; (word)
+slicetmp        = $0531         ; (word)
+PPIDEINDEX      = $0533
+CURRENT_IDE_DRIVE = $0534
 
 
-
-
+        .PC02
+        .ORG    $C000
         .SEGMENT "DRIVERS"
+        .INCLUDE "macro.asm"
 ;	dsky? (both)
 ; 	rtc?
         .INCLUDE "bios_ppp_hd.asm"
@@ -99,6 +104,7 @@ FLATCH_STORE    = $052E         ;
 
 
         .SEGMENT "TROM"
+        .ORG    $F000
         .INCLUDE "miniassembler.asm"
         .INCLUDE "bios_ppp_common.asm"
         .INCLUDE "bios_serial.asm"
@@ -143,6 +149,9 @@ COLD_START:
         LDA     #$00            ;
         STA     INBUFFER        ; MAKE SURE INPUT BUFFER IS EMPTY
 ;
+        JSR     P_PPP_INITIALIZE
+        JSR     P_IDE_INITIALIZE
+
 
         BRK                     ; PERFORM BRK (START MONITOR)
 
@@ -394,7 +403,7 @@ IOF_BOOT:
 ;
 BOOTHDD:
 ;
-        JSR     IDE_SOFT_RESET  ;
+        JSR     PPIDE_RESET     ;
         LDA     #$00
         STA     DSKUNIT
         STA     debcyll         ;
@@ -1079,7 +1088,7 @@ P_PPP_WRITE_SECTOR:             ; write ppp sd drive sector
         JMP     PAGE_EXIT
 P_IDE_SOFT_RESET:               ; reset ide drive
         JSR     PAGE_ENTER
-        JSR     IDE_SOFT_RESET
+        JSR     PPIDE_RESET
         JMP     PAGE_EXIT
 P_IDE_READ_SECTOR:              ; ide read sector
         JSR     PAGE_ENTER
@@ -1089,26 +1098,28 @@ P_IDE_WRITE_SECTOR:             ; ide write sector
         JSR     PAGE_ENTER
         JSR     IDE_WRITE_SECTOR
         JMP     PAGE_EXIT
+P_PPP_INITIALIZE:
+        JSR     PAGE_ENTER
+        JSR     PPP_INITIALIZE
+        JMP     PAGE_EXIT
+P_IDE_INITIALIZE:
+        JSR     PAGE_ENTER
+        JSR     PPIDE_INIT
+        JMP     PAGE_EXIT
+
 PAGE_EXIT:
         PHA
         LDA     #$00
         STA     M6X0X_ACT_TASK  ; SET ACTIVE TASK TO 00
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
         PLA
         RTS
 PAGE_ENTER:
         PHA
+        SEI
         LDA     #$01
         STA     M6X0X_ACT_TASK  ; SET ACTIVE TASK TO 00
-        NOP
-        NOP
-        NOP
-        NOP
-        NOP
+        LDA     #$01
+        STA     M6X0X_MMU_ENA   ; ENSURE MMU IS ENABLED --- FEEEEEL THE POOOOWERRRR
         PLA
         RTS
 
@@ -1173,7 +1184,8 @@ STARTUP:
         JMP     P_IDE_READ_SECTOR; ide read sector
         JMP     P_IDE_WRITE_SECTOR; ide write sector
         JMP     LOAD            ; load s19 file into memory
-
+        JMP     P_PPP_INITIALIZE; INITIALIZE PPP SD HARDWARE
+        JMP     P_IDE_INITIALIZE; INITIALIZE/DETECT IDE V3 HARDWARE
 
 
 
@@ -1181,6 +1193,7 @@ STARTUP:
 
 
         .SEGMENT "VECTORS"
+        .ORG    $FFFA
 NNTVECTOR:
         .WORD   NINTERRUPT      ;
 RSTVECTOR:

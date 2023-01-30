@@ -9,6 +9,7 @@
 ; input:x=command,a=value,a&y=address
 ; returns:a=value,a&y=address
 ; alters:all
+
 pem:
         CLD                     ;set binary mode
         STA     bytinp          ;save input
@@ -1134,6 +1135,7 @@ exnxdr:
 ; returns:none
 ; alters:map@(chkmap)
 chksop:
+        rts
         BIT     chkflg          ;check flag
         BMI     exnxdr          ;done if set
         DEX                     ;dec code
