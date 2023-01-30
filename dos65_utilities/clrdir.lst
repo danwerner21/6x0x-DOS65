@@ -1,0 +1,133 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : clrdir.asm
+Current file: clrdir.asm
+
+000000r 1               
+000000r 1               ; BIOS JUMP TABLE
+000000r 1               IOF_CONIN       = $FD00         ; read a byte from CONSOLE ('A' POINTS TO BYTE)
+000000r 1               IOF_CONINW      = $FD03         ; read a byte from CONSOLE ('A' POINTS TO BYTE, WAIT FOR BYTE)
+000000r 1               IOF_OUTCH       = $FD06         ; write a byte from CONSOLE  ('A' POINTS TO BYTE)
+000000r 1               IOF_CONSTATUS   = $FD09         ; RETURN CONSOLE STATUS
+000000r 1               SERIALINIT      = $FD0C         ; called during OS init
+000000r 1               RDSER1          = $FD0F         ; read a byte from serial port ('A' POINTS TO BYTE)
+000000r 1               WRSER1          = $FD12         ; write a byte from serial port  ('A' POINTS TO BYTE)
+000000r 1               RDSER1W         = $FD15         ; read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
+000000r 1               SERIALSTATUS    = $FD18         ; GET UART STATUS
+000000r 1               SETUPDRIVE      = $FD1B         ; init floppy drive
+000000r 1               READFL          = $FD1E         ; read sector from floppy
+000000r 1               WRITEFL         = $FD21         ; write sector to floppy
+000000r 1               PPP_SOFT_RESET  = $FD24         ; reset ppp sd drive
+000000r 1               PPP_READ_SECTOR = $FD27         ; read ppp sd drive sector
+000000r 1               PPP_WRITE_SECTOR = $FD2A        ; write ppp sd drive sector
+000000r 1               IDE_SOFT_RESET  = $FD2D         ; reset ide drive
+000000r 1               IDE_READ_SECTOR = $FD30         ; ide read sector
+000000r 1               IDE_WRITE_SECTOR = $FD33        ; ide write sector
+000000r 1               LOADS19         = $FD33         ; load s19 from serial port into ram
+000000r 1               
+000000r 1               debcyll         = $0510         ; DEBLOCKED CYLINDER LSB
+000000r 1               debcylm         = $0511         ; DEBLOCKED CYLINDER MSB
+000000r 1               debsehd         = $0512         ; DEBLOCKED SECTOR AND HEAD (HS)
+000000r 1               
+000000r 1               OUTMSG_W    = $25
+000000r 1               
+000000r 1                       .SEGMENT "TEA"
+000000r 1                       .ORG    $0800
+000800  1               
+000800  1               
+000800  1  A9 68                LDA     #<opnmsg        ;point to message
+000802  1  A0 08                LDY     #>opnmsg
+000804  1  20 54 08             JSR     outmsg          ;send it
+000807  1               
+000807  1  20 24 FD         jsr     PPP_SOFT_RESET
+00080A  1  A9 02            lda     #$02
+00080C  1  85 11            sta     $11
+00080E  1  A9 00            lda     #$00
+000810  1  85 10            sta     $10
+000812  1  A9 E5            lda     #$e5
+000814  1  A0 00            ldy     #$00
+000816  1               :
+000816  1  91 10            sta     ($10),y
+000818  1  C8               INy
+000819  1  C0 00            cpy     #00
+00081B  1  D0 F9            bne     :-
+00081D  1  E6 11            inc     $11
+00081F  1               :
+00081F  1  91 10            sta     ($10),y
+000821  1  C8               INy
+000822  1  C0 00            cpy     #00
+000824  1  D0 F9            bne     :-
+000826  1               
+000826  1  A9 00            LDA     #$00
+000828  1  8D 11 05         sta     debcylm
+00082B  1  8D 10 05         sta     debcyll
+00082E  1  8D 12 05         sta     debsehd
+000831  1               :
+000831  1  20 2A FD         jsr     PPP_WRITE_SECTOR
+000834  1  EE 12 05         inc     debsehd
+000837  1  AD 12 05         lda     debsehd
+00083A  1  C9 00            cmp     #$00
+00083C  1  D0 F3            bne     :-
+00083E  1  EE 10 05         inc     debcyll
+000841  1  AD 10 05         lda     debcyll
+000844  1  20 91 08         JSR     PRINT_BYTE
+000847  1  A9 2E            LDA     #'.'
+000849  1  20 06 FD         JSR     IOF_OUTCH
+00084C  1  AD 10 05         lda     debcyll
+00084F  1  C9 00            cmp     #$00
+000851  1  D0 DE            bne     :-
+000853  1  00               brk
+000854  1               
+000854  1               
+000854  1               
+000854  1               ;__OUTMSG________________________________________________________________________________________________
+000854  1               ;
+000854  1               ; 	WRITE A NULL TERMINATED STRING TO THE CONSOLE
+000854  1               ;
+000854  1               ;	A=POINTER LOW BYTE
+000854  1               ;	Y=POINTER HIGH BYTE
+000854  1               ;________________________________________________________________________________________________________
+000854  1               outmsg: ;output message
+000854  1  85 25                STA     OUTMSG_W
+000856  1  84 26                STY     OUTMSG_W+1
+000858  1  A0 00                LDY     #$00
+00085A  1               OUTSTRLP:
+00085A  1  B1 25                LDA     (OUTMSG_W),Y    ; LOAD NEXT CHAR FROM STRING INTO ACC
+00085C  1  C9 00                CMP     #$00            ; IS NULL?
+00085E  1  F0 07                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+000860  1  20 06 FD             JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
+000863  1  C8                   INY                     ; Y=Y+1 (BUMP INDEX)
+000864  1  4C 5A 08             JMP     OUTSTRLP        ; DO NEXT CHAR
+000867  1               ENDOUTSTR:
+000867  1  60                   RTS                     ; RETURN
+000868  1               
+000868  1               
+000868  1               opnmsg:
+000868  1  0D 0A 43 6C          .BYTE   $0d,$0a,"Clear SD drive for DOS/65 ON THE RBC",$0d,$0a,0
+00086C  1  65 61 72 20  
+000870  1  53 44 20 64  
+000891  1               
+000891  1               ;__PRINT_BYTE__________________________________________________
+000891  1               ;
+000891  1               ; PRINT OUT ACCUMULATOR AS HEX NUMBER
+000891  1               ;
+000891  1               ;______________________________________________________________
+000891  1               PRINT_BYTE:
+000891  1  AA                    TAX                     ; SAVE A REGISTER
+000892  1  4A                       LSR     A               ; SHIFT HIGH NIBBLE TO LOW NIBBLE
+000893  1  4A                LSR     A               ;
+000894  1  4A                     LSR     A               ;
+000895  1  4A                     LSR     A               ;
+000896  1  18                     CLC                     ; CLEAR CARRY
+000897  1  20 9E 08               JSR     PRINT_DIGIT     ; PRINT LOW NIBBLE
+00089A  1  8A                     TXA                     ; RESTORE ACCUMULATOR
+00089B  1  4C 9E 08              JMP     PRINT_DIGIT     ; PRINT LOW NIBBLE
+00089E  1               PRINT_DIGIT:
+00089E  1  29 0F                  AND     #$0F            ; STRIP OFF HIGH NIBBLE
+0008A0  1  09 30                   ORA     #$30            ; ADD $30 TO PRODUCE ASCII
+0008A2  1  C9 3A                 CMP     #$3A            ; IS GREATER THAN 9
+0008A4  1  30 03                        BMI     PRINT_DIGIT_OUT ; NO, SKIP ADD
+0008A6  1  18                       CLC                     ; CLEAR CARRY
+0008A7  1  69 07                 ADC     #$07            ; ADD ON FOR LETTER VALUES
+0008A9  1               PRINT_DIGIT_OUT:                ;
+0008A9  1  4C 06 FD           JMP     IOF_OUTCH       ; PRINT OUT CHAR
+0008A9  1               

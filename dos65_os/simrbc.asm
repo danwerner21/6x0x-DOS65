@@ -49,7 +49,7 @@ sysdef:
 
 ;opening id message
 opnmsg:
-        .BYTE   cr,lf,"DOS/65 ON THE RBC 3.00",0
+        .BYTE   cr,lf,"DOS/65 ON THE 6x0x RBC",cr,lf,0
 
 
 ;cold entry from loader

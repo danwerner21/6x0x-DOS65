@@ -2,4 +2,3 @@ backup/
 *.map
 *.o
 *.out
-*.lst
