@@ -141,49 +141,6 @@ PPIDE_PROBE_SUCCESS:
         RTS                     ; DONE, NOTE THAT A=0 AND Z IS SET
 
 
-;___IDE_IDENTIFY_TYPE____________________________________________________________________________________
-;
-; 	READ THE DISK TYPE AND DETERMINE IF IT IS USABLE BY DOS/65
-; 	A=IDE DEVICE (0=MST,1=SLV)
-;________________________________________________________________________________________________________
-
-IDE_IDENTIFY_TYPE:
-        PHA
-        JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
-        BCS     IDE_IDENTIFY_TYPE_ERROR; IF TIMEOUT, REPORT ERROR
-        LDA     #$00
-        STA     debsehd
-        STA     debcyll         ; STORE IN TRACK (lsb)
-        STA     debcylm         ; STORE IN TRACK (msb)
-        PLA                     ; GET DRIVE TYPE
-        JSR     IDE_READ_SECTOR_DIRTY1
-        CMP     #$FF            ; IS THERE A READ ERROR?
-        BEQ     IDE_IDENTIFY_TYPE_ERROR
-        LDA     hstbuf+$01FE
-        CMP     #$55
-        BNE     IDE_IDENTIFY_TYPE_OK
-        LDA     hstbuf+$01FF
-        CMP     #$AA
-        BNE     IDE_IDENTIFY_TYPE_OK
-        LDA     hstbuf+$01C2
-        CMP     #$00
-        BNE     IDE_IDENTIFY_TYPE_ERROR
-        LDA     hstbuf+$01D2
-        CMP     #$00
-        BNE     IDE_IDENTIFY_TYPE_ERROR
-        LDA     hstbuf+$01E2
-        CMP     #$00
-        BNE     IDE_IDENTIFY_TYPE_ERROR
-        LDA     hstbuf+$01F2
-        CMP     #$00
-        BNE     IDE_IDENTIFY_TYPE_ERROR
-IDE_IDENTIFY_TYPE_OK:
-        LDA     #$00            ; EVERYTHING IS AWESOME
-        RTS
-IDE_IDENTIFY_TYPE_ERROR:
-        LDA     #$FF            ; SIGNIFY ERROR
-        RTS
-
 
 ;*__IDE_READ_INFO___________________________________________________________________________________
 ;*
@@ -192,7 +149,6 @@ IDE_IDENTIFY_TYPE_ERROR:
 ;* 	A=MST/SLV
 ;*____________________________________________________________________________________________________
 IDE_READ_INFO:
-        PHA
         PHA
 ; SET DRIVE BIT
         AND     #$01            ; ONLY WANT THE 1 BIT (MST/SLV)
@@ -224,56 +180,16 @@ IDE_READ_INFO:
         JSR     PRINT_BYTE
         LDA     hstbuf+120
         JSR     PRINT_BYTE
-        PLA
-        JSR     IDE_IDENTIFY_TYPE
-        CMP     #$00
-        BNE     IDE_READ_INFO_BADFS
-        JMP     IDE_READ_INFO_OK
-IDE_READ_INFO_ABORT:
-        PLA
-        PRTS    "NOT PRESENT$"  ; NOT PRESENT
-        JSR     NEWLINE
-        PLA
-        JSR     IDE_REMOVE_DRIVE_ASSIGNMENTS
-        SEC
-        RTS                     ;
-IDE_READ_INFO_BADFS:
-        PRTS    " BAD FILESYSTEM$"; NOT PRESENT
-        JSR     NEWLINE
-        PLA
-        JSR     IDE_REMOVE_DRIVE_ASSIGNMENTS
-        SEC
-        RTS                     ;
-IDE_READ_INFO_OK:
-        PRTS    " FILE SYSTEM COMPATIBLE$"; NOT PRESENT
         JSR     NEWLINE
         PLA
         CLC
         RTS
 
-IDE_REMOVE_DRIVE_ASSIGNMENTS:
-        CLC
-        ADC     #$30
-        LDX     #$00
-@1:
-        CMP     dskcfg,X        ; GET device
-        BEQ     @2
-        INX
-        INX
-        CPX     #16
-        BNE     @1
-        JMP     @3
-@2:
-        PHA
-        LDA     #$00
-        STA     dskcfg,X        ; SET device
-        INX
-        STA     dskcfg,X        ; SET device
+IDE_READ_INFO_ABORT:
+        PRTS    " NOT PRESENT$" ; NOT PRESENT
+        JSR     NEWLINE
         PLA
-        INX
-        CPX     #16
-        BNE     @1
-@3:
+        SEC
         RTS
 
 ;__IDE_PPIDETECT____________________________________________________________________________________

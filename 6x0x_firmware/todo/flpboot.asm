@@ -14,23 +14,23 @@
 IDE_SOFT_RESET	.EQU	$FFE0
 IDE_SETUP_LBA	.EQU	$FFE3
 IDE_READ_SECTOR	.EQU	$FFE6
-SETUPDRIVE	.EQU	$FFE9	
+SETUPDRIVE	.EQU	$FFE9
 READFL		.EQU	$FFEC
 
 
 IDERESETVEC	.EQU 	$FFEA
 IDESETUPVEC	.EQU 	$FFEC
-IDEREADVEC	.EQU 	$FFEE		
+IDEREADVEC	.EQU 	$FFEE
 PRINTVEC	.EQU	$FFF0
 INPVEC		.EQU	$FFF2
-INPWVEC		.EQU	$FFF4	
-FLPSETUPVEC    	.EQU 	$FFF6			
-FLPREADVEC     	.EQU 	$FFF8			
+INPWVEC		.EQU	$FFF4
+FLPSETUPVEC    	.EQU 	$FFF6
+FLPREADVEC     	.EQU 	$FFF8
 
 
-IRQVECTOR   	.EQU   	$30   		; VECTOR FOR USER IRQ RTN       
-WORKPTR		.EQU   	$32		; WORK POINTER FOR COMMAND PROCESSOR		
-JUMPPTR		.EQU	$34		; JUMP VECTOR FOR LOOKUP TABLE	
+IRQVECTOR   	.EQU   	$30   		; VECTOR FOR USER IRQ RTN
+WORKPTR		.EQU   	$32		; WORK POINTER FOR COMMAND PROCESSOR
+JUMPPTR		.EQU	$34		; JUMP VECTOR FOR LOOKUP TABLE
 TEMPWORD	.EQU	$36		;
 TEMPWORD1	.EQU   	$38		;
 TEMPWORD2	.EQU   	$3A		;
@@ -57,7 +57,7 @@ ST0	 	.EQU	$54		;
 FLATCH_STORE	.EQU	$55		;
 FLRETRY	 	.EQU	$56		;
 SECTOR	 	.EQU	$57		;
-	
+
 
 INBUFFER	.EQU	$0200		; DISK BUFFER
 STARTADDRESS	.EQU	$CA00		; OS DEST ADDRESS
@@ -71,8 +71,8 @@ BOOTCODESTART	.EQU	$0800		; LOCATION BOOT CODE WILL RUN IN
 ;
 ; RELOACTE CODE FROM DISK BUFFER, AND JUMP
 ;
-;_______________________________________________________________        
-	
+;_______________________________________________________________
+
        	        LDA #(INBUFFER & $FF)   	; SETUP DISK BUFFER
          	STA WORKPTR			;
          	LDA #(INBUFFER >> 8)    	;
@@ -80,44 +80,44 @@ BOOTCODESTART	.EQU	$0800		; LOCATION BOOT CODE WILL RUN IN
 	        LDA #(BOOTCODESTART & $FF)   	; SETUP OS LOAD LOCATION
          	STA TEMPWORD1			;
          	LDA #(BOOTCODESTART >> 8)  	;
-         	STA TEMPWORD1 +1 		;      
-         	LDY #$00			;   	         	
-RELOCATELOOP:	
+         	STA TEMPWORD1 +1 		;
+         	LDY #$00			;
+RELOCATELOOP:
 		LDA (WORKPTR),Y			;
 		STA (TEMPWORD1),Y		;
 		INY				;
 		BNE RELOCATELOOP		;
 		INC TEMPWORD1+1			;
 		INC WORKPTR+1			;
-RELOCATELOOP1:	
+RELOCATELOOP1:
 		LDA (WORKPTR),Y			;
 		STA (TEMPWORD1),Y		;
 		INY				;
 		BNE RELOCATELOOP1		;
 
-	
+
 		JMP BOOTCODESTART+(BOOT-$0200)
-	
-	
+
+
 ;__BOOT_________________________________________________________
 ;
 ; PERFORM SYSTEM BOOT  -- CODE MUST BE RELOCATABLE!
 ;
-;_______________________________________________________________        
+;_______________________________________________________________
 BOOT:
          	LDA #$00
          	STA TRACK			; SET BOOT CODE LOCATION
          	STA HEAD			; SET BOOT CODE LOCATION
          	STA COUNTER			; SET SECTOR COUNTER
-          	LDA #$01			; 
+          	LDA #$01			;
          	STA SECTOR			; SET BOOT CODE LOCATION
-         					;         	
+         					;
 	        LDA #(STARTADDRESS & $FF)   	; SETUP OS LOAD LOCATION
          	STA TEMPWORD1			;
          	LDA #(STARTADDRESS >> 8)  	;
-         	STA TEMPWORD1 +1 		;         	         	
-         	
-BOOTLOOP:		
+         	STA TEMPWORD1 +1 		;
+
+BOOTLOOP:
          	LDA #(INBUFFER & $FF)   	; SETUP DISK BUFFER
          	STA WORKPTR			;
          	LDA #(INBUFFER >> 8)    	;
@@ -125,14 +125,14 @@ BOOTLOOP:
          					;
 		JSR READFL			;
 		LDY #$00			;
-MOVELOOP:	
+MOVELOOP:
 		LDA (WORKPTR),Y			;
 		STA (TEMPWORD1),Y		;
 		INY				;
 		BNE MOVELOOP			;
 		INC TEMPWORD1+1			;
 		INC WORKPTR+1			;
-MOVELOOP1:	
+MOVELOOP1:
 		LDA (WORKPTR),Y			;
 		STA (TEMPWORD1),Y		;
 		INY				;
@@ -163,8 +163,6 @@ MOVELOOP1:
 EXITBOOT:
 		JMP STARTOS			; RUN THE OS
 
-		
+
 
 	.END
-	
-	

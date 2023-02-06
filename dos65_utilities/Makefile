@@ -1,12 +1,7 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com \
-	dbasic.com s19.com clrdir.com#format.com mksys.com
-
-clrdir.out: clrdir.asm
-	ca65 --cpu 65sc02 clrdir.asm -l clrdir.lst
-	ld65 clrdir.o  -m clrdir.map -C dos65.cfg -o clrdir.out
-
+	dbasic.com s19.com #format.com mksys.com
 
 assign.com: assign.c
 	cc65  -t none -O --cpu 65sc02  assign.c
@@ -156,15 +151,6 @@ s19.com: s19.out
 	@rm -f s19A.s
 	cp s19.com ../bin/
 	cp s19.s19 ../bin/
-
-clrdir.com: clrdir.out
-	srec_cat  clrdir.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  clrdir.s19  -data-only
-	srec_cat  clrdir.s19  -offset -0x0800  -o  clrdirA.s  -data-only
-	srec_cat  clrdirA.s -o clrdir.com  -BINARY
-	@rm -f clrdirA.s
-	cp clrdir.com ../bin/
-	cp clrdir.s19 ../bin/
-
 
 #format.com: format.out
 #	srec_cat  format.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  format.s19  -data-only

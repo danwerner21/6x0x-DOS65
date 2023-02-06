@@ -21,25 +21,25 @@ WRITEIDEBSEC  	.EQU	1	; WRITE BOOT SECTOR TO IDE DRIVE
 
 
 .IF WRITEPPPBSEC=1
-SOFT_RESET	.EQU	$FFE9 
-READ_SECTOR	.EQU	$FFEC 
-WRITE_SECTOR	.EQU	$FFDA 
+SOFT_RESET	.EQU	$FFE9
+READ_SECTOR	.EQU	$FFEC
+WRITE_SECTOR	.EQU	$FFDA
 .ENDIF
 
 .IF WRITEFLPBSEC=1
 SOFT_RESET	.EQU	$FFD1
-READ_SECTOR	.EQU	$FFD4 
-WRITE_SECTOR	.EQU	$FFD7 
+READ_SECTOR	.EQU	$FFD4
+WRITE_SECTOR	.EQU	$FFD7
 .ENDIF
 
 .IF WRITEIDEBSEC=1
-SOFT_RESET	.EQU	$FFE0 
-READ_SECTOR	.EQU	$FFE3 
-WRITE_SECTOR	.EQU	$FFE6 
+SOFT_RESET	.EQU	$FFE0
+READ_SECTOR	.EQU	$FFE3
+WRITE_SECTOR	.EQU	$FFE6
 .ENDIF
 
 
-WORKPTR		.EQU   	$32		; WORK POINTER FOR COMMAND PROCESSOR		
+WORKPTR		.EQU   	$32		; WORK POINTER FOR COMMAND PROCESSOR
 TEMPWORD	.EQU	$36		;
 TEMPWORD1	.EQU   	$38		;
 COUNTER		.EQU	$45		; COUNTER
@@ -60,7 +60,7 @@ STARTADDRESS	.EQU	$CA00		; OS DEST ADDRESS
 STARTOS		.EQU	$DE00		; VECTOR TO START OS
 	.ENDIF
 
-		
+
 	.IF COLOSSUS6X0X=1
 STARTADDRESS	.EQU	$B800		; OS DEST ADDRESS
 STARTOS		.EQU	$CC00		; VECTOR TO START OS
@@ -71,8 +71,8 @@ STARTOS		.EQU	$CC00		; VECTOR TO START OS
 ;
 ; RELOACTE CODE FROM DISK BUFFER, AND JUMP
 ;
-;_______________________________________________________________        
-	
+;_______________________________________________________________
+
        	        LDA #(INBUFFER & $FF)   	; SETUP DISK BUFFER
          	STA WORKPTR			;
          	LDA #(INBUFFER >> 8)    	;
@@ -80,44 +80,44 @@ STARTOS		.EQU	$CC00		; VECTOR TO START OS
 	        LDA #(BOOTCODESTART & $FF)   	; SETUP OS LOAD LOCATION
          	STA TEMPWORD1			;
          	LDA #(BOOTCODESTART >> 8)  	;
-         	STA TEMPWORD1 +1 		;      
-         	LDY #$00			;   	         	
-RELOCATELOOP:	
+         	STA TEMPWORD1 +1 		;
+         	LDY #$00			;
+RELOCATELOOP:
 		LDA (WORKPTR),Y			;
 		STA (TEMPWORD1),Y		;
 		INY				;
 		BNE RELOCATELOOP		;
 		INC TEMPWORD1+1			;
 		INC WORKPTR+1			;
-RELOCATELOOP1:	
+RELOCATELOOP1:
 		LDA (WORKPTR),Y			;
 		STA (TEMPWORD1),Y		;
 		INY				;
 		BNE RELOCATELOOP1		;
 
-	
+
 		JMP BOOTCODESTART+(BOOT-$0200)
-	
-	
+
+
 ;__BOOT_________________________________________________________
 ;
 ; PERFORM SYSTEM BOOT  -- CODE MUST BE RELOCATABLE!
 ;
-;_______________________________________________________________        
+;_______________________________________________________________
 BOOT:
          	LDA #$00
          	STA TRACK			; SET BOOT CODE LOCATION
          	STA HEAD			; SET BOOT CODE LOCATION
          	STA COUNTER			; SET SECTOR COUNTER
-          	LDA #$01			; 
+          	LDA #$01			;
          	STA SECTOR			; SET BOOT CODE LOCATION
-         					;         	
+         					;
 	        LDA #(STARTADDRESS & $FF)   	; SETUP OS LOAD LOCATION
          	STA TEMPWORD1			;
          	LDA #(STARTADDRESS >> 8)  	;
-         	STA TEMPWORD1 +1 		;         	         	
-         	
-BOOTLOOP:		
+         	STA TEMPWORD1 +1 		;
+
+BOOTLOOP:
          	LDA #(INBUFFER & $FF)   	; SETUP DISK BUFFER
          	STA WORKPTR			;
          	LDA #(INBUFFER >> 8)    	;
@@ -125,14 +125,14 @@ BOOTLOOP:
          					;
 		JSR READ_SECTOR			;
 		LDY #$00			;
-MOVELOOP:	
+MOVELOOP:
 		LDA (WORKPTR),Y			;
 		STA (TEMPWORD1),Y		;
 		INY				;
 		BNE MOVELOOP			;
 		INC TEMPWORD1+1			;
 		INC WORKPTR+1			;
-MOVELOOP1:	
+MOVELOOP1:
 		LDA (WORKPTR),Y			;
 		STA (TEMPWORD1),Y		;
 		INY				;
@@ -160,17 +160,17 @@ SKIPA:						;
 .ENDIF						;
 		LDA #$01			;
 		BNE BOOTLOOP			;
-				
+
 EXITBOOT:
 		JMP STARTOS			; RUN THE OS
 
-		
+
 	.ORG	$0300
 ;_______________________________________________________________
 ;
 ; 	STORE CODE ON BOOT SECTOR
 ;
-;_______________________________________________________________        
+;_______________________________________________________________
 	.IF WRITEFLPBSEC=1
 		LDA #$01
 		STA UNIT
@@ -181,9 +181,7 @@ EXITBOOT:
          	STA HEAD			; SET BOOT CODE LOCATION
          	STA SECTOR			; SET BOOT CODE LOCATION
 
-		JSR WRITE_SECTOR		;			
+		JSR WRITE_SECTOR		;
 		BRK
 
 	.END
-	
-	

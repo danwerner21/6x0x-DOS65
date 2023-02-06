@@ -101,6 +101,7 @@ CURRENT_IDE_DRIVE = $0534
         .INCLUDE "bios_ppp_hd.asm"
         .INCLUDE "bios_diov3_flp.asm"
         .INCLUDE "bios_diov3_ide.asm"
+        .INCLUDE "bios_clrdir.asm"
 
 
         .SEGMENT "TROM"
@@ -1106,7 +1107,10 @@ P_IDE_INITIALIZE:
         JSR     PAGE_ENTER
         JSR     PPIDE_INIT
         JMP     PAGE_EXIT
-
+P_CLRDIR:
+        JSR     PAGE_ENTER
+        JSR     CLRDIR
+        JMP     PAGE_EXIT
 PAGE_EXIT:
         PHA
         LDA     #$00
@@ -1133,6 +1137,7 @@ COMMAND_LOOKUP_TABLE:
         .BYTE   "BOOT",0,<IOF_BOOT,>IOF_BOOT
         .BYTE   "DISASSEMBLE",0,<DISASSEMBLE,>DISASSEMBLE
         .BYTE   "ASSEMBLE",0,<ASSEMBLE,>ASSEMBLE
+        .BYTE   "CLRDIR",0,<P_CLRDIR,>P_CLRDIR
         .BYTE   01,0
 ; COMMAND PROMPT STRING
 PROMPT:
