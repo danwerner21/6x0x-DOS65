@@ -1,0 +1,110 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : sd_write_os.asm
+Current file: sd_write_os.asm
+
+000000r 1               
+000000r 1               ;__sd_write_os________________________________________________________________________________________
+000000r 1               ;
+000000r 1               ;	WRITE OS ONTO BOOT TRACK OF SD
+000000r 1               ;
+000000r 1               ;	WRITTEN BY: DAN WERNER -- 1/1/2013
+000000r 1               ;	updated for new BIOS   -- 2/5/2023
+000000r 1               ;
+000000r 1               ;__________________________________________________________________________________________________
+000000r 1               ;
+000000r 1               ; BIOS JUMP TABLE
+000000r 1               IOF_CONIN       = $FD00         ; read a byte from CONSOLE ('A' POINTS TO BYTE)
+000000r 1               IOF_CONINW      = $FD03         ; read a byte from CONSOLE ('A' POINTS TO BYTE, WAIT FOR BYTE)
+000000r 1               IOF_OUTCH       = $FD06         ; write a byte from CONSOLE  ('A' POINTS TO BYTE)
+000000r 1               IOF_CONSTATUS   = $FD09         ; RETURN CONSOLE STATUS
+000000r 1               SERIALINIT      = $FD0C         ; called during OS init
+000000r 1               RDSER1          = $FD0F         ; read a byte from serial port ('A' POINTS TO BYTE)
+000000r 1               WRSER1          = $FD12         ; write a byte from serial port  ('A' POINTS TO BYTE)
+000000r 1               RDSER1W         = $FD15         ; read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
+000000r 1               SERIALSTATUS    = $FD18         ; GET UART STATUS
+000000r 1               SETUPDRIVE      = $FD1B         ; init floppy drive
+000000r 1               READFL          = $FD1E         ; read sector from floppy
+000000r 1               WRITEFL         = $FD21         ; write sector to floppy
+000000r 1               PPP_SOFT_RESET  = $FD24         ; reset ppp sd drive
+000000r 1               PPP_READ_SECTOR = $FD27         ; read ppp sd drive sector
+000000r 1               PPP_WRITE_SECTOR = $FD2A        ; write ppp sd drive sector
+000000r 1               IDE_SOFT_RESET  = $FD2D         ; reset ide drive
+000000r 1               IDE_READ_SECTOR = $FD30         ; ide read sector
+000000r 1               IDE_WRITE_SECTOR = $FD33        ; ide write sector
+000000r 1               LOADS19         = $FD33         ; load s19 from serial port into ram
+000000r 1               PPP_INITIALIZE  = $FD39         ; Initialize/Detect SD card
+000000r 1               IDE_INITIALIZE  = $FD3C         ; Initialize/Detect IDE
+000000r 1               
+000000r 1               WORKPTR         = $32           ; WORK POINTER FOR COMMAND PROCESSOR
+000000r 1               TEMPWORD        = $36           ;
+000000r 1               TEMPWORD1       = $38           ;
+000000r 1               COUNTER         = $45           ; COUNTER
+000000r 1               
+000000r 1               
+000000r 1               sektrk          = $050C         ; seek track number
+000000r 1               seksec          = $050E         ; seek sector number
+000000r 1               debcyll         = $0510         ; DEBLOCKED CYLINDER LSB
+000000r 1               debcylm         = $0511         ; DEBLOCKED CYLINDER MSB
+000000r 1               debsehd         = $0512         ; DEBLOCKED SECTOR AND HEAD (HS)
+000000r 1               sekdsk          = $0516         ; seek disk number
+000000r 1               dskcfg          = $0517         ; 16 bytes disk configuration table
+000000r 1               DSKUNIT         = $0528         ; seek disk number
+000000r 1               slicetmp        = $0531         ; (word)
+000000r 1               CURRENT_IDE_DRIVE = $0534
+000000r 1               
+000000r 1               STARTADDRESS    = $B800         ; OS DEST ADDRESS
+000000r 1               
+000000r 1               INBUFFER        = $0200         ; DISK BUFFER
+000000r 1               OSENDPAGE       = $E0           ; stop loading when we hit this page
+000000r 1               BOOTCODESTART   = $0800         ; LOCATION BOOT CODE WILL RUN IN
+000000r 1               
+000000r 1               
+000000r 1                       .PC02
+000000r 1                       .SEGMENT "TEA"
+000000r 1                       .ORG    $0800
+000800  1               
+000800  1  A9 00                LDA     #$00
+000802  1  8D 11 05             STA     debcylm         ; SET BOOT CODE LOCATION
+000805  1  8D 10 05             STA     debcyll         ; SET BOOT CODE LOCATION
+000808  1  A9 01                LDA     #$01            ;
+00080A  1  8D 12 05             STA     debsehd         ; SET BOOT CODE LOCATION
+00080D  1               ;
+00080D  1  A9 00                LDA     #<STARTADDRESS  ; SETUP OS LOAD LOCATION
+00080F  1  85 38                STA     TEMPWORD1       ;
+000811  1  A9 B8                LDA     #>STARTADDRESS  ;
+000813  1  85 39                STA     TEMPWORD1 +1    ;
+000815  1               
+000815  1               BOOTLOOP:
+000815  1  A9 00                LDA     #<INBUFFER      ; SETUP DISK BUFFER
+000817  1  85 32                STA     WORKPTR         ;
+000819  1  A9 02                LDA     #>INBUFFER      ;
+00081B  1  85 33                STA     WORKPTR +1      ;
+00081D  1               ;
+00081D  1  A0 00                LDY     #$00            ;
+00081F  1               :
+00081F  1  B1 38                LDA     (TEMPWORD1),Y   ;
+000821  1  91 32                STA     (WORKPTR),Y     ;
+000823  1  C8                   INY                     ;
+000824  1  D0 F9                BNE     :-              ;
+000826  1  E6 39                INC     TEMPWORD1+1     ;
+000828  1  E6 33                INC     WORKPTR+1       ;
+00082A  1               :
+00082A  1  B1 38                LDA     (TEMPWORD1),Y   ;
+00082C  1  91 32                STA     (WORKPTR),Y     ;
+00082E  1  C8                   INY                     ;
+00082F  1  D0 F9                BNE     :-              ;
+000831  1  20 2A FD             JSR     PPP_WRITE_SECTOR;
+000834  1  E6 39                INC     TEMPWORD1+1     ;
+000836  1  A5 39                LDA     TEMPWORD1+1     ;
+000838  1  C9 E0                CMP     #OSENDPAGE
+00083A  1  F0 09                BEQ     EXITBOOT        ;
+00083C  1  C9 E1                CMP     #OSENDPAGE+1
+00083E  1  F0 05                BEQ     EXITBOOT        ;
+000840  1  EE 12 05             INC     debsehd         ;
+000843  1  D0 D0                BNE     BOOTLOOP        ;
+000845  1               
+000845  1               EXITBOOT:
+000845  1  00                   BRK
+000846  1               
+000846  1               
+000846  1                       .END
