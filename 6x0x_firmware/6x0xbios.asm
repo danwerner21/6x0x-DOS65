@@ -383,49 +383,48 @@ IOF_BOOT:
 
         JSR     EATWHITESPACE   ; SKIP OVER THE WHITESPACE
         JSR     HEXIN           ;
-        STA     DSKUNIT         ;
+        BCS     BOOT_ERROR
 
-        LDA     DSKUNIT         ;
         CMP     #$01            ;
         BEQ     BOOTFDD
 ;
-        LDA     DSKUNIT         ;
         CMP     #$04            ;
         BEQ     BOOTHDD
 
-        JSR     PPP_SOFT_RESET  ;
+        JSR     P_PPP_SOFT_RESET;
         LDA     #$00
         STA     DSKUNIT
         STA     debcyll         ;
         STA     debcylm         ;
         STA     debsehd         ;
-        JSR     PPP_READ_SECTOR ;
+        JSR     P_PPP_READ_SECTOR;
         JMP     hstbuf          ;
 ;
 BOOTHDD:
 ;
-        JSR     PPIDE_RESET     ;
+        JSR     P_PPP_INITIALIZE;
         LDA     #$00
         STA     DSKUNIT
         STA     debcyll         ;
         STA     debcylm         ;
         STA     debsehd         ;
-        JSR     IDE_READ_SECTOR ;
+        JSR     P_IDE_READ_SECTOR;
         JMP     hstbuf          ;
 BOOTFDD:
 ;
         LDA     #$01            ;
         STA     sekdsk          ;
-        JSR     SETUPDRIVE      ;
+        JSR     P_SETUPDRIVE    ;
         LDA     #$00
         STA     DSKUNIT
         STA     debcyll         ;
         STA     debcylm         ;
         STA     debsehd         ;
-        JSR     READFL          ;
+        JSR     P_READFL        ;
         JMP     hstbuf          ;
-        BRK
 
+BOOT_ERROR:
+        JMP     INVALID_NUMBER_ERROR
 ;__GO______________________________________________________
 ;
 ; GO COMMAND

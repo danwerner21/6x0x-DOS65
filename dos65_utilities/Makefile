@@ -1,7 +1,7 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com \
-	dbasic.com s19.com #format.com mksys.com
+	dbasic.com s19.com writeos.com #format.com
 
 assign.com: assign.c
 	cc65  -t none -O --cpu 65sc02  assign.c
@@ -53,16 +53,14 @@ s19.out: s19.asm
 	ca65 --cpu 65sc02 s19.asm -ls19.lst
 	ld65 s19.o  -m s19.map -C dos65.cfg -o s19.out
 
-
+writeos.out: writeos.asm
+	ca65 --cpu 65sc02 writeos.asm -l writeos.lst
+	ld65 writeos.o  -m writeos.map -C dos65.cfg -o writeos.out
 
 
 #format.out: format.asm
 #	ca65 --cpu 65sc02 format.asm -lformat.lst
 #	ld65 format.o  -m format.map -C dos65.cfg -o format.out
-
-#mksys.out: mksys.asm
-#	ca65 --cpu 65sc02 mksys.asm -lmksys.lst
-#	ld65 mksys.o  -m mksys.map -C dos65.cfg -o mksys.out
 
 alloc.com: alloc.out
 	srec_cat  alloc.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  alloc.s19  -data-only
@@ -152,6 +150,15 @@ s19.com: s19.out
 	cp s19.com ../bin/
 	cp s19.s19 ../bin/
 
+writeos.com: writeos.out
+	srec_cat  writeos.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  writeos.s19  -data-only
+	srec_cat  writeos.s19  -offset -0x0800  -o  writeosA.s  -data-only
+	srec_cat  writeosA.s -o writeos.com  -BINARY
+	@rm -f writeosA.s
+	cp writeos.com ../bin/
+	cp writeos.s19 ../bin/
+
+
 #format.com: format.out
 #	srec_cat  format.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  format.s19  -data-only
 #	srec_cat  format.s19  -offset -0x0800  -o  formatA.s  -data-only
@@ -159,12 +166,6 @@ s19.com: s19.out
 #	@rm -f formatA.s
 #	cp format.com ../bin/
 
-#mksys.com: mksys.out
-#	srec_cat  mksys.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  mksys.s19  -data-only
-#	srec_cat  mksys.s19  -offset -0x0800  -o  mksysA.s  -data-only
-#	srec_cat  mksysA.s -o mksys.com  -BINARY
-#	@rm -f mksysA.s
-#	cp mksys.com ../bin/
 
 pretty:
 	cp *.asm ./backup
@@ -179,6 +180,8 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/run205.asm run205.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/sedit.asm sedit.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/s19.asm s19.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/writeos.asm writeos.asm
+
 
 clean:
 	@rm -f *.o
