@@ -1,0 +1,469 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : writeos.asm
+Current file: writeos.asm
+
+000000r 1               
+000000r 1               ;__WRITEOS_________________________________________________________________________________________
+000000r 1               ;
+000000r 1               ;	WRITE OS ONTO BOOT TRACK OF SELECTED DRIVE
+000000r 1               ;
+000000r 1               ;	WRITTEN BY: DAN WERNER -- 1/1/2013
+000000r 1               ;	updated for new BIOS   -- 2/5/2023
+000000r 1               ;
+000000r 1               ;__________________________________________________________________________________________________
+000000r 1               ;
+000000r 1               ; BIOS JUMP TABLE
+000000r 1               IOF_CONIN       = $FD00         ; read a byte from CONSOLE ('A' POINTS TO BYTE)
+000000r 1               IOF_CONINW      = $FD03         ; read a byte from CONSOLE ('A' POINTS TO BYTE, WAIT FOR BYTE)
+000000r 1               IOF_OUTCH       = $FD06         ; write a byte from CONSOLE  ('A' POINTS TO BYTE)
+000000r 1               IOF_CONSTATUS   = $FD09         ; RETURN CONSOLE STATUS
+000000r 1               SERIALINIT      = $FD0C         ; called during OS init
+000000r 1               RDSER1          = $FD0F         ; read a byte from serial port ('A' POINTS TO BYTE)
+000000r 1               WRSER1          = $FD12         ; write a byte from serial port  ('A' POINTS TO BYTE)
+000000r 1               RDSER1W         = $FD15         ; read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
+000000r 1               SERIALSTATUS    = $FD18         ; GET UART STATUS
+000000r 1               SETUPDRIVE      = $FD1B         ; init floppy drive
+000000r 1               READFL          = $FD1E         ; read sector from floppy
+000000r 1               WRITEFL         = $FD21         ; write sector to floppy
+000000r 1               PPP_SOFT_RESET  = $FD24         ; reset ppp sd drive
+000000r 1               PPP_READ_SECTOR = $FD27         ; read ppp sd drive sector
+000000r 1               PPP_WRITE_SECTOR = $FD2A        ; write ppp sd drive sector
+000000r 1               IDE_SOFT_RESET  = $FD2D         ; reset ide drive
+000000r 1               IDE_READ_SECTOR = $FD30         ; ide read sector
+000000r 1               IDE_WRITE_SECTOR = $FD33        ; ide write sector
+000000r 1               LOADS19         = $FD36         ; load s19 from serial port into ram
+000000r 1               PPP_INITIALIZE  = $FD39         ; Initialize/Detect SD card
+000000r 1               IDE_INITIALIZE  = $FD3C         ; Initialize/Detect IDE
+000000r 1               
+000000r 1               WORKPTR         = $32           ; WORK POINTER FOR COMMAND PROCESSOR
+000000r 1               TEMPWORD        = $36           ;
+000000r 1               TEMPWORD1       = $38           ;
+000000r 1               COUNTER         = $45           ; COUNTER
+000000r 1               PEM             = $103          ;PEM ENTRY
+000000r 1               WARMBOOT        = $100          ;WARM BOOT
+000000r 1               
+000000r 1               sektrk          = $050C         ; seek track number
+000000r 1               seksec          = $050E         ; seek sector number
+000000r 1               debcyll         = $0510         ; DEBLOCKED CYLINDER LSB
+000000r 1               debcylm         = $0511         ; DEBLOCKED CYLINDER MSB
+000000r 1               debsehd         = $0512         ; DEBLOCKED SECTOR AND HEAD (HS)
+000000r 1               sekdsk          = $0516         ; seek disk number
+000000r 1               dskcfg          = $0517         ; 16 bytes disk configuration table
+000000r 1               DSKUNIT         = $0528         ; seek disk number
+000000r 1               slicetmp        = $0531         ; (word)
+000000r 1               CURRENT_IDE_DRIVE = $0534
+000000r 1               
+000000r 1               STARTADDRESS    = $B800         ; OS DEST ADDRESS
+000000r 1               STARTOS         = $B800         ; OS START ADDRESS
+000000r 1               
+000000r 1               INBUFFER        = $0200         ; DISK BUFFER
+000000r 1               OSENDPAGE       = $E0           ; stop loading when we hit this page
+000000r 1               BOOTCODESTART   = $0800         ; LOCATION BOOT CODE WILL RUN IN
+000000r 1               
+000000r 1               
+000000r 1                       .PC02
+000000r 1                       .SEGMENT "TEA"
+000000r 1                       .ORG    $0800
+000800  1               
+000800  1  A9 DF                LDA     #<MSG
+000802  1  A0 08                LDY     #>MSG
+000804  1  A2 09                LDX     #9              ; intro message
+000806  1  20 03 01             JSR     PEM
+000809  1               
+000809  1  20 03 FD             JSR     IOF_CONINW
+00080C  1               
+00080C  1  C9 49                CMP     #'I'
+00080E  1  F0 42                BEQ     DO_IDE
+000810  1               
+000810  1  C9 53                CMP     #'S'
+000812  1  F0 10                BEQ     DO_SD
+000814  1               
+000814  1  C9 46                CMP     #'F'
+000816  1  F0 23                BEQ     DO_FL
+000818  1               
+000818  1               ; ABORT
+000818  1  A9 DA                LDA     #<ABORTMSG
+00081A  1  A0 09                LDY     #>ABORTMSG
+00081C  1  A2 09                LDX     #9              ; intro message
+00081E  1  20 03 01             JSR     PEM
+000821  1  4C 00 01             JMP     WARMBOOT
+000824  1               
+000824  1               DO_SD:
+000824  1  A9 83                LDA     #<SDMSG
+000826  1  A0 09                LDY     #>SDMSG
+000828  1  A2 09                LDX     #9              ; intro message
+00082A  1  20 03 01             JSR     PEM
+00082D  1  A9 01                LDA     #$01
+00082F  1  8D 34 05             STA     CURRENT_IDE_DRIVE
+000832  1  20 24 FD             JSR     PPP_SOFT_RESET
+000835  1  20 47 0A             JSR     sd_write_bootsector
+000838  1  4C 66 08             JMP     DO_OS_WRITE
+00083B  1               DO_FL:
+00083B  1  A9 AB                LDA     #<FLMSG
+00083D  1  A0 09                LDY     #>FLMSG
+00083F  1  A2 09                LDX     #9              ; intro message
+000841  1  20 03 01             JSR     PEM
+000844  1  A9 02                LDA     #$02
+000846  1  8D 34 05             STA     CURRENT_IDE_DRIVE
+000849  1  20 1B FD             JSR     SETUPDRIVE
+00084C  1  20 5D 0B             JSR     fl_write_bootsector
+00084F  1  4C 66 08             JMP     DO_OS_WRITE
+000852  1               
+000852  1               DO_IDE:
+000852  1  A9 52                LDA     #<IDEMSG
+000854  1  A0 09                LDY     #>IDEMSG
+000856  1  A2 09                LDX     #9              ; intro message
+000858  1  20 03 01             JSR     PEM
+00085B  1  A9 00                LDA     #$00
+00085D  1  8D 34 05             STA     CURRENT_IDE_DRIVE
+000860  1  20 2D FD             JSR     IDE_SOFT_RESET
+000863  1  20 CA 0A             JSR     ide_write_bootsector
+000866  1               
+000866  1               
+000866  1               DO_OS_WRITE:
+000866  1  A9 00                LDA     #$00
+000868  1  8D 11 05             STA     debcylm         ; SET BOOT CODE LOCATION
+00086B  1  8D 10 05             STA     debcyll         ; SET BOOT CODE LOCATION
+00086E  1  A9 01                LDA     #$01            ;
+000870  1  8D 12 05             STA     debsehd         ; SET BOOT CODE LOCATION
+000873  1               ;
+000873  1  A9 00                LDA     #<STARTADDRESS  ; SETUP OS LOAD LOCATION
+000875  1  85 38                STA     TEMPWORD1       ;
+000877  1  A9 B8                LDA     #>STARTADDRESS  ;
+000879  1  85 39                STA     TEMPWORD1 +1    ;
+00087B  1               
+00087B  1               BOOTLOOP:
+00087B  1  A9 00                LDA     #<INBUFFER      ; SETUP DISK BUFFER
+00087D  1  85 32                STA     WORKPTR         ;
+00087F  1  A9 02                LDA     #>INBUFFER      ;
+000881  1  85 33                STA     WORKPTR +1      ;
+000883  1               ;
+000883  1  A0 00                LDY     #$00            ;
+000885  1               :
+000885  1  B1 38                LDA     (TEMPWORD1),Y   ;
+000887  1  91 32                STA     (WORKPTR),Y     ;
+000889  1  C8                   INY                     ;
+00088A  1  D0 F9                BNE     :-              ;
+00088C  1  E6 39                INC     TEMPWORD1+1     ;
+00088E  1  E6 33                INC     WORKPTR+1       ;
+000890  1               :
+000890  1  B1 38                LDA     (TEMPWORD1),Y   ;
+000892  1  91 32                STA     (WORKPTR),Y     ;
+000894  1  C8                   INY                     ;
+000895  1  D0 F9                BNE     :-              ;
+000897  1               
+000897  1  AD 34 05             LDA     CURRENT_IDE_DRIVE
+00089A  1  C9 00                CMP     #$00
+00089C  1  D0 06                BNE     :+
+00089E  1  20 33 FD             JSR     IDE_WRITE_SECTOR;
+0008A1  1  4C B1 08             JMP     BOOTCONTINUE
+0008A4  1               :
+0008A4  1  C9 01                CMP     #$01
+0008A6  1  D0 06                BNE     :+
+0008A8  1  20 2A FD             JSR     PPP_WRITE_SECTOR;
+0008AB  1  4C B1 08             JMP     BOOTCONTINUE
+0008AE  1               :
+0008AE  1  20 21 FD             JSR     WRITEFL
+0008B1  1               BOOTCONTINUE:
+0008B1  1  E6 39                INC     TEMPWORD1+1     ;
+0008B3  1  A5 39                LDA     TEMPWORD1+1     ;
+0008B5  1  C9 E0                CMP     #OSENDPAGE
+0008B7  1  F0 23                BEQ     EXITBOOT        ;
+0008B9  1  C9 E1                CMP     #OSENDPAGE+1
+0008BB  1  F0 1F                BEQ     EXITBOOT        ;
+0008BD  1  EE 12 05             INC     debsehd         ;
+0008C0  1  AD 34 05             LDA     CURRENT_IDE_DRIVE
+0008C3  1  C9 02                CMP     #$02
+0008C5  1  F0 03                BEQ     FLINC
+0008C7  1  4C 7B 08             JMP     BOOTLOOP        ;
+0008CA  1               FLINC:
+0008CA  1               ; INC FOR FLOPPY DEVICES (9 sectors)
+0008CA  1  AD 12 05             LDA     debsehd
+0008CD  1  C9 09                CMP     #$09
+0008CF  1  D0 AA                BNE     BOOTLOOP
+0008D1  1  EE 10 05             INC     debcyll
+0008D4  1  A9 00                LDA     #00
+0008D6  1  8D 12 05             STA     debsehd
+0008D9  1  4C 7B 08             JMP     BOOTLOOP
+0008DC  1               
+0008DC  1               EXITBOOT:
+0008DC  1  4C 00 01             JMP     WARMBOOT
+0008DF  1               
+0008DF  1               
+0008DF  1               MSG:
+0008DF  1  0D 0A 57 52          .BYTE   $0D,$0A,"WRITEOS - WRITE DOS/65 FROM MEMORY TO BOOT TRACK",$0D,$0A,$0D,$0A
+0008E3  1  49 54 45 4F  
+0008E7  1  53 20 2D 20  
+000915  1  53 45 4C 45          .BYTE   "SELECT DRIVE:",$0D,$0A
+000919  1  43 54 20 44  
+00091D  1  52 49 56 45  
+000924  1  28 49 29 20          .BYTE   "(I) IDE PRIMARY",$0D,$0A
+000928  1  49 44 45 20  
+00092C  1  50 52 49 4D  
+000935  1  28 53 29 20          .BYTE   "(S) SD CARD",$0D,$0A
+000939  1  53 44 20 43  
+00093D  1  41 52 44 0D  
+000942  1  28 46 29 20          .BYTE   "(F) FLOPPY A:",$0D,$0A
+000946  1  46 4C 4F 50  
+00094A  1  50 59 20 41  
+000951  1  24                   .BYTE   "$"
+000952  1               
+000952  1               IDEMSG:
+000952  1  0D 0A 57 52          .BYTE   $0D,$0A,"WRITING DOS/65 FROM MEMORY TO PRIMARY IDE.",$0D,$0A,$0D,$0A
+000956  1  49 54 49 4E  
+00095A  1  47 20 44 4F  
+000982  1  24                   .BYTE   "$"
+000983  1               
+000983  1               SDMSG:
+000983  1  0D 0A 57 52          .BYTE   $0D,$0A,"WRITING DOS/65 FROM MEMORY TO SD.",$0D,$0A,$0D,$0A
+000987  1  49 54 49 4E  
+00098B  1  47 20 44 4F  
+0009AA  1  24                   .BYTE   "$"
+0009AB  1               
+0009AB  1               FLMSG:
+0009AB  1  0D 0A 57 52          .BYTE   $0D,$0A,"WRITING DOS/65 FROM MEMORY TO FLOPPY A:.",$0D,$0A,$0D,$0A
+0009AF  1  49 54 49 4E  
+0009B3  1  47 20 44 4F  
+0009D9  1  24                   .BYTE   "$"
+0009DA  1               
+0009DA  1               
+0009DA  1               ABORTMSG:
+0009DA  1  0D 0A 41 42          .BYTE   $0D,$0A,"ABORTED.",$0D,$0A,$0D,$0A
+0009DE  1  4F 52 54 45  
+0009E2  1  44 2E 0D 0A  
+0009E8  1  24                   .BYTE   "$"
+0009E9  1               
+0009E9  1               ;_______________________________________________________________
+0009E9  1               sd_bootsector_image:
+0009E9  1               ; RELOACTE CODE FROM DISK BUFFER, AND JUMP
+0009E9  1  A2 00                LDX     #$00
+0009EB  1               :
+0009EB  1  BD 00 02             LDA     INBUFFER,x
+0009EE  1  9D 00 08             STA     BOOTCODESTART,x
+0009F1  1  BD 00 03             LDA     INBUFFER+$100,x
+0009F4  1  9D 00 09             STA     BOOTCODESTART+$100,x
+0009F7  1  E8                   INX
+0009F8  1  E0 00                CPX     #$00
+0009FA  1  D0 EF                BNE     :-
+0009FC  1  4C 16 08             JMP     BOOTCODESTART+(SDBOOT-sd_bootsector_image)
+0009FF  1               ; PERFORM SYSTEM BOOT  -- CODE MUST BE RELOCATABLE!
+0009FF  1               SDBOOT:
+0009FF  1  A9 00                LDA     #$00
+000A01  1  8D 11 05             STA     debcylm         ; SET BOOT CODE LOCATION
+000A04  1  8D 10 05             STA     debcyll         ; SET BOOT CODE LOCATION
+000A07  1  A9 01                LDA     #$01            ;
+000A09  1  8D 12 05             STA     debsehd         ; SET BOOT CODE LOCATION
+000A0C  1               ;
+000A0C  1  A9 00                LDA     #<STARTADDRESS  ; SETUP OS LOAD LOCATION
+000A0E  1  85 38                STA     TEMPWORD1       ;
+000A10  1  A9 B8                LDA     #>STARTADDRESS  ;
+000A12  1  85 39                STA     TEMPWORD1+1     ;
+000A14  1               SDBOOTLOOP:
+000A14  1  A9 00                LDA     #<INBUFFER      ; SETUP DISK BUFFER
+000A16  1  85 32                STA     WORKPTR         ;
+000A18  1  A9 02                LDA     #>INBUFFER      ;
+000A1A  1  85 33                STA     WORKPTR +1      ;
+000A1C  1               ;
+000A1C  1  20 27 FD             JSR     PPP_READ_SECTOR ;
+000A1F  1  A0 00                LDY     #$00            ;
+000A21  1               :
+000A21  1  B1 32                LDA     (WORKPTR),Y     ;
+000A23  1  91 38                STA     (TEMPWORD1),Y   ;
+000A25  1  C8                   INY                     ;
+000A26  1  D0 F9                BNE     :-              ;
+000A28  1  E6 39                INC     TEMPWORD1+1     ;
+000A2A  1  E6 33                INC     WORKPTR+1
+000A2C  1               :
+000A2C  1  B1 32                LDA     (WORKPTR),Y     ;
+000A2E  1  91 38                STA     (TEMPWORD1),Y   ;
+000A30  1  C8                   INY                     ;
+000A31  1  D0 F9                BNE     :-              ;
+000A33  1  E6 39                INC     TEMPWORD1+1     ;
+000A35  1  A5 39                LDA     TEMPWORD1+1
+000A37  1  C9 E0                CMP     #OSENDPAGE
+000A39  1  F0 09                BEQ     :+              ;
+000A3B  1  C9 E1                CMP     #OSENDPAGE+1
+000A3D  1  F0 05                BEQ     :+              ;
+000A3F  1  EE 12 05             INC     debsehd         ;
+000A42  1  D0 D0                BNE     SDBOOTLOOP      ;
+000A44  1               :
+000A44  1  4C 00 B8             JMP     STARTOS         ; RUN THE OS
+000A47  1               ;_______________________________________________________________
+000A47  1               sd_write_bootsector:
+000A47  1  A2 00                LDX     #$00
+000A49  1               :
+000A49  1  BD E9 09             LDA     sd_bootsector_image,x
+000A4C  1  9D 00 02             STA     INBUFFER,x
+000A4F  1  BD E9 0A             LDA     sd_bootsector_image+$100,x
+000A52  1  9D 00 03             STA     INBUFFER+$100,x
+000A55  1  E8                   INX
+000A56  1  E0 00                CPX     #$00
+000A58  1  D0 EF                BNE     :-
+000A5A  1               
+000A5A  1  A9 00                LDA     #$00
+000A5C  1  8D 11 05             STA     debcylm         ; SET BOOT CODE LOCATION
+000A5F  1  8D 10 05             STA     debcyll         ; SET BOOT CODE LOCATION
+000A62  1  8D 12 05             STA     debsehd         ; SET BOOT CODE LOCATION
+000A65  1  20 2A FD             JSR     PPP_WRITE_SECTOR;
+000A68  1  60                   RTS
+000A69  1               
+000A69  1               ;_______________________________________________________________
+000A69  1               ide_bootsector_image:
+000A69  1               ; RELOACTE CODE FROM DISK BUFFER, AND JUMP
+000A69  1  A2 00                LDX     #$00
+000A6B  1               :
+000A6B  1  BD 00 02             LDA     INBUFFER,x
+000A6E  1  9D 00 08             STA     BOOTCODESTART,x
+000A71  1  BD 00 03             LDA     INBUFFER+$100,x
+000A74  1  9D 00 09             STA     BOOTCODESTART+$100,x
+000A77  1  E8                   INX
+000A78  1  E0 00                CPX     #$00
+000A7A  1  D0 EF                BNE     :-
+000A7C  1  4C 16 08             JMP     BOOTCODESTART+(IDEBOOT-ide_bootsector_image)
+000A7F  1               ; PERFORM SYSTEM BOOT  -- CODE MUST BE RELOCATABLE!
+000A7F  1               IDEBOOT:
+000A7F  1  A9 00                LDA     #$00
+000A81  1  8D 34 05             STA     CURRENT_IDE_DRIVE
+000A84  1  8D 11 05             STA     debcylm         ; SET BOOT CODE LOCATION
+000A87  1  8D 10 05             STA     debcyll         ; SET BOOT CODE LOCATION
+000A8A  1  A9 01                LDA     #$01            ;
+000A8C  1  8D 12 05             STA     debsehd         ; SET BOOT CODE LOCATION
+000A8F  1               ;
+000A8F  1  A9 00                LDA     #<STARTADDRESS  ; SETUP OS LOAD LOCATION
+000A91  1  85 38                STA     TEMPWORD1       ;
+000A93  1  A9 B8                LDA     #>STARTADDRESS  ;
+000A95  1  85 39                STA     TEMPWORD1+1     ;
+000A97  1               IDEBOOTLOOP:
+000A97  1  A9 00                LDA     #<INBUFFER      ; SETUP DISK BUFFER
+000A99  1  85 32                STA     WORKPTR         ;
+000A9B  1  A9 02                LDA     #>INBUFFER      ;
+000A9D  1  85 33                STA     WORKPTR +1      ;
+000A9F  1               ;
+000A9F  1  20 30 FD             JSR     IDE_READ_SECTOR ;
+000AA2  1  A0 00                LDY     #$00            ;
+000AA4  1               :
+000AA4  1  B1 32                LDA     (WORKPTR),Y     ;
+000AA6  1  91 38                STA     (TEMPWORD1),Y   ;
+000AA8  1  C8                   INY                     ;
+000AA9  1  D0 F9                BNE     :-              ;
+000AAB  1  E6 39                INC     TEMPWORD1+1     ;
+000AAD  1  E6 33                INC     WORKPTR+1
+000AAF  1               :
+000AAF  1  B1 32                LDA     (WORKPTR),Y     ;
+000AB1  1  91 38                STA     (TEMPWORD1),Y   ;
+000AB3  1  C8                   INY                     ;
+000AB4  1  D0 F9                BNE     :-              ;
+000AB6  1  E6 39                INC     TEMPWORD1+1     ;
+000AB8  1  A5 39                LDA     TEMPWORD1+1
+000ABA  1  C9 E0                CMP     #OSENDPAGE
+000ABC  1  F0 09                BEQ     :+              ;
+000ABE  1  C9 E1                CMP     #OSENDPAGE+1
+000AC0  1  F0 05                BEQ     :+              ;
+000AC2  1  EE 12 05             INC     debsehd         ;
+000AC5  1  D0 D0                BNE     IDEBOOTLOOP     ;
+000AC7  1               :
+000AC7  1  4C 00 B8             JMP     STARTOS         ; RUN THE OS
+000ACA  1               ;_______________________________________________________________
+000ACA  1               ide_write_bootsector:
+000ACA  1  A2 00                LDX     #$00
+000ACC  1               :
+000ACC  1  BD 69 0A             LDA     ide_bootsector_image,x
+000ACF  1  9D 00 02             STA     INBUFFER,x
+000AD2  1  BD 69 0B             LDA     ide_bootsector_image+$100,x
+000AD5  1  9D 00 03             STA     INBUFFER+$100,x
+000AD8  1  E8                   INX
+000AD9  1  E0 00                CPX     #$00
+000ADB  1  D0 EF                BNE     :-
+000ADD  1               
+000ADD  1  A9 00                LDA     #$00
+000ADF  1  8D 11 05             STA     debcylm         ; SET BOOT CODE LOCATION
+000AE2  1  8D 10 05             STA     debcyll         ; SET BOOT CODE LOCATION
+000AE5  1  8D 12 05             STA     debsehd         ; SET BOOT CODE LOCATION
+000AE8  1  20 33 FD             JSR     IDE_WRITE_SECTOR;
+000AEB  1  60                   RTS
+000AEC  1               
+000AEC  1               ;_______________________________________________________________
+000AEC  1               fl_bootsector_image:
+000AEC  1               ; RELOACTE CODE FROM DISK BUFFER, AND JUMP
+000AEC  1  A2 00                LDX     #$00
+000AEE  1               :
+000AEE  1  BD 00 02             LDA     INBUFFER,x
+000AF1  1  9D 00 08             STA     BOOTCODESTART,x
+000AF4  1  BD 00 03             LDA     INBUFFER+$100,x
+000AF7  1  9D 00 09             STA     BOOTCODESTART+$100,x
+000AFA  1  E8                   INX
+000AFB  1  E0 00                CPX     #$00
+000AFD  1  D0 EF                BNE     :-
+000AFF  1  4C 16 08             JMP     BOOTCODESTART+(FLBOOT-fl_bootsector_image)
+000B02  1               ; PERFORM SYSTEM BOOT  -- CODE MUST BE RELOCATABLE!
+000B02  1               FLBOOT:
+000B02  1  A9 00                LDA     #$00
+000B04  1  8D 16 05             STA     sekdsk
+000B07  1  8D 11 05             STA     debcylm         ; SET BOOT CODE LOCATION
+000B0A  1  8D 10 05             STA     debcyll         ; SET BOOT CODE LOCATION
+000B0D  1  A9 01                LDA     #$01            ;
+000B0F  1  8D 12 05             STA     debsehd         ; SET BOOT CODE LOCATION
+000B12  1               ;
+000B12  1  A9 00                LDA     #<STARTADDRESS  ; SETUP OS LOAD LOCATION
+000B14  1  85 38                STA     TEMPWORD1       ;
+000B16  1  A9 B8                LDA     #>STARTADDRESS  ;
+000B18  1  85 39                STA     TEMPWORD1+1     ;
+000B1A  1               FLBOOTLOOP:
+000B1A  1  A9 00                LDA     #<INBUFFER      ; SETUP DISK BUFFER
+000B1C  1  85 32                STA     WORKPTR         ;
+000B1E  1  A9 02                LDA     #>INBUFFER      ;
+000B20  1  85 33                STA     WORKPTR +1      ;
+000B22  1               ;
+000B22  1  20 1E FD             JSR     READFL          ;
+000B25  1  A0 00                LDY     #$00            ;
+000B27  1               :
+000B27  1  B1 32                LDA     (WORKPTR),Y     ;
+000B29  1  91 38                STA     (TEMPWORD1),Y   ;
+000B2B  1  C8                   INY                     ;
+000B2C  1  D0 F9                BNE     :-              ;
+000B2E  1  E6 39                INC     TEMPWORD1+1     ;
+000B30  1  E6 33                INC     WORKPTR+1
+000B32  1               :
+000B32  1  B1 32                LDA     (WORKPTR),Y     ;
+000B34  1  91 38                STA     (TEMPWORD1),Y   ;
+000B36  1  C8                   INY                     ;
+000B37  1  D0 F9                BNE     :-              ;
+000B39  1  E6 39                INC     TEMPWORD1+1     ;
+000B3B  1  A5 39                LDA     TEMPWORD1+1
+000B3D  1  C9 E0                CMP     #OSENDPAGE
+000B3F  1  F0 19                BEQ     :+              ;
+000B41  1  C9 E1                CMP     #OSENDPAGE+1
+000B43  1  F0 15                BEQ     :+              ;
+000B45  1  EE 12 05             INC     debsehd         ;
+000B48  1  AD 12 05             LDA     debsehd
+000B4B  1  C9 09                CMP     #$09
+000B4D  1  D0 CB                BNE     FLBOOTLOOP      ;
+000B4F  1  A9 00                LDA     #$00
+000B51  1  8D 12 05             STA     debsehd
+000B54  1  EE 10 05             INC     debcyll
+000B57  1  4C 1A 0B             JMP     FLBOOTLOOP      ;
+000B5A  1               :
+000B5A  1  4C 00 B8             JMP     STARTOS         ; RUN THE OS
+000B5D  1               ;_______________________________________________________________
+000B5D  1               fl_write_bootsector:
+000B5D  1  A2 00                LDX     #$00
+000B5F  1               :
+000B5F  1  BD EC 0A             LDA     fl_bootsector_image,x
+000B62  1  9D 00 02             STA     INBUFFER,x
+000B65  1  BD EC 0B             LDA     fl_bootsector_image+$100,x
+000B68  1  9D 00 03             STA     INBUFFER+$100,x
+000B6B  1  E8                   INX
+000B6C  1  E0 00                CPX     #$00
+000B6E  1  D0 EF                BNE     :-
+000B70  1               
+000B70  1  A9 00                LDA     #$00
+000B72  1  8D 16 05             STA     sekdsk
+000B75  1  8D 11 05             STA     debcylm         ; SET BOOT CODE LOCATION
+000B78  1  8D 10 05             STA     debcyll         ; SET BOOT CODE LOCATION
+000B7B  1  8D 12 05             STA     debsehd         ; SET BOOT CODE LOCATION
+000B7E  1  20 21 FD             JSR     WRITEFL         ;
+000B81  1  60                   RTS
+000B82  1               
+000B82  1               
+000B82  1               
+000B82  1                       .END

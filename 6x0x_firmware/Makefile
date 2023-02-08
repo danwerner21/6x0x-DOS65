@@ -1,7 +1,7 @@
 all:  	rom.hex
 
 
-6x0xbios.out: 6x0xbios.asm bios_ppp_common.asm bios_serial.asm bios_ppp_console.asm miniassembler.asm bios_ppp_hd.asm bios_diov3_ide.asm bios_diov3_flp.asm bios_clrdir.asm
+6x0xbios.out: 6x0xbios.asm bios_ppp_common.asm bios_serial.asm bios_ppp_console.asm miniassembler.asm bios_ppp_hd.asm bios_diov3_ide.asm bios_diov3_flp.asm bios_clrdir.asm bios_rtc.asm
 	ca65 6x0xbios.asm -l 6x0xbios.lst
 	ld65 6x0xbios.o -vm -v -m 6x0xbios.map -C dos65.cfg -o 6x0xbios.out
 
@@ -20,6 +20,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_diov3_ide.asm bios_diov3_ide.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_diov3_flp.asm bios_diov3_flp.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_clrdir.asm bios_clrdir.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_rtc.asm bios_rtc.asm
 
 clean:
 	@rm -f *.o

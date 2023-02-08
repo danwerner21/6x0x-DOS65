@@ -4,8 +4,6 @@ DOS/65 port for the retrobrewcomputers.org 6x0x sbc
 Note that the new system uses banked ram/rom.  To function K17 needs to be off.
 
 todo:
-* rtc BIOS
-* rtc DOS65
 * rtc utility
 * dsky new (jumper?)
 * floppy support
@@ -17,3 +15,7 @@ todo:
 * cleanup utilities ToDo
 * floppy formatter
 * dsky old (jumper?)
+* IO ASSIGNMENT?
+    ** prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
+    ** punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+    ** rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?

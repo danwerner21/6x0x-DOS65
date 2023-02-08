@@ -97,12 +97,24 @@ CURRENT_IDE_DRIVE = $0534
         .SEGMENT "DRIVERS"
         .INCLUDE "macro.asm"
 ;	dsky? (both)
-; 	rtc?
         .INCLUDE "bios_ppp_hd.asm"
         .INCLUDE "bios_diov3_flp.asm"
         .INCLUDE "bios_diov3_ide.asm"
         .INCLUDE "bios_clrdir.asm"
+        .INCLUDE "bios_rtc.asm"
 
+STARTUP:
+        .BYTE   $0D,$0A
+
+        .BYTE   "  RetroBrew Computers 6x0x",$0D,$0A,$0D,$0A
+        .BYTE   " .d8888b.            .d8888b. ",$0D,$0A
+        .BYTE   "d88P  Y88b          d88P  Y88b ",$0D,$0A
+        .BYTE   "888                 888    888 ",$0D,$0A
+        .BYTE   "888d888b.  888  888 888    888 888  888 ",$0D,$0A
+        .BYTE   "888P  Y88b `Y8bd8P' 888    888 `Y8bd8P' ",$0D,$0A
+        .BYTE   "888    888   X88K   888    888   X88K ",$0D,$0A
+        .BYTE   "Y88b  d88P .d8  8b. Y88b  d88P .d8  8b. ",$0D,$0A
+        .BYTE   "  Y8888P   888  888   Y8888P   888  888 ",$0D,$0A,$0D,$0A
 
         .SEGMENT "TROM"
         .ORG    $F000
@@ -140,12 +152,13 @@ COLD_START:
         JSR     SERIALINIT      ;
         JSR     INITPAGES       ;
 
-
+        JSR     PAGE_ENTER
         LDA     #<STARTUP       ; OUTPUT STARTUP STRING
         STA     STRPTR          ;
         LDA     #>STARTUP       ;
         STA     STRPTR+1        ;
         JSR     OUTSTR          ;
+        JMP     PAGE_EXIT
 
         LDA     #$00            ;
         STA     INBUFFER        ; MAKE SURE INPUT BUFFER IS EMPTY
@@ -1110,6 +1123,18 @@ P_CLRDIR:
         JSR     PAGE_ENTER
         JSR     CLRDIR
         JMP     PAGE_EXIT
+P_RTC_WRITE:
+        JSR     PAGE_ENTER
+        JSR     RTC_WRITE
+        JMP     PAGE_EXIT
+P_RTC_READ:
+        JSR     PAGE_ENTER
+        JSR     RTC_READ
+        JMP     PAGE_EXIT
+P_RTC_RESET:
+        JSR     PAGE_ENTER
+        JSR     RTC_RESET
+        JMP     PAGE_EXIT
 PAGE_EXIT:
         PHA
         LDA     #$00
@@ -1152,20 +1177,6 @@ REGDATA:
         .BYTE   "   PC  AC  XR  YR  SP  SR"
         .BYTE   $0D,$0A,"! ",0
 
-
-STARTUP:
-        .BYTE   $0D,$0A
-
-        .BYTE   "  RetroBrew Computers 6x0x",$0D,$0A,$0D,$0A
-        .BYTE   " .d8888b.            .d8888b. ",$0D,$0A
-        .BYTE   "d88P  Y88b          d88P  Y88b ",$0D,$0A
-        .BYTE   "888                 888    888 ",$0D,$0A
-        .BYTE   "888d888b.  888  888 888    888 888  888 ",$0D,$0A
-        .BYTE   "888P  Y88b `Y8bd8P' 888    888 `Y8bd8P' ",$0D,$0A
-        .BYTE   "888    888   X88K   888    888   X88K ",$0D,$0A
-        .BYTE   "Y88b  d88P .d8  8b. Y88b  d88P .d8  8b. ",$0D,$0A
-        .BYTE   "  Y8888P   888  888   Y8888P   888  888 ",$0D,$0A,$0D,$0A
-
 ;BIOS JUMP TABLE
         .SEGMENT "JUMPTABLE"
         .ORG    $FD00           ; JUMP TABLE LOCATION
@@ -1190,6 +1201,9 @@ STARTUP:
         JMP     LOAD            ; load s19 file into memory
         JMP     P_PPP_INITIALIZE; INITIALIZE PPP SD HARDWARE
         JMP     P_IDE_INITIALIZE; INITIALIZE/DETECT IDE V3 HARDWARE
+        JMP     P_RTC_WRITE     ; WRITE RTC REGISTER
+        JMP     P_RTC_READ      ; READ RTC REGISTER
+        JMP     P_RTC_RESET     ; RESET RTC
 
 
 

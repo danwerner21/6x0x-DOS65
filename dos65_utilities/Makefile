@@ -1,7 +1,7 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com \
-	dbasic.com s19.com writeos.com #format.com
+	dbasic.com s19.com writeos.com rtc.com #format.com
 
 assign.com: assign.c
 	cc65  -t none -O --cpu 65sc02  assign.c
@@ -57,6 +57,9 @@ writeos.out: writeos.asm
 	ca65 --cpu 65sc02 writeos.asm -l writeos.lst
 	ld65 writeos.o  -m writeos.map -C dos65.cfg -o writeos.out
 
+rtc.out: rtc.asm
+	ca65 --cpu 65sc02 rtc.asm -l rtc.lst
+	ld65 rtc.o  -m rtc.map -C dos65.cfg -o rtc.out
 
 #format.out: format.asm
 #	ca65 --cpu 65sc02 format.asm -lformat.lst
@@ -158,6 +161,13 @@ writeos.com: writeos.out
 	cp writeos.com ../bin/
 	cp writeos.s19 ../bin/
 
+rtc.com: rtc.out
+	srec_cat  rtc.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  rtc.s19  -data-only
+	srec_cat  rtc.s19  -offset -0x0800  -o  rtcA.s  -data-only
+	srec_cat  rtcA.s -o rtc.com  -BINARY
+	@rm -f rtcA.s
+	cp rtc.com ../bin/
+	cp rtc.s19 ../bin/
 
 #format.com: format.out
 #	srec_cat  format.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  format.s19  -data-only
@@ -181,7 +191,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/sedit.asm sedit.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/s19.asm s19.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/writeos.asm writeos.asm
-
+	pretty6502 -p1 -a0 -du -mu -l ./backup/rtc.asm rtc.asm
 
 clean:
 	@rm -f *.o

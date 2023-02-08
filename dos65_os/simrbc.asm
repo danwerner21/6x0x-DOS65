@@ -286,7 +286,7 @@ punwrt:
 rdrinp:
         RTS                     ;reader input
 rdtime:
-;            JSR     DOSREADRTC
+        LDX #128
         RTS                     ;read clock
 xlate:
         RTS                     ;sector translate
