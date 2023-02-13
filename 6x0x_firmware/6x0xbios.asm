@@ -158,14 +158,14 @@ COLD_START:
         LDA     #>STARTUP       ;
         STA     STRPTR+1        ;
         JSR     OUTSTR          ;
-        JMP     PAGE_EXIT
+        JSR     PAGE_EXIT
 
         LDA     #$00            ;
         STA     INBUFFER        ; MAKE SURE INPUT BUFFER IS EMPTY
 ;
         JSR     P_PPP_INITIALIZE
         JSR     P_IDE_INITIALIZE
-
+        JSR     P_RTC_RESET
 
         BRK                     ; PERFORM BRK (START MONITOR)
 
