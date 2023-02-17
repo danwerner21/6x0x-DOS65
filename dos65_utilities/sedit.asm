@@ -3,7 +3,7 @@
 ; 	DOS/65 SCREEN EDITOR (ANSI TERMINAL/CONSOLE)
 ;	DAN WERNER 5/31/2014
 ;
-;
+;  DWERNER 2/17/23   ADD CODE TO ENSURE "SAVE AS" FILENAMES ARE PROPER DOS/65 FILENAMES
 ;________________________________________________________________________________________________________________________________
 ;
 
@@ -1821,11 +1821,7 @@ DOS65SAVEAS2:
         DEX
         CPX     #$00
         BNE     DOS65SAVEAS2
-        LDA     #<FNBUFFER
-        LDY     #>FNBUFFER
-        LDX     #10             ;
-        JSR     PEM             ;
-
+        JSR     GETFILENAME
         JSR     DOS65FCBPREP
         CMP     #$FF
         BEQ     DOS65SAVEAS1
@@ -1858,7 +1854,88 @@ SAVESCREENFORMAT2:
         .BYTE   "  NEW FILE NAME: $"
 
 FNBUFFER:
-        .BYTE   15,"                  "
+        .BYTE   "                  "
+
+;__GETFILENAME___________________________________________________________________________________________________________________
+;
+; POPULATE FNBUFFER WITH ONLY VALID FILENAME CHARACTERS
+;________________________________________________________________________________________________________________________________
+;
+GETFILENAME:
+        LDY     #$00
+GETFILENAME_LOOP:
+        LDX     #6
+        JSR     PEM             ;
+        CMP     #8
+        BEQ     GETFILENAME_BACKSPACE
+        CMP     #13
+        BEQ     GETFILENAME_END
+        CMP     #33
+        BCC     GETFILENAME_LOOP
+        CMP     #40
+        BCC     :+
+        CMP     #43
+        BEQ     :+
+        CMP     #45
+        BEQ     :+
+        CMP     #46
+        BEQ     :+
+        CMP     #48
+        BCC     GETFILENAME_LOOP
+        CMP     #59
+        BCC     :+
+        CMP     #64
+        BCC     GETFILENAME_LOOP
+        CMP     #91
+        BCC     :+
+        CMP     #97
+        BCC     GETFILENAME_LOOP
+        CMP     #123
+        BCC     GETFILENAME_TOUPPER
+        JMP     GETFILENAME_LOOP
+:
+        PHA
+        LDX     #2
+        JSR     PEM
+        TYA
+        TAX
+        PLA
+        STA     FNBUFFER,X
+        INY
+        CPY     #14
+        BNE     GETFILENAME_LOOP
+GETFILENAME_END:
+        TYA
+        TAX
+        LDA     #$00
+        STA     FNBUFFER,X
+        RTS
+GETFILENAME_TOUPPER:
+        SEC
+        SBC     #32
+        JMP     :-
+GETFILENAME_BACKSPACE:
+        CPY     #00
+        BEQ     GETFILENAME_LOOP
+        LDA     #8
+        LDX     #2
+        JSR     PEM
+        LDA     #32
+        LDX     #2
+        JSR     PEM
+        LDA     #8
+        LDX     #2
+        JSR     PEM
+        DEY
+        LDA     #32
+        PHY
+        PLX
+        STA     FNBUFFER,X
+        JMP     GETFILENAME_LOOP
+
+
+
+
 
 
 ;__DOS65SAVE_____________________________________________________________________________________________________________________
@@ -1997,7 +2074,7 @@ DOS65SAVE_LF1:
         RTS
 
 DOS65FCBPREP:
-        LDA     FNBUFFER+3      ; GET ":"
+        LDA     FNBUFFER+1      ; GET ":"
         CMP     #':'            ;
         BEQ     DOS65FCBPREP_1  ; YES, IT WAS A DRIVE, CONTINUE
         LDA     #<FILEERROR1    ; NO, ERROR OUT
@@ -2007,7 +2084,7 @@ DOS65FCBPREP:
         LDA     #$FF
         RTS
 DOS65FCBPREP_1:
-        LDA     FNBUFFER+2      ; GET DRIVE LETTER
+        LDA     FNBUFFER        ; GET DRIVE LETTER
         SEC                     ;
         SBC     #64             ; PARSE DRIVE NUMBER
         STA     DFLFCB+0        ; STORE IT IN FCB
@@ -2022,7 +2099,7 @@ DOS65FCBPREP_1A:                ; BLANK OUT FCB
         LDY     #$01            ; POINT Y TO FCB FILE NAME
         LDX     #$00            ;
 DOS65FCBPREP_2:                 ; COPY FILE NAME PARAMETER INTO FCB
-        LDA     FNBUFFER+4,X    ;
+        LDA     FNBUFFER+2,X    ;
         INX                     ;
         CMP     #'.'            ;
         BEQ     DOS65FCBPREP_3  ;
@@ -2032,19 +2109,18 @@ DOS65FCBPREP_2:                 ; COPY FILE NAME PARAMETER INTO FCB
         BEQ     DOS65FCBPREP_3  ;
         JMP     DOS65FCBPREP_2  ;
 DOS65FCBPREP_3:                 ;
-        LDA     FNBUFFER+4,X    ;
+        LDA     FNBUFFER+2,X    ;
         STA     DFLFCB+9        ;
-        LDA     FNBUFFER+5,X    ;
+        LDA     FNBUFFER+3,X    ;
         STA     DFLFCB+10       ;
-        LDA     FNBUFFER+6,X    ;
+        LDA     FNBUFFER+4,X    ;
         STA     DFLFCB+11       ;
         LDA     #$00            ;
         RTS                     ;
 
 
 FILEERROR1:
-        .BYTE   $1B,'[','1','1',';','1','0','H'
-        .BYTE   "** NO DRIVE SPECIFIED, TRY AGAIN"
+        .BYTE   $0D,$0A,$0D,$0A,"** NO DRIVE SPECIFIED, TRY AGAIN"
         .BYTE   $0D,$0A,'$'
 FILEERROR2A:
         .BYTE   $1B,'[','0','1',';','1','0','H'
