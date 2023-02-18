@@ -1,161 +1,207 @@
 # 6x0x-DOS65
-DOS/65 port for the retrobrewcomputers.org 6x0x sbc
+## DOS/65 port for the retrobrewcomputers.org 6x0x sbc
 
-Note that the new system uses banked ram/rom.  To function K17 needs to be off.
+[DOS/65 IS A PRODUCT OF RICHARD A. LEARY.](http://www.z80.eu/dos65.html)
 
-todo:
+DOS/65 software and documentation are provided as shareware for non-profit, educational, or private use. Any other use is prohibited without approval of Richard A. Leary.
+
+CONVERSION FOR THE Retrobrew Computers 6x0x BY DAN WERNER
+
+## todo:
 * cleanup quickstart documentation and delete quickstart folder
-
 * cleanup wiki documentation
 * assign utility
 * floppy support
 * floppy formatter
-
 * rtc utility (Needs working VIAs)
 * dsky new (jumper?) (Needs working VIAs)
 * default console jumper (Needs working VIAs)
 * dsky old (jumper?) (Needs working VIAs)
 * IO ASSIGNMENT?
-    ** prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
-    ** punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
-    ** rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+..* prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
+..* punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+..* rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
 
----------------------------------------------------------------------------------------------------------------------
+---
 
+## System install
 
-DOS/65 for the N8VEM 6502
-COLOSSUS
+### REQUIRED FOR OPERATION
 
+*  6x0x
+*  PC Connected to serial port (P31) of 6x0x
+*  SD card (>32mb)
 
+* optional:
+..*  ECB backplane
+..*  DSKY [V1](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dsky:start) or [V2](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dskyng)
+..*  [Disk Controller V3](https://retrobrewcomputers.org/doku.php?id=boards:ecb:diskio-v3:start)
 
+### Jumper Settings
 
-DOS/65 IS A PRODUCT OF
-RICHARD A. LEARY
-http://www.z80.eu/dos65.html
-
-DOS/65 software and documentation are provided
-as shareware for non-profit, educational, or private
-use. Any other use is prohibited without approval of
-Richard A. Leary.
-
-
-CONVERSION FOR THE N8VEM
-BY DAN WERNER
+See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on setting the jumpers for your particular hardware configuration.   Note that as this version of DOS/65 uses the MMU, it is important that there is no jumper on K17.  Also, to utilize floppy drives with DOS/65 the CPU must be running at 2Mhz or better.
 
 
+### Building the system
+See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on how to constuct the 6x0x PCB.
+
+### BRINGING UP THE SYSTEM
+
+#### Program the rom image on to EPROM or EEPROM from the bin folder in this repo
+
+The default build ROM.HEX file can be programmed into your selected ROM chip type and should provide sane defaults for
+the 6x0x SBC.  See the "Building a Custom ROM Image" section for details on what configuration options are available and how to build a custom ROM image.
+
+Selection and use of a suitable EPROM programmer is required and beyond the scope of this document.
 
 
+#### Program the ParPortProp.eeprom rom image to the 6x0x board
+
+In this repo in the folder 6x0x_firmware/BusPortProp/FullColor/Term is the source code and binary image for the Propeller microcontroller that handles the Keyboard, Video, Sound, and SD card interface for the 6x0x.  Note that there are two versions of the Propeller firmware, “ParPortPropFullColor.eeprom” which is a full-color terminal using a 1280×1024 tile driver and “ParPortPropOriginal.eeprom” which is an alternate version for older monitors using a different Propeller driver.
+
+Programming of the Propeller EEPROM(U25) can be accomplished in any of the following ways:
+
+1. Via a standalone EEPROM programmer
+1. Via a serial cable to the serial port on the ParPortProp
+1. Via a PropPlug adapter available from Parallax
+
+For #1, selection and use of a suitable programmer is required and beyond the scope of this document.
+
+For #2 or #3, you must download the Propeller Tool from Parallax (free). This tool includes documentation on using either a serial cable or a PropPlug to program your device. In a nutshell, you will follow this procedure to program your selected eeprom file:
+
+* Start the Propeller Tool
+* Use File → Open… to select and open ParPortProp.eeprom
+* Choose “Load EEPROM” from the subsequent “Object Info” dialog box.
+
+#### Power on system
+
+If the system is running properly, you should be greeted with the 6x0x power on screen on your VGA monitor.
+
+```
+        RetroBrew Computers 6x0x
+
+         .d8888b.            .d8888b.
+        d88P  Y88b          d88P  Y88b
+        888                 888    888
+        888d888b.  888  888 888    888 888  888
+        888P  Y88b `Y8bd8P' 888    888 `Y8bd8P'
+        888    888   X88K   888    888   X88K
+        Y88b  d88P .d8  8b. Y88b  d88P .d8  8b.
+          Y8888P   888  888   Y8888P   888  888
+
+        SD CARD: INITIALIZED
+        PPIDE: NOT FOUND
+
+           PC  AC  XR  YR  SP  SR"
+        ! F5CE A5  D3  00  FF  3A
+```
+(note that the register values may be different for your build)
+
+At this juncture it is convienent (but not essential) to redirect the console to the serial port so that all operations can be done from your attached PC. (9600 baud, 8 bit, no stop bit, no parity)
+
+To do this type:
+```
+ENTER 003A 01
+```
+at the monitor prompt, then you can continue to interact with the 6x0x system using a terminal program on your PC attached to the 6x0x SBC on the Primary serial port using either:
+
+* P25, TTL levels serial, pin 1 = lower left, above pin 16 of left MAX232
+* P31, RS232 levels serial, pin 1 = lower left, above pin 9 of left MAX232
 
 
-I. REQUIRED FOR OPERATION
+#### Clear the Boot Device
 
-  6x0x Colossus board*
-  PC Connected to serial port (P31) of 6x0x Colossus
-  SD card (>32mb)
-*Early versions of this board require fixes to function properly.  Refer to the N8VEM WIKI for details.
+DOS/65 is a bit sensitive to garbage that is in the boot and directory areas of it's storage devices.  Therefore it is important to have a way to clear these areas.   The 6x0x montor provides a command to accomplish this task.
+
+```
+CLRDIR  D TTTTTT NN
+             D     = Device (I)DE Primary (J)IDE Secondary or (S)D
+             TTTTTT= Starting Track
+             NN    = Number of Tracks
+```
+
+Prior to starting DOS/65 with an attached SD card or IDE device it is important to run this command on a blank device.  Note that you only need to run this command on a NEW device -- if it is ran on an existing drive DATA WILL BE LOST.
+
+This version supports the ROMWBW concept of "Slices" to allow large drives to be partitioned off to allow DOS/65 to make use of a much larger device.   See the "Building a Custom ROM Image" section of this document for more information.  For now, it is only important to clear the first few tracks of the device (eventually it will be important to ensure that you have cleared the first few tracks of each Slice).
+
+To clear the first 16 tracks of Slice 0 of the SD card type:
+```
+CLRDIR S 000000 10
+```
+If you have configured the ROM image to support more Slices in the SD card the command should be repeated for the first few tracks in each configured slice.
+If you have any attached IDE devices, you need to repeat this process for any configured slices on those drives.
+
+If you are using the default configuration and have no attached IDE devices, only the above command is required.
 
 
-II. BRINGING UP THE SYSTEM
+#### load the OS into RAM
 
-
-1> Program the R52PPP.BIN rom image on to EPROM or EEPROM
-
-The Rom Commands are as follows:
-REGISTER  Print Processor Registers
-DUMP XXXX YYYY  Dump memory from xxxx (in hex) to yyyy (in hex)
-ENTER XXXX YY Change Memory byte at location xxxx (in hex) to value yy
-GO XXXX  Transfer execution to location xxxx (in hex)
-LOAD  Load a Motorola format image
-BOOT X  Load DOS/65 image from device X and boot it
-o 0= SD CARD
-o 1= FLOPPY
-o 4= IDE
-
-The following two commands are optional:
-ASSEMBLE XXXX Assemble a 6502 program from the console to location XXXX
-DISASSEMBLE XXXX Disassemble a 6502 program from location XXXX  to the console
-
-Note that optional commands and Floppy/IDE support may not be included in the Quick Start Image,
-to use optional features, download the latest DOS/65 source package from the N8VEM wiki.
-
-2> Program the ParPortProp.eeprom rom image to the P.P.P. (ParPortProp ) board
-
-3> Power on system (should see 6502 monitor prompt on PPP )
-
-4> Install second stage loader onto SD Card
-On the P.P.P. “.” prompt type:
+To load the OS image into RAM, at the 6x0x “.” prompt type:
+```
 LOAD
+```
 
-The P.P.P prompt will appear to freeze, but it is actually waiting for a Motorola
-“S19” file to be sent to the serial port from your PC.  From a terminal program
-on your PC (9600 baud, 8 bit, no stop bit, no parity), do a file dump of the
-“PPPboot.S19”.  You may need to tell your terminal program to insert a delay
-between characters and between lines in order to ensure that you do not send
-the characters too quickly.  On my TeraTerm, 5ms between characters and
-10ms between lines seems to work out about right.  If the file transfer is working
-normally, you should see the s19 file echoed to your pc terminal window.   You
-should not see any “?” characters in the stream, if you do, there was a
-checksum error and you need to increase your delay settings.   When the
-transfer is complete the P.P.P screen should return to the “.” Prompt.
+The 6x0x will appear to freeze, but it is actually waiting for a Motorola “S19” file to be sent to the serial port from your PC.  From a terminal program on your PC (9600 baud, 8 bit, no stop bit, no parity), do a file dump of the “dos65.s19” from the bin folder of this repo.  You may need to tell your terminal program to insert a delay between characters and between lines in order to ensure that you do not send the characters too quickly.  On my TeraTerm, 5ms between characters and 10ms between lines seems to work out about right.  If the file transfer is working normally, you should see the s19 file echoed to your pc terminal window.   You should not see any “?” characters in the stream, if you do, there was a checksum error and you need to increase your delay settings.   When the transfer is complete the 6x0x screen should return to the “.” Prompt.
 
-On the P.P.P. “.” prompt type:
-GO 0300
+To start DOS/65 type:
+```
+GO B800
+```
 
-This will run the program and copy the second stage boot loader to the SD card
-inserted in the P.P.P.
+This will start DOS/65.  If DOS has started successfully you should see:
+```
+DOS/65 ON THE 6x0x RBC
+SD CARD: INITIALIZED
+PPIDE : NOT PRESENT
 
+A>
+```
 
+CONGRADULATIONS! Your 6x0x SBC is now running DOS/65.   You should be able to see your SD card as drive "A" and can now run any of the internal DOS commands.
 
+#### Save the running OS in RAM on to the boot area of the SD card
 
+The next steps we need to accomplish is to load a few key programs on to the SD card, and save the OS into the boot area of the SD card to allow us to boot the system without an attached PC.
 
-5> Install DOS/65 onto the SD Card
-Following the same process as step 4, load the following software
-On the P.P.P. “.” prompt type:
-LOAD
+We want to begin by loading a DOS/65 program that will access the BIOS S19 file loader.
 
- Dump dos65.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
-
-On the P.P.P. “.” prompt type:
-LOAD
-
- Dump pppwros.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
-
-On the P.P.P. “.” prompt type:
-GO 0800
-
-This will load DOS/65 to the boot track of the SD card.
-
-
-6> Boot DOS/65
-At the P.P.P. “.” prompt type:
-BOOT 0
-
-
-7> Clear SD directory track
-At the P.P.P. “A>” prompt type:
-ERA A:*.*
-At the P.P.P. “ALL FILES(Y/N)” prompt type:
-Y
-
-The system will think for a bit -- the SD card is defined with a VERY large
-directory area so this will take some time.   It is possible to speed SD disk
-access up by changing the number of directory sectors in the SIM.  See the
-DOS/65 guides for more details.
-
-
-8> Load file transfer utility
- On the P.P.P. “A>” prompt type:
-GO $FFDD
-
- Dump S19.S19 to serial port from your PC terminal program, wait for the P.P.P
-to return to the prompt when the load is complete.
-
-On the P.P.P. “A>” prompt type:
+At the DOS/65 “A>” prompt type:
+```
+GO $0FD36
+```
+This calls the BIOS S19 loader and just like before is now waiting for you to dump a s19 file to the serial port from your PC terminal program.   The file we want to send now is the "S19.S19" file from the bin folder of the repo.  Once the file is sent, DOS/65 should return to a "A>" prompt.
+On the 6x0x “A>” prompt type:
+```
 SAVE 1 A:S19.COM
-CONGRATULATIONS!  You have just saved your first utility to the DOS/65 disk!
+```
+CONGRATULATIONS!  You have just saved your first utility to the DOS/65 SD disk!
 
+The next utility we want to save to the SD card is the "WRITEOS" utility.  This program will copy the running version of DOS/65 to a selected drive.   To upload this utility type "S19" at the DOS/65 prompt. . .  and again the 6x0x is now waiting for you to dump a s19 file to the serial port from your PC terminal program.   The file we want to send now is the "WRITEOS.S19" file from the bin folder of the repo.  Once the file is sent, DOS/65 should return to a "A>" prompt.
+On the 6x0x “A>” prompt type:
+```
+SAVE 5 A:WRITEOS.COM
+```
+
+Once this is complete, you can then call the WRITEOS.COM program to copy DOS/65 to the SD Card.
+On the 6x0x “A>” prompt type "WRITEOS".
+The 6x0x should respond with:
+```
+WRITEOS - WRITE DOS/65 FROM MEMORY TO BOOT TRACK
+
+SELECT DRIVE:
+(I) IDE PRIMARY
+(S) SD CARD
+(F) FLOPPY A:
+```
+
+Type "S" (make sure it is in caps) to write the running image to the SD card and . . .  That's it!  you should now be able to power off your 6x0x system and boot DOS/65 from the SD card by typing:
+```
+BOOT 0
+```
+From the system monitor's "." prompt.
+
+
+#### Load the remaining DOS/65 utilities to the SD Card
 
 9> Load DBASIC
  On the P.P.P. “A>” prompt type:
@@ -246,3 +292,57 @@ P.P.P to return to the prompt when the load is complete.
 
 On the P.P.P. “A>” prompt type:
 SAVE 5 A:MKCOM.COM
+
+
+
+
+### Monitor Commands
+
+The Rom Commands are as follows:
+```
+REGISTER  Print Processor Registers
+DUMP XXXX YYYY  Dump memory from xxxx (in hex) to yyyy (in hex)
+ENTER XXXX YY Change Memory byte at location xxxx (in hex) to value yy
+GO XXXX  Transfer execution to location xxxx (in hex)
+LOAD  Load a Motorola format image
+BOOT X  Load DOS/65 image from device X and boot it
+o 0= SD CARD
+o 1= FLOPPY
+o 4= IDE
+ASSEMBLE XXXX Assemble a 6502 program from the console to location XXXX
+DISASSEMBLE XXXX Disassemble a 6502 program from location XXXX  to the console
+CLRDIR  D TTTTTT NN
+            ; D     = Device (I)DE Primary (J)IDE Secondary or (S)D
+             ; TTTTTT= Starting Track
+            ; NN    = Number of Tracks
+```
+
+
+
+
+
+
+
+
+
+**** Memory Map
+
+** System Design
+
+**
+The Rom Commands are as follows:
+REGISTER  Print Processor Registers
+DUMP XXXX YYYY  Dump memory from xxxx (in hex) to yyyy (in hex)
+ENTER XXXX YY Change Memory byte at location xxxx (in hex) to value yy
+GO XXXX  Transfer execution to location xxxx (in hex)
+LOAD  Load a Motorola format image
+BOOT X  Load DOS/65 image from device X and boot it
+o 0= SD CARD
+o 1= FLOPPY
+o 4= IDE
+ASSEMBLE XXXX Assemble a 6502 program from the console to location XXXX
+DISASSEMBLE XXXX Disassemble a 6502 program from location XXXX  to the console
+CLRDIR  D TTTTTT NN
+            ; D     = Device (I)DE Primary (J)IDE Secondary or (S)D
+             ; TTTTTT= Starting Track
+            ; NN    = Number of Tracks
