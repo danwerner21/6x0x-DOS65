@@ -18,9 +18,9 @@ CONVERSION FOR THE Retrobrew Computers 6x0x BY DAN WERNER
 1. default console jumper (Needs working VIAs)
 1. dsky old (jumper?) (Needs working VIAs)
 1. IO ASSIGNMENT?
-* prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
-* punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
-* rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+ * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
+ * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+ * rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
 
 ---
 
@@ -33,9 +33,9 @@ CONVERSION FOR THE Retrobrew Computers 6x0x BY DAN WERNER
 1. SD card (>32mb)
 
 1. optional:
-⋅⋅1.  ECB backplane
-⋅⋅1.  DSKY [V1](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dsky:start) or [V2](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dskyng)
-⋅⋅1.  [Disk Controller V3](https://retrobrewcomputers.org/doku.php?id=boards:ecb:diskio-v3:start)
+ *  ECB backplane
+ *  DSKY [V1](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dsky:start) or [V2](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dskyng)
+ *  [Disk Controller V3](https://retrobrewcomputers.org/doku.php?id=boards:ecb:diskio-v3:start)
 
 ### Jumper Settings
 
