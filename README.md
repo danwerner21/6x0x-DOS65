@@ -94,6 +94,7 @@ If the system is running properly, you should be greeted with the 6x0x power on 
 
            PC  AC  XR  YR  SP  SR"
         ! F5CE A5  D3  00  FF  3A
+        .
 ```
 (note that the register values may be different for your build)
 
@@ -183,7 +184,12 @@ SAVE 5 A:WRITEOS.COM
 ```
 
 Once this is complete, you can then call the WRITEOS.COM program to copy DOS/65 to the SD Card.
-On the 6x0x “A>” prompt type "WRITEOS".
+On the 6x0x “A>” prompt type:
+
+```
+WRITEOS
+```
+
 The 6x0x should respond with:
 ```
 WRITEOS - WRITE DOS/65 FROM MEMORY TO BOOT TRACK
@@ -203,119 +209,139 @@ From the system monitor's "." prompt.
 
 #### Load the remaining DOS/65 utilities to the SD Card
 
-9> Load DBASIC
- On the P.P.P. “A>” prompt type:
+##### Load DBASIC
+ On the 6x0x “A>” prompt type:
 S19
 
  Dump DBASIC.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
+6x0x to return to the prompt when the load is complete.
 
-On the P.P.P. “A>” prompt type:
+On the 6x0x “A>” prompt type:
 SAVE 43 A:DBASIC.COM
 
 * note: A new command was added to DBASIC that is not in the docs
  KILL - will return to DOS/65 from DBASIC
 
 
-10> Load ALLOC
- On the P.P.P. “A>” prompt type:
+##### Load ALLOC
+ On the 6x0x “A>” prompt type:
+```
 S19
+```
+ Dump ALLOC.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
 
- Dump ALLOC203.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
-
-On the P.P.P. “A>” prompt type:
+On the 6x0x “A>” prompt type:
+```
 SAVE 2 A:ALLOC.COM
+```
 
-
-11> Load Asm
- On the P.P.P. “A>” prompt type:
+##### Load Asm
+ On the 6x0x “A>” prompt type:
+```
 S19
+```
+Dump ASM.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
 
-Dump ASM211.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
-
-On the P.P.P. “A>” prompt type:
+On the 6x0x “A>” prompt type:
+```
 SAVE 39 A:ASM.COM
+```
 
-
-12> Load COMPL
-On the P.P.P. “A>” prompt type:
+##### Load COMPL
+On the 6x0x “A>” prompt type:
+```
 S19
+```
+Dump COMPL.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
 
-Dump COMPL203.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
-
-On the P.P.P. “A>” prompt type:
+On the 6x0x “A>” prompt type:
+```
 SAVE 42 A:COMPL.COM
+```
 
-
-13> Load COMPR
-On the P.P.P. “A>” prompt type:
+##### Load COMPR
+On the 6x0x “A>” prompt type:
+```
 S19
+```
+Dump COMPR.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
 
-Dump COMPR202.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
-
-On the P.P.P. “A>” prompt type:
+On the 6x0x “A>” prompt type:
+```
 SAVE 12 A:COMPR.COM
+```
 
-
-14> Load COPY
- On the P.P.P. “A>” prompt type:
+##### Load COPY
+ On the 6x0x “A>” prompt type:
+```
 S19
+```
 
-Dump COPY201.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
+Dump COPY.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
 
-On the P.P.P. “A>” prompt type:
+On the 6x0x “A>” prompt type:
+```
 SAVE 3 A:COPY.COM
+```
 
-
-15> Load EDIT
-On the P.P.P. “A>” prompt type:
+##### Load EDIT
+On the 6x0x “A>” prompt type:
+```
 S19
+```
 
-Dump EDIT203.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
+Dump EDIT.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
 
-On the P.P.P. “A>” prompt type:
+On the 6x0x “A>” prompt type:
+```
 SAVE 28 A:EDIT.COM
+```
 
-
-16> Load MKCOM
- On the P.P.P. “A>” prompt type:
+##### Load MKCOM
+On the 6x0x “A>” prompt type:
+```
 S19
+```
+Dump MKCOM.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
 
-Dump MKCOM202.S19 to serial port from your PC terminal program, wait for the
-P.P.P to return to the prompt when the load is complete.
-
-On the P.P.P. “A>” prompt type:
+On the 6x0x “A>” prompt type:
+```
 SAVE 5 A:MKCOM.COM
+```
 
+##### Load SEDIT
+On the 6x0x “A>” prompt type:
+```
+S19
+```
+Dump SEDIT.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
 
+On the 6x0x “A>” prompt type:
+```
+SAVE 19 A:SEDIT.COM
+```
 
 
 ### Monitor Commands
 
 The Rom Commands are as follows:
-```
-REGISTER  Print Processor Registers
-DUMP XXXX YYYY  Dump memory from xxxx (in hex) to yyyy (in hex)
-ENTER XXXX YY Change Memory byte at location xxxx (in hex) to value yy
-GO XXXX  Transfer execution to location xxxx (in hex)
-LOAD  Load a Motorola format image
-BOOT X  Load DOS/65 image from device X and boot it
-o 0= SD CARD
-o 1= FLOPPY
-o 4= IDE
-ASSEMBLE XXXX Assemble a 6502 program from the console to location XXXX
-DISASSEMBLE XXXX Disassemble a 6502 program from location XXXX  to the console
-CLRDIR  D TTTTTT NN
-            ; D     = Device (I)DE Primary (J)IDE Secondary or (S)D
-             ; TTTTTT= Starting Track
-            ; NN    = Number of Tracks
-```
+-----------------------|----------------------------
+REGISTER|Print Processor Registers
+DUMP XXXX YYYY|Dump memory from xxxx (in hex) to yyyy (in hex)
+ENTER XXXX YY|Change Memory byte at location xxxx (in hex) to value yy
+GO XXXX|Transfer execution to location xxxx (in hex)
+LOAD|Load a Motorola format image
+BOOT X|Load DOS/65 image from device X and boot it
+    |0= SD CARD
+     |1= FLOPPY
+     |4= IDE
+ASSEMBLE XXXX|Assemble a 6502 program from the console to location XXXX
+DISASSEMBLE XXXX|Disassemble a 6502 program from location XXXX  to the console
+CLRDIR  D TTTTTT NN|
+    |D     = Device (I)DE Primary (J)IDE Secondary or (S)D
+    |TTTTTT= Starting Track
+     |NN    = Number of Tracks
+
 
 
 
