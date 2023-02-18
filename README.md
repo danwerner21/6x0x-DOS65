@@ -33,9 +33,9 @@ CONVERSION FOR THE Retrobrew Computers 6x0x BY DAN WERNER
 1. SD card (>32mb)
 
 1. optional:
-..*  ECB backplane
-..*  DSKY [V1](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dsky:start) or [V2](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dskyng)
-..*  [Disk Controller V3](https://retrobrewcomputers.org/doku.php?id=boards:ecb:diskio-v3:start)
+...1.  ECB backplane
+...1.  DSKY [V1](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dsky:start) or [V2](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dskyng)
+...1.  [Disk Controller V3](https://retrobrewcomputers.org/doku.php?id=boards:ecb:diskio-v3:start)
 
 ### Jumper Settings
 
