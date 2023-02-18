@@ -18,9 +18,9 @@ CONVERSION FOR THE Retrobrew Computers 6x0x BY DAN WERNER
 1. default console jumper (Needs working VIAs)
 1. dsky old (jumper?) (Needs working VIAs)
 1. IO ASSIGNMENT?
-⋅⋅* prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
-⋅⋅* punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
-⋅⋅* rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+* prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
+* punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+* rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
 
 ---
 
