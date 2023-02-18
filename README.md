@@ -8,16 +8,16 @@ DOS/65 software and documentation are provided as shareware for non-profit, educ
 CONVERSION FOR THE Retrobrew Computers 6x0x BY DAN WERNER
 
 ## todo:
-* cleanup quickstart documentation and delete quickstart folder
-* cleanup wiki documentation
-* assign utility
-* floppy support
-* floppy formatter
-* rtc utility (Needs working VIAs)
-* dsky new (jumper?) (Needs working VIAs)
-* default console jumper (Needs working VIAs)
-* dsky old (jumper?) (Needs working VIAs)
-* IO ASSIGNMENT?
+1. cleanup quickstart documentation and delete quickstart folder
+1. cleanup wiki documentation
+1. assign utility
+1. floppy support
+1. floppy formatter
+1. rtc utility (Needs working VIAs)
+1. dsky new (jumper?) (Needs working VIAs)
+1. default console jumper (Needs working VIAs)
+1. dsky old (jumper?) (Needs working VIAs)
+1. IO ASSIGNMENT?
 ..* prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
 ..* punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
 ..* rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
@@ -28,11 +28,11 @@ CONVERSION FOR THE Retrobrew Computers 6x0x BY DAN WERNER
 
 ### REQUIRED FOR OPERATION
 
-*  6x0x
-*  PC Connected to serial port (P31) of 6x0x
-*  SD card (>32mb)
+1. 6x0x
+1. PC Connected to serial port (P31) of 6x0x
+1. SD card (>32mb)
 
-* optional:
+1. optional:
 ..*  ECB backplane
 ..*  DSKY [V1](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dsky:start) or [V2](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dskyng)
 ..*  [Disk Controller V3](https://retrobrewcomputers.org/doku.php?id=boards:ecb:diskio-v3:start)
@@ -344,32 +344,6 @@ CLRDIR  D TTTTTT NN | Clear the directory area of a mass storage device
 | | NN    = Number of Tracks
 
 
+### Building a Custom ROM Image
 
-
-
-
-
-
-
-
-**** Memory Map
-
-** System Design
-
-**
-The Rom Commands are as follows:
-REGISTER  Print Processor Registers
-DUMP XXXX YYYY  Dump memory from xxxx (in hex) to yyyy (in hex)
-ENTER XXXX YY Change Memory byte at location xxxx (in hex) to value yy
-GO XXXX  Transfer execution to location xxxx (in hex)
-LOAD  Load a Motorola format image
-BOOT X  Load DOS/65 image from device X and boot it
-o 0= SD CARD
-o 1= FLOPPY
-o 4= IDE
-ASSEMBLE XXXX Assemble a 6502 program from the console to location XXXX
-DISASSEMBLE XXXX Disassemble a 6502 program from location XXXX  to the console
-CLRDIR  D TTTTTT NN
-            ; D     = Device (I)DE Primary (J)IDE Secondary or (S)D
-             ; TTTTTT= Starting Track
-            ; NN    = Number of Tracks
+### Memory Map
