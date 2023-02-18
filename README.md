@@ -333,15 +333,15 @@ ENTER XXXX YY | Change Memory byte at location xxxx (in hex) to value yy
 GO XXXX | Transfer execution to location xxxx (in hex)
 LOAD | Load a Motorola format image
 BOOT X | Load DOS/65 image from device X and boot it
- | 0= SD CARD
- | 1= FLOPPY
- | 4= IDE
+| | 0= SD CARD
+| | 1= FLOPPY
+| | 4= IDE
 ASSEMBLE XXXX | Assemble a 6502 program from the console to location XXXX
 DISASSEMBLE XXXX | Disassemble a 6502 program from location XXXX  to the console
 CLRDIR  D TTTTTT NN | Clear the directory area of a mass storage device
- | D     = Device (I)DE Primary (J)IDE Secondary or (S)D
- | TTTTTT= Starting Track
- | NN    = Number of Tracks
+| | D     = Device (I)DE Primary (J)IDE Secondary or (S)D
+| | TTTTTT= Starting Track
+| | NN    = Number of Tracks
 
 
 
