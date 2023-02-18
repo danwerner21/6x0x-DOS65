@@ -7,6 +7,9 @@ DOS/65 software and documentation are provided as shareware for non-profit, educ
 
 CONVERSION FOR THE Retrobrew Computers 6x0x BY DAN WERNER
 
+Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and is thus not compatible with disk images created with the old distribution.  Please backup your data prior to installing this version.
+
+
 ## todo:
 1. cleanup quickstart documentation and delete quickstart folder
 1. cleanup wiki documentation
