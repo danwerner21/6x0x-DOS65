@@ -270,16 +270,16 @@ On the 6x0x “A>” prompt type:
 SAVE 42 A:BCOMPILE.COM
 ```
 
-##### Load COMPR
+##### Load COMPARE
 On the 6x0x “A>” prompt type:
 ```
 S19
 ```
-Dump COMPR.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
+Dump COMPARE.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
 
 On the 6x0x “A>” prompt type:
 ```
-SAVE 12 A:COMPR.COM
+SAVE 12 A:COMPARE.COM
 ```
 
 ##### Load COPY
