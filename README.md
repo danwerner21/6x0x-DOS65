@@ -295,6 +295,19 @@ On the 6x0x “A>” prompt type:
 SAVE 3 A:COPY.COM
 ```
 
+##### Load DEBUG
+ On the 6x0x “A>” prompt type:
+```
+S19
+```
+
+Dump DEBUG.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
+
+On the 6x0x “A>” prompt type:
+```
+SAVE 15 A:DEBUG.COM
+```
+
 ##### Load EDIT
 On the 6x0x “A>” prompt type:
 ```
@@ -330,6 +343,19 @@ Dump SEDIT.S19 from the bin folder in the repo to serial port from your PC termi
 On the 6x0x “A>” prompt type:
 ```
 SAVE 19 A:SEDIT.COM
+```
+
+##### Load RUN
+ On the 6x0x “A>” prompt type:
+```
+S19
+```
+
+Dump RUN.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
+
+On the 6x0x “A>” prompt type:
+```
+SAVE 44 A:RUN.COM
 ```
 
 
