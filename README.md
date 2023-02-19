@@ -226,7 +226,9 @@ S19
 6x0x to return to the prompt when the load is complete.
 
 On the 6x0x “A>” prompt type:
+```
 SAVE 43 A:DBASIC.COM
+```
 
 * note: A new command was added to DBASIC that is not in the docs
  KILL - will return to DOS/65 from DBASIC
