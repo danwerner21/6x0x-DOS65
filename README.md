@@ -5,13 +5,12 @@
 
 DOS/65 software and documentation are provided as shareware for non-profit, educational, or private use. Any other use is prohibited without approval of Richard A. Leary.
 
-CONVERSION FOR THE Retrobrew Computers 6x0x BY DAN WERNER
+Conversion for the Retrobrew Computers 6x0x by Dan Werner
 
 Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and is thus not compatible with disk images created with the old distribution.  Please backup your data prior to installing this version.
 
 
 ## todo:
-1. cleanup quickstart documentation and delete quickstart folder
 1. cleanup wiki documentation
 1. assign utility
 1. floppy support
@@ -35,13 +34,15 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. PC Connected to serial port (P31) of 6x0x
 1. SD card (>32mb)
 
-1. optional:
+The following pieces of optional equipment are supported:
  *  ECB backplane
  *  DSKY [V1](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dsky:start) or [V2](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dskyng)
  *  [Disk Controller V3](https://retrobrewcomputers.org/doku.php?id=boards:ecb:diskio-v3:start)
 
-### Jumper Settings
+See XXX for more information.
 
+
+### Jumper Settings
 See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on setting the jumpers for your particular hardware configuration.   Note that as this version of DOS/65 uses the MMU, it is important that there is no jumper on K17.  Also, to utilize floppy drives with DOS/65 the CPU must be running at 2Mhz or better.
 
 
@@ -49,9 +50,7 @@ See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?
 See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on how to constuct the 6x0x PCB.
 
 ### BRINGING UP THE SYSTEM
-
 #### Program the rom image on to EPROM or EEPROM from the bin folder in this repo
-
 The default build ROM.HEX file can be programmed into your selected ROM chip type and should provide sane defaults for
 the 6x0x SBC.  See the "Building a Custom ROM Image" section for details on what configuration options are available and how to build a custom ROM image.
 
@@ -59,7 +58,6 @@ Selection and use of a suitable EPROM programmer is required and beyond the scop
 
 
 #### Program the ParPortProp.eeprom rom image to the 6x0x board
-
 In this repo in the folder 6x0x_firmware/BusPortProp/FullColor/Term is the source code and binary image for the Propeller microcontroller that handles the Keyboard, Video, Sound, and SD card interface for the 6x0x.  Note that there are two versions of the Propeller firmware, “ParPortPropFullColor.eeprom” which is a full-color terminal using a 1280×1024 tile driver and “ParPortPropOriginal.eeprom” which is an alternate version for older monitors using a different Propeller driver.
 
 Programming of the Propeller EEPROM(U25) can be accomplished in any of the following ways:
@@ -77,7 +75,6 @@ For #2 or #3, you must download the Propeller Tool from Parallax (free). This to
 * Choose “Load EEPROM” from the subsequent “Object Info” dialog box.
 
 #### Power on system
-
 If the system is running properly, you should be greeted with the 6x0x power on screen on your VGA monitor.
 
 ```
@@ -114,7 +111,6 @@ at the monitor prompt, then you can continue to interact with the 6x0x system us
 
 
 #### Clear the Boot Device
-
 DOS/65 is a bit sensitive to garbage that is in the boot and directory areas of it's storage devices.  Therefore it is important to have a way to clear these areas.   The 6x0x montor provides a command to accomplish this task.
 
 ```
@@ -139,7 +135,6 @@ If you are using the default configuration and have no attached IDE devices, onl
 
 
 #### load the OS into RAM
-
 To load the OS image into RAM, at the 6x0x “.” prompt type:
 ```
 LOAD
@@ -164,7 +159,6 @@ A>
 CONGRADULATIONS! Your 6x0x SBC is now running DOS/65.   You should be able to see your SD card as drive "A" and can now run any of the internal DOS commands.
 
 #### Save the running OS in RAM on to the boot area of the SD card
-
 The next steps we need to accomplish is to load a few key programs on to the SD card, and save the OS into the boot area of the SD card to allow us to boot the system without an attached PC.
 
 We want to begin by loading a DOS/65 program that will access the BIOS S19 file loader.
@@ -326,7 +320,6 @@ SAVE 19 A:SEDIT.COM
 
 
 ### Monitor Commands
-
 The Rom Commands are as follows:
  command | description
 ----------------------- | ----------------------------
@@ -340,14 +333,18 @@ BOOT X | Load DOS/65 image from device X and boot it
 | | 1= FLOPPY
 | | 4= IDE
 ASSEMBLE XXXX | Assemble a 6502 program from the console to location XXXX
-DISASSEMBLE XXXX | Disassemble a 6502 program from location XXXX  to the console
+DISASSEMBLE XXXX | Disassemble a 6502 program from location XXXX to the console
 CLRDIR  D TTTTTT NN | Clear the directory area of a mass storage device
 | | D     = Device (I)DE Primary (J)IDE Secondary or (S)D
 | | TTTTTT= Starting Track
 | | NN    = Number of Tracks
 
-
 ### Building a Custom ROM Image
  To Do
 ### Memory Map
- To Do
+
+ From | To | Description
+------ | ----------------------- | ----------------------------
+0000 | 00FF | Zero Page
+0100 | 01FF | Stack Page
+0200 | 02FF |
