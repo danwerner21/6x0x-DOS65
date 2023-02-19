@@ -140,7 +140,7 @@ To load the OS image into RAM, at the 6x0x “.” prompt type:
 LOAD
 ```
 
-The 6x0x will appear to freeze, but it is actually waiting for a Motorola “S19” file to be sent to the serial port from your PC.  From a terminal program on your PC (9600 baud, 8 bit, no stop bit, no parity), do a file dump of the “dos65.s19” from the bin folder of this repo.  You may need to tell your terminal program to insert a delay between characters and between lines in order to ensure that you do not send the characters too quickly.  On my TeraTerm, 5ms between characters and 10ms between lines seems to work out about right.  If the file transfer is working normally, you should see the s19 file echoed to your pc terminal window.   You should not see any “?” characters in the stream, if you do, there was a checksum error and you need to increase your delay settings.   When the transfer is complete the 6x0x screen should return to the “.” Prompt.
+The 6x0x will appear to freeze, but it is actually waiting for a Motorola “S19” file to be sent to the serial port from your PC.  From a terminal program on your PC (9600 baud, 8 bit, no stop bit, no parity), do a file dump of the “dos65.s19” from the bin folder of this repo.  You may need to tell your terminal program to insert a delay between characters and between lines in order to ensure that you do not send the characters too quickly.  On my TeraTerm, 5ms between characters and 10ms between lines seems to work out about right.  If the file transfer is working normally, you should see the s19 file echoed to your pc terminal window.   You should not see any “?” characters in the stream, if you do, there was a checksum error and you need to increase your delay settings.   When the transfer is complete the 6x0x screen should return to the “.” Prompt.  Note that some terminal programs will insert some extra control characters after sending S19 files.  It is a good idea to hit "enter" after any of the file transmissions referenced in this document complete, just to be sure you have a clean prompt with no extra characters.
 
 To start DOS/65 type:
 ```
@@ -174,7 +174,12 @@ SAVE 1 A:S19.COM
 ```
 You have just saved your first utility to the DOS/65 SD disk!
 
-The next utility we want to save to the SD card is the "WRITEOS" utility.  This program will copy the running version of DOS/65 to a selected drive.   To upload this utility type "S19" at the DOS/65 prompt. . .  and again the 6x0x is now waiting for you to dump a s19 file to the serial port from your PC terminal program.   The file we want to send now is the "WRITEOS.S19" file from the bin folder of the repo.  Once the file is sent, DOS/65 should return to a "A>" prompt.
+The next utility we want to save to the SD card is the "WRITEOS" utility.  This program will copy the running version of DOS/65 to a selected drive.   To upload this utility type:
+
+```
+S19
+```
+at the DOS/65 prompt. . .  and again the 6x0x is now waiting for you to dump a s19 file to the serial port from your PC terminal program.   The file we want to send now is the "WRITEOS.S19" file from the bin folder of the repo.  Once the file is sent, DOS/65 should return to a "A>" prompt.
 On the 6x0x “A>” prompt type:
 ```
 SAVE 5 A:WRITEOS.COM
@@ -197,7 +202,11 @@ SELECT DRIVE:
 (F) FLOPPY A:
 ```
 
-Type "S" (make sure it is in caps) to write the running image to the SD card and . . .  That's it!  you should now be able to power off your 6x0x system and boot DOS/65 from the SD card by typing:
+Type:
+```
+S
+```
+(make sure it is in caps) to write the running image to the SD card and . . .  That's it!  you should now be able to power off your 6x0x system and boot DOS/65 from the SD card by typing:
 ```
 BOOT 0
 ```
@@ -208,7 +217,10 @@ From the system monitor's "." prompt.
 
 ##### Load DBASIC
  On the 6x0x “A>” prompt type:
+
+```
 S19
+```
 
  Dump DBASIC.S19 to serial port from your PC terminal program, wait for the
 6x0x to return to the prompt when the load is complete.
