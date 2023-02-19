@@ -47,7 +47,7 @@ See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?
 
 
 ### Building the system
-See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on how to constuct the 6x0x PCB.
+See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on how to construct the 6x0x PCB.
 
 ### BRINGING UP THE SYSTEM
 #### Program the rom image on to EPROM or EEPROM from the bin folder in this repo
@@ -63,7 +63,7 @@ In this repo in the folder 6x0x_firmware/BusPortProp/FullColorTerm is the source
 Programming of the Propeller EEPROM(U25) can be accomplished in any of the following ways:
 
 1. Via a standalone EEPROM programmer
-1. Via a serial cable to the serial port on the ParPortProp
+1. Via a serial cable to the serial port on the 6x0x
 1. Via a PropPlug adapter available from Parallax
 
 For #1, selection and use of a suitable programmer is required and beyond the scope of this document.
@@ -98,7 +98,7 @@ If the system is running properly, you should be greeted with the 6x0x power on 
 ```
 (note that the register values may be different for your build)
 
-At this juncture it is convienent (but not essential) to redirect the console to the serial port so that all operations can be done from your attached PC. (9600 baud, 8 bit, no stop bit, no parity)
+At this juncture it is convenient (but not essential) to redirect the console to the serial port so that all operations can be done from your attached PC. (9600 baud, 8 bit, no stop bit, no parity)
 
 To do this type:
 ```
@@ -111,7 +111,7 @@ at the monitor prompt, then you can continue to interact with the 6x0x system us
 
 
 #### Clear the Boot Device
-DOS/65 is a bit sensitive to garbage that is in the boot and directory areas of it's storage devices.  Therefore it is important to have a way to clear these areas.   The 6x0x montor provides a command to accomplish this task.
+DOS/65 is a bit sensitive to garbage that is in the boot and directory areas of it's storage devices.  Therefore it is important to have a way to clear these areas.   The 6x0x monitor provides a command to accomplish this task.
 
 ```
 CLRDIR  D TTTTTT NN
@@ -156,7 +156,7 @@ PPIDE : NOT PRESENT
 A>
 ```
 
-CONGRADULATIONS! Your 6x0x SBC is now running DOS/65.   You should be able to see your SD card as drive "A" and can now run any of the internal DOS commands.
+CONGRATULATIONS! Your 6x0x SBC is now running DOS/65.   You should be able to see your SD card as drive "A" and can now run any of the internal DOS commands.
 
 #### Save the running OS in RAM on to the boot area of the SD card
 The next steps we need to accomplish is to load a few key programs on to the SD card, and save the OS into the boot area of the SD card to allow us to boot the system without an attached PC.
@@ -172,7 +172,7 @@ On the 6x0x “A>” prompt type:
 ```
 SAVE 1 A:S19.COM
 ```
-CONGRATULATIONS!  You have just saved your first utility to the DOS/65 SD disk!
+You have just saved your first utility to the DOS/65 SD disk!
 
 The next utility we want to save to the SD card is the "WRITEOS" utility.  This program will copy the running version of DOS/65 to a selected drive.   To upload this utility type "S19" at the DOS/65 prompt. . .  and again the 6x0x is now waiting for you to dump a s19 file to the serial port from your PC terminal program.   The file we want to send now is the "WRITEOS.S19" file from the bin folder of the repo.  Once the file is sent, DOS/65 should return to a "A>" prompt.
 On the 6x0x “A>” prompt type:

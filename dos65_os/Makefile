@@ -7,6 +7,7 @@ dos65.out: dos65.asm ccm215.asm pem215.asm simrbc.asm dosdefn.asm macro.asm
 
 dos65.s19: dos65.out
 	srec_cat  dos65.out -binary -offset 0x0100 -exclude 0x0000 0xB800 -o  dos65.s19  -data-only
+	sed -i -e '$$aS9' dos65.s19
 	cp dos65.s19 ../bin/
 
 dos65.hex: dos65.out
