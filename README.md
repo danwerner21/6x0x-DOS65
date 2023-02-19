@@ -58,7 +58,7 @@ Selection and use of a suitable EPROM programmer is required and beyond the scop
 
 
 #### Program the ParPortProp.eeprom rom image to the 6x0x board
-In this repo in the folder 6x0x_firmware/BusPortProp/FullColor/Term is the source code and binary image for the Propeller microcontroller that handles the Keyboard, Video, Sound, and SD card interface for the 6x0x.  Note that there are two versions of the Propeller firmware, “ParPortPropFullColor.eeprom” which is a full-color terminal using a 1280×1024 tile driver and “ParPortPropOriginal.eeprom” which is an alternate version for older monitors using a different Propeller driver.
+In this repo in the folder 6x0x_firmware/BusPortProp/FullColorTerm is the source code and binary image for the Propeller microcontroller that handles the Keyboard, Video, Sound, and SD card interface for the 6x0x.  Note that there are two versions of the Propeller firmware, “ParPortPropFullColor.eeprom” which is a full-color terminal using a 1280×1024 tile driver and “ParPortPropOriginal.eeprom” which is an alternate version for older monitors using a different Propeller driver.
 
 Programming of the Propeller EEPROM(U25) can be accomplished in any of the following ways:
 
@@ -165,7 +165,7 @@ We want to begin by loading a DOS/65 program that will access the BIOS S19 file 
 
 At the DOS/65 “A>” prompt type:
 ```
-GO $0FD36
+GO $FD36
 ```
 This calls the BIOS S19 loader and just like before is now waiting for you to dump a s19 file to the serial port from your PC terminal program.   The file we want to send now is the "S19.S19" file from the bin folder of the repo.  Once the file is sent, DOS/65 should return to a "A>" prompt.
 On the 6x0x “A>” prompt type:
