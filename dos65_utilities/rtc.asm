@@ -452,7 +452,6 @@ RTC_SET:
 
 ; month
         LDX     #$04
-        LDY     #$02
         JSR     RTC_WRITE
 
 ; day

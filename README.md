@@ -15,8 +15,8 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. assign utility
 1. floppy support
 1. floppy formatter
-1. dsky new (jumper?)
 1. default console jumper
+1. dsky new (jumper?)
 1. dsky old (jumper?)
 1. IO ASSIGNMENT?
  * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
