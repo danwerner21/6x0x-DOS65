@@ -51,6 +51,8 @@ sysdef:
 opnmsg:
         .BYTE   cr,lf,"DOS/65 ON THE 6x0x RBC",cr,lf,0
 
+DSKYMSG:
+        .BYTE   $54, $6E, $5C, $5E, $6E, $54, $79, $40
 
 ;cold entry from loader
 boot:
@@ -93,10 +95,15 @@ setupl:
         JSR     setdma          ;and set
         LDA     sekdsk          ;get disk
 
-;.IF     USEDSKY=1
-;    JSR     DSKYINIT
-;    JSR     SEGDISPLAY
-;.ENDIF
+        JSR     DSKY_INIT
+        LDX     #$00            ; SHOW A STARTUP MESSAGE ON DSKY
+:
+        LDA     DSKYMSG,x
+        STA     DSKY_BUF,x
+        INX
+        CPX     #8
+        BNE     :-
+        JSR     DSKY_SHOW
 
         LDA     #DEFDRV         ;set zero
         JSR     seldsk          ;and select drive zero
@@ -397,67 +404,20 @@ CONVERT_SECTOR_LBA:
         STA     debcylm         ; the previous calculation
 
 
-
-;   .IF     USEDSKY=1
-;       LDA     sekdsk
-;       STA     DSKYDISPLAY
-;       LDA     debhead
-;       STA     DSKYDISPLAY+1
-;       LDA     debcyl
-;       STA     DSKYDISPLAY+2
-;       LDA     debsec
-;       STA     DSKYDISPLAY+3
-;       JSR     HEXDISPLAY
-;   .ENDIF
+; DISPLAY ON DSKY IF PRESENT
+        LDA     sekdsk
+        STA     DSKY_HEXBUF
+        LDA     debhead
+        STA     DSKY_HEXBUF+1
+        LDA     debcyl
+        STA     DSKY_HEXBUF+2
+        LDA     debsec
+        STA     DSKY_HEXBUF+3
+        JSR     DSKY_BIN2SEG
+        JSR     DSKY_SHOW       ; SHOW DSKY SEGMENTS
 
         RTS
 
-;CONVERT_SECTOR_DOS1:
-;        LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
-;        STA     debtmp+1        ;
-;        LDA     seksec          ; LOAD SECTOR# (LOW BYTE)
-;        STA     debtmp          ;
-;        JSR     RRA16           ; ROTATE DEBTMP RIGHT (DIVIDE BY 2)
-;        JSR     RRA16           ; ROTATE DEBTMP RIGHT (DIVIDE BY 2)
-;        LDA     sektrk+1        ; GET HIGH BYTE OF TRACK INTO A
-;        ASL     A               ;
-;        ASL     A
-;        ASL     A
-;        ASL     A
-;        ASL     A               ;
-;        ASL     A               ;
-;        CLC
-;        ORA     debtmp+1        ;
-;        STA     debtmp+1        ;
-;        LDA     sektrk+1        ; GET HIGH BYTE OF TRACK INTO A
-;        LSR     A
-;        LSR     A
-;        STA     debhead         ;
-;        LDA     debtmp          ;
-;        STA     debsec          ; LBA REGISTER IS 00TTTTSS / 4
-;        LDA     debtmp+1        ;
-;        STA     debcyl          ;
-; .IF     USEDSKY=1
-;     LDA     sekdsk
-;     STA     DSKYDISPLAY
-;     LDA     debhead
-;     STA     DSKYDISPLAY+1
-;     LDA     debcyl
-;     STA     DSKYDISPLAY+2
-;     LDA     debsec
-;     STA     DSKYDISPLAY+3
-;     JSR     HEXDISPLAY
-; .ENDIF
-;        RTS
-;RRA16:
-;        CLC                     ; CLEAR CARRY FLAG
-;       LDA     debtmp+1        ; 16 BIT ROTATE HL WITH CARRY
-;      ROR     A               ;
-;     STA     debtmp+1        ; ROTATE HL RIGHT 1 BIT (DIVIDE BY 2)
-;    LDA     debtmp          ;
-;    ROR     A               ;
-;    STA     debtmp          ;
-;   RTS
 
 ;___DEBSECR______________________________________________________________________________________________
 ;

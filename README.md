@@ -23,15 +23,20 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
  * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
  * rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
 
+## BUGS
+1. basic run command overwrites zero page config vars
+1. sedit does not paint properly on console (colors)
+
 ---
 
 ## System install
 
 ### REQUIRED FOR OPERATION
 
-1. 6x0x
+1. 6x0x WITH A 65C02 PROCESSOR INSTALLED
 1. PC Connected to serial port (P31) of 6x0x
 1. SD card (>32mb)
+
 
 The following pieces of optional equipment are supported:
  *  ECB backplane
@@ -393,6 +398,8 @@ CLRDIR  D TTTTTT NN | Clear the directory area of a mass storage device
 
 ### Building a Custom ROM Image
  To Do
+ Edit the bios_options file to select configuration options.
+
 ### Memory Map
 
  From | To | Description

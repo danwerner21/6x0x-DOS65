@@ -96,12 +96,34 @@ CURRENT_IDE_DRIVE = $0534
         .ORG    $C000
         .SEGMENT "DRIVERS"
         .INCLUDE "macro.asm"
-;	dsky? (both)
+        .INCLUDE "bios_options.asm"
         .INCLUDE "bios_ppp_hd.asm"
         .INCLUDE "bios_diov3_flp.asm"
         .INCLUDE "bios_diov3_ide.asm"
         .INCLUDE "bios_clrdir.asm"
         .INCLUDE "bios_rtc.asm"
+        .IF     DSKY_OPTION=1
+            .INCLUDE "bios_dsky.asm"
+        .ENDIF
+
+        .IF     DSKY_OPTION=2
+            .INCLUDE "bios_dskyng.asm"
+        .ENDIF
+
+        .IF     DSKY_OPTION=0
+DSKY_INIT:
+DSKY_RESET:
+DSKY_SHOW:
+DSKY_BIN2SEG:
+DSKY_STAT:
+DSKY_GETKEY:
+DSKY_BEEP:
+DSKY_PUTLED:
+DSKY_BLANK:
+DSKY_DSPL:
+            RTS
+        .ENDIF
+
 
 STARTUP:
         .BYTE   $0D,$0A
@@ -166,6 +188,16 @@ COLD_START:
         JSR     P_PPP_INITIALIZE
         JSR     P_IDE_INITIALIZE
         JSR     P_RTC_RESET
+
+        JSR     DSKY_INIT
+        LDX     #$00            ; SHOW A STARTUP MESSAGE ON DSKY
+:
+        LDA     DSKYMSG,x
+        STA     DSKY_BUF,x
+        INX
+        CPX     #8
+        BNE     :-
+        JSR     DSKY_SHOW
 
         BRK                     ; PERFORM BRK (START MONITOR)
 
@@ -1137,6 +1169,47 @@ P_RTC_RESET:
         JSR     PAGE_ENTER
         JSR     RTC_RESET
         JMP     PAGE_EXIT
+P_DSKY_INIT:
+        JSR     PAGE_ENTER
+        JSR     DSKY_INIT
+        JMP     PAGE_EXIT
+P_DSKY_RESET:
+        JSR     PAGE_ENTER
+        JSR     DSKY_RESET
+        JMP     PAGE_EXIT
+P_DSKY_SHOW:
+        JSR     PAGE_ENTER
+        JSR     DSKY_SHOW
+        JMP     PAGE_EXIT
+P_DSKY_BIN2SEG:
+        JSR     PAGE_ENTER
+        JSR     DSKY_BIN2SEG
+        JMP     PAGE_EXIT
+P_DSKY_STAT:
+        JSR     PAGE_ENTER
+        JSR     DSKY_STAT
+        JMP     PAGE_EXIT
+P_DSKY_GETKEY:
+        JSR     PAGE_ENTER
+        JSR     DSKY_GETKEY
+        JMP     PAGE_EXIT
+P_DSKY_BEEP:
+        JSR     PAGE_ENTER
+        JSR     DSKY_BEEP
+        JMP     PAGE_EXIT
+P_DSKY_PUTLED:
+        JSR     PAGE_ENTER
+        JSR     DSKY_PUTLED
+        JMP     PAGE_EXIT
+P_DSKY_BLANK:
+        JSR     PAGE_ENTER
+        JSR     DSKY_BLANK
+        JMP     PAGE_EXIT
+P_DSKY_DSPL:
+        JSR     PAGE_ENTER
+        JSR     DSKY_DSPL
+        JMP     PAGE_EXIT
+
 PAGE_EXIT:
         PHA
         LDA     #$00
@@ -1179,6 +1252,11 @@ REGDATA:
         .BYTE   "   PC  AC  XR  YR  SP  SR"
         .BYTE   $0D,$0A,"! ",0
 
+; DSKY STARTUP MESSAGE
+DSKYMSG:
+        .BYTE   $7D,$6D,$3F,$5B,$00,$39,$73,$3E; 6502 CPU
+
+
 ;BIOS JUMP TABLE
         .SEGMENT "JUMPTABLE"
         .ORG    $FD00           ; JUMP TABLE LOCATION
@@ -1206,8 +1284,16 @@ REGDATA:
         JMP     P_RTC_WRITE     ; WRITE RTC REGISTER
         JMP     P_RTC_READ      ; READ RTC REGISTER
         JMP     P_RTC_RESET     ; RESET RTC
-
-
+        JMP     P_DSKY_INIT     ; INIT DSKY HARDWARE
+        JMP     P_DSKY_RESET    ; RESET DSKY CONTROLLER
+        JMP     P_DSKY_SHOW     ; SHOW DSKY SEGMENTS
+        JMP     P_DSKY_BIN2SEG  ; CONVERT NUMBER TO DSKY SEGMENTS
+        JMP     P_DSKY_STAT     ; CHECK DSKY KEYBOARD
+        JMP     P_DSKY_GETKEY   ; GET DSKY KEYPRESS
+        JMP     P_DSKY_BEEP     ; BEEP DSKY
+        JMP     P_DSKY_PUTLED   ; SET KEYBOARD LED MATRIX
+        JMP     P_DSKY_BLANK    ; BLANK DSKY DISPLAY
+        JMP     P_DSKY_DSPL     ; UPDATE INDIVIDUAL DISPLAY LEDS
 
 
 
