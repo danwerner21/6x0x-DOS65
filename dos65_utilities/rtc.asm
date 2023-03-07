@@ -785,8 +785,8 @@ RTC_TOP_LOOP_CHARGE:
         JMP     RTC_TOP_LOOP_1
 
 RTC_TOP_LOOP_NOCHARGE:
-        LDA     #>RTC_TOP_LOOP1_NOCHARGE
-        LDY     #<RTC_TOP_LOOP1_NOCHARGE
+        LDA     #<RTC_TOP_LOOP1_NOCHARGE
+        LDY     #>RTC_TOP_LOOP1_NOCHARGE
         LDX     #9              ;MESSAGE
         JSR     PEM
         JSR     RTC_CHARGE_DISABLE
