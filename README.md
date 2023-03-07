@@ -15,10 +15,9 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. assign utility
 1. floppy support
 1. floppy formatter
-1. rtc utility (Needs working VIAs)
-1. dsky new (jumper?) (Needs working VIAs)
-1. default console jumper (Needs working VIAs)
-1. dsky old (jumper?) (Needs working VIAs)
+1. dsky new (jumper?)
+1. default console jumper
+1. dsky old (jumper?)
 1. IO ASSIGNMENT?
  * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
  * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
@@ -356,6 +355,19 @@ Dump RUN.S19 from the bin folder in the repo to serial port from your PC termina
 On the 6x0x “A>” prompt type:
 ```
 SAVE 44 A:RUN.COM
+```
+
+##### Load RTC
+ On the 6x0x “A>” prompt type:
+```
+S19
+```
+
+Dump RTC.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
+
+On the 6x0x “A>” prompt type:
+```
+SAVE 16 A:RTC.COM
 ```
 
 

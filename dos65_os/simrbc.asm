@@ -286,7 +286,7 @@ punwrt:
 rdrinp:
         RTS                     ;reader input
 rdtime:
-        LDX #128
+        LDX     #128
         RTS                     ;read clock
 xlate:
         RTS                     ;sector translate

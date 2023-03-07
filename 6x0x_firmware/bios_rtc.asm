@@ -11,8 +11,8 @@
 ;*
 ;* HARDWARE I/O ADDRESSES
 ;*
-RTCDDRD         = M6X0X_IOSPACE+$DF2
-RTCPORTD        = M6X0X_IOSPACE+$DF0
+RTCDDRD         = M6X0X_IOSPACE+$D02
+RTCPORTD        = M6X0X_IOSPACE+$D00
 
 mask_data       = $20           ; RTC data line
 mask_clk        = $40           ; RTC Serial Clock line
