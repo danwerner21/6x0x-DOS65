@@ -11,6 +11,7 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
+1. write clrdir program
 1. cleanup readme (supermon changes, memory map, console redirection changes, etc)
 1. cleanup wiki documentation
 1. assign utility

@@ -47,7 +47,7 @@ U0AA0           = $D0           ; 10 byte work buffer
 U0AAE           = $D0+10        ; end of 10 byte work buffer
 STAGE           = $DA           ; 30 byte staging buffer for filename, search, etc.
 ESTAGE          = $DA+30        ; end of 30 byte staging buffer for filename, search, etc.
-INBUFF          = $0200
+INBUFF          = $0400
 CHROUT          = IOF_OUTCH
 
 

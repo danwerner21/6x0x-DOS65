@@ -424,6 +424,10 @@ CONVERT_SECTOR_LBA:
         CLC
         ADC     slicetmp
         STA     slicetmp
+        LDA     #$00            ; LOGIC ERROR FOR SLICES THAT CARRY?
+        ADC     slicetmp+1      ;
+        STA     slicetmp+1      ;
+
 ; ADD SLICE OFFSET TO TRACK #
         CLC                     ; clear carry
         LDA     slicetmp
