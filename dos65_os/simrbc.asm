@@ -75,15 +75,27 @@ boot:
         CPX     #$10
         BNE     :-
 
-        JSR     PPP_INITIALIZE
-        JSR     IDE_INITIALIZE
+        LDA     #40             ; DSKY INITIALIZE
+        STA     farfunct
+        JSR     DO_FARCALL
 
+        LDA     #52             ; RTC_RESET
+        STA     farfunct
+        JSR     DO_FARCALL
+
+        LDA     #60             ; IDE INITIALIZE
+        STA     farfunct
+        JSR     DO_FARCALL
+
+        LDA     #63             ; SD INITIALIZE
+        STA     farfunct
+        JSR     DO_FARCALL
 
 setup:
-        LDX     #0              ;clear index
+;        LDX     #0              ;clear index
 ;first clear key dba variables
-        STX     hstact          ;host buffer inactive
-        STX     unacnt          ;clear unalloc count
+;        STX     hstact          ;host buffer inactive
+;        STX     unacnt          ;clear unalloc count
 setupl:
         LDA     inttbl,x        ;get byte
         STA     $100,x          ;insert at start
@@ -95,7 +107,6 @@ setupl:
         JSR     setdma          ;and set
         LDA     sekdsk          ;get disk
 
-        JSR     DSKY_INIT
         LDX     #$00            ; SHOW A STARTUP MESSAGE ON DSKY
 :
         LDA     DSKYMSG,x
@@ -103,7 +114,9 @@ setupl:
         INX
         CPX     #8
         BNE     :-
-        JSR     DSKY_SHOW
+        LDA     #41             ; DSKY_SHOW
+        STA     farfunct
+        JSR     DO_FARCALL
 
         LDA     #DEFDRV         ;set zero
         JSR     seldsk          ;and select drive zero
@@ -197,7 +210,9 @@ read:
         BNE     :+              ; not SD drive
 ;SD
         JSR     CONVERT_SECTOR_LBA
-        JSR     PPP_READ_SECTOR ; sd read sector
+        LDA     #64             ; sd read sector
+        STA     farfunct
+        JSR     DO_FARCALL
         JSR     DEBSECR
         RTS
 :
@@ -211,7 +226,9 @@ read:
         BNE     :+              ; invalid drive
 ;PPIDE
         JSR     CONVERT_SECTOR_LBA
-        JSR     IDE_READ_SECTOR ; sd read sector
+        LDA     #61             ; IDE_READ_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         JSR     DEBSECR
         RTS
 :
@@ -232,8 +249,11 @@ write:
 ;SD
         JSR     CONVERT_SECTOR_LBA
         JSR     BLKSECR
-        JSR     PPP_WRITE_SECTOR; sd read sector
+        LDA     #65             ;PPP_WRITE_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         RTS
+:
         CMP     #$20
         BNE     :+              ; not floppy drive
 ;FD
@@ -245,7 +265,9 @@ write:
 ;PPIDE
         JSR     CONVERT_SECTOR_LBA
         JSR     BLKSECR
-        JSR     IDE_WRITE_SECTOR; sd read sector
+        LDA     #62             ; IDE_WRITE_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         RTS
 :
         LDA     #$FF            ; signal error
@@ -270,21 +292,29 @@ setdma:
 ; 	GET DOS/65 CONSOLE STATUS
 ;________________________________________________________________________________________________________
 consts:
-        JMP     IOF_CONSTATUS
+        LDA     #03
+        STA     farfunct
+        JMP     DO_FARCALL
 
 ;__CONRDE________________________________________________________________________________________________
 ;
 ; 	PERFORM DOS/65 CONSOLE READ
 ;________________________________________________________________________________________________________
 conrde:
-        JMP     IOF_CONINW      ;console read
+        LDA     #02
+        STA     farfunct
+        JMP     DO_FARCALL      ;console read
 
 ;__CONWRT________________________________________________________________________________________________
 ;
 ; 	PERFORM DOS/65 CONSOLE WRITE
 ;________________________________________________________________________________________________________
 conwrt:
-        JMP     IOF_OUTCH       ;console write
+        PHA
+        LDA     #00
+        STA     farfunct
+        PLA
+        JMP     DO_FARCALL
 
 prnwrt:
         RTS                     ;printer
@@ -407,15 +437,18 @@ CONVERT_SECTOR_LBA:
 ; DISPLAY ON DSKY IF PRESENT
         LDA     sekdsk
         STA     DSKY_HEXBUF
-        LDA     debhead
+        LDA     debcylm
         STA     DSKY_HEXBUF+1
-        LDA     debcyl
+        LDA     debcyll
         STA     DSKY_HEXBUF+2
-        LDA     debsec
+        LDA     debsehd
         STA     DSKY_HEXBUF+3
-        JSR     DSKY_BIN2SEG
-        JSR     DSKY_SHOW       ; SHOW DSKY SEGMENTS
-
+        LDA     #42             ; DSKY_BIN2SEG
+        STA     farfunct
+        JSR     DO_FARCALL
+        LDA     #41             ; DSKY_SHOW
+        STA     farfunct
+        JSR     DO_FARCALL
         RTS
 
 
@@ -497,7 +530,7 @@ COPY_DOS_SECTOR1:
 ;
 ;________________________________________________________________________________________________________
 GET_DRIVE_DEVICE:
-        PHX
+        STX     GET_DRIVE_DEVICE_TMP
         LDA     sekdsk          ; GET DRIVE
         AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
         ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
@@ -518,9 +551,11 @@ GET_DRIVE_DEVICE:
         STA     DSKUNIT
 GET_DRIVE_DEVICE_1:
         LDA     dskcfg, X       ; GET device
-        PLX
+        LDX     GET_DRIVE_DEVICE_TMP
         RTS
 
+GET_DRIVE_DEVICE_TMP:
+        .BYTE   00
 ;------------------------------------------------------------------------------------
 
 
@@ -598,41 +633,7 @@ dcbh:
         .BYTE   128             ;no checksums
         .WORD   ckmp            ;checksum map
 
-;data area
 
-
-hstwrt:
-        .BYTE   0               ;0=written,1=pending host write
-
-;allocate the following data areas to unused ram space
-LASTCHAR:
-        .BYTE   0               ;save sector for warm boot
-savsec:
-        .BYTE   0               ;save sector for warm boot
-count:
-        .BYTE   0               ;counter in warm boot
-temp:
-        .BYTE   0               ;save hstdsk for warm boot
-hstact:
-        .BYTE   0               ;host active flag
-unacnt:
-        .BYTE   0               ;unalloc rec cnt
-debhead:
-        .BYTE   0               ; DEBLOCKED HEAD
-debcyl:
-        .BYTE   0               ; DEBLOCKED CYLINDER ID
-debsec:
-        .BYTE   0               ; DEBLOCKED SECTOR
-debtmp:
-        .WORD   0               ; DEBLOCK TEMP VAR
-Cdebhead:
-        .BYTE   $FF             ; DEBLOCKED HEAD
-Cdebcyl:
-        .BYTE   $FF             ; DEBLOCKED CYLINDER ID
-Cdebsec:
-        .BYTE   $FF             ; DEBLOCKED SECTOR
-DEBDIRTY:
-        .BYTE   0               ; DIRTY FLAG
 
 ;allocation maps
 almpa:

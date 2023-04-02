@@ -54,7 +54,7 @@
 
 
 
-        .PC02
+
         .SEGMENT "OS"
         .ORG    $B800
         .INCLUDE "ccm215.asm"

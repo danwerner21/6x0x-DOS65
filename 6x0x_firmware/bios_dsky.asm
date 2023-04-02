@@ -11,29 +11,14 @@
 ;*
 ;* HARDWARE I/O ADDRESSES
 ;*
-
-
-        .IF     ORIGINAL6X0X=1
-PORTA               .EQU $F01F
-PORTB               .EQU $F010
-PORTC               .EQU $F02F
-
-DDRA                .EQU $F013
-DDRB                .EQU $F012
-DDRC                .EQU $F023
-        .ENDIF
-
-
-        .IF     COLOSSUS6X0X=1
-DDRA                .EQU M6X0X_IOSPACE+$CF3
-DDRB                .EQU M6X0X_IOSPACE+$CF2
-DDRC                .EQU M6X0X_IOSPACE+$DF3
-DDRD                .EQU M6X0X_IOSPACE+$DF2
-PORTA               .EQU M6X0X_IOSPACE+$CFF
-PORTB               .EQU M6X0X_IOSPACE+$CF0
-PORTC               .EQU M6X0X_IOSPACE+$DFF
-PORTD               .EQU M6X0X_IOSPACE+$DF0
-        .ENDIF
+DDRA            .EQU M6X0X_IOSPACE+$CF3
+DDRB            .EQU M6X0X_IOSPACE+$CF2
+DDRC            .EQU M6X0X_IOSPACE+$DF3
+DDRD            .EQU M6X0X_IOSPACE+$DF2
+PORTA           .EQU M6X0X_IOSPACE+$CFF
+PORTB           .EQU M6X0X_IOSPACE+$CF0
+PORTC           .EQU M6X0X_IOSPACE+$DFF
+PORTD           .EQU M6X0X_IOSPACE+$DF0
 
 
 

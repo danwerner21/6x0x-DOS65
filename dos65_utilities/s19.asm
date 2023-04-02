@@ -17,6 +17,6 @@ LOOP:
         BNE     LOOP
         JMP     $0400
 START:
-        JSR     $FD36           ; CALL S19 LOADER FROM BIOS
+        JSR     $FFF3           ; CALL S19 LOADER FROM BIOS
         JMP     BOOT
         .END

@@ -8,7 +8,7 @@
 ; TTTTTT= Starting Track
 ; NN    = Number of Tracks
 ;______________________________________________________________
-CLRDIR:
+CLRDIRXX:
 
         LDA     #<INBUFFER      ; SETUP WORK BUFFER
         STA     WORKPTR         ;

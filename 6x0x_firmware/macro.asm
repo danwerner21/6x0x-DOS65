@@ -14,19 +14,23 @@
         .error  "Too few parameters for macro PRTS"
         .endif
         PHA
-        PHX
-        PHY
+        TXA
+        pha
+        TYA
+        PHA
         LDX #$00
 p1:
         LDA p4,x
         INX
         CMP #'$'
         BEQ p2
-        JSR IOF_OUTCH
+        JSR MACRO_OUTCH
         JMP p1
 p2:
-        PLY
-        plx
+        PLA
+        TAY
+        plA
+        TAX
         pla
         JMP p5
 p4:
@@ -38,20 +42,26 @@ p5:
 
 NEWLINE:
         PHA
-        PHX
-        PHY
+        TXA
+        PHA
+        TYA
+        PHA
         LDA     #$0D
-        JSR     IOF_OUTCH
+        JSR     MACRO_OUTCH
         LDA     #$0A
-        JSR     IOF_OUTCH
-        PLY
-        PLX
+        JSR     MACRO_OUTCH
+        PLA
+        TAY
+        plA
+        TAX
         PLA
         RTS
 
 PRTDEC:
-        PHY
-        PHX
+        PHA
+        TXA
+        PHA
+        TYA
         PHA
         LDY     #00
         LDX     #$FF
@@ -74,8 +84,10 @@ PrDec10:
         LDY     #1
         JSR     PrDecDigit      ;Print the 1s
         PLA
-        PLX
-        PLY
+        TAY
+        plA
+        TAX
+        PLA
         RTS
 PrDecDigit:
         PHA
@@ -89,7 +101,23 @@ PrDecDigit:
 PrDecDigit1:
         TXA                     ;Save A, pass digit to A
         ORA     #'0'
-        JSR     IOF_OUTCH       ;Convert to character and print it
+        JSR     MACRO_OUTCH       ;Convert to character and print it
 PrDecDigit2:
         PLA
         RTS                     ;Restore A and return
+
+
+MACRO_OUTCH:
+        PHA
+        LDA     CONSOLE
+        STA     farfunct
+        PLA
+        JMP     FUNCTION_DISPATCHER
+
+PRINT_BYTE:
+        STX     SAVX            ; save X
+        JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
+        JSR     MACRO_OUTCH     ; output upper nybble
+        TXA                     ; transfer lower to A
+        LDX     SAVX            ; restore X
+        JMP     MACRO_OUTCH     ; output lower nybble

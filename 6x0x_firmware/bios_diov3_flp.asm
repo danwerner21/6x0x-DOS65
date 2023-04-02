@@ -4,9 +4,9 @@
 ;
 ;	Entry points:
 ;		SETUPDRIVE  - called during OS init
-;		FORMFL	    - format floppy disk ('U' POINTS TO DCB)
-;		READFL	    - read a sector from drive ('U' POINTS TO DCB, X TO MEMORY)
-;		WRITEFL	    - write a sector to drive   ('U' POINTS TO DCB, X TO MEMORY)
+;		FORMFL	    - format floppy disk
+;		READFL	    - read a sector from drive
+;		WRITEFL	    - write a sector to drive
 ;
 ;________________________________________________________________________________________________________________________________
 ;
