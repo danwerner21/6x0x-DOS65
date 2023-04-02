@@ -52,10 +52,10 @@
 ;
 DSKY_VIAA       = $ED00         ; PORT C
 DSKY_VIAB       = $EC00         ; PORT A & B
-DSKY_PPIA       = DSKY_VIAA + 1 ; PORT A
-DSKY_PPIC       = DSKY_VIAB + 1 ; PORT C
-DSKY_PPIA_C     = DSKY_VIAA + 3 ; PORT A DDR
-DSKY_PPIC_C     = DSKY_VIAB + 3 ; PORT C DDR
+DSKY_PPIA       = DSKY_VIAB + 1 ; PORT A
+DSKY_PPIC       = DSKY_VIAA + 1 ; PORT C
+DSKY_PPIA_C     = DSKY_VIAB + 3 ; PORT A DDR
+DSKY_PPIC_C     = DSKY_VIAA + 3 ; PORT C DDR
 
 ;
 ; PIO CHANNEL C:
@@ -93,7 +93,7 @@ DSKY_INIT:
         JSR     PRINT_BYTE
         LDA     #<DSKY_VIAA     ; GET BASE PORT
         JSR     PRINT_BYTE
-        PRTS    " & "
+        PRTS    " & $"
         LDA     #>DSKY_VIAB     ; GET BASE PORT
         JSR     PRINT_BYTE
         LDA     #<DSKY_VIAB     ; GET BASE PORT
@@ -116,12 +116,9 @@ DSKY_INITA:
 ;____________________________________________________________________________________________________
 ; HARDWARE RESET 8279 BY PULSING RESET LINE
 DSKY_PREINIT:
-; CHECK FOR PPI
-        JSR     DSKY_PPIDETECT  ; TEST FOR PPI HARDWARE
-        BNE     DSKY_ABORT      ; BAIL OUT IF NOT THERE
-
 ; SETUP PPI TO DEFAULT MODE
         JSR     DSKY_PPIRD
+
 ; INIT 8279 VALUES TO IDLE STATE
         LDA     #DSKY_PPI_IDLE
         STA     DSKY_PPIC
@@ -163,8 +160,8 @@ DSKY_RESET:
 ; IS USED TO IMPLEMENT A TIMEOUT.
         LDX     #0              ; TIMEOUT LOOP COUNTER
 DSKY_RESET1:
-        PHX                     ; SAVE COUNTER
-        PLX                     ; RECOVER COUNTER
+        PHA                     ; SAVE COUNTER
+        PLA                     ; RECOVER COUNTER
         DEX
         BNE     DSKY_RESET1     ; LOOP TILL TIMEOUT
 ;
@@ -173,26 +170,7 @@ DSKY_RESET2:
 ;
 ;
 ;
-;__DSKY_PPIDETECT____________________________________________________________________________________
-;
-;  PROBE FOR PPI HARDWARE
-;____________________________________________________________________________________________________
-;
-DSKY_PPIDETECT:
-;
-; TEST FOR PPI EXISTENCE
-; WE SETUP THE PPI TO WRITE, THEN WRITE A VALUE OF ZERO
-; TO PORT A (DATALO), THEN READ IT BACK.  IF THE PPI IS THERE
-; THEN THE BUS HOLD CIRCUITRY WILL READ BACK THE ZERO. SINCE
-; WE ARE IN WRITE MODE, AN IDE CONTROLLER WILL NOT BE ABLE TO
-; INTERFERE WITH THE VALUE BEING READ.
-        JSR     DSKY_PPIWR
-;
-        LDA     #$00            ; VALUE ZERO
-        STA     DSKY_PPIA       ; PUSH VALUE TO PORT
-        LDA     DSKY_PPIA       ; GET PORT VALUE
-        CMP     #$00
-        RTS                     ; AND RETURN
+
 ;
 ;
 KY_0            = $00
@@ -315,26 +293,24 @@ DSKY_BIN2SEG1:
         LSR     A
         LSR     A
         LSR     A
-        PHX                     ; STORE READ INDEX
+        STX     DSKY_X_STORAGE  ; STORE READ INDEX
         TAX                     ; MOVE DIGIT TO LOOKUP INDEX
         LDA     DSKY_HEXMAP,X   ; GET DECODED DIGIT INTO A
-        PLX                     ; GET READ INDEX
-        PHX
+        LDX     DSKY_X_STORAGE  ; GET READ INDEX
         PHA
         TXA
         ASL     a
         TAX
         PLA
         STA     DSKY_BUF,X      ;STORE HIGH BYTE IN OUT BUFFER
-        PLX
+        LDX     DSKY_X_STORAGE
         LDA     DSKY_HEXBUF,X   ; SECOND NIBBLE
 
         AND     #$0F
-        PHX
+        STX     DSKY_X_STORAGE  ; STORE READ INDEX
         TAX
         LDA     DSKY_HEXMAP,X   ; GET DECODED DIGIT INTO A
-        PLX
-        PHX
+        LDX     DSKY_X_STORAGE  ; GET READ INDEX
         PHA
         TXA                     ; GET READ INDEX
         ASL     a
@@ -342,7 +318,7 @@ DSKY_BIN2SEG1:
         INX
         PLA
         STA     DSKY_BUF,X      ;STORE HIGH BYTE IN OUT BUFFER
-        PLX
+        LDX     DSKY_X_STORAGE  ; GET READ INDEX
         INX
         CPX     #4
         BNE     DSKY_BIN2SEG1
@@ -354,19 +330,25 @@ DSKY_BIN2SEG1:
 ;
 DSKY_SHOW:
         PHA
-        PHX
-        PHY
+        TXA
+        PHA
+        TYA
+        PHA
         LDX     #0
 DSKY_SHOW1:
         LDA     DSKY_BUF,X
-        PHX
-        PLY
+        PHA
+        TXA
+        TAY
+        PLA
         JSR     DSKY_PUTBYTE
         INX
         CPX     #8
         BNE     DSKY_SHOW1
-        PLY
-        PLX
+        PLA
+        TAY
+        PLA
+        TAX
         PLA
         RTS
 
@@ -505,7 +487,7 @@ DSKY_BLANK1:
 ;__________________________________________________________________________________________________
 ;
 DSKY_PUTBYTE:
-        PHY
+        STY     DSKY_Y_STORAGE
         PHA
         PHA
         CLC
@@ -517,7 +499,7 @@ DSKY_PUTBYTE:
         EOR     #$FF
         JSR     DSKY_DOUT
         PLA
-        PLY
+        LDY     DSKY_Y_STORAGE
         RTS
 ;
 ;__DSKY_GETBYTE___________________________________________________________________________________
@@ -544,8 +526,10 @@ DSKY_GETBYTE:
 ;_________________________________________________________________________________________________
 ;
 DSKY_PUTLED:
-        PHX
-        PHY
+        PHA
+        TXA
+        PHA
+        TYA
         PHA
         LDY     #$00
         LDX     #$00
@@ -557,8 +541,10 @@ DSKY_PUTLED_1:
         CPY     #8
         BNE     DSKY_PUTLED_1
         PLA                     ; RESTORE REGISTERS
-        PLY
-        PLX
+        TAY
+        PLA
+        TAX
+        PLA
         RTS
 ;
 ;__DSKY_BEEP______________________________________________________________________________________
@@ -566,8 +552,10 @@ DSKY_PUTLED_1:
 ;_________________________________________________________________________________________________
 ;
 DSKY_BEEP:
-        PHY
-        PHX
+        PHA
+        TXA
+        PHA
+        TYA
         PHA
         LDY     #$0F
         JSR     DSKY_GETBYTE
@@ -592,9 +580,11 @@ DSKY_BEEP1:
         LDY     #$0F
         JSR     DSKY_PUTBYTE
 
+        PLA                     ; RESTORE REGISTERS
+        TAY
         PLA
-        PLX
-        PLY
+        TAX
+        PLA
         RTS
 ;
 ;__ODSKY_DSPL______________________________________________________________________________________
@@ -606,7 +596,7 @@ DSKY_BEEP1:
 ;_________________________________________________________________________________________________
 ;
 DSKY_DSPL:
-        PHY
+        STY     DSKY_Y_STORAGE
         CLC
         AND     #$01
         ADC     #$0D
@@ -615,12 +605,12 @@ DSKY_DSPL:
         CPX     #$00
         BEQ     :+
         ORA     #$20
-        BRA     DSKY_DSPL_1
+        JMP     DSKY_DSPL_1
 :
         AND     #$DF
 DSKY_DSPL_1:
         JSR     DSKY_PUTBYTE
-        PLY
+        LDY     DSKY_Y_STORAGE
         RTS
 
 ;
@@ -641,7 +631,7 @@ DSKY_PPIWR:
 ;
 ; PLACE PORT C BITS 0-4 & 7 IN OUT MODE
         LDA     #$9F
-        STA     DSKY_PPIA_C
+        STA     DSKY_PPIC_C
 ;
         PLA
         RTS
@@ -649,24 +639,21 @@ DSKY_PPIWR:
 ; SETUP PPI FOR READING: PUT PPI PORT A IN INPUT MODE
 ; AVOID REWRTING PPIX IF ALREADY IN INPUT MODE
 ;
+DSKY_PPIIDLE:
 DSKY_PPIRD:
         PHA
 ;
+; PLACE PORT C BITS 0-4 & 7 IN OUT MODE
+        LDA     #$9F
+        STA     DSKY_PPIC_C
 ; PLACE PORT A BITS 0-7 IN INPUT MODE
         LDA     #$00
         STA     DSKY_PPIA_C
 ;
-; PLACE PORT C BITS 0-4 & 7 IN OUT MODE
-        LDA     #$9F
-        STA     DSKY_PPIA_C
+
 ;
         PLA
         RTS
-;
-; RELEASE USE OF PPI
-;
-DSKY_PPIIDLE:
-        JMP     DSKY_PPIRD      ; SAME AS READ MODE
 ;
 ;__STORAGE_________________________________________________________________________________________
 ; CODES FOR NUMERICS
@@ -692,9 +679,3 @@ DSKY_HEXMAP:
         .BYTE   $79             ; E
         .BYTE   $71             ; F
 ;
-DSKY_TEMP_VAL:
-        .BYTE   0
-DSKY_PPIX_VAL:
-        .BYTE   0
-DSKY_PRESENT:
-        .BYTE   0

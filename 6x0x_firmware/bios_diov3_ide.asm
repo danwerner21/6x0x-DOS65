@@ -4,8 +4,8 @@
 ;
 ;	ENTRY POINTS:
 ;		IDE_SOFT_RESET   - CALLED DURING OS INIT
-;		IDE_READ_SECTOR  - READ A SECTOR FROM DRIVE  ('U' POINTS TO DCB, X TO MEMORY)
-;		IDE_WRITE_SECTOR - WRITE A SECTOR TO DRIVE   ('U' POINTS TO DCB, X TO MEMORY)
+;		IDE_READ_SECTOR  - READ A SECTOR FROM DRIVE
+;		IDE_WRITE_SECTOR - WRITE A SECTOR TO DRIVE
 ;               IDE_INITIALIZE   - DETECT AND INITIALIZE HARDWARE
 ;________________________________________________________________________________________________________________________________
 ;
@@ -319,8 +319,10 @@ RST_DLY:
 ;*
 ;*____________________________________________________________________________________________________
 IDE_WAIT_NOT_BUSY:
-        PHX
-        PHY
+        PHA
+        TXA
+        PHA
+        TYA
         PHA
         LDA     #$00
         STA     PPIDETIMEOUT
@@ -341,8 +343,10 @@ IDE_WAIT_NOT_BUSY2:
         CLC
 IDE_WAIT_NOT_BUSY3:
         PLA
-        PLY
-        PLX
+        TAY
+        PLA
+        TAX
+        PLA
         RTS
 
 ;*__IDE_WAIT_DRQ______________________________________________________________________________________
@@ -351,8 +355,10 @@ IDE_WAIT_NOT_BUSY3:
 ;*
 ;*____________________________________________________________________________________________________
 IDE_WAIT_DRQ:
-        PHX
-        PHY
+        PHA
+        TXA
+        PHA
+        TYA
         PHA
         LDA     #$00
         STA     PPIDETIMEOUT
@@ -378,8 +384,10 @@ IDE_WAIT_DRQ2:
         CLC
 IDE_WAIT_DRQ3:
         PLA
-        PLY
-        PLX
+        TAY
+        PLA
+        TAX
+        PLA
         RTS
 
 

@@ -8,10 +8,9 @@
 
 ; constants
 
-RTC_WRITE       = $FD3F
-RTC_READ        = $FD42
-RTC_RESET       = $FD45
 
+farfunct        = $32           ; function to call in driver area
+farpointer      = $33           ;
 TEMPWORD        = $40
 TEMP            = $42
 TEMP1           = $43
@@ -21,6 +20,7 @@ PEM             = $103          ;PEM ENTRY
 DFLFCB          = $107          ;DEFAULT FCB
 TEA             = $800          ;TEA START
 
+DO_FARCALL      = $FFF0
 
         .SEGMENT "TEA"
         .ORG    TEA
@@ -59,7 +59,9 @@ Print:
 RTC_WR_PROTECT:
         LDX     #%00000111
         LDY     #%10000000
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
         RTS
 
 
@@ -78,7 +80,10 @@ RTC_WR_PROTECT:
 RTC_WR_UNPROTECT:
         LDX     #%00000111
         LDY     #%00000000
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
         RTS
 
 
@@ -140,7 +145,9 @@ RTC_GET_TIME:
 ;    { Read seconds }
 
         LDX     #$00
-        JSR     RTC_READ
+        LDA     #51             ; rtc_read
+        STA     farfunct
+        JSR     DO_FARCALL
         TYA
         PHA
 ; digit 16
@@ -164,7 +171,9 @@ RTC_GET_TIME:
 ;    { Read minutes }
 
         LDX     #$01
-        JSR     RTC_READ
+        LDA     #51             ; rtc_read
+        STA     farfunct
+        JSR     DO_FARCALL
         TYA
         PHA
 ; digit 13
@@ -191,7 +200,10 @@ RTC_GET_TIME:
 
 ;    { Read hours }
         LDX     #$02
-        JSR     RTC_READ
+        LDA     #51             ; rtc_read
+        STA     farfunct
+        JSR     DO_FARCALL
+
         TYA
 
         PHA
@@ -219,7 +231,10 @@ RTC_GET_TIME:
 
 ;    { Read date }
         LDX     #$03
-        JSR     RTC_READ
+        LDA     #51             ; rtc_read
+        STA     farfunct
+        JSR     DO_FARCALL
+
         TYA
 
         PHA
@@ -247,7 +262,10 @@ RTC_GET_TIME:
 
 ;    { Read month }
         LDX     #$04
-        JSR     RTC_READ
+        LDA     #51             ; rtc_read
+        STA     farfunct
+        JSR     DO_FARCALL
+
         TYA
 
         PHA
@@ -276,7 +294,10 @@ RTC_GET_TIME:
 
 ;    { Read year }
         LDX     #$06
-        JSR     RTC_READ
+        LDA     #51             ; rtc_read
+        STA     farfunct
+        JSR     DO_FARCALL
+
         TYA
 
         PHA
@@ -340,7 +361,10 @@ RTC_SET:
 ; seconds
         LDX     #$00
         LDY     #$00
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
 
 
         LDA     #<RTC_TOP_LOOP1_SET_TIME
@@ -371,7 +395,10 @@ RTC_SET:
 
 ; minutes
         LDX     #$01
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
 
         LDA     RTC_PRINT_BUFFER+3
         AND     #$0F
@@ -389,7 +416,10 @@ RTC_SET:
 
 ; hours
         LDX     #$02
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
 
 
 
@@ -433,7 +463,10 @@ RTC_SET:
 
 ; date
         LDX     #$03
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
 
         LDA     RTC_PRINT_BUFFER+3
         AND     #$0F
@@ -452,12 +485,17 @@ RTC_SET:
 
 ; month
         LDX     #$04
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
 
 ; day
         LDX     #$05
         LDY     #$00
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
 
         LDA     RTC_PRINT_BUFFER+9
         AND     #$0F
@@ -476,7 +514,10 @@ RTC_SET:
 
 ; year
         LDX     #$06
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
 
         JSR     RTC_WR_PROTECT
         RTS
@@ -501,7 +542,10 @@ RTC_RESTART:
         JSR     RTC_WR_UNPROTECT
         LDX     #$00
         LDY     #$00
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
         JSR     RTC_WR_PROTECT
         RTS
 
@@ -524,7 +568,10 @@ RTC_CHARGE_ENABLE:
         JSR     RTC_WR_UNPROTECT
         LDX     #$08
         LDY     #$A5
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
         JSR     RTC_WR_PROTECT
         RTS
 
@@ -547,7 +594,10 @@ RTC_CHARGE_DISABLE:
         JSR     RTC_WR_UNPROTECT
         LDX     #$08
         LDY     #$00
-        JSR     RTC_WRITE
+        LDA     #50             ; rtc_write
+        STA     farfunct
+        JSR     DO_FARCALL
+
         JSR     RTC_WR_PROTECT
         RTS
 
@@ -821,7 +871,10 @@ RTC_TOP_LOOP_RAW1:
 
 ;	{ Read seconds }
         LDX     #$00            ; seconds register in DS1302
-        JSR     RTC_READ        ; read value from DS1302, value is in Reg C
+        LDA     #51             ; rtc_read
+        STA     farfunct
+        JSR     DO_FARCALL
+; read value from DS1302, value is in Reg C
         TYA
         PHA
 ; digit 16
@@ -845,7 +898,10 @@ RTC_TOP_LOOP_RAW1:
 ;	{ Read minutes }
 
         LDX     #$01            ; minutes register in DS1302
-        JSR     RTC_READ        ; read value from DS1302, value is in Reg C
+        LDA     #51             ; rtc_read
+        STA     farfunct
+        JSR     DO_FARCALL
+; read value from DS1302, value is in Reg C
         TYA
         PHA
 ; digit 13
@@ -897,8 +953,9 @@ RTC_TOP_LOOP_RAW1:
         JSR     PEM
 
         CMP     #' '            ; space
-        BEQ     RTC_TOP_LOOP_RAW1
-
+        BNE     :+
+        JMP     RTC_TOP_LOOP_RAW1
+:
         JMP     RTC_TOP_LOOP_1
 
 RTC_TOP_LOOP_LOOP:

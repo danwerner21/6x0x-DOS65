@@ -9,29 +9,9 @@
 ;__________________________________________________________________________________________________
 ;
 ; BIOS JUMP TABLE
-IOF_CONIN       = $FD00         ; read a byte from CONSOLE ('A' POINTS TO BYTE)
-IOF_CONINW      = $FD03         ; read a byte from CONSOLE ('A' POINTS TO BYTE, WAIT FOR BYTE)
-IOF_OUTCH       = $FD06         ; write a byte from CONSOLE  ('A' POINTS TO BYTE)
-IOF_CONSTATUS   = $FD09         ; RETURN CONSOLE STATUS
-SERIALINIT      = $FD0C         ; called during OS init
-RDSER1          = $FD0F         ; read a byte from serial port ('A' POINTS TO BYTE)
-WRSER1          = $FD12         ; write a byte from serial port  ('A' POINTS TO BYTE)
-RDSER1W         = $FD15         ; read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
-SERIALSTATUS    = $FD18         ; GET UART STATUS
-SETUPDRIVE      = $FD1B         ; init floppy drive
-READFL          = $FD1E         ; read sector from floppy
-WRITEFL         = $FD21         ; write sector to floppy
-PPP_SOFT_RESET  = $FD24         ; reset ppp sd drive
-PPP_READ_SECTOR = $FD27         ; read ppp sd drive sector
-PPP_WRITE_SECTOR = $FD2A        ; write ppp sd drive sector
-IDE_SOFT_RESET  = $FD2D         ; reset ide drive
-IDE_READ_SECTOR = $FD30         ; ide read sector
-IDE_WRITE_SECTOR = $FD33        ; ide write sector
-LOADS19         = $FD36         ; load s19 from serial port into ram
-PPP_INITIALIZE  = $FD39         ; Initialize/Detect SD card
-IDE_INITIALIZE  = $FD3C         ; Initialize/Detect IDE
-
-WORKPTR         = $32           ; WORK POINTER FOR COMMAND PROCESSOR
+WORKPTR         = $30           ; WORK POINTER FOR COMMAND PROCESSOR
+farfunct        = $32           ; function to call in driver area
+farpointer      = $33           ;
 TEMPWORD        = $36           ;
 TEMPWORD1       = $38           ;
 COUNTER         = $45           ; COUNTER
@@ -55,9 +35,9 @@ STARTOS         = $B800         ; OS START ADDRESS
 INBUFFER        = $0200         ; DISK BUFFER
 OSENDPAGE       = $E0           ; stop loading when we hit this page
 BOOTCODESTART   = $0800         ; LOCATION BOOT CODE WILL RUN IN
+DO_FARCALL      = $FFF0
 
 
-        .PC02
         .SEGMENT "TEA"
         .ORG    $0800
 
@@ -66,7 +46,9 @@ BOOTCODESTART   = $0800         ; LOCATION BOOT CODE WILL RUN IN
         LDX     #9              ; intro message
         JSR     PEM
 
-        JSR     IOF_CONINW
+        LDA     #02
+        STA     farfunct
+        JSR     DO_FARCALL
 
         CMP     #'I'
         BEQ     DO_IDE
@@ -91,7 +73,6 @@ DO_SD:
         JSR     PEM
         LDA     #$01
         STA     CURRENT_IDE_DRIVE
-        JSR     PPP_SOFT_RESET
         JSR     sd_write_bootsector
         JMP     DO_OS_WRITE
 DO_FL:
@@ -101,7 +82,6 @@ DO_FL:
         JSR     PEM
         LDA     #$02
         STA     CURRENT_IDE_DRIVE
-        JSR     SETUPDRIVE
         JSR     fl_write_bootsector
         JMP     DO_OS_WRITE
 
@@ -112,7 +92,6 @@ DO_IDE:
         JSR     PEM
         LDA     #$00
         STA     CURRENT_IDE_DRIVE
-        JSR     IDE_SOFT_RESET
         JSR     ide_write_bootsector
 
 
@@ -151,15 +130,22 @@ BOOTLOOP:
         LDA     CURRENT_IDE_DRIVE
         CMP     #$00
         BNE     :+
-        JSR     IDE_WRITE_SECTOR;
+        LDA     #62             ; IDE_WRITE_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         JMP     BOOTCONTINUE
 :
         CMP     #$01
         BNE     :+
-        JSR     PPP_WRITE_SECTOR;
+        LDA     #65             ;PPP_WRITE_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         JMP     BOOTCONTINUE
 :
-        JSR     WRITEFL
+        LDA     #68             ; FL_WRITE_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
+
 BOOTCONTINUE:
         INC     TEMPWORD1+1     ;
         LDA     TEMPWORD1+1     ;
@@ -242,7 +228,9 @@ SDBOOTLOOP:
         LDA     #>INBUFFER      ;
         STA     WORKPTR +1      ;
 ;
-        JSR     PPP_READ_SECTOR ;
+        LDA     #64             ;PPP_READ_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         LDY     #$00            ;
 :
         LDA     (WORKPTR),Y     ;
@@ -282,7 +270,9 @@ sd_write_bootsector:
         STA     debcylm         ; SET BOOT CODE LOCATION
         STA     debcyll         ; SET BOOT CODE LOCATION
         STA     debsehd         ; SET BOOT CODE LOCATION
-        JSR     PPP_WRITE_SECTOR;
+        LDA     #65             ;PPP_WRITE_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         RTS
 
 ;_______________________________________________________________
@@ -317,7 +307,9 @@ IDEBOOTLOOP:
         LDA     #>INBUFFER      ;
         STA     WORKPTR +1      ;
 ;
-        JSR     IDE_READ_SECTOR ;
+        LDA     #61             ;IDE_READ_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         LDY     #$00            ;
 :
         LDA     (WORKPTR),Y     ;
@@ -357,7 +349,9 @@ ide_write_bootsector:
         STA     debcylm         ; SET BOOT CODE LOCATION
         STA     debcyll         ; SET BOOT CODE LOCATION
         STA     debsehd         ; SET BOOT CODE LOCATION
-        JSR     IDE_WRITE_SECTOR;
+        LDA     #62             ; IDE_WRITE_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         RTS
 
 ;_______________________________________________________________
@@ -392,7 +386,9 @@ FLBOOTLOOP:
         LDA     #>INBUFFER      ;
         STA     WORKPTR +1      ;
 ;
-        JSR     READFL          ;
+        LDA     #67             ; FL_READ_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         LDY     #$00            ;
 :
         LDA     (WORKPTR),Y     ;
@@ -439,7 +435,9 @@ fl_write_bootsector:
         STA     debcylm         ; SET BOOT CODE LOCATION
         STA     debcyll         ; SET BOOT CODE LOCATION
         STA     debsehd         ; SET BOOT CODE LOCATION
-        JSR     WRITEFL         ;
+        LDA     #68             ; FL_WRITE_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL      ;
         RTS
 
 

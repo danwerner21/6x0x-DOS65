@@ -46,9 +46,13 @@ msgptr          = chkpnt+2      ;message pointer
 movptr          = msgptr        ;and move pointer
 dcbloc          = msgptr+2      ;pointer to dcb
 
+farfunct        = $32           ; function to call in driver area
+farpointer      = $33           ;
 IRQVECTOR       = $35           ; VECTOR FOR USER IRQ RTN
 NMIVECTOR       = $37           ; VECTOR FOR USER NMI RTN
 CONSOLE         = $3A
+
+DO_FARCALL      = $FFF0
 
 ;page zero and system ram assignments
 DEST            = $EC           ;pointer for OutMsg
@@ -81,39 +85,3 @@ DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
 
 M6X0X_IOSPACE   = $E000
 M6X0X_SHADOW_ROM = $F000
-
-; BIOS JUMP TABLE
-IOF_CONIN       = $FD00         ; read a byte from CONSOLE ('A' POINTS TO BYTE)
-IOF_CONINW      = $FD03         ; read a byte from CONSOLE ('A' POINTS TO BYTE, WAIT FOR BYTE)
-IOF_OUTCH       = $FD06         ; write a byte from CONSOLE  ('A' POINTS TO BYTE)
-IOF_CONSTATUS   = $FD09         ; RETURN CONSOLE STATUS
-SERIALINIT      = $FD0C         ; called during OS init
-RDSER1          = $FD0F         ; read a byte from serial port ('A' POINTS TO BYTE)
-WRSER1          = $FD12         ; write a byte from serial port  ('A' POINTS TO BYTE)
-RDSER1W         = $FD15         ; read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
-SERIALSTATUS    = $FD18         ; GET UART STATUS
-SETUPDRIVE      = $FD1B         ; init floppy drive
-READFL          = $FD1E         ; read sector from floppy
-WRITEFL         = $FD21         ; write sector to floppy
-PPP_SOFT_RESET  = $FD24         ; reset ppp sd drive
-PPP_READ_SECTOR = $FD27         ; read ppp sd drive sector
-PPP_WRITE_SECTOR = $FD2A        ; write ppp sd drive sector
-IDE_SOFT_RESET  = $FD2D         ; reset ide drive
-IDE_READ_SECTOR = $FD30         ; ide read sector
-IDE_WRITE_SECTOR = $FD33        ; ide write sector
-LOADS19         = $FD33         ; load s19 from serial port into ram
-PPP_INITIALIZE  = $FD39         ; Initialize/Detect SD card
-IDE_INITIALIZE  = $FD3C         ; Initialize/Detect IDE
-RTC_WRITE       = $FD3F         ; WRITE RTC REGISTER
-RTC_READ        = $FD42         ; READ RTC REGISTER
-RTC_RESET       = $FD45         ; RESET RTC
-DSKY_INIT       = $FD48         ; INIT DSKY HARDWARE
-DSKY_RESET      = $FD4B         ; RESET DSKY CONTROLLER
-DSKY_SHOW       = $FD4E         ; SHOW DSKY SEGMENTS
-DSKY_BIN2SEG    = $FD51         ; CONVERT NUMBER TO DSKY SEGMENTS
-DSKY_STAT       = $FD54         ; CHECK DSKY KEYBOARD
-DSKY_GETKEY     = $FD57         ; GET DSKY KEYPRESS
-DSKY_BEEP       = $FD5A         ; BEEP DSKY
-DSKY_PUTLED     = $FD5D         ; SET KEYBOARD LED MATRIX
-DSKY_BLANK      = $FD60         ; BLANK DSKY DISPLAY
-DSKY_DSPL       = $FD63         ; UPDATE INDIVIDUAL DISPLAY LEDS

@@ -11,13 +11,14 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
+1. cleanup readme (supermon changes, memory map, console redirection changes, etc)
 1. cleanup wiki documentation
 1. assign utility
 1. floppy support
 1. floppy formatter
 1. default console jumper
-1. dsky new (jumper?)
 1. dsky old (jumper?)
+1. cleanup dskyng clock
 1. IO ASSIGNMENT?
  * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
  * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
@@ -26,6 +27,9 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 ## BUGS
 1. basic run command overwrites zero page config vars
 1. sedit does not paint properly on console (colors)
+1. Original DSKY code does not work
+
+
 
 ---
 
@@ -33,7 +37,7 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 ### REQUIRED FOR OPERATION
 
-1. 6x0x WITH A 65C02 PROCESSOR INSTALLED
+1. 6x0x WITH A 6502 PROCESSOR INSTALLED
 1. PC Connected to serial port (P31) of 6x0x
 1. SD card (>32mb)
 
@@ -47,7 +51,7 @@ See XXX for more information.
 
 
 ### Jumper Settings
-See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on setting the jumpers for your particular hardware configuration.   Note that as this version of DOS/65 uses the MMU, it is important that there is no jumper on K17.  Also, to utilize floppy drives with DOS/65 the CPU must be running at 2Mhz or better.
+See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on setting the jumpers for your particular hardware configuration.   Note that as this version of DOS/65 uses the MMU, it is important that there is no jumper on K17,XJ6 is jumpered from 1 to 3 (no pin 2), xk1 is on 5&6 and finally, pin 2 of xk2 is jumpered to GND (not 1 or 3).  Also, to utilize floppy drives with DOS/65 the CPU must be running at 2Mhz or better.
 
 
 ### Building the system
@@ -106,7 +110,7 @@ At this juncture it is convenient (but not essential) to redirect the console to
 
 To do this type:
 ```
-ENTER 003A 01
+>003A 04
 ```
 at the monitor prompt, then you can continue to interact with the 6x0x system using a terminal program on your PC attached to the 6x0x SBC on the Primary serial port using either:
 
