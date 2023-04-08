@@ -11,7 +11,7 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. cleanup readme (supermon changes, memory map, console redirection changes, etc)
+1. BUG IN RTC
 1. cleanup wiki documentation
 1. assign utility
 1. floppy support
@@ -23,6 +23,9 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
  * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
  * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
  * rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+1. add memory map to readme
+1. add console redirection to readme
+1. add building a custom rom image to readme
 
 ## BUGS
 1. basic run command overwrites zero page config vars
@@ -43,15 +46,21 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 The following pieces of optional equipment are supported:
- *  ECB backplane
+ *  ECB backplane -- to fit in an ATX case, see the specially designed backplane at XXXX))
  *  DSKY [V1](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dsky:start) or [V2](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dskyng)
  *  [Disk Controller V3](https://retrobrewcomputers.org/doku.php?id=boards:ecb:diskio-v3:start)
 
-See XXX for more information.
+See XXXX for more information.
 
 
 ### Jumper Settings
-See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on setting the jumpers for your particular hardware configuration.   Note that as this version of DOS/65 uses the MMU, it is important that there is no jumper on K17,XJ6 is jumpered from 1 to 3 (no pin 2), xk1 is on 5&6 and finally, pin 2 of xk2 is jumpered to GND (not 1 or 3).  Also, to utilize floppy drives with DOS/65 the CPU must be running at 2Mhz or better.
+See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on setting the jumpers for your particular hardware configuration.   Note that as this version of DOS/65 uses the MMU, it is important that:
+ * there can be is no jumper on K17
+ * XJ6 must be is jumpered from 1 to 3 (no pin 2)
+ * xk1 is on 5&6
+ * pin 2 of xk2 must be jumpered to GND (not 1 or 3)
+
+ Also, to utilize floppy drives with DOS/65 the CPU must be running at 2Mhz or better.
 
 
 ### Building the system
@@ -100,11 +109,11 @@ If the system is running properly, you should be greeted with the 6x0x power on 
         SD CARD: INITIALIZED
         PPIDE: NOT FOUND
 
-           PC  AC  XR  YR  SP  SR"
-        ! F5CE A5  D3  00  FF  3A
-        .
+        PC  SR AC XR YR SP   V1.2
+        ; F06F 35 29 08 00 FF
+
 ```
-(note that the register values may be different for your build)
+(note that the register values and hardware initialization messages may be different for your build)
 
 At this juncture it is convenient (but not essential) to redirect the console to the serial port so that all operations can be done from your attached PC. (9600 baud, 8 bit, no stop bit, no parity)
 
@@ -119,40 +128,36 @@ at the monitor prompt, then you can continue to interact with the 6x0x system us
 
 
 #### Clear the Boot Device
-DOS/65 is a bit sensitive to garbage that is in the boot and directory areas of it's storage devices.  Therefore it is important to have a way to clear these areas.   The 6x0x monitor provides a command to accomplish this task.
+DOS/65 is a bit sensitive to garbage that is in the boot and directory areas of it's storage devices.  Therefore it is important to have a way to clear these areas.   The CLRDIR program included in this repo provides a program to accomplish this task.
 
+To load the clrdir program into RAM, type:
 ```
-CLRDIR  D TTTTTT NN
-             D     = Device (I)DE Primary (J)IDE Secondary or (S)D
-             TTTTTT= Starting Track
-             NN    = Number of Tracks
+L <press the enter key>
+```
+The 6x0x will appear to freeze, but it is actually waiting for a Motorola “S19” file to be sent to the serial port from your PC.  From a terminal program on your PC (9600 baud, 8 bit, no stop bit, no parity), do a file dump of the “clrdir.s19” from the bin folder of this repo.  You may need to tell your terminal program to insert a delay between characters and between lines in order to ensure that you do not send the characters too quickly.  On my TeraTerm, 5ms between characters and 10ms between lines seems to work out about right.  If the file transfer is working normally, you should see the s19 file echoed to your pc terminal window.   You should not see any “?” characters in the stream, if you do, there was a checksum error and you need to increase your delay settings.   When the transfer is complete the 6x0x screen should return to the “.” Prompt.  Note that some terminal programs will insert some extra control characters after sending S19 files.  It will probably be necessary to hit "enter" after any of the file transmissions referenced in this document complete, just to be sure you have a clean prompt with no extra characters.
+
+To start clrdir type:
+```
+G 0800 <press the enter key>
 ```
 
-Prior to starting DOS/65 with an attached SD card or IDE device it is important to run this command on a blank device.  Note that you only need to run this command on a NEW device -- if it is ran on an existing drive DATA WILL BE LOST.
+Then follow the on screen prompts to clear the first slice of any devices you have attached to the 6x0x system.
 
-This version supports the ROMWBW concept of "Slices" to allow large drives to be partitioned off to allow DOS/65 to make use of a much larger device.   See the "Building a Custom ROM Image" section of this document for more information.  For now, it is only important to clear the first few tracks of the device (eventually it will be important to ensure that you have cleared the first few tracks of each Slice).
+Prior to starting DOS/65 with an attached SD card or IDE device it is important to run this command on a blank device.  Note that you only need to run this command on a NEW device that has never been used with this version of DOS/65 before-- if it is ran on an existing drive DATA WILL BE LOST.
 
-To clear the first 16 tracks of Slice 0 of the SD card type:
-```
-CLRDIR S 000000 10
-```
-If you have configured the ROM image to support more Slices in the SD card the command should be repeated for the first few tracks in each configured slice.
-If you have any attached IDE devices, you need to repeat this process for any configured slices on those drives.
-
-If you are using the default configuration and have no attached IDE devices, only the above command is required.
+This version supports the ROMWBW concept of "Slices" to allow large drives to be partitioned off to allow DOS/65 to make use of a much larger device.   See the "Building a Custom ROM Image" section of this document for more information.  For now, it is only important to clear the first few tracks of the device (eventually it will be important to ensure that you have cleared the first few tracks of each Slice).   More information on slices can be found in the RomWBW documentation.
 
 
 #### load the OS into RAM
 To load the OS image into RAM, at the 6x0x “.” prompt type:
 ```
-LOAD
+L <press the enter key>
 ```
-
-The 6x0x will appear to freeze, but it is actually waiting for a Motorola “S19” file to be sent to the serial port from your PC.  From a terminal program on your PC (9600 baud, 8 bit, no stop bit, no parity), do a file dump of the “dos65.s19” from the bin folder of this repo.  You may need to tell your terminal program to insert a delay between characters and between lines in order to ensure that you do not send the characters too quickly.  On my TeraTerm, 5ms between characters and 10ms between lines seems to work out about right.  If the file transfer is working normally, you should see the s19 file echoed to your pc terminal window.   You should not see any “?” characters in the stream, if you do, there was a checksum error and you need to increase your delay settings.   When the transfer is complete the 6x0x screen should return to the “.” Prompt.  Note that some terminal programs will insert some extra control characters after sending S19 files.  It is a good idea to hit "enter" after any of the file transmissions referenced in this document complete, just to be sure you have a clean prompt with no extra characters.
+Just like with the clrdir.s19 load, the 6x0x will appear to freeze. Now do a file dump of the “dos65.s19” from the bin folder of this repo . .  and just like before it is a good idea to hit "enter" after any of the file transmissions referenced in this document complete, just to be sure you have a clean prompt with no extra characters.
 
 To start DOS/65 type:
 ```
-GO B800
+G B800 <press the enter key>
 ```
 
 This will start DOS/65.  If DOS has started successfully you should see:
@@ -173,7 +178,7 @@ We want to begin by loading a DOS/65 program that will access the BIOS S19 file 
 
 At the DOS/65 “A>” prompt type:
 ```
-GO $FD36
+GO $FFF3
 ```
 This calls the BIOS S19 loader and just like before is now waiting for you to dump a s19 file to the serial port from your PC terminal program.   The file we want to send now is the "S19.S19" file from the bin folder of the repo.  Once the file is sent, DOS/65 should return to a "A>" prompt.
 On the 6x0x “A>” prompt type:
@@ -381,24 +386,17 @@ SAVE 16 A:RTC.COM
 
 
 ### Monitor Commands
-The Rom Commands are as follows:
+The 6x0x system utilzes the "SUPERMON" monitor program written by Jim Butterfield, with an extra command or two.
+Complete instructions on how to use supermon along with the original source code can be found [here](https://github.com/danwerner21/supermon64)
+
+Additional Commands are as follows:
  command | description
 ----------------------- | ----------------------------
-REGISTER | Print Processor Registers
-DUMP XXXX YYYY | Dump memory from xxxx (in hex) to yyyy (in hex)
-ENTER XXXX YY | Change Memory byte at location xxxx (in hex) to value yy
-GO XXXX | Transfer execution to location xxxx (in hex)
-LOAD | Load a Motorola format image
-BOOT YY XX | Load DOS/65 image from UNIT YY ON device X and boot it
+L | Load a Motorola format image
+B YY XX | Load DOS/65 image from UNIT YY ON device X and boot it
 | | 40= SD CARD
 | | ZZ= FLOPPY
 | | 3D= IDE
-ASSEMBLE XXXX | Assemble a 6502 program from the console to location XXXX
-DISASSEMBLE XXXX | Disassemble a 6502 program from location XXXX to the console
-CLRDIR  D TTTTTT NN | Clear the directory area of a mass storage device
-| | D     = Device (I)DE Primary (J)IDE Secondary or (S)D
-| | TTTTTT= Starting Track
-| | NN    = Number of Tracks
 
 ### Building a Custom ROM Image
  To Do
