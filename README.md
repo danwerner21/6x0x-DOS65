@@ -11,7 +11,6 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. write clrdir program
 1. cleanup readme (supermon changes, memory map, console redirection changes, etc)
 1. cleanup wiki documentation
 1. assign utility
@@ -390,10 +389,10 @@ DUMP XXXX YYYY | Dump memory from xxxx (in hex) to yyyy (in hex)
 ENTER XXXX YY | Change Memory byte at location xxxx (in hex) to value yy
 GO XXXX | Transfer execution to location xxxx (in hex)
 LOAD | Load a Motorola format image
-BOOT X | Load DOS/65 image from device X and boot it
-| | 0= SD CARD
-| | 1= FLOPPY
-| | 4= IDE
+BOOT YY XX | Load DOS/65 image from UNIT YY ON device X and boot it
+| | 40= SD CARD
+| | ZZ= FLOPPY
+| | 3D= IDE
 ASSEMBLE XXXX | Assemble a 6502 program from the console to location XXXX
 DISASSEMBLE XXXX | Disassemble a 6502 program from location XXXX to the console
 CLRDIR  D TTTTTT NN | Clear the directory area of a mass storage device

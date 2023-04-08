@@ -3194,7 +3194,7 @@ Current file: 6x0xbios.asm
 00F089  2               U0AAE           = $D0+10        ; end of 10 byte work buffer
 00F089  2               STAGE           = $DA           ; 30 byte staging buffer for filename, search, etc.
 00F089  2               ESTAGE          = $DA+30        ; end of 30 byte staging buffer for filename, search, etc.
-00F089  2               INBUFF          = $0200
+00F089  2               INBUFF          = $0400
 00F089  2               CHROUT          = IOF_OUTCH
 00F089  2               
 00F089  2               
@@ -3252,20 +3252,20 @@ Current file: 6x0xbios.asm
 00F0D3  2  20 76 FA             JSR     IOF_OUTCH       ; BACK UP CURSOR
 00F0D6  2               
 00F0D6  2  A9 00                LDA     #0
-00F0D8  2  9D 00 02             STA     INBUFF,X        ; store in input buffer
+00F0D8  2  9D 00 04             STA     INBUFF,X        ; store in input buffer
 00F0DB  2  CA                   DEX
 00F0DC  2  4C BE F0             JMP     SMOVE
 00F0DF  2               :
 00F0DF  2  20 76 FA             JSR     IOF_OUTCH       ; OUTPUT CHAR TO SCREEN
 00F0E2  2               
-00F0E2  2  9D 00 02             STA     INBUFF,X        ; store in input buffer
+00F0E2  2  9D 00 04             STA     INBUFF,X        ; store in input buffer
 00F0E5  2  E8                   INX
 00F0E6  2  E0 00                CPX     #00             ; error if buffer is full
 00F0E8  2  F0 1C                BEQ     ERROR
 00F0EA  2  C9 0D                CMP     #$0D            ; keep reading until CR
 00F0EC  2  D0 D0                BNE     SMOVE
 00F0EE  2  A9 00                LDA     #0              ; null-terminate input buffer
-00F0F0  2  9D FF 01             STA     INBUFF-1,X      ; (replacing the CR)
+00F0F0  2  9D FF 03             STA     INBUFF-1,X      ; (replacing the CR)
 00F0F3  2               ST1:
 00F0F3  2  20 D6 F6             JSR     GETCHR          ; get a character from the buffer
 00F0F6  2  F0 BF                BEQ     STRT            ; start over if buffer is empty
@@ -3813,27 +3813,27 @@ Current file: 6x0xbios.asm
 00F44A  2                                               ; setup for the next assemble command
 00F44A  2  20 98 F6             JSR     CRLF
 00F44D  2  A9 41                LDA     #'A'            ; stuff keyboard buffer with next assemble command:
-00F44F  2  8D 00 02             STA     INBUFF
+00F44F  2  8D 00 04             STA     INBUFF
 00F452  2  20 76 FA             JSR     IOF_OUTCH
 00F455  2  A9 20                LDA     #' '            ;   after the previously assembled instruction
-00F457  2  8D 01 02             STA     INBUFF+1
+00F457  2  8D 01 04             STA     INBUFF+1
 00F45A  2  20 76 FA             JSR     IOF_OUTCH
 00F45D  2  A5 C4                LDA     TMP2+1          ; convert high byte of next address to hex
 00F45F  2  20 BF F6             JSR     ASCTWO
-00F462  2  8D 02 02             STA     INBUFF+2        ; put it in the keyboard buffer
+00F462  2  8D 02 04             STA     INBUFF+2        ; put it in the keyboard buffer
 00F465  2  20 76 FA             JSR     IOF_OUTCH
-00F468  2  8E 03 02             STX     INBUFF+3
+00F468  2  8E 03 04             STX     INBUFF+3
 00F46B  2  8A                   TXA
 00F46C  2  20 76 FA             JSR     IOF_OUTCH
 00F46F  2  A5 C3                LDA     TMP2            ; convert low byte of next address to hex
 00F471  2  20 BF F6             JSR     ASCTWO
-00F474  2  8D 04 02             STA     INBUFF+4        ; put it in the keyboard buffer
+00F474  2  8D 04 04             STA     INBUFF+4        ; put it in the keyboard buffer
 00F477  2  20 76 FA             JSR     IOF_OUTCH
-00F47A  2  8E 05 02             STX     INBUFF+5
+00F47A  2  8E 05 04             STX     INBUFF+5
 00F47D  2  8A                   TXA
 00F47E  2  20 76 FA             JSR     IOF_OUTCH
 00F481  2  A9 20                LDA     #' '            ;   after the previously assembled instruction
-00F483  2  8D 06 02             STA     INBUFF+6
+00F483  2  8D 06 04             STA     INBUFF+6
 00F486  2  20 76 FA             JSR     IOF_OUTCH
 00F489  2  A2 07                LDX     #7              ; set number of chars in keyboard buffer
 00F48B  2  A9 00                LDA     #$00
@@ -4264,7 +4264,7 @@ Current file: 6x0xbios.asm
 00F6D6  2               GETCHR:
 00F6D6  2  86 CA                STX     SAVX
 00F6D8  2  A6 B9                LDX     CHRPNT          ; get pointer to next char
-00F6DA  2  BD 00 02             LDA     INBUFF,X        ; load next char in A
+00F6DA  2  BD 00 04             LDA     INBUFF,X        ; load next char in A
 00F6DD  2  F0 06                BEQ     NOCHAR          ; null, :, or ? signal end of buffer
 00F6DF  2  C9 3A                CMP     #':'
 00F6E1  2  F0 02                BEQ     NOCHAR

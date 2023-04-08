@@ -118,24 +118,53 @@ DO_IDE:
         CPX     #$00
         BNE     :-
 
+        LDA     #00
+        STA     farfunct
+        LDA     #$0D
+        JSR     DO_FARCALL
+        LDA     #$0A
+        JSR     DO_FARCALL
 
         LDX     #$00
-        LDY     #$00
-loop:
+        STX     COUNTER
+LOOP:
+        LDA     #<RUNMSG
+        STA     STRPTR
+        LDA     #>RUNMSG
+        STA     STRPTR+1
+        JSR     OUTSTR
+        LDA     debcylm
+        JSR     PRINT_BYTE
+        LDA     debcyll
+        JSR     PRINT_BYTE
+        LDA     #00
+        STA     farfunct
+        LDA     #$0D
+        JSR     DO_FARCALL
+:
         STX     debsehd
         INX
         LDA     FUNCTREF
         STA     farfunct
         JSR     DO_FARCALL
 
-        ; NEED STATUS INDICATOR HERE
         CPX     #$00
-        BNE     LOOP
-        INY
-        CPY     #$04
+        BNE     :-
+
+        INC     debcyll
+        BNE     :+
+        INC     debcylm
+:
+        INC     COUNTER
+        LDA     COUNTER
+        CMP     #$1F
         BNE     LOOP
 
-        ; NEED DONE INDICATOR HERE
+        LDA     #<ENDMSG
+        STA     STRPTR
+        LDA     #>ENDMSG
+        STA     STRPTR+1
+        JSR     OUTSTR
 
         BRK
 
@@ -145,7 +174,7 @@ loop:
 ;
 ;______________________________________________________________
 GETSTR:
-       LDX  #$00
+        LDX     #$00
 GETSTR_LOOP:
         LDA     #02
         STA     farfunct
@@ -160,10 +189,10 @@ GETSTR_LOOP:
         CMP     #$40
         BCS     GETSTR_LOOP
 
-        pha
+        PHA
         LDA     #00
         STA     farfunct
-        pla
+        PLA
         JSR     DO_FARCALL
 
         AND     #$0F
@@ -178,10 +207,10 @@ GETSTR_DEL:
         CPX     #$00
         BEQ     GETSTR_LOOP
 
-        pha
+        PHA
         LDA     #00
         STA     farfunct
-        pla
+        PLA
         JSR     DO_FARCALL
 
         DEX
@@ -195,15 +224,15 @@ GETSTR_DEL:
 ;
 ;______________________________________________________________
 GETDECIMAL:
-       LDX  #$00
-       STX  TEMPWORD
+        LDX     #$00
+        STX     TEMPWORD
 
 GETDECIMAL_LOOP:
         LDA     BUFFER,X
         CMP     #$FF
         BEQ     GETDECIMAL_DONE
 
-        ; MULTIPLY TEMPWORD*10
+; MULTIPLY TEMPWORD*10
         LDA     TEMPWORD
         STA     TEMPWORD1
 
@@ -213,15 +242,15 @@ GETDECIMAL_LOOP:
         ASL     A               ;*2
 
         CLC
-	    adc     TEMPWORD1
-        adc     TEMPWORD1
-	    sta     TEMPWORD			; store sum
-        LDA     BUFFER,X            ; add new decimal digit
+        ADC     TEMPWORD1
+        ADC     TEMPWORD1
+        STA     TEMPWORD        ; store sum
+        LDA     BUFFER,X        ; add new decimal digit
         INX
         CLC
-	    adc     TEMPWORD
-	    sta     TEMPWORD			; store sum
-        jmp     GETDECIMAL_LOOP
+        ADC     TEMPWORD
+        STA     TEMPWORD        ; store sum
+        JMP     GETDECIMAL_LOOP
 GETDECIMAL_DONE:
         RTS
 
@@ -273,24 +302,40 @@ TRANSLATESLICE:
         STA     debcylm
         RTS
 
-DSKY_DISPLAY:
-; DISPLAY ON DSKY IF PRESENT
-        LDA     sekdsk
-        STA     DSKY_HEXBUF
-        LDA     debcylm
-        STA     DSKY_HEXBUF+1
-        LDA     debcyll
-        STA     DSKY_HEXBUF+2
-        LDA     debsehd
-        STA     DSKY_HEXBUF+3
-        LDA     #42             ; DSKY_BIN2SEG
-        STA     farfunct
-        JSR     DO_FARCALL
-        LDA     #41             ; DSKY_SHOW
-        STA     farfunct
-        JSR     DO_FARCALL
-        RTS
+;__PRINT_BYTE__________________________________________________
+;
+; PRINT OUT ACCUMULATOR AS HEX NUMBER
+;
+;______________________________________________________________
+PRINT_BYTE:
+        PHA                     ; SAVE A REGISTER
+        LSR     A               ; SHIFT HIGH NIBBLE TO LOW NIBBLE
+        LSR     A               ;
+        LSR     A               ;
+        LSR     A               ;
+        CLC                     ; CLEAR CARRY
+        JSR     PRINT_DIGIT     ; PRINT LOW NIBBLE
+        PLA                     ; RESTORE ACCUMULATOR
+        JMP     PRINT_DIGIT     ; PRINT LOW NIBBLE
 
+;__PRINT_DIGIT_________________________________________________
+;
+; PRINT OUT LOW NIBBLE OF ACCUMULATOR IN HEX
+;
+;______________________________________________________________
+PRINT_DIGIT:
+        AND     #$0F            ; STRIP OFF HIGH NIBBLE
+        ORA     #$30            ; ADD $30 TO PRODUCE ASCII
+        CMP     #$3A            ; IS GREATER THAN 9
+        BMI     :+              ; NO, SKIP ADD
+        CLC                     ; CLEAR CARRY
+        ADC     #$07            ; ADD ON FOR LETTER VALUES
+:       ;
+        PHA
+        LDA     #00
+        STA     farfunct
+        PLA
+        JMP     DO_FARCALL
 
 MSG:
         .BYTE   $0D,$0A,"CLEARDIR - CLEAR TRACKS ON SELECTED DEVICE",$0D,$0A,$0D,$0A
@@ -311,15 +356,22 @@ SDMSG:
 
 
 INPUTNUMBER:
-        .BYTE   $0D,$0A,"WHICH SLICE TO CLEAR? (1-255):"
+        .BYTE   $0D,$0A,"WHICH SLICE TO CLEAR? (0-255):"
         .BYTE   0
-
 
 
 ABORTMSG:
         .BYTE   $0D,$0A,"ABORTED.",$0D,$0A,$0D,$0A
         .BYTE   0
-        .END
+
+RUNMSG:
+        .BYTE   "CLEARING TRACK $"
+        .BYTE   0
+
+ENDMSG:
+        .BYTE   $0D,$0A,"CLEAR COMPLETE.",$0D,$0A
+        .BYTE   0
+
 
 
 
