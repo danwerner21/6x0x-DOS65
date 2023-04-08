@@ -365,8 +365,6 @@ RTC_SET:
         STA     farfunct
         JSR     DO_FARCALL
 
-
-
         LDA     #<RTC_TOP_LOOP1_SET_TIME
         LDY     #>RTC_TOP_LOOP1_SET_TIME
         LDX     #9              ;MESSAGE
@@ -390,8 +388,6 @@ RTC_SET:
         CLC
         ADC     TEMP
         TAY
-
-        JSR     $F528
 
 ; minutes
         LDX     #$01
@@ -419,10 +415,6 @@ RTC_SET:
         LDA     #50             ; rtc_write
         STA     farfunct
         JSR     DO_FARCALL
-
-
-
-
 
         LDA     #<RTC_TOP_LOOP1_OTHER2
         LDY     #>RTC_TOP_LOOP1_OTHER2

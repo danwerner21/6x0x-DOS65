@@ -166,7 +166,7 @@ DSKY_RESET1:
         BNE     DSKY_RESET1     ; LOOP TILL TIMEOUT
 ;
 DSKY_RESET2:
-        RTS
+        JMP     DSKY_REINIT
 ;
 ;
 ;

@@ -11,8 +11,6 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. BUG IN RTC
-1. cleanup wiki documentation
 1. assign utility
 1. floppy support
 1. floppy formatter
@@ -26,6 +24,9 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. add memory map to readme
 1. add console redirection to readme
 1. add building a custom rom image to readme
+1. add images of backplane in an atx case
+1. add 6x0x backplane repo to wiki
+1. COMPLETE PORT OF XM.ASM
 
 ## BUGS
 1. basic run command overwrites zero page config vars
