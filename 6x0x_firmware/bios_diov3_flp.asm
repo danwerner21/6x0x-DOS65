@@ -43,14 +43,14 @@ FLOPPY_RETRIES1 = 2             ; TWO ITERATIONS OF RECAL?
 ;
 ;
 FL_SETUP:
-        lda     #$00
-        sta     debcyll
-        sta     debcylm
-        sta     debsehd
-        lda     #$FF
-        sta     Cdebcyll
-        sta     Cdebcylm
-        sta     Cdebsehd
+        LDA     #$00
+        STA     debcyll
+        STA     debcylm
+        STA     debsehd
+        LDA     #$FF
+        STA     Cdebcyll
+        STA     Cdebcylm
+        STA     Cdebsehd
         PRTS    "FD: MODE=DIOV3$"
 ;
         PRTS    " IO=0x$"
@@ -602,7 +602,7 @@ FD_DETECT:
 ; BLINDLY RESET FDC (WHICH MAY OR MAY NOT EXIST)
         JSR     FC_RESETFDC     ; RESET FDC
 
-        LDA     FMSR             ; READ MSR
+        LDA     FMSR            ; READ MSR
         CMP     #$80
         BEQ     FD_DETECT1      ; $80 IS OK
         CMP     #$D0

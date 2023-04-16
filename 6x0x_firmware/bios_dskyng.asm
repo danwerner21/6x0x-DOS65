@@ -116,17 +116,20 @@ DSKY_INITA:
 ;____________________________________________________________________________________________________
 ; HARDWARE RESET 8279 BY PULSING RESET LINE
 DSKY_PREINIT:
+; PLACE PORT C BITS 0-4 & 7 IN OUT MODE
+        LDA     #$FF
+        STA     DSKY_PPIC_C
+;
 ; SETUP PPI TO DEFAULT MODE
         JSR     DSKY_PPIRD
 
-; INIT 8279 VALUES TO IDLE STATE
-        LDA     #DSKY_PPI_IDLE
-        STA     DSKY_PPIC
 ; PULSE RESET SIGNAL ON 8279
-        ORA     #%10000000
+        LDA     #%10000110
         STA     DSKY_PPIC
-        AND     #%01111111
+        JSR     DSKY_DODELAY
+        LDA     #%00000110
         STA     DSKY_PPIC
+        JSR     DSKY_DODELAY
 ; INITIALIZE 8279
         JSR     DSKY_REINIT
 ; NOW SEE IF A DSKYNG IS REALLY THERE...
@@ -140,26 +143,28 @@ DSKY_PREINIT:
         LDA     #$FF
         STA     DSKY_PRESENT
 DSKY_ABORT:
-        RTS
 ;
 DSKY_REINIT:
 DSKY_RESET:
         JSR     DSKY_PPIIDLE
 
-; RESET DSKY -- CLEAR RAM AND FIFO
-        LDA     #DSKY_CMD_CLR
-        JSR     DSKY_CMD
-
 ; SET CLOCK SCALER TO 20
         LDA     #DSKY_CMD_CLK | DSKY_PRESCL
+        JSR     DSKY_CMD
+
+; RESET DSKY -- CLEAR RAM AND FIFO
+        LDA     #DSKY_CMD_CLR
         JSR     DSKY_CMD
 ;
 ; 8259 TAKES ~160US TO CLEAR RAM DURING WHICH TIME WRITES TO
 ; DISPLAY RAM ARE INHIBITED.  HIGH BIT OF STATUS BYTE IS SET
 ; DURING THIS WINDOW.  TO PREVENT A DEADLOCK, A LOOP COUNTER
 ; IS USED TO IMPLEMENT A TIMEOUT.
+DSKY_DODELAY:
         LDX     #0              ; TIMEOUT LOOP COUNTER
 DSKY_RESET1:
+        PHA                     ; SAVE COUNTER
+        PLA                     ; RECOVER COUNTER
         PHA                     ; SAVE COUNTER
         PLA                     ; RECOVER COUNTER
         DEX
@@ -334,6 +339,7 @@ DSKY_SHOW:
         PHA
         TYA
         PHA
+
         LDX     #0
 DSKY_SHOW1:
         LDA     DSKY_BUF,X
@@ -345,6 +351,8 @@ DSKY_SHOW1:
         INX
         CPX     #8
         BNE     DSKY_SHOW1
+        LDA     #DSKY_CMD_CLK | DSKY_PRESCL
+        JSR     DSKY_CMD
         PLA
         TAY
         PLA
@@ -629,10 +637,6 @@ DSKY_PPIWR:
         LDA     #$FF
         STA     DSKY_PPIA_C
 ;
-; PLACE PORT C BITS 0-4 & 7 IN OUT MODE
-        LDA     #$9F
-        STA     DSKY_PPIC_C
-;
         PLA
         RTS
 ;
@@ -642,10 +646,6 @@ DSKY_PPIWR:
 DSKY_PPIIDLE:
 DSKY_PPIRD:
         PHA
-;
-; PLACE PORT C BITS 0-4 & 7 IN OUT MODE
-        LDA     #$9F
-        STA     DSKY_PPIC_C
 ; PLACE PORT A BITS 0-7 IN INPUT MODE
         LDA     #$00
         STA     DSKY_PPIA_C
