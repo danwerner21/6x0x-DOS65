@@ -120,9 +120,9 @@ DISPATCHTABLE:
         .WORD   PPP_READ_SECTOR ; FUNCTION 64 - read a sector from the ppp sd device
         .WORD   PPP_WRITE_SECTOR; FUNCTION 65 - write a sector to the ppp sd device
 ;
-;        .WORD   FL_SETUP        ; FUNCTION 66 - init floppy device
-;        .WORD   FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
-;        .WORD   FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
+        .WORD   FL_SETUP        ; FUNCTION 66 - init floppy device
+        .WORD   FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
+        .WORD   FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
 ;
 ;        .WORD   MD_SHOW         ; FUNCTION 69 - md show information
 ;        .WORD   MD_READ_SECTOR  ; FUNCTION 70 - read a sector from memory device

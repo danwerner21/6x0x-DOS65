@@ -91,6 +91,10 @@ boot:
         STA     farfunct
         JSR     DO_FARCALL
 
+        LDA     #66             ; FLOPPY INITIALIZE
+        STA     farfunct
+        JSR     DO_FARCALL
+
         LDA     #<cnstxt        ; STORE POINTER TO COMMAND LINE
         STA     cmdlnp
         LDA     #>cnstxt
@@ -237,8 +241,12 @@ read:
         CMP     #$20
         BNE     :+              ; not floppy drive
 ;FD
-        LDA     #$ff
-        RTS                     ;
+        JSR     SETUP_FD_CHS
+        LDA     #67             ; floppy read sector
+        STA     farfunct
+        JSR     DO_FARCALL
+        JSR     DEBSECR
+        RTS
 :
         CMP     #$30
         BNE     :+              ; invalid drive
@@ -275,8 +283,12 @@ write:
         CMP     #$20
         BNE     :+              ; not floppy drive
 ;FD
-        LDA     #$ff
-        RTS                     ;
+        JSR     SETUP_FD_CHS
+        JSR     BLKSECR
+        LDA     #68             ; floppy write sector
+        STA     farfunct
+        JSR     DO_FARCALL
+        RTS
 :
         CMP     #$30
         BNE     :+              ; invalid drive
@@ -460,6 +472,35 @@ CONVERT_SECTOR_LBA:
         LDA     sekdsk
         STA     DSKY_HEXBUF
         LDA     debcylm
+        STA     DSKY_HEXBUF+1
+        LDA     debcyll
+        STA     DSKY_HEXBUF+2
+        LDA     debsehd
+        STA     DSKY_HEXBUF+3
+        LDA     #42             ; DSKY_BIN2SEG
+        STA     farfunct
+        JSR     DO_FARCALL
+        LDA     #41             ; DSKY_SHOW
+        STA     farfunct
+        JSR     DO_FARCALL
+        RTS
+
+;__SETUP_FD_CHS__________________________________________________________________________________________________________________
+;
+; 	TRANSFORM DOS65 CHS TO FLOPPY
+;________________________________________________________________________________________________________________________________
+;
+SETUP_FD_CHS:
+        LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+        STA     debcyll         ; STORE IN TRACK
+        LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
+        LSR     A               ;
+        LSR     A               ; DIVIDE BY 4 (FOR BLOCKING)
+        STA     debsehd         ; STORE IN SECTOR
+
+        LDA     sekdsk
+        STA     DSKY_HEXBUF
+        LDA     #$00
         STA     DSKY_HEXBUF+1
         LDA     debcyll
         STA     DSKY_HEXBUF+2

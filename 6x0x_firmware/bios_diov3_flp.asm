@@ -3,10 +3,10 @@
 ; 	DOS/65 floppy drivers for direct attached disk-io V3 card
 ;
 ;	Entry points:
-;		SETUPDRIVE  - called during OS init
-;		FORMFL	    - format floppy disk
-;		READFL	    - read a sector from drive
-;		WRITEFL	    - write a sector to drive
+;		FL_SETUP        - called during OS init
+;		FORMFL	        - format floppy disk
+;		FL_READ_SECTOR  - read a sector from drive
+;		FL_WRITE_SECTOR - write a sector to drive
 ;
 ;________________________________________________________________________________________________________________________________
 ;
@@ -31,7 +31,8 @@ PRECOMP         = %00100000     ; BIT PATTERN IN LATCH TO SET WRITE PRECOMP 125 
 FDDENSITY       = %01000000     ; BIT PATTERN IN LATCH TO FLOPPY LOW DENSITY (HIGH IS 1)
 FDREADY         = %10000000     ; BIT PATTERN IN LATCH TO FLOPPY READY (P-34):
 
-
+FLOPPY_RETRIES  = 6             ; HOW ABOUT SIX RETIRES?
+FLOPPY_RETRIES1 = 2             ; TWO ITERATIONS OF RECAL?
 
 
 ;__SETUPDRIVE__________________________________________________________________________________________________________________________
@@ -41,7 +42,33 @@ FDREADY         = %10000000     ; BIT PATTERN IN LATCH TO FLOPPY READY (P-34):
 ;
 ;
 ;
-SETUPDRIVE:
+FL_SETUP:
+        lda     #$00
+        sta     debcyll
+        sta     debcylm
+        sta     debsehd
+        lda     #$FF
+        sta     Cdebcyll
+        sta     Cdebcylm
+        sta     Cdebsehd
+        PRTS    "FD: MODE=MBC$"
+;
+        PRTS    " IO=0x$"
+        LDA     #>FMSR
+        JSR     PRINT_BYTE      ; PRINT BASE PORT
+        LDA     #<FMSR
+        JSR     PRINT_BYTE      ; PRINT BASE PORT
+        JSR     FD_DETECT       ; CHECK FOR FDC
+        CMP     #$00
+        BEQ     :+              ; CONTINUE IF FOUND
+        PRTS    " NOT PRESENT$" ; NOT ZERO, H/W NOT PRESENT
+        JSR     NEWLINE
+        LDA     #$FF
+        RTS                     ; BAIL OUT
+:
+        PRTS    " PRESENT$"     ; NOT ZERO, H/W NOT PRESENT
+        JSR     NEWLINE
+
         LDA     #$00
         STA     FLATCH
         LDA     #RESETL         ; RESET SETTINGS
@@ -64,6 +91,15 @@ SETUPDRIVE:
         JSR     CHECKINT        ;
         JSR     CHECKINT        ;
         JSR     CHECKINT        ;
+        LDA     #$00            ; SAY WHICH UNIT
+        STA     sekdsk          ; SAY WHICH UNIT
+        JSR     RECAL           ;
+        LDA     #39             ;
+        STA     debcyll         ;
+        JSR     SETTRACK
+        JSR     RECAL           ;
+        LDA     #$01            ; SAY WHICH UNIT
+        STA     sekdsk          ; SAY WHICH UNIT
         JSR     RECAL           ;
         LDA     #39             ;
         STA     debcyll         ;
@@ -86,7 +122,7 @@ OUTFLATCH:
 ; 	READ A FLOPPY SECTOR
 ;________________________________________________________________________________________________________________________________
 ;
-READFL:
+FL_READ_SECTOR:
         LDA     FLATCH_STORE    ; POINT TO FLATCH
         ORA     #%00000010      ; SET MOTOR ON
         STA     FLATCH_STORE    ; POINT TO FLATCH
@@ -122,7 +158,7 @@ READFL1:
         BEQ     READFLDONE
         INC     FLRETRY
         LDA     FLRETRY
-        CMP     #$06
+        CMP     #FLOPPY_RETRIES
         BNE     READFL1
         JSR     RECAL
         JSR     SETTRACK
@@ -130,7 +166,7 @@ READFL1:
         STA     FLRETRY
         INC     FLRETRY1
         LDA     FLRETRY1
-        CMP     #$02
+        CMP     #FLOPPY_RETRIES1
         BNE     READFL1
 
         LDA     #$FF
@@ -146,7 +182,7 @@ READFLDONE:
 ; 	WRITE A FLOPPY SECTOR
 ;________________________________________________________________________________________________________________________________
 ;
-WRITEFL:
+FL_WRITE_SECTOR:
         LDA     FLATCH_STORE    ; POINT TO FLATCH
         ORA     #%00000010      ; SET MOTOR ON
         STA     FLATCH_STORE    ; POINT TO FLATCH
@@ -166,7 +202,7 @@ WRITEFL1:
         BEQ     READFLDONE
         INC     FLRETRY
         LDA     FLRETRY
-        CMP     #$06
+        CMP     #FLOPPY_RETRIES
         BNE     WRITEFL1
         JSR     RECAL
         JSR     SETTRACK
@@ -174,7 +210,7 @@ WRITEFL1:
         STA     FLRETRY
         INC     FLRETRY1
         LDA     FLRETRY1
-        CMP     #$02
+        CMP     #FLOPPY_RETRIES1
         BNE     WRITEFL1
         LDA     #$FF            ;
         STA     Cdebcyll        ;
@@ -227,7 +263,7 @@ SNDFDWR:
         LDA     sekdsk          ; GET DISK UNIT NUMBER
         AND     #$03            ; MASK FOR FOUR DRIVES.
         STA     DSKUNIT         ; PARK IT IN TEMP
-        LDA     debsehd         ; GET HEAD SELECTION
+        LDA     debcyll         ; GET HEAD SELECTION
         AND     #$01            ; INSURE SINGLE BIT
         ASL     A               ;
         ASL     A               ; MOVE HEAD TO BIT 2 POSITION
@@ -238,8 +274,9 @@ SNDFDWR:
         LDA     DSKUNIT         ;
         JSR     PFDATA          ;
         LDA     debcyll         ;
+        LSR     A
         JSR     PFDATA          ;
-        LDA     debsehd         ; GET HEAD SELECTION
+        LDA     debcyll         ; GET HEAD SELECTION
         AND     #$01            ; INSURE SINGLE BIT
         JSR     PFDATA          ;
         CLC                     ;
@@ -360,6 +397,7 @@ SETTRACK:
 ;
 SETTRK1:
         LDA     debcyll         ; GET TRACK
+        LSR     A               ; REMOVE HEAD BIT
         CMP     #$00            ;
         BEQ     RECAL           ; IF 0 PERFORM RECAL INSTEAD OF SEEK
         LDA     #$0F            ; SEEK COMMAND
@@ -367,6 +405,7 @@ SETTRK1:
         LDA     sekdsk          ; SAY WHICH UNIT
         JSR     PFDATA          ; SEND THAT
         LDA     debcyll         ; TO WHAT TRACK
+        LSR     A               ; REMOVE HEAD BIT
         JSR     PFDATA          ; SEND THAT TOO
         JMP     WAINT           ; WAIT FOR INTERRUPT SAYING DONE
 RECAL:
@@ -553,4 +592,65 @@ GFDATA:
         BEQ     GFDATA1         ; NO, SKIP IT
         LDA     FDATA           ; GET FDC DATA
 GFDATA1:
+        RTS
+
+;__FD_DETECT______________________________________________________________________________________________________________________
+;
+; 	DETECT FLOPPY HARDWARE
+;________________________________________________________________________________________________________________________________
+FD_DETECT:
+; BLINDLY RESET FDC (WHICH MAY OR MAY NOT EXIST)
+        JSR     FC_RESETFDC     ; RESET FDC
+
+        LDA     FMSR             ; READ MSR
+        CMP     #$80
+        BEQ     FD_DETECT1      ; $80 IS OK
+        CMP     #$D0
+        BEQ     FD_DETECT1      ; $D0 IS OK
+        LDA     #$FF            ; NOT OK
+        STA     FLOPPY_DETCT
+        RTS
+;
+FD_DETECT1:
+        LDX     #100
+        JSR     FDVDELAY        ; WAIT A BIT FOR FDC
+        LDA     FMSR            ; READ MSR AGAIN
+        CMP     #$80
+        BEQ     :+              ; $80 IS OK
+        CMP     #$D0
+        LDA     #$FF            ; NOT OK
+        STA     FLOPPY_DETCT
+        RTS
+:
+        LDA     #$00            ; OK
+        STA     FLOPPY_DETCT
+        RTS
+
+
+FC_RESETFDC:
+        LDA     #$00
+        STA     FLATCH
+        LDX     #150
+        JSR     FDVDELAY        ; WAIT A BIT FOR FDC
+        LDA     #FDREADY        ;
+        STA     FLATCH
+        LDX     #150            ;
+        JSR     FDVDELAY
+        RTS
+
+
+FDDELAY:
+        PHA
+        PLA
+        PHA
+        PLA
+        RTS
+FDVDELAY:
+        PHA
+        PLA
+        PHA
+        PLA
+        DEX
+        CPX     #$00
+        BNE     FDVDELAY
         RTS

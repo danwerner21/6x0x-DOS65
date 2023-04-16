@@ -75,6 +75,7 @@ DSKY_Y_STORAGE  = $0536
 DSKY_TEMP_VAL   = $0537
 DSKY_PPIX_VAL   = $0538
 DSKY_PRESENT    = $0539
+FLOPPY_DETCT    = $053A
 
 STARTOS         = $B800
 
@@ -183,9 +184,9 @@ COLD_START:
         STA     farfunct
         JSR     DO_FARCALL
 
-;        LDA     #66             ; FLOPPY INITIALIZE
-;        STA     farfunct
-;        JSR     DO_FARCALL
+        LDA     #66             ; FLOPPY INITIALIZE
+        STA     farfunct
+        JSR     DO_FARCALL
 
 
         LDX     #$00            ; SHOW A STARTUP MESSAGE ON DSKY

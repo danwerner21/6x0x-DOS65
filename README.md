@@ -25,6 +25,7 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. add images of backplane in an atx case
 1. add 6x0x backplane repo to wiki
 1. COMPLETE PORT OF XM.ASM
+1. MD support
 
 ## BUGS
 1. basic run command overwrites zero page config vars
