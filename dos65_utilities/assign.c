@@ -8,8 +8,7 @@ char floppy35144dcb[9]={0x5e,0x01,0x24,0x00,0x04,0x00,0x01,0x7f,0x00};
 char floppy525360dcb[9]={0x5e,0x01,0x24,0x00,0x04,0x00,0x01,0x7f,0x00};
 char floppy52512dcb[9]={0x5e,0x01,0x24,0x00,0x04,0x00,0x01,0x7f,0x00};
 char hdddcb[9]={0xff,0x07,0x40,0x00,0x10,0x00,0x02,0xff,0x01};
-char ramdcb[9]={0x7f,0x00,0x40,0x00,0x00,0x00,0x01,0xff,0x00};
-char romdcb[9]={0xbf,0x00,0x40,0x00,0x00,0x00,0x01,0xff,0x00};
+
 
 void prtusage();
 void prtdevice(char);
@@ -99,7 +98,7 @@ void prtdevice(char dev)
   switch (dev & 0xf0)
   {
   case 0x00:
-    cputs("MD");
+    cputs("SD");
      break;
   case 0x10:
     cputs("UNKNOWN");
@@ -126,8 +125,7 @@ void prtusage()
   cputs("          ASSIGN C:=FD0:	(assign C: to floppy unit 0) \n\r");
   cputs("          ASSIGN C:=IDE0:1	(assign C: to IDE unit0, slice 1) \n\r");
   cputs("\n\r POSSIBLE DEVICES:\n\r");
-  cputs("          MD0:    RAM DISK\n\r");
-  cputs("          MD1:    ROM DISK\n\r");
+  cputs("          SD0:    SD DISK\n\r");
   cputs("          FD0:    FLOPPY DISK UNIT 0\n\r");
   cputs("          FD1:    FLOPPY DISK UNIT 1\n\r");
   cputs("          PPIDE0: PRIMARY PPIDE FIXED DISK\n\r");
@@ -165,16 +163,11 @@ void mapdrive(char *bytes, char *token1, char *token2, char *flags)
   cprintf(":%u \n\r", *(bytes + (drive * 2) + 1));
 
   toupper(token2);
-  if (!strncmp(token2, "MD0:", 4))
+  if (!strncmp(token2, "SD0:", 4))
     {
     newdevice = 0x00;
-    updatedosmap(drive,ramdcb);
+    updatedosmap(drive,hdddcb);
     }
-  if (!strncmp(token2, "MD1:", 4))
-  {
-    newdevice = 0x01;
-    updatedosmap(drive,romdcb);
-  }
   if (!strncmp(token2, "FD0:", 4))
    {
     newdevice = 0x20;
@@ -201,7 +194,7 @@ void mapdrive(char *bytes, char *token1, char *token2, char *flags)
   if (!strncmp(token2, "PPIDE1:", 7))
   {
     newdevice = 0x31;
-    updatedosmap(drive,ramdcb);
+    updatedosmap(drive,hdddcb);
   }
   if (newdevice == 0xFF)
   {
@@ -225,10 +218,6 @@ void mapdrive(char *bytes, char *token1, char *token2, char *flags)
     {
       cputs("(360K)");
     }
-    else
-    {
-      cputs("(720K)");
-    }
   cputs("\n\r");
   return;
 }
@@ -236,12 +225,13 @@ void mapdrive(char *bytes, char *token1, char *token2, char *flags)
 
 void updatedosmap(char drive,char dcb[])
 {
-  unsigned int **dcbtable = DISKCFG;
-  char *table = (unsigned char *)*(dcbtable+drive-8);
+  unsigned int **dcbtable = DCBPTR;
+  char *table = (unsigned char *)dcbtable+(drive*14);
   int i;
 
     for(i=0;i<9;i++)
     {
         *(table+i)=dcb[i];
     }
+
 }

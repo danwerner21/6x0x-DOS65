@@ -3,8 +3,8 @@ all:  	rbclib
 
 
 rbclib: crt0.s rbc.s
-	ca65 crt0.s
-	ca65 rbc.s
+	ca65  crt0.s --cpu 6502
+	ca65 rbc.s --cpu 6502
 	ar65 a rbc.lib crt0.o rbc.o
 
 clean:

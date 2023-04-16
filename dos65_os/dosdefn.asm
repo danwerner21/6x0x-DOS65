@@ -46,6 +46,9 @@ msgptr          = chkpnt+2      ;message pointer
 movptr          = msgptr        ;and move pointer
 dcbloc          = msgptr+2      ;pointer to dcb
 
+dcbpc           = $2C           ;pointer to DCB table
+dskcfpc         = $2E           ;pointer to disk configuration table
+cmdlnp          = $30           ;pointer to command line buffer
 farfunct        = $32           ; function to call in driver area
 farpointer      = $33           ;
 IRQVECTOR       = $35           ; VECTOR FOR USER IRQ RTN

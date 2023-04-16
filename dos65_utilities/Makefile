@@ -4,10 +4,13 @@ all:  	assign.com alloc.com asm.com \
 	dbasic.com s19.com writeos.com rtc.com #format.com
 
 assign.com: assign.c
-	cc65  -t none -O --cpu 65sc02  assign.c
-	ca65 --cpu 65sc02  assign.s
+	cc65  -t none -O --cpu 6502  assign.c
+	ca65 --cpu 6502  assign.s
 	ld65 assign.o  ./rbc/rbc.lib -m assign.map -C dos65c.cfg -o assign.com
+	srec_cat  assign.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  assign.s19  -data-only
 	cp assign.com ../bin/
+	sed -i -e '$$aS9' assign.s19
+	cp assign.s19 ../bin/
 
 alloc.out: alloc203.asm
 	ca65 --cpu 65sc02 alloc203.asm -l alloc.lst

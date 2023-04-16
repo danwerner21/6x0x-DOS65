@@ -11,12 +11,10 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. assign utility
 1. floppy support
 1. floppy formatter
 1. default console jumper
 1. dsky old (jumper?)
-1. cleanup dskyng clock
 1. IO ASSIGNMENT?
  * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
  * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
@@ -258,6 +256,18 @@ S19
 On the 6x0x “A>” prompt type:
 ```
 SAVE 2 A:ALLOC.COM
+```
+
+##### Load ASSIGN
+ On the 6x0x “A>” prompt type:
+```
+S19
+```
+ Dump ASSIGN.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
+
+On the 6x0x “A>” prompt type:
+```
+SAVE 28 A:ASSIGN.COM
 ```
 
 ##### Load Asm

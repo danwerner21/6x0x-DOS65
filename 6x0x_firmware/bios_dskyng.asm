@@ -390,18 +390,18 @@ DSKY_DOUT2:
 ;
 ; PULSE /WR
         LDA     DSKY_TEMP_VAL
-        AND     #%11111101
+        AND     #%01111101
         STA     DSKY_PPIC
         NOP                     ; MAY NOT BE NEEDED
         ORA     #%00000010
         STA     DSKY_PPIC
 ;
 ; DEASSERT /CS
-        AND     #%11100111
+        AND     #%01100111
         STA     DSKY_PPIC
 ;
 ; CLEAR ADDRESS BIT
-        AND     #%11100110
+        AND     #%01100110
         STA     DSKY_PPIC
 ;
 ; DONE
@@ -450,11 +450,11 @@ DSKY_DIN2:
         STA     DSKY_PPIC
 ;
 ; DEASSERT /CS
-        AND     #%11100111
+        AND     #%01100111
         STA     DSKY_PPIC
 ;
 ; CLEAR ADDRESS BIT
-        AND     #%11100110
+        AND     #%01100110
         STA     DSKY_PPIC
 ;
 ; DONE

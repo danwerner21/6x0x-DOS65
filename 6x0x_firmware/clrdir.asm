@@ -157,7 +157,7 @@ LOOP:
 :
         INC     COUNTER
         LDA     COUNTER
-        CMP     #$1F
+        CMP     #$3F
         BNE     LOOP
 
         LDA     #<ENDMSG
