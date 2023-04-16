@@ -51,7 +51,7 @@ FL_SETUP:
         sta     Cdebcyll
         sta     Cdebcylm
         sta     Cdebsehd
-        PRTS    "FD: MODE=MBC$"
+        PRTS    "FD: MODE=DIOV3$"
 ;
         PRTS    " IO=0x$"
         LDA     #>FMSR
@@ -94,14 +94,14 @@ FL_SETUP:
         LDA     #$00            ; SAY WHICH UNIT
         STA     sekdsk          ; SAY WHICH UNIT
         JSR     RECAL           ;
-        LDA     #39             ;
+        LDA     #78             ;
         STA     debcyll         ;
         JSR     SETTRACK
         JSR     RECAL           ;
         LDA     #$01            ; SAY WHICH UNIT
         STA     sekdsk          ; SAY WHICH UNIT
         JSR     RECAL           ;
-        LDA     #39             ;
+        LDA     #78             ;
         STA     debcyll         ;
         JSR     SETTRACK
         JMP     RECAL           ;
