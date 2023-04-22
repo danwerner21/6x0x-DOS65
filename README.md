@@ -11,8 +11,6 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. floppy support
-1. floppy formatter
 1. default console jumper
 1. dsky old (jumper?)
 1. IO ASSIGNMENT?

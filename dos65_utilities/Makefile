@@ -1,7 +1,7 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com \
-	dbasic.com s19.com writeos.com rtc.com #format.com
+	dbasic.com s19.com writeos.com rtc.com format.com
 
 assign.com: assign.c
 	cc65  -t none -O --cpu 6502  assign.c
@@ -43,6 +43,10 @@ debug.out: debug202.asm
 edit.out: edit203.asm
 	ca65 --cpu 65sc02 edit203.asm -l edit.lst
 	ld65 edit203.o  -m edit.map -C dos65.cfg -o edit.out
+
+format.out: format.asm
+	ca65 --cpu 65sc02 format.asm -l format.lst
+	ld65 format.o  -m format.map -C dos65.cfg -o format.out
 
 run.out: run205.asm
 	ca65 --cpu 65sc02 run205.asm -l run.lst
@@ -140,6 +144,15 @@ edit.com: edit.out
 	cp edit.com ../bin/
 	cp edit.s19 ../bin/
 
+format.com: format.out
+	srec_cat  format.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  format.s19  -data-only
+	srec_cat  format.s19  -offset -0x0800  -o  formatA.s  -data-only
+	srec_cat  formatA.s -o format.com  -BINARY
+	@rm -f formatA.s
+	sed -i -e '$$aS9' format.s19
+	cp format.com ../bin/
+	cp format.s19 ../bin/
+
 run.com: run.out
 	srec_cat  run.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  run.s19  -data-only
 	srec_cat  run.s19  -offset -0x0800  -o  runA.s  -data-only
@@ -204,6 +217,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dbasic.asm dbasic.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/debug202.asm debug202.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/edit203.asm edit203.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/format.asm format.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/run205.asm run205.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/sedit.asm sedit.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/s19.asm s19.asm

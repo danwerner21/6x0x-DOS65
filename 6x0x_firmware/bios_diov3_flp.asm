@@ -31,6 +31,8 @@ PRECOMP         = %00100000     ; BIT PATTERN IN LATCH TO SET WRITE PRECOMP 125 
 FDDENSITY       = %01000000     ; BIT PATTERN IN LATCH TO FLOPPY LOW DENSITY (HIGH IS 1)
 FDREADY         = %10000000     ; BIT PATTERN IN LATCH TO FLOPPY READY (P-34):
 
+CFD_SENSEINT    = %00001000     ; CMD --> ST0,PCN
+
 FLOPPY_RETRIES  = 6             ; HOW ABOUT SIX RETIRES?
 FLOPPY_RETRIES1 = 2             ; TWO ITERATIONS OF RECAL?
 
@@ -92,18 +94,18 @@ FL_SETUP:
         JSR     CHECKINT        ;
         JSR     CHECKINT        ;
         LDA     #$00            ; SAY WHICH UNIT
-        STA     sekdsk          ; SAY WHICH UNIT
+        STA     DSKUNIT         ; SAY WHICH UNIT
         JSR     RECAL           ;
-        LDA     #78             ;
+        LDA     #39             ;
         STA     debcyll         ;
-        JSR     SETTRACK
+        JSR     SETTRK1
         JSR     RECAL           ;
         LDA     #$01            ; SAY WHICH UNIT
-        STA     sekdsk          ; SAY WHICH UNIT
+        STA     DSKUNIT         ; SAY WHICH UNIT
         JSR     RECAL           ;
-        LDA     #78             ;
+        LDA     #39             ;
         STA     debcyll         ;
-        JSR     SETTRACK
+        JSR     SETTRK1
         JMP     RECAL           ;
 
 ;__OUTFLATCH__________________________________________________________________________________________________________________________
@@ -123,11 +125,19 @@ OUTFLATCH:
 ;________________________________________________________________________________________________________________________________
 ;
 FL_READ_SECTOR:
+        LDA     FLOPPY_DETCT
+        CMP     #$00
+        BEQ     :+
+        RTS
+:
         LDA     FLATCH_STORE    ; POINT TO FLATCH
         ORA     #%00000010      ; SET MOTOR ON
         STA     FLATCH_STORE    ; POINT TO FLATCH
         JSR     OUTFLATCH       ; OUTPUT TO CONTROLLER
 
+        LDA     debcylm         ;
+        CMP     Cdebcylm        ;
+        BNE     READFL_DIRTY
         LDA     debcyll         ;
         CMP     Cdebcyll        ;
         BNE     READFL_DIRTY
@@ -145,6 +155,8 @@ READFL_DIRTY:
         STA     Cdebcyll        ;
         LDA     debsehd         ;
         STA     Cdebsehd        ;
+        LDA     debcylm         ;
+        STA     Cdebcylm        ;
 
 
         LDA     #$00
@@ -172,6 +184,7 @@ READFL1:
         LDA     #$FF
         STA     Cdebcyll        ;
         STA     Cdebsehd        ;
+        STA     Cdebcylm        ;
         RTS                     ; A = $FF ON RETURN = OPERATION ERROR
 READFLDONE:
         LDA     #$00            ; A = 0 ON RETURN = OPERATION OK
@@ -183,6 +196,11 @@ READFLDONE:
 ;________________________________________________________________________________________________________________________________
 ;
 FL_WRITE_SECTOR:
+        LDA     FLOPPY_DETCT
+        CMP     #$00
+        BEQ     :+
+        RTS
+:
         LDA     FLATCH_STORE    ; POINT TO FLATCH
         ORA     #%00000010      ; SET MOTOR ON
         STA     FLATCH_STORE    ; POINT TO FLATCH
@@ -190,6 +208,7 @@ FL_WRITE_SECTOR:
 
         LDA     #$FF
         STA     Cdebcyll        ;
+        STA     Cdebcylm        ;
         STA     Cdebsehd        ;
         LDA     #$00
         STA     FLRETRY
@@ -199,7 +218,7 @@ WRITEFL1:
         STA     FCMD
         JSR     DSKOP
         CMP     #$00
-        BEQ     READFLDONE
+        BEQ     WRITEFLDONE
         INC     FLRETRY
         LDA     FLRETRY
         CMP     #FLOPPY_RETRIES
@@ -214,6 +233,7 @@ WRITEFL1:
         BNE     WRITEFL1
         LDA     #$FF            ;
         STA     Cdebcyll        ;
+        STA     Cdebcylm        ;
         STA     Cdebsehd        ;
         RTS                     ; A = $FF ON RETURN = OPERATION ERROR
 WRITEFLDONE:
@@ -257,31 +277,28 @@ DSKEXIT:
         RTS
 
 SNDFDWR:
-
         LDY     #$00            ; BYTES/SECTOR COUNT
         CLC
-        LDA     sekdsk          ; GET DISK UNIT NUMBER
-        AND     #$03            ; MASK FOR FOUR DRIVES.
-        STA     DSKUNIT         ; PARK IT IN TEMP
-        LDA     debcyll         ; GET HEAD SELECTION
+        LDA     DSKUNIT         ; GET DISK UNIT NUMBER
+        AND     #$01            ; MASK FOR TWO DRIVES.
+        STA     slicetmp        ; PARK IT IN TEMP
+        LDA     debcylm         ; GET HEAD SELECTION
         AND     #$01            ; INSURE SINGLE BIT
         ASL     A               ;
         ASL     A               ; MOVE HEAD TO BIT 2 POSITION
-        ORA     DSKUNIT         ; OR HEAD TO UNIT BYTE IN COMMAND BLOCK
-        STA     DSKUNIT         ; STORE IN UNIT
+        ORA     slicetmp        ; OR HEAD TO UNIT BYTE IN COMMAND BLOCK
+        STA     slicetmp        ; STORE IN UNIT
         LDA     FCMD            ;
         JSR     PFDATA          ; PUSH COMMAND TO I8272
-        LDA     DSKUNIT         ;
+        LDA     slicetmp        ;
         JSR     PFDATA          ;
         LDA     debcyll         ;
-        LSR     A
         JSR     PFDATA          ;
-        LDA     debcyll         ; GET HEAD SELECTION
+        LDA     debcylm         ; GET HEAD SELECTION
         AND     #$01            ; INSURE SINGLE BIT
         JSR     PFDATA          ;
         CLC                     ;
         LDA     debsehd         ;
-        LSR     A
         ADC     #$01            ;
         JSR     PFDATA          ;
         LDA     #$02            ;
@@ -397,15 +414,14 @@ SETTRACK:
 ;
 SETTRK1:
         LDA     debcyll         ; GET TRACK
-        LSR     A               ; REMOVE HEAD BIT
         CMP     #$00            ;
         BEQ     RECAL           ; IF 0 PERFORM RECAL INSTEAD OF SEEK
         LDA     #$0F            ; SEEK COMMAND
         JSR     PFDATA          ; PUSH COMMAND
-        LDA     sekdsk          ; SAY WHICH UNIT
+        LDA     DSKUNIT         ; SAY WHICH UNIT
+        AND     #$01
         JSR     PFDATA          ; SEND THAT
         LDA     debcyll         ; TO WHAT TRACK
-        LSR     A               ; REMOVE HEAD BIT
         JSR     PFDATA          ; SEND THAT TOO
         JMP     WAINT           ; WAIT FOR INTERRUPT SAYING DONE
 RECAL:
@@ -416,18 +432,16 @@ RECAL:
 
         LDA     #$07            ; RECAL TO TRACK 0
         JSR     PFDATA          ; SEND IT
-        LDA     sekdsk          ; WHICH UNIT
+        LDA     DSKUNIT         ; WHICH UNIT
+        AND     #$01
         JSR     PFDATA          ; SEND THAT TOO
 ;
 WAINT:
         PHA
         TXA
         PHA
-        LDX     #$00
-WAINT1:
-        INX
-        CPX     #$FF
-        BNE     WAINT1
+        LDX     #100
+        JSR     FDVDELAY
         PLA
         TAX
         PLA
@@ -440,6 +454,7 @@ SETTRK2:
 ;
 SETTRKEXIT:
         RTS
+
 
 ;__PFDATA__________________________________________________________________________________________________________________________
 ;
@@ -456,34 +471,26 @@ SETTRKEXIT:
 ;
 PFDATA:
         PHA                     ; SAVE DATA BYTE
+        LDY     #$00
 WRF1:
         LDA     FMSR            ; READ FDC STATUS
         TAX
         AND     #$80            ;
-        BEQ     WRF1            ; FDC IS NOT READY, WAIT FOR IT
+        BNE     :+
+        INY
+        BNE     WRF1            ; FDC IS NOT READY, WAIT FOR IT
+        PLA
+        LDA     #$FF
+        RTS
+:
         TXA
         AND     #$40            ; TEST DIO BIT
         BNE     WRF2            ; FDC IS OUT OF SYNC
         PLA                     ; RESTORE DATA
         STA     FDATA           ; WRITE TO FDC
-
-        PHA
-        PLA
-        PHA
-        PLA
-        PHA
-        PLA
-        PHA
-        PLA
-        PHA
-        PLA
-        PHA
-        PLA
-        PHA
-        PLA
-        PHA
-        PLA
-
+        JSR     FDDELAY
+        JSR     FDDELAY
+        JSR     FDDELAY
         RTS
 ; FDC IS OUT OF SYNC CLEAR IT OUT AND RE-TRY
 WRF2:
@@ -532,19 +539,33 @@ WRF2S:
 ;________________________________________________________________________________________________________________________________
 ;
 CHECKINT:
+        LDY     #$00
+:
         LDA     FMSR            ; READING OR WRITING IS KEYS TO D7 RQM
         AND     #$80
-        BEQ     CHECKINT        ; WAIT FOR RQM TO BE TRUE. WAIT UNTIL DONE
+        BNE     :+              ; WAIT FOR RQM TO BE TRUE. WAIT UNTIL DONE
+        JSR     FDDELAY
+        INY
+        BNE     :-
+        JMP     ERRCLR
+
+:
         LDA     FMSR            ; READING OR WRITING IS KEYS TO D7 RQM
         AND     #$40            ; WAITING FOR INPUT?
         BEQ     SENDINT
         RTS
 
 ERRCLR:
+        LDY     #$00
+:
         LDA     FDATA           ; CLEAR THE JUNK OUT OF DATA REGISTER
         LDA     FMSR            ; CHECK WITH RQM
         AND     #$80            ; IF STILL NOT READY, READ OUT MORE JUNK
-        BEQ     ERRCLR          ;
+        BNE     :+              ;
+        JSR     FDDELAY
+        INY
+        BNE     :-
+:
         LDA     #$FF            ; RETURN ERROR CODE -1
 ;
         RTS
@@ -555,7 +576,7 @@ ERRCLR:
 ;________________________________________________________________________________________________________________________________
 ;
 SENDINT:
-        LDA     #$08            ; SENSE INTERRUPT COMMAND
+        LDA     #CFD_SENSEINT   ; SENSE INTERRUPT COMMAND
         JSR     PFDATA          ; SEND IT
         JSR     GFDATA          ; GET RESULTS
         STA     ST0             ; STORE THAT
@@ -583,16 +604,24 @@ ENDSENDINT:
 ;________________________________________________________________________________________________________________________________
 ;
 GFDATA:
+        LDY     #$00
+:
         LDA     FMSR            ; GET STATUS
         TAX                     ;
         AND     #%10000000      ; NOT READY, WAIT
-        BEQ     GFDATA          ;
+        BNE     :+              ;
+        INY
+        BNE     :-
+        LDA     #$00
+        RTS
+:
         TXA
         AND     #%01000000      ; ANY DATA FOR US?
         BEQ     GFDATA1         ; NO, SKIP IT
         LDA     FDATA           ; GET FDC DATA
 GFDATA1:
         RTS
+
 
 ;__FD_DETECT______________________________________________________________________________________________________________________
 ;

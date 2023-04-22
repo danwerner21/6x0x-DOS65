@@ -492,6 +492,10 @@ CONVERT_SECTOR_LBA:
 ;
 SETUP_FD_CHS:
         LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+        AND     #$01            ; FILTER OUT HEAD
+        STA     debcylm         ; STORE HEAD
+        LDA     sektrk          ; SAVE TRACK IN A
+        LSR     A               ; REMOVE HEAD BIT
         STA     debcyll         ; STORE IN TRACK
         LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
         LSR     A               ;
@@ -500,7 +504,7 @@ SETUP_FD_CHS:
 
         LDA     sekdsk
         STA     DSKY_HEXBUF
-        LDA     #$00
+        LDA     debcylm
         STA     DSKY_HEXBUF+1
         LDA     debcyll
         STA     DSKY_HEXBUF+2
@@ -604,15 +608,7 @@ GET_DRIVE_DEVICE:
         LDA     dskcfg, X       ; GET device
 ; SETUP FLOPPY CONTROL WHILE WE ARE HERE
         AND     #$01
-        CMP     #$00
-        BNE     :+
-        LDA     #%00010000
         STA     DSKUNIT
-        JMP     GET_DRIVE_DEVICE_1
-:
-        LDA     #%00100001
-        STA     DSKUNIT
-GET_DRIVE_DEVICE_1:
         LDA     dskcfg, X       ; GET device
         LDX     GET_DRIVE_DEVICE_TMP
         RTS
