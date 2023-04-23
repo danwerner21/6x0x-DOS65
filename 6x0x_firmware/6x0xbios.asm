@@ -90,6 +90,12 @@ COLD_START:
         STA     farfunct
         JSR     DO_FARCALL
 
+        LDA     #52             ; RTC_RESET
+        STA     farfunct
+        JSR     DO_FARCALL
+
+        JSR     Init_NVRAM      ; get NVRAM Settings, init if invalid
+
 
         JSR     PAGE_ENTER
         LDA     #<STARTUP       ; OUTPUT STARTUP STRING
@@ -106,10 +112,6 @@ COLD_START:
         STA     farfunct
         JSR     DO_FARCALL
 
-        LDA     #52             ; RTC_RESET
-        STA     farfunct
-        JSR     DO_FARCALL
-
         LDA     #60             ; IDE INITIALIZE
         STA     farfunct
         JSR     DO_FARCALL
@@ -121,7 +123,6 @@ COLD_START:
         LDA     #66             ; FLOPPY INITIALIZE
         STA     farfunct
         JSR     DO_FARCALL
-
 
         LDX     #$00            ; SHOW A STARTUP MESSAGE ON DSKY
 :
@@ -223,6 +224,38 @@ OUTSTRLP:
         JMP     OUTSTRLP        ; DO NEXT CHAR
 ENDOUTSTR:
         RTS                     ; RETURN
+
+;__Init_NVRAM__________________________________________________
+;
+; get NVRAM Settings, init if invalid
+;
+;______________________________________________________________
+Init_NVRAM:
+        LDX     #$20            ; get signature byte
+        LDA     #51             ; Read RTC
+        STA     farfunct
+        JSR     DO_FARCALL
+        TYA
+        CMP     #$a5            ; is valid
+        BEQ     :+
+        LDX     #$20            ; set signature byte
+        LDY     #$a5
+        LDA     #50             ; Write RTC
+        STA     farfunct
+        JSR     DO_FARCALL
+        LDX     #$21            ; set console byte
+        LDY     CONSOLE
+        LDA     #50             ; Write RTC
+        STA     farfunct
+        JSR     DO_FARCALL
+:
+        LDX     #$21            ; get default console
+        LDA     #51             ; Read RTC
+        STA     farfunct
+        JSR     DO_FARCALL
+        STY     CONSOLE
+        RTS
+
 
 DSKYMSG:
         .BYTE   $7C, $6, $3F, $6D, $0, $3E, $73, $0

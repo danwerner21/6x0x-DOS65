@@ -2,13 +2,13 @@
 ;
 ; By Daryl Rictor Aug 2002
 ;
-; A simple file transfer program to allow transfers between the SBC and a 
-; console device utilizing the x-modem/CRC transfer protocol.  Requires 
+; A simple file transfer program to allow transfers between the SBC and a
+; console device utilizing the x-modem/CRC transfer protocol.  Requires
 ; ~1200 bytes of either RAM or ROM, 132 bytes of RAM for the receive buffer,
 ; and 12 bytes of zero page RAM for variable storage.
 ;
 ;**************************************************************************
-; This implementation of XMODEM/CRC does NOT conform strictly to the 
+; This implementation of XMODEM/CRC does NOT conform strictly to the
 ; XMODEM protocol standard in that it (1) does not accurately time character
 ; reception or (2) fall back to the Checksum mode.
 
@@ -23,7 +23,7 @@
 ;**************************************************************************
 ;
 ; Files transferred via XMODEM-CRC will have the load address contained in
-; the first two bytes in little-endian format:  
+; the first two bytes in little-endian format:
 ;  FIRST BLOCK
 ;     offset(0) = lo(load start address),
 ;     offset(1) = hi(load start address)
@@ -38,7 +38,7 @@
 ; the last block will be padded with zeros.  Upon reloading, the
 ; data will be written back to the original location.  In addition, the
 ; padded zeros WILL also be written into RAM, which could overwrite other
-; data.   
+; data.
 ;
 ;-------------------------- The Code ----------------------------
 ;
@@ -46,12 +46,12 @@
 ;
 ;
 lastblk		=	$35		; flag for last block
-blkno		=	$36		; block number 
+blkno		=	$36		; block number
 errcnt		=	$37		; error counter 10 is the limit
-bflag		=	$37		; block flag 
+bflag		=	$37		; block flag
 
 crc		=	$38		; CRC lo byte  (two byte variable)
-crch		=	$39		; CRC hi byte  
+crch		=	$39		; CRC hi byte
 
 ptr		=	$3a		; data pointer (two byte variable)
 ptrh		=	$3b		;   "    "
@@ -59,7 +59,7 @@ ptrh		=	$3b		;   "    "
 eofp		=	$3c		; end of file address pointer (2 bytes)
 eofph		=	$3d		;  "	"	"	"
 
-retry		=	$3e		; retry counter 
+retry		=	$3e		; retry counter
 retry2		=	$3f		; 2nd counter
 
 ;
@@ -67,7 +67,7 @@ retry2		=	$3f		; 2nd counter
 ; non-zero page variables and buffers
 ;
 ;
-Rbuff		=	$0300      	; temp 132 byte receive buffer 
+Rbuff		=	$0300      	; temp 132 byte receive buffer
 					;(place anywhere, page aligned)
 ;
 ;
@@ -129,36 +129,36 @@ Wait4CRC	lda	#$ff		; 3 seconds
 		jmp	PrtAbort	; Print abort msg and exit
 SetstAddr	ldy	#$00		; init data block offset to 0
 		ldx	#$04		; preload X to Receive buffer
-		lda	#$01		; manually load blk number	
+		lda	#$01		; manually load blk number
 		sta	Rbuff		; into 1st byte
-		lda	#$FE		; load 1's comp of block #	
+		lda	#$FE		; load 1's comp of block #
 		sta	Rbuff+1		; into 2nd byte
-		lda	ptr		; load low byte of start address		
-		sta	Rbuff+2		; into 3rd byte	
-		lda	ptrh		; load hi byte of start address		
+		lda	ptr		; load low byte of start address
+		sta	Rbuff+2		; into 3rd byte
+		lda	ptrh		; load hi byte of start address
 		sta	Rbuff+3		; into 4th byte
 		bra	Ldbuff1		; jump into buffer load routine
 
 LdBuffer	lda	Lastblk		; Was the last block sent?
-		beq	LdBuff0		; no, send the next one	
+		beq	LdBuff0		; no, send the next one
 		jmp 	Done		; yes, we're done
 LdBuff0		ldx	#$02		; init pointers
 		ldy	#$00		;
 		inc	Blkno		; inc block counter
-		lda	Blkno		; 
+		lda	Blkno		;
 		sta	Rbuff		; save in 1st byte of buffer
-		eor	#$FF		; 
+		eor	#$FF		;
 		sta	Rbuff+1		; save 1's comp of blkno next
 
 LdBuff1		lda	(ptr),y		; save 128 bytes of data
 		sta	Rbuff,x		;
-LdBuff2		sec			; 
+LdBuff2		sec			;
 		lda	eofp		;
 		sbc	ptr		; Are we at the last address?
 		bne	LdBuff4		; no, inc pointer and continue
 		lda	eofph		;
 		sbc	ptrh		;
-		bne	LdBuff4		; 
+		bne	LdBuff4		;
 		inc	LastBlk		; Yes, Set last byte flag
 LdBuff3		inx			;
 		cpx	#$82		; Are we at the end of the 128 byte block?
@@ -187,19 +187,19 @@ SendBlk		lda	Rbuff,x		; Send 132 bytes in buffer to the console
 		inx			;
 		cpx	#$84		; last byte?
 		bne	SendBlk		; no, get next
-		lda	#$FF		; yes, set 3 second delay 
+		lda	#$FF		; yes, set 3 second delay
 		sta	retry2		; and
 		jsr	GetByte		; Wait for Ack/Nack
 		bcc	Seterror	; No chr received after 3 seconds, resend
 		cmp	#ACK		; Chr received... is it:
 		beq	LdBuffer	; ACK, send next block
-		cmp	#NAK		; 
+		cmp	#NAK		;
 		beq	Seterror	; NAK, inc errors and resend
 		cmp	#ESC		;
 		beq	PrtAbort	; Esc pressed to abort
 					; fall through to error counter
 Seterror	inc	errcnt		; Inc error counter
-		lda	errcnt		; 
+		lda	errcnt		;
 		cmp	#$0A		; are there 10 errors? (Xmodem spec for failure)
 		bne	Resend		; no, resend block
 PrtAbort	jsr	Flush		; yes, too many errors, flush buffer,
@@ -215,16 +215,16 @@ XModemRcv	jsr	PrintMsg	; send prompt and info
 		sta	bflag		; set flag to get address from block 1
 StartCrc	lda	#"C"		; "C" start with CRC mode
 		jsr	Put_Chr		; send it
-		lda	#$FF	
+		lda	#$FF
 		sta	retry2		; set loop counter for ~3 sec delay
 		lda	#$00
                	sta	crc
-		sta	crch		; init CRC value	
+		sta	crch		; init CRC value
 		jsr	GetByte		; wait for input
                	bcs	GotByte		; byte received, process it
 		bcc	StartCrc	; resend "C"
 
-StartBlk	lda	#$FF		; 
+StartBlk	lda	#$FF		;
 		sta	retry2		; set loop counter for ~3 sec delay
 		jsr	GetByte		; get first byte of block
 		bcc	StartBlk	; timed out, keep waiting...
@@ -235,7 +235,7 @@ GotByte		cmp	#ESC		; quitting?
 GotByte1        cmp	#SOH		; start of block?
 		beq	BegBlk		; yes
 		cmp	#EOT		;
-		bne	BadCrc		; Not SOH or EOT, so flush buffer & send NAK	
+		bne	BadCrc		; Not SOH or EOT, so flush buffer & send NAK
 		jmp	RDone		; EOT - all done!
 BegBlk		ldx	#$00
 GetBlk		lda	#$ff		; 3 sec window to receive characters
@@ -243,14 +243,14 @@ GetBlk		lda	#$ff		; 3 sec window to receive characters
 GetBlk1		jsr	GetByte		; get next character
 		bcc	BadCrc		; chr rcv error, flush and send NAK
 GetBlk2		sta	Rbuff,x		; good char, save it in the rcv buffer
-		inx			; inc buffer pointer	
+		inx			; inc buffer pointer
 		cpx	#$84		; <01> <FE> <128 bytes> <CRCH> <CRCL>
 		bne	GetBlk		; get 132 characters
 		ldx	#$00		;
 		lda	Rbuff,x		; get block # from buffer
-		cmp	blkno		; compare to expected block #	
+		cmp	blkno		; compare to expected block #
 		beq	GoodBlk1	; matched!
-		jsr	Print_Err	; Unexpected block number - abort	
+		jsr	Print_Err	; Unexpected block number - abort
 		jsr	Flush		; mismatched - flush buffer and then do BRK
 ;		lda	#$FD		; put error code in "A" if desired
 		brk			; unexpected block # - fatal error - BRK or RTS
@@ -258,10 +258,10 @@ GoodBlk1	eor	#$ff		; 1's comp of block #
 		inx			;
 		cmp	Rbuff,x		; compare with expected 1's comp of block #
 		beq	GoodBlk2 	; matched!
-		jsr	Print_Err	; Unexpected block number - abort	
+		jsr	Print_Err	; Unexpected block number - abort
 		jsr 	Flush		; mismatched - flush buffer and then do BRK
 ;		lda	#$FC		; put error code in "A" if desired
-		brk			; bad 1's comp of block#	
+		brk			; bad 1's comp of block#
 GoodBlk2	jsr	CalcCRC		; calc CRC
 		lda	Rbuff,y		; get hi CRC from buffer
 		cmp	crch		; compare to calculated hi CRC
@@ -273,7 +273,7 @@ GoodBlk2	jsr	CalcCRC		; calc CRC
 BadCrc		jsr	Flush		; flush the input port
 		lda	#NAK		;
 		jsr	Put_Chr		; send NAK to resend block
-		jmp	StartBlk	; start over, get the block again			
+		jmp	StartBlk	; start over, get the block again
 GoodCrc		ldx	#$02		;
 		lda	blkno		; get the block number
 		cmp	#$01		; 1st block?
@@ -286,7 +286,7 @@ GoodCrc		ldx	#$02		;
 		lda	Rbuff,x		; get hi address
 		sta	ptr+1		; save it
 		inx			; point to first byte of data
-		dec	bflag		; set the flag so we won't get another address		
+		dec	bflag		; set the flag so we won't get another address
 CopyBlk		ldy	#$00		; set offset to zero
 CopyBlk3	lda	Rbuff,x		; get data byte from buffer
 		sta	(ptr),y		; save to target
@@ -319,22 +319,22 @@ RDone		lda	#ACK		; last block, send ACK and exit.
 ; register if one was present.
 ;
 ; "Put_Chr" routine will write one byte to the output port.  Its alright
-; if this routine waits for the port to be ready.  its assumed that the 
+; if this routine waits for the port to be ready.  its assumed that the
 ; character was send upon return from this routine.
 ;
 ; Here is an example of the routines used for a standard 6551 ACIA.
 ; You would call the ACIA_Init prior to running the xmodem transfer
 ; routine.
 ;
-ACIA_Data	=	$7F70		; Adjust these addresses to point 
+ACIA_Data	=	$7F70		; Adjust these addresses to point
 ACIA_Status	=	$7F71		; to YOUR 6551!
 ACIA_Command	=	$7F72		;
 ACIA_Control	=	$7F73		;
 
 ACIA_Init      	lda	#$1F           	; 19.2K/8/1
-               	sta	ACIA_Control   	; control reg 
+               	sta	ACIA_Control   	; control reg
                	lda	#$0B           	; N parity/echo off/rx int off/ dtr active low
-               	sta	ACIA_Command   	; command reg 
+               	sta	ACIA_Command   	; command reg
                	rts                  	; done
 ;
 ; input chr from ACIA (no waiting)
@@ -365,7 +365,7 @@ Put_Chr1     	lda	ACIA_Status     ; serial port status
 ;
 GetByte		lda	#$00		; wait for chr input and cycle timing loop
 		sta	retry		; set low value of timing loop
-StartCrcLp	jsr	Get_chr		; get chr from serial port, don't wait 
+StartCrcLp	jsr	Get_chr		; get chr from serial port, don't wait
 		bcs	GetByte1	; got one, so exit
 		dec	retry		; no character received, so dec counter
 		bne	StartCrcLp	;
@@ -381,8 +381,8 @@ Flush1		jsr	GetByte		; read the port
 		rts			; else done
 ;
 PrintMsg	ldx	#$00		; PRINT starting message
-PrtMsg1		lda   	Msg,x		
-		beq	PrtMsg2			
+PrtMsg1		lda   	Msg,x
+		beq	PrtMsg2
 		jsr	Put_Chr
 		inx
 		bne	PrtMsg1
@@ -420,7 +420,7 @@ GoodMsg		.byte	EOT,CR,LF,EOT,CR,LF,EOT,CR,LF,CR,LF
 ;=========================================================================
 ;
 ;
-;  CRC subroutines 
+;  CRC subroutines
 ;
 ;
 CalcCRC		lda	#$00		; yes, calculate the CRC for the 128 bytes
@@ -475,8 +475,8 @@ CalcCRC1	lda	Rbuff,y		;
 ;		rts
 ;
 ; The following tables are used to calculate the CRC for the 128 bytes
-; in the xmodem data blocks.  You can use these tables if you plan to 
-; store this program in ROM.  If you choose to build them at run-time, 
+; in the xmodem data blocks.  You can use these tables if you plan to
+; store this program in ROM.  If you choose to build them at run-time,
 ; then just delete them and define the two labels: crclo & crchi.
 ;
 ; low byte CRC lookup table (should be page aligned)
@@ -497,7 +497,7 @@ crclo
  .byte $4C,$6D,$0E,$2F,$C8,$E9,$8A,$AB,$44,$65,$06,$27,$C0,$E1,$82,$A3
  .byte $7D,$5C,$3F,$1E,$F9,$D8,$BB,$9A,$75,$54,$37,$16,$F1,$D0,$B3,$92
  .byte $2E,$0F,$6C,$4D,$AA,$8B,$E8,$C9,$26,$07,$64,$45,$A2,$83,$E0,$C1
- .byte $1F,$3E,$5D,$7C,$9B,$BA,$D9,$F8,$17,$36,$55,$74,$93,$B2,$D1,$F0 
+ .byte $1F,$3E,$5D,$7C,$9B,$BA,$D9,$F8,$17,$36,$55,$74,$93,$B2,$D1,$F0
 
 ; hi byte CRC lookup table (should be page aligned)
 		*= $FE00
@@ -517,7 +517,7 @@ crchi
  .byte $D9,$C9,$F9,$E9,$99,$89,$B9,$A9,$58,$48,$78,$68,$18,$08,$38,$28
  .byte $CB,$DB,$EB,$FB,$8B,$9B,$AB,$BB,$4A,$5A,$6A,$7A,$0A,$1A,$2A,$3A
  .byte $FD,$ED,$DD,$CD,$BD,$AD,$9D,$8D,$7C,$6C,$5C,$4C,$3C,$2C,$1C,$0C
- .byte $EF,$FF,$CF,$DF,$AF,$BF,$8F,$9F,$6E,$7E,$4E,$5E,$2E,$3E,$0E,$1E 
+ .byte $EF,$FF,$CF,$DF,$AF,$BF,$8F,$9F,$6E,$7E,$4E,$5E,$2E,$3E,$0E,$1E
 ;
 ;
 ; End of File

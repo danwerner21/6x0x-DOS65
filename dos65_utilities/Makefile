@@ -1,7 +1,7 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com \
-	dbasic.com s19.com writeos.com rtc.com format.com
+	dbasic.com s19.com writeos.com rtc.com format.com nvset.com
 
 assign.com: assign.c
 	cc65  -t none -O --cpu 6502  assign.c
@@ -13,64 +13,69 @@ assign.com: assign.c
 	cp assign.s19 ../bin/
 
 alloc.out: alloc203.asm
-	ca65 --cpu 65sc02 alloc203.asm -l alloc.lst
+	ca65 --cpu 6502 alloc203.asm -l alloc.lst
 	ld65 alloc203.o  -m alloc.map -C dos65.cfg -o alloc.out
 
 bcompile.out: compl203.asm
-	ca65 --cpu 65sc02 compl203.asm -l bcompile.lst
+	ca65 --cpu 6502 compl203.asm -l bcompile.lst
 	ld65 compl203.o  -m bcompile.map -C dos65.cfg -o bcompile.out
 
 asm.out: asm211.asm
-	ca65 --cpu 65sc02 asm211.asm -l asm.lst
+	ca65 --cpu 6502 asm211.asm -l asm.lst
 	ld65 asm211.o  -m asm.map -C dos65.cfg -o asm.out
 
 compare.out: compr202.asm
-	ca65 --cpu 65sc02 compr202.asm -l compare.lst
+	ca65 --cpu 6502 compr202.asm -l compare.lst
 	ld65 compr202.o  -m compare.map -C dos65.cfg -o compare.out
 
 copy.out: copy201.asm
-	ca65 --cpu 65sc02 copy201.asm -l copy.lst
+	ca65 --cpu 6502 copy201.asm -l copy.lst
 	ld65 copy201.o  -m copy.map -C dos65.cfg -o copy.out
 
 dbasic.out: dbasic.asm
-	ca65 --cpu 65sc02 dbasic.asm -l dbasic.lst
+	ca65 --cpu 6502 dbasic.asm -l dbasic.lst
 	ld65 dbasic.o  -m dbasic.map -C dos65.cfg -o dbasic.out
 
 debug.out: debug202.asm
-	ca65 --cpu 65sc02 debug202.asm -l debug.lst
+	ca65 --cpu 6502 debug202.asm -l debug.lst
 	ld65 debug202.o  -m debug.map -C dos65.cfg -o debug.out
 
 edit.out: edit203.asm
-	ca65 --cpu 65sc02 edit203.asm -l edit.lst
+	ca65 --cpu 6502 edit203.asm -l edit.lst
 	ld65 edit203.o  -m edit.map -C dos65.cfg -o edit.out
 
 format.out: format.asm
-	ca65 --cpu 65sc02 format.asm -l format.lst
+	ca65 --cpu 6502 format.asm -l format.lst
 	ld65 format.o  -m format.map -C dos65.cfg -o format.out
 
+nvset.com: nvset.c
+	cc65  -t none -O --cpu 6502  nvset.c
+	ca65 --cpu 6502  nvset.s
+	ld65 nvset.o  ./rbc/rbc.lib -m nvset.map -C dos65c.cfg -o nvset.com
+	srec_cat  nvset.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  nvset.s19  -data-only
+	cp nvset.com ../bin/
+	sed -i -e '$$aS9' nvset.s19
+	cp nvset.s19 ../bin/
+
 run.out: run205.asm
-	ca65 --cpu 65sc02 run205.asm -l run.lst
+	ca65 --cpu 6502 run205.asm -l run.lst
 	ld65 run205.o  -m run.map -C dos65.cfg -o run.out
 
 sedit.out: sedit.asm
-	ca65 --cpu 65sc02 sedit.asm -lsedit.lst
+	ca65 --cpu 6502 sedit.asm -lsedit.lst
 	ld65 sedit.o  -m sedit.map -C dos65.cfg -o sedit.out
 
 s19.out: s19.asm
-	ca65 --cpu 65sc02 s19.asm -ls19.lst
+	ca65 --cpu 6502 s19.asm -ls19.lst
 	ld65 s19.o  -m s19.map -C dos65.cfg -o s19.out
 
 writeos.out: writeos.asm
-	ca65 --cpu 65sc02 writeos.asm -l writeos.lst
+	ca65 --cpu 6502 writeos.asm -l writeos.lst
 	ld65 writeos.o  -m writeos.map -C dos65.cfg -o writeos.out
 
 rtc.out: rtc.asm
-	ca65 --cpu 65sc02 rtc.asm -l rtc.lst
+	ca65 --cpu 6502 rtc.asm -l rtc.lst
 	ld65 rtc.o  -m rtc.map -C dos65.cfg -o rtc.out
-
-#format.out: format.asm
-#	ca65 --cpu 65sc02 format.asm -lformat.lst
-#	ld65 format.o  -m format.map -C dos65.cfg -o format.out
 
 alloc.com: alloc.out
 	srec_cat  alloc.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  alloc.s19  -data-only
@@ -197,14 +202,6 @@ rtc.com: rtc.out
 	sed -i -e '$$aS9' rtc.s19
 	cp rtc.com ../bin/
 	cp rtc.s19 ../bin/
-
-#format.com: format.out
-#	srec_cat  format.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  format.s19  -data-only
-#	srec_cat  format.s19  -offset -0x0800  -o  formatA.s  -data-only
-#	srec_cat  formatA.s -o format.com  -BINARY
-#	@rm -f formatA.s
-#   sed -i -e '$$aS9' s19.s19
-#	cp format.com ../bin/
 
 
 pretty:

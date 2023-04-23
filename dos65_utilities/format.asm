@@ -373,12 +373,12 @@ PC_LF:
 
 OUT:
 conwrt:
-        PHX
-        PHY
+        STX     storex
+        STY     storey
         LDX     #2              ;
         JSR     PEM             ;
-        PLY
-        PLX
+        LDY     storey
+        LDX     storex
         RTS
 
 BLKSECR512:
@@ -440,12 +440,12 @@ ENDOUTSTR:
 
 
 CIN:
-        PHX
-        PHY
+        STX     storex
+        STY     storey
         LDX     #1              ;
         JSR     PEM             ;
-        PLY
-        PLX
+        LDY     storey
+        LDX     storex
         RTS
 
 
@@ -478,6 +478,10 @@ CURSEC:
         .BYTE   0
 
 temp:
+        .BYTE   0
+storex:
+        .BYTE   0
+storey:
         .BYTE   0
 MAXTRACK:
         .BYTE   40

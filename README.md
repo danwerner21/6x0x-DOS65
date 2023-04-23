@@ -11,8 +11,8 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. default console jumper
-1. dsky old (jumper?)
+1. dsky old support  (setting as well?)
+1. change console from DSKY
 1. IO ASSIGNMENT?
  * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
  * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
@@ -26,9 +26,8 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. MD support
 
 ## BUGS
-1. basic run command overwrites zero page config vars
 1. sedit does not paint properly on console (colors)
-1. Original DSKY code does not work
+
 
 
 
@@ -344,6 +343,19 @@ On the 6x0x “A>” prompt type:
 SAVE 28 A:EDIT.COM
 ```
 
+##### Load FORMAT
+On the 6x0x “A>” prompt type:
+```
+S19
+```
+
+Dump FORMAT.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
+
+On the 6x0x “A>” prompt type:
+```
+SAVE 9 A:FORMAT.COM
+```
+
 ##### Load MKCOM
 On the 6x0x “A>” prompt type:
 ```
@@ -355,6 +367,19 @@ On the 6x0x “A>” prompt type:
 ```
 SAVE 5 A:MKCOM.COM
 ```
+
+##### Load NVSET
+On the 6x0x “A>” prompt type:
+```
+S19
+```
+Dump NVSET.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
+
+On the 6x0x “A>” prompt type:
+```
+SAVE 29 A:NVSET.COM
+```
+
 
 ##### Load SEDIT
 On the 6x0x “A>” prompt type:
@@ -419,3 +444,23 @@ B YY XX | Load DOS/65 image from UNIT YY ON device X and boot it
 0000 | 00FF | Zero Page
 0100 | 01FF | Stack Page
 0200 | 02FF |
+
+
+### DS1302 NVRAM Memory Map
+
+ Location | Description
+------ | -----------------------
+00 | Seconds
+01 | Minutes
+02 | Hours
+03 | Date
+04 | Month
+05 | Day
+06 | Year
+07 | Control
+08 | Charger Control
+1F | Clock Burst
+20 | NV RAM SIGNATURE (A5=VALID)
+21 | DEFAULT CONSOLE
+22-3E | UNUSED
+3F | RAM Burst

@@ -1927,9 +1927,9 @@ GETFILENAME_BACKSPACE:
         LDX     #2
         JSR     PEM
         DEY
+        TYA
+        TAX
         LDA     #32
-        PHY
-        PLX
         STA     FNBUFFER,X
         JMP     GETFILENAME_LOOP
 
