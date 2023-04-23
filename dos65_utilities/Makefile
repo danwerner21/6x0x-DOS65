@@ -1,7 +1,7 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com \
-	dbasic.com s19.com writeos.com rtc.com format.com nvset.com
+	dbasic.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com
 
 assign.com: assign.c
 	cc65  -t none -O --cpu 6502  assign.c
@@ -203,6 +203,23 @@ rtc.com: rtc.out
 	cp rtc.com ../bin/
 	cp rtc.s19 ../bin/
 
+xmr.com: xmr.c
+	cc65  -t none -O --cpu 6502  xmr.c
+	ca65 --cpu 6502  xmr.s
+	ld65 xmr.o  ./rbc/rbc.lib -m xmr.map -C dos65c.cfg -o xmr.com
+	srec_cat  xmr.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  xmr.s19  -data-only
+	cp xmr.com ../bin/
+	sed -i -e '$$aS9' xmr.s19
+	cp xmr.s19 ../bin/
+
+xms.com: xms.c
+	cc65  -t none -O --cpu 6502  xms.c
+	ca65 --cpu 6502  xms.s
+	ld65 xms.o  ./rbc/rbc.lib -m xms.map -C dos65c.cfg -o xms.com
+	srec_cat  xms.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  xms.s19  -data-only
+	cp xms.com ../bin/
+	sed -i -e '$$aS9' xms.s19
+	cp xms.s19 ../bin/
 
 pretty:
 	cp *.asm ./backup

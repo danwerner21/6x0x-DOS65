@@ -11,8 +11,11 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. dsky old support  (setting as well?)
+1. dsky old support
+1. dsky settings in nvram
 1. change console from DSKY
+1. xmr command
+1. xms command
 1. IO ASSIGNMENT?
  * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
  * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
@@ -22,7 +25,6 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. add building a custom rom image to readme
 1. add images of backplane in an atx case
 1. add 6x0x backplane repo to wiki
-1. COMPLETE PORT OF XM.ASM
 1. MD support
 
 ## BUGS
