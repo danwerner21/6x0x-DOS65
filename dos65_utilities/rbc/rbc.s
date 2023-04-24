@@ -10,6 +10,8 @@ farfunct        =       $32             ; function to call in driver area
         .export         gotoxy
         .export         _readrtc
         .export         _writertc
+        .export         _cputserial
+        .export         _cgetserial
         .import         popa
 
 tmpsave:         .res    1
@@ -24,6 +26,20 @@ _cgetc:
         	LDX	#6		        ; get char
 	        JSR	PEM
                 beq     _cgetc
+                rts
+
+_cputserial:
+        	tax                     ; data in x
+                LDA     #4             ; put serial port
+                STA     farfunct
+                txa
+                JSR     DO_FARCALL
+                rts
+
+_cgetserial:
+                LDA     #5             ; get serial port
+                STA     farfunct
+                JSR     DO_FARCALL
                 rts
 
 gotoxy:
