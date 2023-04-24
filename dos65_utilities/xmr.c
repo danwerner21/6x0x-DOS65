@@ -78,11 +78,11 @@ static const unsigned short crc16tab[256]= {
 
 unsigned char _inbyte(unsigned int timeout)
 {
-    unsigned char ch;
+    int i;
     while (timeout--) {
-        ch=cgetserial();
-        if (ch!=0)
-            return ch;
+        i=cgetserial();
+        if (i!=256)
+            return (char)i;
     }
     return 0;
 }
@@ -258,7 +258,7 @@ int main(void)
 {
     int st;
 
-    cprintf ("Send data using the xmodem protocol from your terminal emulator now...\n\r");
+    cprintf ("\n\rSend data using the xmodem protocol from your terminal emulator now...\n\r");
 
 
                 __asm__ ("lda #07");
@@ -275,10 +275,10 @@ int main(void)
 
 
     if (st < 0) {
-        cprintf ("Xmodem receive error: status: %d\n\r", st);
+        cprintf ("\n\rXmodem receive error: status: %d\n\r", st);
     }
     else  {
-        cprintf ("Xmodem successfully received %d bytes\n\r", st);
+        cprintf ("\n\rXmodem successfully received %d bytes\n\r", st);
     }
 
     return 0;

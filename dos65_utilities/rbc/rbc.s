@@ -1,6 +1,11 @@
 PEM	        =	$103		; PEM ENTRY
 DO_FARCALL      =       $FFF0
 farfunct        =       $32             ; function to call in driver area
+M6X0X_IOSPACE   = $E000
+UART1DATA       = M6X0X_IOSPACE+$FF4; SERIAL PORT 1 (I/O Card)
+UART1STATUS     = M6X0X_IOSPACE+$FF5; SERIAL PORT 1 (I/O Card)
+UART1COMMAND    = M6X0X_IOSPACE+$FF6; SERIAL PORT 1 (I/O Card)
+UART1CONTROL    = M6X0X_IOSPACE+$FF7; SERIAL PORT 1 (I/O Card)
 
 ; void cputc (char c);
 ;
@@ -29,18 +34,27 @@ _cgetc:
                 rts
 
 _cputserial:
-        	tax                     ; data in x
-                LDA     #4             ; put serial port
-                STA     farfunct
-                txa
-                JSR     DO_FARCALL
+                sta     tmpsave
+:
+                LDA     UART1STATUS     ; GET STATUS
+                AND     #%00010000      ; IS TX READY
+                BEQ     :-              ; NO, WAIT FOR IT
+                lda     tmpsave
+                STA     UART1DATA       ; WRITE DATA
                 rts
 
 _cgetserial:
-                LDA     #5             ; get serial port
-                STA     farfunct
-                JSR     DO_FARCALL
-                rts
+                LDA     UART1STATUS     ; GET STATUS REGISTER
+                AND     #%00001000      ; IS RX READY
+                BEQ     :+              ; NO, INDICATE NO CHAR
+                LDA     UART1DATA       ; GET DATA CHAR
+                LDX     #$00            ; set high bit to 0
+                RTS
+:
+                LDA     #$00            ;
+                LDX     #$01            ; set high bit to 1
+                RTS                     ;
+
 
 gotoxy:
                 rts

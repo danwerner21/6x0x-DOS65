@@ -11,11 +11,10 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
+1. update docs to use XM rather than S19 for system build
 1. dsky old support
 1. dsky settings in nvram
 1. change console from DSKY
-1. xmr command
-1. xms command
 1. IO ASSIGNMENT?
  * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
  * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?

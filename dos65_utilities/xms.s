@@ -15,11 +15,17 @@
 	.import		_cputserial
 	.import		_cgetserial
 	.export		_xbuff
+	.export		_eof
 	.export		__inbyte
-	.export		_xmemcpy
 	.export		_crc16_ccitt
-	.export		_xmodemReceive
+	.export		_xmemset
+	.export		_xmodemTransmit
 	.export		_main
+
+.segment	"DATA"
+
+_eof:
+	.byte	$00
 
 .segment	"RODATA"
 
@@ -280,20 +286,19 @@ _crc16tab:
 	.word	$3EB2
 	.word	$0ED1
 	.word	$1EF0
-S001C:
-	.byte	$0A,$0D,$53,$65,$6E,$64,$20,$64,$61,$74,$61,$20,$75,$73,$69,$6E
-	.byte	$67,$20,$74,$68,$65,$20,$78,$6D,$6F,$64,$65,$6D,$20,$70,$72,$6F
-	.byte	$74,$6F,$63,$6F,$6C,$20,$66,$72,$6F,$6D,$20,$79,$6F,$75,$72,$20
-	.byte	$74,$65,$72,$6D,$69,$6E,$61,$6C,$20,$65,$6D,$75,$6C,$61,$74,$6F
-	.byte	$72,$20,$6E,$6F,$77,$2E,$2E,$2E,$0A,$0D,$00
-S0026:
+S000A:
+	.byte	$0A,$0D,$50,$72,$65,$70,$61,$72,$65,$20,$79,$6F,$75,$72,$20,$74
+	.byte	$65,$72,$6D,$69,$6E,$61,$6C,$20,$65,$6D,$75,$6C,$61,$74,$6F,$72
+	.byte	$20,$74,$6F,$20,$72,$65,$63,$65,$69,$76,$65,$20,$64,$61,$74,$61
+	.byte	$20,$6E,$6F,$77,$2E,$2E,$2E,$0A,$0D,$00
+S0014:
 	.byte	$0A,$0D,$58,$6D,$6F,$64,$65,$6D,$20,$73,$75,$63,$63,$65,$73,$73
-	.byte	$66,$75,$6C,$6C,$79,$20,$72,$65,$63,$65,$69,$76,$65,$64,$20,$25
-	.byte	$64,$20,$62,$79,$74,$65,$73,$0A,$0D,$00
-S0025:
-	.byte	$0A,$0D,$58,$6D,$6F,$64,$65,$6D,$20,$72,$65,$63,$65,$69,$76,$65
-	.byte	$20,$65,$72,$72,$6F,$72,$3A,$20,$73,$74,$61,$74,$75,$73,$3A,$20
-	.byte	$25,$64,$0A,$0D,$00
+	.byte	$66,$75,$6C,$6C,$79,$20,$74,$72,$61,$6E,$73,$6D,$69,$74,$74,$65
+	.byte	$64,$20,$25,$64,$20,$62,$79,$74,$65,$73,$0A,$0D,$00
+S0013:
+	.byte	$0A,$0D,$58,$6D,$6F,$64,$65,$6D,$20,$74,$72,$61,$6E,$73,$6D,$69
+	.byte	$74,$20,$65,$72,$72,$6F,$72,$3A,$20,$73,$74,$61,$74,$75,$73,$3A
+	.byte	$20,$25,$64,$0A,$0D,$00
 
 .segment	"BSS"
 
@@ -335,51 +340,6 @@ L0005:	ldy     #$03
 	ldx     #$00
 	txa
 	jmp     incsp4
-
-.endproc
-
-; ---------------------------------------------------------------
-; void __near__ xmemcpy (unsigned char *dst, unsigned char *src, int count)
-; ---------------------------------------------------------------
-
-.segment	"CODE"
-
-.proc	_xmemcpy: near
-
-.segment	"CODE"
-
-	jsr     pushax
-	jmp     L0004
-L0002:	ldy     #$05
-	jsr     ldaxysp
-	sta     sreg
-	stx     sreg+1
-	ldy     #$03
-	jsr     ldaxysp
-	sta     ptr1
-	stx     ptr1+1
-	ldy     #$00
-	lda     (ptr1),y
-	sta     (sreg),y
-	ldy     #$04
-	ldx     #$00
-	lda     #$01
-	jsr     addeqysp
-	ldy     #$02
-	ldx     #$00
-	lda     #$01
-	jsr     addeqysp
-L0004:	ldy     #$01
-	lda     (sp),y
-	dey
-	ora     (sp),y
-	php
-	ldx     #$00
-	lda     #$01
-	jsr     subeq0sp
-	plp
-	bne     L0002
-	jmp     incsp6
 
 .endproc
 
@@ -452,138 +412,6 @@ L0003:	jsr     ldax0sp
 .endproc
 
 ; ---------------------------------------------------------------
-; int __near__ check (int crc, const unsigned char *buf, int sz)
-; ---------------------------------------------------------------
-
-.segment	"CODE"
-
-.proc	_check: near
-
-.segment	"CODE"
-
-	jsr     pushax
-	ldy     #$05
-	lda     (sp),y
-	dey
-	ora     (sp),y
-	beq     L0002
-	iny
-	jsr     pushwysp
-	ldy     #$03
-	jsr     ldaxysp
-	jsr     _crc16_ccitt
-	jsr     pushax
-	ldy     #$03
-	jsr     ldaxysp
-	clc
-	ldy     #$04
-	adc     (sp),y
-	sta     ptr1
-	txa
-	iny
-	adc     (sp),y
-	sta     ptr1+1
-	ldy     #$00
-	lda     (ptr1),y
-	sta     sreg+1
-	ldy     #$03
-	jsr     ldaxysp
-	jsr     incax1
-	clc
-	ldy     #$04
-	adc     (sp),y
-	sta     ptr1
-	txa
-	iny
-	adc     (sp),y
-	sta     ptr1+1
-	ldy     #$00
-	lda     (ptr1),y
-	clc
-	ldx     sreg+1
-	bcc     L000C
-	inx
-L000C:	jsr     pushax
-	ldy     #$03
-	jsr     ldaxysp
-	ldy     #$00
-	cmp     (sp),y
-	bne     L0003
-	txa
-	iny
-	cmp     (sp),y
-	bne     L0003
-	ldx     #$00
-	tya
-	jsr     incsp4
-	jmp     incsp6
-L0003:	jsr     incsp4
-	jmp     L0004
-L0002:	jsr     decsp2
-	lda     #$00
-	jsr     pusha
-	tax
-	ldy     #$01
-	jsr     staxysp
-L0005:	ldy     #$02
-	jsr     ldaxysp
-	ldy     #$03
-	cmp     (sp),y
-	txa
-	iny
-	sbc     (sp),y
-	bvc     L000B
-	eor     #$80
-L000B:	bpl     L0006
-	ldy     #$02
-	jsr     ldaxysp
-	clc
-	ldy     #$05
-	adc     (sp),y
-	sta     ptr1
-	txa
-	iny
-	adc     (sp),y
-	sta     ptr1+1
-	ldy     #$00
-	lda     (ptr1),y
-	clc
-	adc     (sp),y
-	sta     (sp),y
-	iny
-	ldx     #$00
-	tya
-	jsr     addeqysp
-	jmp     L0005
-L0006:	ldy     #$00
-	lda     (sp),y
-	sta     sreg
-	ldy     #$04
-	jsr     ldaxysp
-	clc
-	ldy     #$05
-	adc     (sp),y
-	sta     ptr1
-	txa
-	iny
-	adc     (sp),y
-	sta     ptr1+1
-	ldy     #$00
-	lda     (ptr1),y
-	cmp     sreg
-	bne     L0009
-	ldx     #$00
-	lda     #$01
-	jsr     incsp3
-	jmp     incsp6
-L0009:	jsr     incsp3
-L0004:	ldx     #$00
-	txa
-	jmp     incsp6
-
-.endproc
-
-; ---------------------------------------------------------------
 ; void __near__ flushinput (void)
 ; ---------------------------------------------------------------
 
@@ -593,8 +421,8 @@ L0004:	ldx     #$00
 
 .segment	"CODE"
 
-L0004:	ldx     #$42
-	lda     #$40
+L0004:	ldx     #$96
+	lda     #$80
 	jsr     __inbyte
 	cmp     #$00
 	bne     L0004
@@ -603,308 +431,375 @@ L0004:	ldx     #$42
 .endproc
 
 ; ---------------------------------------------------------------
-; int __near__ xmodemReceive (void)
+; void __near__ xmemset (unsigned char *dst, unsigned char ch, int count)
 ; ---------------------------------------------------------------
 
 .segment	"CODE"
 
-.proc	_xmodemReceive: near
+.proc	_xmemset: near
 
 .segment	"CODE"
 
-	jsr     decsp4
-	jsr     push0
-	lda     #$43
-	jsr     pusha
+	jsr     pushax
+	jmp     L0004
+L0002:	ldy     #$04
+	jsr     ldaxysp
+	sta     ptr1
+	stx     ptr1+1
+	ldy     #$02
+	lda     (sp),y
+	ldy     #$00
+	sta     (ptr1),y
+	ldy     #$03
+	ldx     #$00
+	lda     #$01
+	jsr     addeqysp
+L0004:	ldy     #$01
+	lda     (sp),y
+	dey
+	ora     (sp),y
+	php
+	ldx     #$00
+	lda     #$01
+	jsr     subeq0sp
+	plp
+	bne     L0002
+	jmp     incsp5
+
+.endproc
+
+; ---------------------------------------------------------------
+; int __near__ xmodemTransmit (void)
+; ---------------------------------------------------------------
+
+.segment	"CODE"
+
+.proc	_xmodemTransmit: near
+
+.segment	"CODE"
+
+	jsr     decsp2
+	ldx     #$FF
+	txa
+	jsr     pushax
 	lda     #$01
 	jsr     pusha
 	jsr     decsp4
 	jsr     push0
 	jsr     decsp2
-	lda     #$19
-	jsr     pusha0
-	jmp     L002E
-L0005:	ldx     #$00
-L002E:	lda     #$00
-	ldy     #$02
-	jsr     staxysp
-L0006:	ldy     #$03
-	jsr     ldaxysp
-	cmp     #$1E
+	lda     #$00
+	jsr     stax0sp
+L0006:	jsr     ldax0sp
+	cmp     #$10
 	txa
 	sbc     #$00
 	bvc     L000A
 	eor     #$80
-L000A:	jpl     L0007
-	ldy     #$0B
-	lda     (sp),y
-	beq     L000B
-	jsr     _cputserial
-L000B:	ldx     #$42
-	lda     #$40
-	jsr     __inbyte
-	ldy     #$06
-	jsr     staxysp
-	stx     tmp1
-	ora     tmp1
-	beq     L0008
-	ldy     #$07
-	jsr     ldaxysp
-	cpx     #$00
-	bne     L0008
-	cmp     #$01
-	beq     L002F
-	cmp     #$02
-	beq     L0011
-	cmp     #$04
-	beq     L0012
-	cmp     #$18
-	beq     L0013
-	jmp     L0008
-L002F:	lda     #$80
-	ldy     #$0E
-	jsr     staxysp
-	jmp     L0010
-L0011:	ldx     #$04
+L000A:	bpl     L0042
+	ldx     #$2D
 	lda     #$00
-	ldy     #$0E
+	jsr     __inbyte
+	ldy     #$04
 	jsr     staxysp
-	jmp     L0010
-L0012:	jsr     _flushinput
-	lda     #$06
-	jsr     _cputserial
+	txa
+	bmi     L0008
 	ldy     #$05
 	jsr     ldaxysp
-	jmp     L0003
-L0013:	ldx     #$42
-	lda     #$40
+	cpx     #$00
+	bne     L0008
+	cmp     #$15
+	beq     L0041
+	cmp     #$18
+	beq     L0011
+	cmp     #$43
+	bne     L0008
+	lda     #$01
+	ldy     #$09
+	jsr     staxysp
+	jmp     L0043
+L0041:	txa
+	ldy     #$09
+	jsr     staxysp
+	jmp     L0043
+L0011:	ldx     #$96
+	lda     #$80
 	jsr     __inbyte
-	ldy     #$06
+	ldy     #$04
 	jsr     staxysp
 	cpx     #$00
 	bne     L0008
 	cmp     #$18
 	bne     L0008
-	jsr     _flushinput
 	lda     #$06
 	jsr     _cputserial
+	jsr     _flushinput
 	ldx     #$FF
 	txa
 	jmp     L0003
-L0008:	ldy     #$02
-	ldx     #$00
+L0008:	ldx     #$00
 	lda     #$01
-	jsr     addeqysp
+	jsr     addeq0sp
 	jmp     L0006
-L0007:	ldy     #$0B
-	lda     (sp),y
-	cmp     #$43
-	bne     L0017
-	ldx     #$00
-	lda     #$15
-	sta     (sp),y
-	jmp     L002E
-L0017:	jsr     _flushinput
-	lda     #$18
+L0042:	lda     #$18
 	jsr     _cputserial
 	lda     #$18
 	jsr     _cputserial
 	lda     #$18
 	jsr     _cputserial
+	jsr     _flushinput
 	ldx     #$FF
 	lda     #$FE
 	jmp     L0003
-L0010:	ldy     #$0B
-	lda     (sp),y
-	cmp     #$43
-	bne     L0030
-	ldx     #$00
-	lda     #$01
-	iny
-	jsr     staxysp
-L0030:	lda     #$00
+L0018:	ldx     #$00
+L0043:	lda     #$80
 	ldy     #$0B
-	sta     (sp),y
-	lda     #<(_xbuff)
-	ldx     #>(_xbuff)
-	ldy     #$10
 	jsr     staxysp
-	sta     sreg
-	stx     sreg+1
-	ldy     #$06
-	lda     (sp),y
-	ldy     #$00
-	sta     (sreg),y
-	ldy     #$10
-	ldx     #$00
 	lda     #$01
-	jsr     addeqysp
-	ldx     #$00
-	txa
+	sta     _xbuff
 	ldy     #$08
-	jsr     staxysp
-L0019:	ldy     #$0B
-	jsr     pushwysp
-	ldy     #$0F
 	lda     (sp),y
-	dey
-	ora     (sp),y
-	beq     L001D
-	ldx     #$00
-	lda     #$01
-	jmp     L001E
-L001D:	tax
-L001E:	clc
-	ldy     #$10
-	adc     (sp),y
-	pha
-	txa
-	iny
-	adc     (sp),y
-	tax
-	pla
-	jsr     incax3
-	jsr     tosicmp
-	bpl     L001A
-	ldx     #$42
-	lda     #$40
-	jsr     __inbyte
-	ldy     #$06
-	jsr     staxysp
-	cpx     #$80
-	jcs     L0021
-	ldy     #$11
-	jsr     ldaxysp
-	sta     sreg
-	stx     sreg+1
-	ldy     #$06
+	sta     _xbuff+1
 	lda     (sp),y
-	ldy     #$00
-	sta     (sreg),y
-	ldy     #$10
-	ldx     #$00
-	lda     #$01
-	jsr     addeqysp
-	ldy     #$08
-	ldx     #$00
-	lda     #$01
-	jsr     addeqysp
-	jmp     L0019
-L001A:	lda     _xbuff+2
 	eor     #$FF
-	cmp     _xbuff+1
-	jne     L0021
-	lda     _xbuff+1
-	ldy     #$0A
-	cmp     (sp),y
-	beq     L0031
-	lda     _xbuff+1
-	jsr     pusha0
-	ldy     #$0C
-	lda     (sp),y
-	jsr     decax1
-	jsr     tosicmp
-	jne     L0021
-L0031:	ldy     #$0F
-	jsr     pushwysp
-	lda     #<(_xbuff+3)
-	ldx     #>(_xbuff+3)
-	jsr     pushax
-	ldy     #$13
-	jsr     ldaxysp
-	jsr     _check
-	stx     tmp1
-	ora     tmp1
-	jeq     L0021
-	lda     _xbuff+1
-	jsr     pusha0
-	ldy     #$0C
-	lda     (sp),y
-	jsr     tosicmp0
-	bne     L0027
-	ldy     #$0F
-	lda     (sp),y
-	bne     L0035
-	dey
-	lda     (sp),y
-	cmp     #$80
-	bne     L0028
+	sta     _xbuff+2
 	lda     #<_xbuff+3
 	ldy     #>_xbuff
 	ldx     #26
 	jsr     $103
 	lda     #07
 	ldy     #01
-	ldx     #21
+	ldx     #20
 	jsr     $103
-	ldy     #$04
+	sta     _eof
 	ldx     #$00
-	lda     #$80
-	jsr     addeqysp
-L0028:	ldy     #$0F
-L0035:	lda     (sp),y
-	cmp     #$04
-	bne     L002A
-	dey
+	lda     _eof
+	jne     L0047
+	ldy     #$0A
 	lda     (sp),y
-	bne     L002A
-	lda     #<_xbuff+3
-	ldy     #>_xbuff
-	ldx     #21
-	jsr     $103
-	ldx     #21
-	jsr     $103
-	ldx     #21
-	jsr     $103
-	ldx     #21
-	jsr     $103
-	ldx     #21
-	jsr     $103
-	ldx     #21
-	jsr     $103
-	ldx     #21
-	jsr     $103
-	ldx     #21
-	jsr     $103
-	ldy     #$04
-	ldx     #$04
-	lda     #$00
+	dey
+	ora     (sp),y
+	beq     L0044
+	lda     #<(_xbuff+3)
+	ldx     #>(_xbuff+3)
+	jsr     pushax
+	ldy     #$0E
+	jsr     ldaxysp
+	jsr     _crc16_ccitt
+	jsr     pushax
+	ldy     #$0E
+	jsr     ldaxysp
+	jsr     incax3
+	clc
+	adc     #<(_xbuff)
+	sta     ptr1
+	txa
+	adc     #>(_xbuff)
+	sta     ptr1+1
+	ldy     #$01
+	lda     (sp),y
+	dey
+	sta     (ptr1),y
+	ldy     #$0E
+	jsr     ldaxysp
+	jsr     incax4
+	clc
+	adc     #<(_xbuff)
+	sta     ptr1
+	txa
+	adc     #>(_xbuff)
+	sta     ptr1+1
+	ldy     #$00
+	lda     (sp),y
+	ldx     #$00
+	sta     (ptr1),y
+	jsr     incsp2
+	jmp     L0045
+L0044:	jsr     pusha
+	lda     #$03
+	ldy     #$07
+	jsr     staxysp
+L001C:	ldy     #$0A
+	jsr     pushwysp
+	ldy     #$0F
+	jsr     ldaxysp
+	jsr     incax3
+	jsr     tosicmp
+	bpl     L001D
+	ldy     #$08
+	jsr     ldaxysp
+	sta     ptr1
+	txa
+	clc
+	adc     #>(_xbuff)
+	sta     ptr1+1
+	ldy     #<(_xbuff)
+	lda     (ptr1),y
+	ldy     #$00
+	clc
+	adc     (sp),y
+	sta     (sp),y
+	ldy     #$07
+	ldx     #$00
+	lda     #$01
 	jsr     addeqysp
-L002A:	ldy     #$0A
+	jmp     L001C
+L001D:	ldy     #$0D
+	jsr     ldaxysp
+	jsr     incax3
+	clc
+	adc     #<(_xbuff)
+	sta     ptr1
+	txa
+	adc     #>(_xbuff)
+	sta     ptr1+1
+	ldy     #$00
+	lda     (sp),y
+	sta     (ptr1),y
+	jsr     incsp1
+	ldx     #$00
+L0045:	txa
+	jsr     stax0sp
+L0020:	jsr     ldax0sp
+	cmp     #$19
+	txa
+	sbc     #$00
+	bvc     L0024
+	eor     #$80
+L0024:	jpl     L0046
+	ldx     #$00
+	txa
+	ldy     #$06
+	jsr     staxysp
+L0025:	ldy     #$09
+	jsr     pushwysp
+	ldy     #$0E
+	jsr     ldaxysp
+	jsr     incax4
+	sta     ptr1
+	stx     ptr1+1
+	ldy     #$0C
+	lda     (sp),y
+	dey
+	ora     (sp),y
+	beq     L002A
+	lda     #$01
+L002A:	clc
+	adc     ptr1
+	ldx     ptr1+1
+	bcc     L003F
+	inx
+L003F:	jsr     tosicmp
+	bpl     L0026
+	ldy     #$07
+	jsr     ldaxysp
+	sta     ptr1
+	txa
+	clc
+	adc     #>(_xbuff)
+	sta     ptr1+1
+	ldy     #<(_xbuff)
+	lda     (ptr1),y
+	jsr     _cputserial
+	ldy     #$06
+	ldx     #$00
+	lda     #$01
+	jsr     addeqysp
+	jmp     L0025
+L0026:	ldx     #$96
+	lda     #$80
+	jsr     __inbyte
+	ldy     #$04
+	jsr     staxysp
+	txa
+	bmi     L0022
+	ldy     #$05
+	jsr     ldaxysp
+	cpx     #$00
+	bne     L0022
+	cmp     #$06
+	beq     L002E
+	cmp     #$15
+	beq     L0022
+	cmp     #$18
+	beq     L002F
+	jmp     L0022
+L002E:	ldy     #$08
 	clc
 	lda     #$01
 	adc     (sp),y
 	sta     (sp),y
-	ldx     #$00
-	lda     #$1A
-	jsr     stax0sp
-L0027:	ldx     #$00
+	ldy     #$0C
+	jsr     ldaxysp
+	ldy     #$02
+	jsr     addeqysp
+	jmp     L0018
+L002F:	ldx     #$96
+	lda     #$80
+	jsr     __inbyte
+	ldy     #$04
+	jsr     staxysp
+	cpx     #$00
+	bne     L0022
+	cmp     #$18
+	bne     L0022
+	lda     #$06
+	jsr     _cputserial
+	jsr     _flushinput
+	ldx     #$FF
+	txa
+	jmp     L0003
+L0022:	ldx     #$00
 	lda     #$01
-	jsr     subeq0sp
-	cmp     #$01
+	jsr     addeq0sp
+	jmp     L0020
+L0046:	lda     #$18
+	jsr     _cputserial
+	lda     #$18
+	jsr     _cputserial
+	lda     #$18
+	jsr     _cputserial
+	jsr     _flushinput
+	ldx     #$FF
+	lda     #$FC
+	jmp     L0003
+L0047:	txa
+	jsr     stax0sp
+L0035:	jsr     ldax0sp
+	cmp     #$0A
 	txa
 	sbc     #$00
-	bvc     L002D
+	bvc     L0039
 	eor     #$80
-L002D:	bpl     L0034
-	jsr     _flushinput
-	lda     #$18
+L0039:	bpl     L0036
+	lda     #$04
 	jsr     _cputserial
-	lda     #$18
-	jsr     _cputserial
-	lda     #$18
-	jsr     _cputserial
-	ldx     #$FF
-	lda     #$FD
+	ldx     #$2D
+	lda     #$00
+	jsr     __inbyte
+	ldy     #$04
+	jsr     staxysp
+	cpx     #$00
+	bne     L0048
+	cmp     #$06
+	beq     L0036
+L0048:	ldx     #$00
+	lda     #$01
+	jsr     addeq0sp
+	jmp     L0035
+L0036:	jsr     _flushinput
+	ldy     #$05
+	lda     (sp),y
+	bne     L003D
+	dey
+	lda     (sp),y
+	cmp     #$06
+	bne     L003D
+	dey
+	jsr     ldaxysp
 	jmp     L0003
-L0034:	lda     #$06
-	jsr     _cputserial
-	jmp     L0005
-L0021:	jsr     _flushinput
-	lda     #$15
-	jsr     _cputserial
-	jmp     L0005
-L0003:	ldy     #$12
+L003D:	ldx     #$FF
+	lda     #$FB
+L0003:	ldy     #$0D
 	jmp     addysp
 
 .segment	"RODATA"
@@ -912,8 +807,6 @@ L0003:	ldy     #$12
 M0001:
 	.word	$0000
 M0002:
-	.word	$0000
-M0004:
 	.word	$0000
 
 .endproc
@@ -929,16 +822,16 @@ M0004:
 .segment	"CODE"
 
 	jsr     decsp2
-	lda     #<(S001C)
-	ldx     #>(S001C)
+	lda     #<(S000A)
+	ldx     #>(S000A)
 	jsr     pushax
 	ldy     #$02
 	jsr     _cprintf
 	lda     #07
 	ldy     #01
-	ldx     #22
+	ldx     #15
 	jsr     $103
-	jsr     _xmodemReceive
+	jsr     _xmodemTransmit
 	jsr     stax0sp
 	lda     #07
 	ldy     #01
@@ -947,11 +840,11 @@ M0004:
 	jsr     ldax0sp
 	cpx     #$80
 	bcc     L0002
-	lda     #<(S0025)
-	ldx     #>(S0025)
+	lda     #<(S0013)
+	ldx     #>(S0013)
 	jmp     L0009
-L0002:	lda     #<(S0026)
-	ldx     #>(S0026)
+L0002:	lda     #<(S0014)
+	ldx     #>(S0014)
 L0009:	jsr     pushax
 	ldy     #$05
 	jsr     pushwysp
