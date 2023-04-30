@@ -25,7 +25,9 @@
 	.export		_UpdateTime
 	.export		_UpdateDate
 	.export		_UpdateConsole
+	.export		_UpdateDsky
 	.export		_PrintConsoleType
+	.export		_PrintDskyType
 	.export		_cgets
 	.export		_main
 
@@ -41,69 +43,105 @@ S0002:
 	.byte	$69,$6D,$65,$20,$69,$73,$20,$25,$69,$3A,$25,$30,$32,$69,$3A,$25
 	.byte	$30,$32,$69,$20,$25,$63,$4D,$20,$25,$69,$2F,$25,$69,$2F,$25,$30
 	.byte	$32,$69,$0A,$0D,$00
+S0009:
+	.byte	$0A,$0D,$77,$6F,$75,$6C,$64,$20,$79,$6F,$75,$20,$6C,$69,$6B,$65
+	.byte	$20,$74,$6F,$20,$63,$68,$61,$6E,$67,$65,$20,$74,$68,$65,$20,$44
+	.byte	$53,$4B,$59,$20,$73,$65,$74,$74,$69,$6E,$67,$73,$3F,$20,$28,$79
+	.byte	$2F,$4E,$29,$00
 S0003:
 	.byte	$77,$6F,$75,$6C,$64,$20,$79,$6F,$75,$20,$6C,$69,$6B,$65,$20,$74
 	.byte	$6F,$20,$63,$68,$61,$6E,$67,$65,$20,$74,$68,$65,$20,$73,$79,$73
 	.byte	$74,$65,$6D,$20,$74,$69,$6D,$65,$3F,$20,$28,$79,$2F,$4E,$29,$00
-S0011:
+S0014:
 	.byte	$0A,$0D,$43,$68,$61,$6E,$67,$65,$20,$74,$6F,$3A,$20,$25,$32,$64
 	.byte	$3A,$25,$30,$32,$64,$3A,$25,$30,$32,$64,$20,$25,$63,$4D,$3F,$20
 	.byte	$28,$79,$2F,$4E,$29,$0A,$0D,$00
-S0019:
+S0029:
+	.byte	$53,$65,$74,$20,$44,$53,$4B,$59,$20,$74,$6F,$20,$4E,$65,$78,$74
+	.byte	$20,$47,$65,$6E,$65,$72,$61,$74,$69,$6F,$6E,$20,$44,$53,$4B,$59
+	.byte	$0A,$0D,$00
+S001C:
 	.byte	$0A,$0D,$43,$68,$61,$6E,$67,$65,$20,$74,$6F,$3A,$20,$25,$64,$2F
 	.byte	$25,$64,$2F,$25,$30,$32,$64,$20,$28,$79,$2F,$4E,$29,$0A,$0D,$00
 S0005:
 	.byte	$43,$6F,$6E,$73,$6F,$6C,$65,$20,$69,$73,$20,$63,$75,$72,$72,$65
 	.byte	$6E,$74,$6C,$79,$20,$73,$65,$74,$20,$74,$6F,$3A,$00
-S0008:
+S0026:
+	.byte	$33,$20,$2D,$3E,$20,$4E,$65,$78,$74,$20,$47,$65,$6E,$65,$72,$61
+	.byte	$74,$69,$6F,$6E,$20,$44,$53,$4B,$59,$0A,$0D,$00
+S0028:
+	.byte	$53,$65,$74,$20,$44,$53,$4B,$59,$20,$74,$6F,$20,$6F,$72,$69,$67
+	.byte	$69,$6E,$61,$6C,$20,$44,$53,$4B,$59,$0A,$0D,$00
+S000B:
 	.byte	$45,$6E,$74,$65,$72,$20,$54,$69,$6D,$65,$20,$28,$48,$48,$3A,$4D
 	.byte	$4D,$3A,$53,$53,$20,$41,$2F,$50,$29,$3A,$20,$00
-S001E:
+S0021:
 	.byte	$53,$65,$74,$20,$74,$6F,$20,$49,$6E,$74,$65,$72,$6E,$61,$6C,$20
 	.byte	$43,$6F,$6E,$73,$6F,$6C,$65,$0A,$0D,$00
+S0008:
+	.byte	$44,$53,$4B,$59,$20,$69,$73,$20,$63,$75,$72,$72,$65,$6E,$74,$6C
+	.byte	$79,$20,$73,$65,$74,$20,$74,$6F,$3A,$00
 S0001:
 	.byte	$0A,$0D,$36,$78,$30,$78,$20,$4E,$56,$52,$41,$4D,$20,$55,$74,$69
 	.byte	$6C,$69,$74,$79,$0A,$0D,$0A,$0D,$00
-S0012:
+S0015:
 	.byte	$45,$6E,$74,$65,$72,$20,$44,$61,$74,$65,$20,$28,$4D,$4D,$2F,$44
 	.byte	$44,$2F,$59,$59,$29,$3A,$20,$00
-S001B:
+S001E:
 	.byte	$31,$20,$2D,$3E,$20,$49,$6E,$74,$65,$72,$6E,$61,$6C,$20,$43,$6F
 	.byte	$6E,$73,$6F,$6C,$65,$0A,$0D,$00
-S001D:
+S0020:
 	.byte	$53,$65,$74,$20,$74,$6F,$20,$53,$65,$72,$69,$61,$6C,$20,$50,$6F
 	.byte	$72,$74,$20,$31,$0A,$0D,$00
-S001C:
+S001F:
 	.byte	$32,$20,$2D,$3E,$20,$53,$65,$72,$69,$61,$6C,$20,$50,$6F,$72,$74
 	.byte	$20,$31,$0A,$0D,$00
-S0020:
+S0025:
+	.byte	$32,$20,$2D,$3E,$20,$4F,$72,$69,$67,$69,$6E,$61,$6C,$20,$44,$53
+	.byte	$4B,$59,$0A,$0D,$00
+S0027:
+	.byte	$53,$65,$74,$20,$44,$53,$4B,$59,$20,$74,$6F,$20,$6E,$6F,$6E,$65
+	.byte	$0A,$0D,$00
+S0030:
+	.byte	$4E,$65,$78,$74,$20,$47,$65,$6E,$65,$72,$61,$74,$69,$6F,$6E,$00
+S002B:
 	.byte	$53,$45,$52,$49,$41,$4C,$20,$50,$4F,$52,$54,$20,$31,$00
-S001A:
+S0024:
+	.byte	$31,$20,$2D,$3E,$20,$4E,$6F,$6E,$65,$0A,$0D,$00
+S0023:
 	.byte	$53,$65,$6C,$65,$63,$74,$3A,$0A,$0D,$00
-S0021:
+S001D	:=	S0023+0
+S002F:
+	.byte	$4F,$72,$69,$67,$69,$6E,$61,$6C,$00
+S002C:
 	.byte	$49,$4E,$54,$45,$52,$4E,$41,$4C,$00
-S0022:
+S002D:
 	.byte	$55,$4E,$4B,$4E,$4F,$57,$4E,$00
-S000C:
-	.byte	$25,$64,$00
-S0016	:=	S000C+0
-S0004	:=	S0002+50
-S0014	:=	S000C+0
-S000A	:=	S000C+0
-S001F	:=	S0002+50
-S000E	:=	S000C+0
-S0010:
+S0031	:=	S002D+0
+S002E:
+	.byte	$4E,$4F,$4E,$45,$00
+S002A	:=	S0002+50
+S0013:
 	.byte	$25,$63,$00
-S0018	:=	S000C+0
+S0022	:=	S0002+50
+S0017:
+	.byte	$25,$64,$00
+S0011	:=	S0017+0
+S001B	:=	S0017+0
+S000D	:=	S0017+0
+S000A	:=	S0002+50
+S0019	:=	S0017+0
+S0004	:=	S0002+50
+S000F	:=	S0017+0
 S0007	:=	S0002+50
-S0017	:=	S0008+26
-S000B	:=	S0005+27
-S0015:
+S000E	:=	S0005+27
+S001A	:=	S000B+26
+S0010	:=	S000B+26
+S0018:
 	.byte	$2F,$00
-S0013	:=	S0015+0
-S0009	:=	S0005+27
-S000D	:=	S0008+26
-S000F	:=	S0006+52
+S000C	:=	S0005+27
+S0016	:=	S0018+0
+S0012	:=	S0006+52
 
 ; ---------------------------------------------------------------
 ; unsigned char __near__ dectobcd (unsigned char in)
@@ -186,8 +224,8 @@ S000F	:=	S0006+52
 	jsr     _malloc
 	ldy     #$0B
 	jsr     staxysp
-	lda     #<(S0008)
-	ldx     #>(S0008)
+	lda     #<(S000B)
+	ldx     #>(S000B)
 	jsr     _cputs
 	ldy     #$0E
 	jsr     pushwysp
@@ -196,14 +234,14 @@ S000F	:=	S0006+52
 	jsr     _cgets
 	ldy     #$0E
 	jsr     pushwysp
-	lda     #<(S0009)
-	ldx     #>(S0009)
+	lda     #<(S000C)
+	ldx     #>(S000C)
 	jsr     _strtok
 	ldy     #$09
 	jsr     staxysp
 	jsr     pushax
-	lda     #<(S000A)
-	ldx     #>(S000A)
+	lda     #<(S000D)
+	ldx     #>(S000D)
 	jsr     pushax
 	lda     #$0B
 	jsr     leaa0sp
@@ -211,14 +249,14 @@ S000F	:=	S0006+52
 	ldy     #$06
 	jsr     _sscanf
 	jsr     push0
-	lda     #<(S000B)
-	ldx     #>(S000B)
+	lda     #<(S000E)
+	ldx     #>(S000E)
 	jsr     _strtok
 	ldy     #$09
 	jsr     staxysp
 	jsr     pushax
-	lda     #<(S000C)
-	ldx     #>(S000C)
+	lda     #<(S000F)
+	ldx     #>(S000F)
 	jsr     pushax
 	lda     #$09
 	jsr     leaa0sp
@@ -226,14 +264,14 @@ S000F	:=	S0006+52
 	ldy     #$06
 	jsr     _sscanf
 	jsr     push0
-	lda     #<(S000D)
-	ldx     #>(S000D)
+	lda     #<(S0010)
+	ldx     #>(S0010)
 	jsr     _strtok
 	ldy     #$09
 	jsr     staxysp
 	jsr     pushax
-	lda     #<(S000E)
-	ldx     #>(S000E)
+	lda     #<(S0011)
+	ldx     #>(S0011)
 	jsr     pushax
 	lda     #$07
 	jsr     leaa0sp
@@ -241,14 +279,14 @@ S000F	:=	S0006+52
 	ldy     #$06
 	jsr     _sscanf
 	jsr     push0
-	lda     #<(S000F)
-	ldx     #>(S000F)
+	lda     #<(S0012)
+	ldx     #>(S0012)
 	jsr     _strtok
 	ldy     #$09
 	jsr     staxysp
 	jsr     pushax
-	lda     #<(S0010)
-	ldx     #>(S0010)
+	lda     #<(S0013)
+	ldx     #>(S0013)
 	jsr     pushax
 	lda     #$05
 	jsr     leaa0sp
@@ -277,8 +315,8 @@ L0004:	ldx     #$00
 L0012:	lda     #$41
 	ldy     #$01
 L0018:	jsr     staxysp
-	lda     #<(S0011)
-	ldx     #>(S0011)
+	lda     #<(S0014)
+	ldx     #>(S0014)
 	jsr     pushax
 	ldy     #$0C
 	jsr     pushwysp
@@ -371,8 +409,8 @@ L0008:	ldy     #$0D
 	jsr     _malloc
 	ldy     #$09
 	jsr     staxysp
-	lda     #<(S0012)
-	ldx     #>(S0012)
+	lda     #<(S0015)
+	ldx     #>(S0015)
 	jsr     _cputs
 	ldy     #$0C
 	jsr     pushwysp
@@ -381,14 +419,14 @@ L0008:	ldy     #$0D
 	jsr     _cgets
 	ldy     #$0C
 	jsr     pushwysp
-	lda     #<(S0013)
-	ldx     #>(S0013)
+	lda     #<(S0016)
+	ldx     #>(S0016)
 	jsr     _strtok
 	ldy     #$07
 	jsr     staxysp
 	jsr     pushax
-	lda     #<(S0014)
-	ldx     #>(S0014)
+	lda     #<(S0017)
+	ldx     #>(S0017)
 	jsr     pushax
 	lda     #$09
 	jsr     leaa0sp
@@ -396,14 +434,14 @@ L0008:	ldy     #$0D
 	ldy     #$06
 	jsr     _sscanf
 	jsr     push0
-	lda     #<(S0015)
-	ldx     #>(S0015)
+	lda     #<(S0018)
+	ldx     #>(S0018)
 	jsr     _strtok
 	ldy     #$07
 	jsr     staxysp
 	jsr     pushax
-	lda     #<(S0016)
-	ldx     #>(S0016)
+	lda     #<(S0019)
+	ldx     #>(S0019)
 	jsr     pushax
 	lda     #$07
 	jsr     leaa0sp
@@ -411,22 +449,22 @@ L0008:	ldy     #$0D
 	ldy     #$06
 	jsr     _sscanf
 	jsr     push0
-	lda     #<(S0017)
-	ldx     #>(S0017)
+	lda     #<(S001A)
+	ldx     #>(S001A)
 	jsr     _strtok
 	ldy     #$07
 	jsr     staxysp
 	jsr     pushax
-	lda     #<(S0018)
-	ldx     #>(S0018)
+	lda     #<(S001B)
+	ldx     #>(S001B)
 	jsr     pushax
 	lda     #$05
 	jsr     leaa0sp
 	jsr     pushax
 	ldy     #$06
 	jsr     _sscanf
-	lda     #<(S0019)
-	ldx     #>(S0019)
+	lda     #<(S001C)
+	ldx     #>(S001C)
 	jsr     pushax
 	ldy     #$0A
 	jsr     pushwysp
@@ -478,14 +516,14 @@ L0002:	ldy     #$0B
 .segment	"CODE"
 
 	jsr     decsp1
-	lda     #<(S001A)
-	ldx     #>(S001A)
+	lda     #<(S001D)
+	ldx     #>(S001D)
 	jsr     _cputs
-	lda     #<(S001B)
-	ldx     #>(S001B)
+	lda     #<(S001E)
+	ldx     #>(S001E)
 	jsr     _cputs
-	lda     #<(S001C)
-	ldx     #>(S001C)
+	lda     #<(S001F)
+	ldx     #>(S001F)
 	jsr     _cputs
 	jsr     _cgetc
 	ldy     #$00
@@ -496,18 +534,82 @@ L0002:	ldy     #$0B
 	jsr     pusha
 	lda     #$04
 	jsr     _writertc
-	lda     #<(S001D)
-	ldx     #>(S001D)
+	lda     #<(S0020)
+	ldx     #>(S0020)
 	jmp     L0004
 L0005:	lda     #$21
 	jsr     pusha
 	lda     #$09
 	jsr     _writertc
-	lda     #<(S001E)
-	ldx     #>(S001E)
+	lda     #<(S0021)
+	ldx     #>(S0021)
 L0004:	jsr     _cputs
-	lda     #<(S001F)
-	ldx     #>(S001F)
+	lda     #<(S0022)
+	ldx     #>(S0022)
+	jsr     _cputs
+	jmp     incsp1
+
+.endproc
+
+; ---------------------------------------------------------------
+; void __near__ UpdateDsky (void)
+; ---------------------------------------------------------------
+
+.segment	"CODE"
+
+.proc	_UpdateDsky: near
+
+.segment	"CODE"
+
+	jsr     decsp1
+	lda     #<(S0023)
+	ldx     #>(S0023)
+	jsr     _cputs
+	lda     #<(S0024)
+	ldx     #>(S0024)
+	jsr     _cputs
+	lda     #<(S0025)
+	ldx     #>(S0025)
+	jsr     _cputs
+	lda     #<(S0026)
+	ldx     #>(S0026)
+	jsr     _cputs
+	jsr     _cgetc
+	ldy     #$00
+	sta     (sp),y
+	cmp     #$31
+	bne     L0006
+	lda     #$22
+	jsr     pusha
+	lda     #$00
+	jsr     _writertc
+	lda     #<(S0027)
+	ldx     #>(S0027)
+	jsr     _cputs
+	ldy     #$00
+L0006:	lda     (sp),y
+	cmp     #$32
+	bne     L0008
+	lda     #$22
+	jsr     pusha
+	lda     #$01
+	jsr     _writertc
+	lda     #<(S0028)
+	ldx     #>(S0028)
+	jsr     _cputs
+	ldy     #$00
+L0008:	lda     (sp),y
+	cmp     #$33
+	bne     L0004
+	lda     #$22
+	jsr     pusha
+	lda     #$02
+	jsr     _writertc
+	lda     #<(S0029)
+	ldx     #>(S0029)
+	jsr     _cputs
+L0004:	lda     #<(S002A)
+	ldx     #>(S002A)
 	jsr     _cputs
 	jmp     incsp1
 
@@ -531,15 +633,50 @@ L0004:	jsr     _cputs
 	cmp     #$09
 	beq     L0005
 	jmp     L0006
-L0004:	lda     #<(S0020)
-	ldx     #>(S0020)
+L0004:	lda     #<(S002B)
+	ldx     #>(S002B)
 	jmp     L0007
-L0005:	lda     #<(S0021)
-	ldx     #>(S0021)
+L0005:	lda     #<(S002C)
+	ldx     #>(S002C)
 	jmp     L0007
-L0006:	lda     #<(S0022)
-	ldx     #>(S0022)
+L0006:	lda     #<(S002D)
+	ldx     #>(S002D)
 L0007:	jsr     _cputs
+	jmp     incsp1
+
+.endproc
+
+; ---------------------------------------------------------------
+; void __near__ PrintDskyType (unsigned char in)
+; ---------------------------------------------------------------
+
+.segment	"CODE"
+
+.proc	_PrintDskyType: near
+
+.segment	"CODE"
+
+	jsr     pusha
+	ldy     #$00
+	lda     (sp),y
+	beq     L0004
+	cmp     #$01
+	beq     L0005
+	cmp     #$02
+	beq     L0006
+	jmp     L0007
+L0004:	lda     #<(S002E)
+	ldx     #>(S002E)
+	jmp     L0008
+L0005:	lda     #<(S002F)
+	ldx     #>(S002F)
+	jmp     L0008
+L0006:	lda     #<(S0030)
+	ldx     #>(S0030)
+	jmp     L0008
+L0007:	lda     #<(S0031)
+	ldx     #>(S0031)
+L0008:	jsr     _cputs
 	jmp     incsp1
 
 .endproc
@@ -702,6 +839,14 @@ L0005:	ldx     #$00
 	lda     #<(S0001)
 	ldx     #>(S0001)
 	jsr     _cputs
+	lda     #$07
+	jsr     pusha
+	lda     #$00
+	jsr     _writertc
+	lda     #$08
+	jsr     pusha
+	lda     #$A5
+	jsr     _writertc
 	lda     #$00
 	jsr     _readrtc
 	jsr     _bcdtodec
@@ -739,21 +884,21 @@ L0005:	ldx     #$00
 	ldy     #$03
 	lda     (sp),y
 	cmp     #$0C
-	bcc     L000C
+	bcc     L000F
 	lda     #$50
 	ldy     #$00
 	sta     (sp),y
 	ldy     #$03
 	lda     (sp),y
 	cmp     #$0D
-	bcc     L000C
+	bcc     L000F
 	ldx     #$00
 	lda     (sp),y
 	ldy     #$0C
 	jsr     decaxy
 	ldy     #$03
 	sta     (sp),y
-L000C:	lda     (sp),y
+L000F:	lda     (sp),y
 	bne     L0004
 	lda     #$0C
 	sta     (sp),y
@@ -795,10 +940,10 @@ L0004:	lda     #<(S0002)
 	ldy     #$07
 	lda     (sp),y
 	cmp     #$79
-	beq     L000D
+	beq     L0010
 	cmp     #$59
 	bne     L0005
-L000D:	jsr     _UpdateTime
+L0010:	jsr     _UpdateTime
 	jsr     _UpdateDate
 L0005:	lda     #<(S0005)
 	ldx     #>(S0005)
@@ -818,11 +963,37 @@ L0005:	lda     #<(S0005)
 	ldy     #$07
 	lda     (sp),y
 	cmp     #$79
-	beq     L000E
+	beq     L0011
 	cmp     #$59
-	bne     L0012
-L000E:	jsr     _UpdateConsole
-L0012:	ldx     #$00
+	bne     L0008
+L0011:	jsr     _UpdateConsole
+L0008:	lda     #<(S0008)
+	ldx     #>(S0008)
+	jsr     _cputs
+	lda     #$22
+	jsr     _readrtc
+	jsr     _PrintDskyType
+	lda     #<(S0009)
+	ldx     #>(S0009)
+	jsr     _cputs
+	jsr     _cgetc
+	ldy     #$07
+	sta     (sp),y
+	lda     #<(S000A)
+	ldx     #>(S000A)
+	jsr     _cputs
+	ldy     #$07
+	lda     (sp),y
+	cmp     #$79
+	beq     L0012
+	cmp     #$59
+	bne     L0013
+L0012:	jsr     _UpdateDsky
+L0013:	lda     #$07
+	jsr     pusha
+	lda     #$80
+	jsr     _writertc
+	ldx     #$00
 	txa
 	jmp     incsp8
 

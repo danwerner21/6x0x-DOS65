@@ -11,14 +11,12 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. update docs to use XM rather than S19 for system build
-1. dsky old support
-1. dsky settings in nvram
-1. change console from DSKY
-1. IO ASSIGNMENT?
- * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
- * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
- * rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+1. add dbasic docs
+1. add xmr & xms docs
+1. add FORMAT.COM docs
+1. add NVSET.COM docs
+1. add RTC.COM docs
+1. add SEDIT.COM docs
 1. add memory map to readme
 1. add console redirection to readme
 1. add building a custom rom image to readme
@@ -26,10 +24,15 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. add 6x0x backplane repo to wiki
 1. MD support
 
+1. IO ASSIGNMENT?
+ * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
+ * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+ * rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+
+
 ## BUGS
 1. sedit does not paint properly on console (colors)
-
-
+1. DSKY GETKEY DISPLAY BUG
 
 
 ---
@@ -224,201 +227,48 @@ BOOT 0
 From the system monitor's "." prompt.
 
 
+ . . .  and finally . . .
+##### Load XMR
+ On the 6x0x “A>” prompt type:
+```
+S19
+```
+ Dump XMR.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
+
+On the 6x0x “A>” prompt type:
+```
+SAVE 17 A:XMR.COM
+```
+
+
 #### Load the remaining DOS/65 utilities to the SD Card
 
-##### Load DBASIC
- On the 6x0x “A>” prompt type:
+Now that we have the capibility of doing a direct X-Modem transfer, we can use the XMR.COM program to quickly and easily recieve files using a terminal program.
+
+To use the XMR program simply type:
 
 ```
-S19
+XMR FILENAME.COM
 ```
 
- Dump DBASIC.S19 to serial port from your PC terminal program, wait for the
-6x0x to return to the prompt when the load is complete.
+then use your terminal software to upload the following utilities (one at a time):
 
-On the 6x0x “A>” prompt type:
-```
-SAVE 43 A:DBASIC.COM
-```
-
-* note: A new command was added to DBASIC that is not in the docs
- KILL - will return to DOS/65 from DBASIC
-
-
-##### Load ALLOC
- On the 6x0x “A>” prompt type:
-```
-S19
-```
- Dump ALLOC.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 2 A:ALLOC.COM
-```
-
-##### Load ASSIGN
- On the 6x0x “A>” prompt type:
-```
-S19
-```
- Dump ASSIGN.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 28 A:ASSIGN.COM
-```
-
-##### Load Asm
- On the 6x0x “A>” prompt type:
-```
-S19
-```
-Dump ASM.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 39 A:ASM.COM
-```
-
-##### Load BCOMPILE
-On the 6x0x “A>” prompt type:
-```
-S19
-```
-Dump BCOMPILE.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 42 A:BCOMPILE.COM
-```
-
-##### Load COMPARE
-On the 6x0x “A>” prompt type:
-```
-S19
-```
-Dump COMPARE.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 12 A:COMPARE.COM
-```
-
-##### Load COPY
- On the 6x0x “A>” prompt type:
-```
-S19
-```
-
-Dump COPY.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 3 A:COPY.COM
-```
-
-##### Load DEBUG
- On the 6x0x “A>” prompt type:
-```
-S19
-```
-
-Dump DEBUG.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 15 A:DEBUG.COM
-```
-
-##### Load EDIT
-On the 6x0x “A>” prompt type:
-```
-S19
-```
-
-Dump EDIT.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 28 A:EDIT.COM
-```
-
-##### Load FORMAT
-On the 6x0x “A>” prompt type:
-```
-S19
-```
-
-Dump FORMAT.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 9 A:FORMAT.COM
-```
-
-##### Load MKCOM
-On the 6x0x “A>” prompt type:
-```
-S19
-```
-Dump MKCOM.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 5 A:MKCOM.COM
-```
-
-##### Load NVSET
-On the 6x0x “A>” prompt type:
-```
-S19
-```
-Dump NVSET.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 29 A:NVSET.COM
-```
-
-
-##### Load SEDIT
-On the 6x0x “A>” prompt type:
-```
-S19
-```
-Dump SEDIT.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 19 A:SEDIT.COM
-```
-
-##### Load RUN
- On the 6x0x “A>” prompt type:
-```
-S19
-```
-
-Dump RUN.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 44 A:RUN.COM
-```
-
-##### Load RTC
- On the 6x0x “A>” prompt type:
-```
-S19
-```
-
-Dump RTC.S19 from the bin folder in the repo to serial port from your PC terminal program, wait for the 6x0x to return to the prompt when the load is complete.
-
-On the 6x0x “A>” prompt type:
-```
-SAVE 16 A:RTC.COM
-```
+* ALLOC.COM
+* ASSIGN.COM
+* ASM.COM
+* BCOMPILE.COM
+* COMPARE.COM
+* COPY.COM
+* DBASIC.COM
+* DEBUG.COM
+* EDIT.COM
+* FORMAT.COM
+* MKCOM.COM
+* NVSET.COM
+* RUN.COM
+* RTC.COM
+* SEDIT.COM
+* XMS.COM
 
 
 ### Monitor Commands
@@ -463,5 +313,6 @@ B YY XX | Load DOS/65 image from UNIT YY ON device X and boot it
 1F | Clock Burst
 20 | NV RAM SIGNATURE (A5=VALID)
 21 | DEFAULT CONSOLE
-22-3E | UNUSED
+22 | DSKY SETTING
+23-3E | UNUSED
 3F | RAM Burst

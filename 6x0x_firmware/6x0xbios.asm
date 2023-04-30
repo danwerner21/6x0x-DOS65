@@ -27,27 +27,8 @@ STARTOS         = $B800
         .INCLUDE "bios_diov3_ide.asm"
         .INCLUDE "bios_console.asm"
         .INCLUDE "bios_rtc.asm"
-        .IF     DSKY_OPTION=1
-            .INCLUDE "bios_dsky.asm"
-        .ENDIF
+        .INCLUDE "bios_dskyng.asm"
 
-        .IF     DSKY_OPTION=2
-            .INCLUDE "bios_dskyng.asm"
-        .ENDIF
-
-        .IF     DSKY_OPTION=0
-DSKY_INIT:
-DSKY_RESET:
-DSKY_SHOW:
-DSKY_BIN2SEG:
-DSKY_STAT:
-DSKY_GETKEY:
-DSKY_BEEP:
-DSKY_PUTLED:
-DSKY_BLANK:
-DSKY_DSPL:
-            RTS
-        .ENDIF
 
 
         .SEGMENT "TROM"
@@ -174,6 +155,7 @@ NINTERRUPT:
         .INCLUDE "supermon.asm"
         .INCLUDE "bios_pager.ASM"
 
+
 ;__IOF_CONINW____________________________________________________________________________________________
 ;
 ; PERFORM BLOCKING CONSOLE READ
@@ -248,13 +230,28 @@ Init_NVRAM:
         LDA     #50             ; Write RTC
         STA     farfunct
         JSR     DO_FARCALL
+        LDX     #$22            ; set dsky byte
+        LDY     #$00
+        LDA     #50             ; Write RTC
+        STA     farfunct
+        JSR     DO_FARCALL
+        RTS
 :
         LDX     #$21            ; get default console
         LDA     #51             ; Read RTC
         STA     farfunct
         JSR     DO_FARCALL
         STY     CONSOLE
+        LDX     #$22            ; get dsky mode
+        LDA     #51             ; Read RTC
+        STA     farfunct
+        JSR     DO_FARCALL
+        STY     DSKYMODE
         RTS
+
+
+
+
 
 
 DSKYMSG:

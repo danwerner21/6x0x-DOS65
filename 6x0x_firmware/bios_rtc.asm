@@ -24,6 +24,7 @@ mask_ce         = $10           ; De-activate RTC reset line
 ; value in Y
 ;_______________________________________________________________
 RTC_WRITE:
+
         PHA
         SEI                     ; disable interrupts during critical section
         JSR     RTC_RESET_OFF   ; turn off RTC reset
@@ -31,11 +32,10 @@ RTC_WRITE:
         AND     #%00111111      ; keep only bits 6 LSBs, discard 2 MSBs
         CLC
         ASL     A
-        CLC
-        ADC     #%10000000      ; set MSB to one for DS1302 COMMAND BYTE (WRITE)
+        ORA     #%10000000      ; set MSB to one for DS1302 COMMAND BYTE (WRITE)
         JSR     RTC_WR          ; write address to DS1302
         TYA                     ; start processing value
-        JSR     RTC_WR          ; write address to DS1302
+        JSR     RTC_WR          ; write value to DS1302
         JSR     RTC_RESET_ON    ; turn on RTC reset
         CLI
         PLA
@@ -54,8 +54,7 @@ RTC_READ:
         AND     #%00111111      ; keep only bits 6 LSBs, discard 2 MSBs
         CLC
         ASL     A               ; rotate address bits to the left
-        CLC
-        ADC     #%10000001      ; set MSB to one for DS1302 COMMAND BYTE (READ)
+        ORA     #%10000001      ; set MSB to one for DS1302 COMMAND BYTE (READ)
         JSR     RTC_WR          ; write address to DS1302
         JSR     RTC_RD          ; read value from DS1302 (value is in reg A)
         TAY

@@ -1063,8 +1063,6 @@ CHOUT:
         BNE     FLIP
 CRLF:
         LDA     #$0D            ; load CR in A
-        BIT     $13             ; check default channel
-        BPL     FLIP            ; if high bit is clear output CR only
         JSR     CHROUT          ; otherwise output CR+LF
         LDA     #$0A            ; output LF
 FLIP:
@@ -1462,8 +1460,6 @@ BADDR:
 LOAD:
         JSR     LOADS19
         JMP     STRT            ; back to main loop
-
-
 
 
 ; -----------------------------------------------------------------------------

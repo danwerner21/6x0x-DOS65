@@ -27,7 +27,8 @@ CONSOLE         = $3A           ; CURRENT CONSOLE
 TEMPWORD        = $3B           ;
 TEMPWORD1       = $3D           ;
 TEMPWORD2       = $3F           ;
-STRPTR          = $41
+STRPTR          = $41           ;
+DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
 hstbuf          = $0200         ; 0200-03ff host buffer
 
 ;
@@ -64,5 +65,5 @@ DSKY_X_STORAGE  = $0535
 DSKY_Y_STORAGE  = $0536
 DSKY_TEMP_VAL   = $0537
 DSKY_PPIX_VAL   = $0538
-DSKY_PRESENT    = $0539
 FLOPPY_DETCT    = $053A
+DSKY_PRESENT    = $053B

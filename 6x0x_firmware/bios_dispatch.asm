@@ -1,25 +1,3 @@
-; Character devices:
-;----------------------------
-;  Console (Redirected)
-;  Serial ports (1-x)
-;  ParPortProp
-;  VDU
-;  CVDU
-;  Printer Port
-
-; Block Devices
-;----------------------------
-; ParPortProp SD Card
-; PPP IDE
-; Floppy
-; MD
-
-; DSKY?
-; RTC?
-; IO PORTS?
-; SOUND CARDS?
-;
-
 ;__DISPATCHER________________________________________________________________________________________
 ;
 ;  Function dispatcher

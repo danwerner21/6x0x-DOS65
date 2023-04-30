@@ -9,7 +9,9 @@ unsigned char bcdtodec(unsigned char in);
 void UpdateTime(void);
 void UpdateDate(void);
 void UpdateConsole(void);
+void UpdateDsky(void);
 void PrintConsoleType(unsigned char in);
+void PrintDskyType(unsigned char in);
 void cgets(char *buffer, int length);
 
 int main()
@@ -18,6 +20,9 @@ int main()
     unsigned char mo, da, yr, hr, mi, se, am = 'A';
 
     cputs("\n\r6x0x NVRAM Utility\n\r\n\r");
+    writertc(7,0);
+    writertc(8,165);
+
     se = bcdtodec(readrtc(0));
     mi = bcdtodec(readrtc(1));
     hr = bcdtodec(readrtc(2));
@@ -53,6 +58,15 @@ int main()
     if ((x == 'y') || (x == 'Y'))
         UpdateConsole();
 
+    cputs("DSKY is currently set to:");
+    PrintDskyType(readrtc(34));
+    cputs("\n\rwould you like to change the DSKY settings? (y/N)");
+    x = cgetc();
+    cputs("\n\r");
+    if ((x == 'y') || (x == 'Y'))
+        UpdateDsky();
+
+    writertc(7,128);
     return 0;
 }
 
@@ -160,6 +174,33 @@ void UpdateConsole(void)
     cputs("\n\r");
 }
 
+void UpdateDsky(void)
+{
+    unsigned char x;
+
+    cputs("Select:\n\r");
+    cputs("1 -> None\n\r");
+    cputs("2 -> Original DSKY\n\r");
+    cputs("3 -> Next Generation DSKY\n\r");
+    x = cgetc();
+    if (x == '1')
+    {
+        writertc(34, 0);
+        cputs("Set DSKY to none\n\r");
+    }
+    if (x == '2')
+    {
+        writertc(34, 1);
+        cputs("Set DSKY to original DSKY\n\r");
+    }
+    if (x == '3')
+    {
+        writertc(34, 2);
+        cputs("Set DSKY to Next Generation DSKY\n\r");
+    }
+    cputs("\n\r");
+}
+
 void PrintConsoleType(unsigned char in)
 {
     switch (in)
@@ -169,6 +210,25 @@ void PrintConsoleType(unsigned char in)
         break;
     case 9:
         cputs("INTERNAL");
+        break;
+    default:
+        cputs("UNKNOWN");
+        break;
+    }
+}
+
+void PrintDskyType(unsigned char in)
+{
+    switch (in)
+    {
+    case 0:
+        cputs("NONE");
+        break;
+    case 1:
+        cputs("Original");
+        break;
+    case 2:
+        cputs("Next Generation");
         break;
     default:
         cputs("UNKNOWN");
