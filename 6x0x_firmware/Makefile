@@ -38,7 +38,6 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_dispatch.asm bios_dispatch.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_console.asm bios_console.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/clrdir.asm clrdir.asm
-	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_panel.asm bios_panel.asm
 
 clean:
 	@rm -f *.o
