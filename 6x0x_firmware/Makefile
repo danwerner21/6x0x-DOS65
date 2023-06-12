@@ -1,7 +1,7 @@
 all:  	rom.hex clrdir.s19
 
 
-6x0xbios.out: 6x0xbios.asm bios_ppp_common.asm bios_serial.asm bios_ppp_console.asm supermon.asm bios_ppp_hd.asm \
+6x0xbios.out: 6x0xbios.asm bios_ppp_common.asm bios_serial.asm bios_ppp_console.asm ../supermon/supermon.asm bios_ppp_hd.asm \
               bios_diov3_ide.asm bios_diov3_flp.asm bios_rtc.asm bios_dskyng.asm \
 			  bios_pager.asm bios_options.asm bios_dispatch.asm bios_console.asm
 

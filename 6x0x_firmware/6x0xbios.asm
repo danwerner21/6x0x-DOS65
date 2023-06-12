@@ -152,7 +152,7 @@ BRKCMD:
 NINTERRUPT:
         JMP     (NMIVECTOR)     ; LET USER ROUTINE HAVE IT (USER DEFINED NMI)
 
-        .INCLUDE "supermon.asm"
+        .INCLUDE "../supermon/supermon.asm"
         .INCLUDE "bios_pager.ASM"
 
 

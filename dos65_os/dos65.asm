@@ -56,7 +56,7 @@
 
 
         .SEGMENT "OS"
-        .ORG    $B800
+        .ORG    DOSBEGIN
         .INCLUDE "ccm215.asm"
         .INCLUDE "pemrbc.asm"
         .INCLUDE "simrbc.asm"

@@ -11,26 +11,48 @@ pemjmp          = $0103         ; jump to pem
 iostat          = $0106         ; i/o status
 dflfcb          = $0107         ; default fcb
 dflbuf          = $0128         ; default buffer
-hstbuf          = $0200         ; 0200-03ff host buffer
-
+memmovr         = $0200         ; 0200-02ff subr to move data from ram/rom disks
+MD_PAGERA       = $0200         ; PAGE DRIVER ADDRESS
+IO              = $0300         ; 0300-03FF Memory mapped IO
+MPCL_ROM        = $037C         ; ROM MAPPER
+MPCL_RAM        = $0378         ; RAM MAPPER
+hstbuf          = $0400         ; 0400-05ff host buffer
 ;
 ; DRIVER WORKING STORAGE
 ;
 
-DSKY_BUF        = $0500         ; Eight Bytes DSKY display buffer
+
+DSKY_BUF        = $0600         ; Eight Bytes DSKY display buffer
 DSKY_BUFLEN     = 8             ;
-DSKY_HEXBUF     = $0508         ; Four Bytes DSKY hex buffer
+DSKY_HEXBUF     = $0608         ; Four Bytes DSKY hex buffer
 DSKY_HEXBUFLEN  = 4             ;
-sektrk          = $050C         ; seek track number
-seksec          = $050E         ; seek sector number
-debcyll         = $0510         ; DEBLOCKED CYLINDER LSB
-debcylm         = $0511         ; DEBLOCKED CYLINDER MSB
-debsehd         = $0512         ; DEBLOCKED SECTOR AND HEAD (HS)
-sekdsk          = $0516         ; seek disk number
-dskcfg          = $0517         ; 16 bytes disk configuration table
-DSKUNIT         = $0528         ; seek disk number
-slicetmp        = $0531         ; (word)
-CURRENT_IDE_DRIVE = $0534
+sektrk          = $060C         ; seek track number
+seksec          = $060E         ; seek sector number
+debcyll         = $0610         ; DEBLOCKED CYLINDER LSB
+debcylm         = $0611         ; DEBLOCKED CYLINDER MSB
+debsehd         = $0612         ; DEBLOCKED SECTOR AND HEAD (HS)
+sekdsk          = $0616         ; seek disk number
+dskcfg          = $0617         ; 16 bytes disk configuration table
+DSKUNIT         = $0628         ; seek disk number
+slicetmp        = $0631         ; (word)
+STACKA          = $0635
+nmsstr          = $0636
+FLRETRY         = $0637         ;
+FLRETRY1        = $0638         ;
+ST0             = $0639         ;
+FLERR           = $063A         ;
+FCMD            = $063B         ;
+PPIDEINDEX      = $063C
+CURRENT_IDE_DRIVE = $063D
+DSKY_X_STORAGE  = $063E
+DSKY_Y_STORAGE  = $063F
+DSKY_TEMP_VAL   = $0640
+DSKY_PPIX_VAL   = $0641
+FLOPPY_DETCT    = $0642
+DSKY_PRESENT    = $0643
+Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
+Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
+Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
 
 tea             = $800          ;tea start
 
@@ -86,5 +108,6 @@ delete          = $08           ;delete character
 numcmd          = 36            ;number commands
 DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
 
-M6X0X_IOSPACE   = $E000
-M6X0X_SHADOW_ROM = $F000
+    .DEFINE COMSUFFIX "COM"
+DEBUG           = 0
+BANKED_DRIVER_DISPATCHER=$8800

@@ -49,7 +49,16 @@ sysdef:
 
 ;opening id message
 opnmsg:
-        .BYTE   cr,lf,"DOS/65 ON THE 6x0x RBC",cr,lf,0
+        .BYTE   cr, lf
+
+        .BYTE   "d8888b.  .d88b.  .d8888.    dD     ooooo", cr, lf
+        .BYTE   "88  `8D .8P  Y8. 88'  YP   d8'    8P~~~~", cr, lf
+        .BYTE   "88   88 88    88 `8bo.    d8'    dP", cr, lf
+        .BYTE   "88   88 88    88   `Y8b. d8888b. V8888b.", cr, lf,0
+opnmsg1:
+        .BYTE   "88  .8D `8b  d8' db   8D 88' `8D     `8D ", cr, lf
+        .BYTE   "Y8888D'  `Y88P'  `8888Y' `8888P  88oobY'", cr, lf
+        .BYTE   17, "DOS / 65 V3.00", cr, lf, 0
 
 DSKYMSG:
         .BYTE   $54, $6E, $5C, $5E, $6E, $54, $79, $40
@@ -63,6 +72,9 @@ boot:
 
         LDA     #<opnmsg        ;point to message
         LDY     #>opnmsg
+        JSR     outmsg          ;send it
+        LDA     #<opnmsg1       ;point to message
+        LDY     #>opnmsg1
         JSR     outmsg          ;send it
 ;set up jumps into dos/65 in page one
 
@@ -718,9 +730,7 @@ ckmp:
         .RES    128
 
 
-; $00 = sd card
-; $20 = diskIO V3 Floppy card
-; $30 = diskIO V3 IDE card
+; See Platform Documentation for Drive Types.
 
 dftdskcfg:
         .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy disks)

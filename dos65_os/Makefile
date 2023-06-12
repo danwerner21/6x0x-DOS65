@@ -1,23 +1,23 @@
 
-all:  	dos65.s19 dos65.hex
+all:  	dos65_b800.out dos65_d000.out dos65_b800.s19 dos65_d000.s19
 
-dos65.out: dos65.asm ccm215.asm pem215.asm simrbc.asm dosdefn.asm macro.asm
-	ca65 dos65.asm -l dos65.lst
-	ld65 dos65.o -m dos65.map -C dos65.cfg -o dos65.out
+dos65_b800.out: dos65.asm ccm215.asm pemrbc.asm simrbc.asm dosdefn.asm macro.asm
+	ca65 -D DOSBEGIN=47104  dos65.asm -l dos65_b800.lst -o dos65_b800.o
+	ld65 dos65_b800.o -m dos65_b800.map -C dos65_b800.cfg -o dos65_b800.out
 
-dos65.s19: dos65.out
-	srec_cat  dos65.out -binary -offset 0x0100 -exclude 0x0000 0xB800 -o  dos65.s19  -data-only
-	sed -i -e '$$aS9' dos65.s19
-	cp dos65.s19 ../bin/
+dos65_d000.out: dos65.asm ccm215.asm pemrbc.asm simrbc.asm dosdefn.asm macro.asm
+	ca65 -D DOSBEGIN=53248 dos65.asm -l dos65_d000.lst -o dos65_d000.o
+	ld65 dos65_d000.o -m dos65_d000.map -C dos65_d000.cfg -o dos65_d000.out
 
-dos65.hex: dos65.out
-	srec_cat  DOS65.out -binary -offset 0x0100 -exclude 0x0000 0xB800 -o  dos65.s -data-only
-	srec_cat  dos65.s  -offset -0x8000  -o  dos651.s  -data-only
-	srec_cat  dos651.s -exclude 0x6000 0x7EE0  -o dos65.hex  -intel -address-length=2
-	@rm -f dos65.s
-	@rm -f dos651.s
-	cp dos65.hex ../bin/
+dos65_b800.s19: dos65_b800.out
+	srec_cat  dos65_b800.out -binary -offset 0x0100 -exclude 0x0000 0xB800 -o  dos65_b800.s19  -data-only
+	sed -i -e '$$aS9' dos65_b800.s19
+	cp dos65_b800.s19 ../bin/
 
+dos65_d000.s19: dos65_d000.out
+	srec_cat  dos65_d000.out -binary -offset 0x0100 -exclude 0x0000 0xD000 -o  dos65_d000.s19  -data-only
+	sed -i -e '$$aS9' dos65_d000.s19
+	cp dos65_d000.s19 ../bin/
 
 pretty:
 	cp *.asm ./backup

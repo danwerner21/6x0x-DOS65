@@ -33,7 +33,7 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 ## BUGS
 1. sedit does not paint properly on console (colors)
 1. DSKY GETKEY DISPLAY BUG
-
+1. POSSIBLE? FD0 Software bug (fd1 works fine . . )
 
 ---
 

@@ -1033,8 +1033,10 @@ cnstxt:
 fcbone:
         .RES    33
 ;com type field
+
 typcom:
-        .BYTE   "COM"
+        .BYTE   COMSUFFIX
+
 ;variable storage
 cnbfpt:
         .BYTE   0               ;buffer index

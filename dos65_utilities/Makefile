@@ -248,6 +248,9 @@ clean:
 	@rm -f *.hex
 	@rm -f *.s19
 	@rm -f assign.s
+	@rm -f nvset.s
+	@rm -f xmr.s
+	@rm -f xms.s
 
 cleandust:
 	@rm -f *.o
