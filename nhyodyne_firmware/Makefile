@@ -23,11 +23,15 @@ dos65drvr.out: dos65drv.asm dosser.asm ../dos65_os/dosdefn.asm doside.asm dosmd.
 	ld65 dos65drvr.o -m dos65drvr.map -C dos65.cfg -o dos65drvr.out
 
 dos65.com: ../dos65_os/dos65_d000.out zloader.bin com.s19
-	srec_cat  ../dos65_os/dos65_d000.out -binary -offset 0x0100 -exclude 0x0000 0xD000 -o  dos65.s -data-only
-	cat 	dos65.s com.s19 > dos651.s
-	srec_cat  dos651.s -o dos65.bin  -BINARY
+	srec_cat  ../dos65_os/dos65_d000.out -binary -offset -0x7F00  -o  dos65.s -data-only
+	srec_cat  dos65.s -crop 0x5000 0x71FF -o  dos65.s1 -data-only
+	srec_cat  com.s19 -offset -0x8000 -o  com.s -data-only
+	cat 	dos65.s1 com.s > dos651.s
+	srec_cat  dos651.s -offset -0x5000 -o dos65.bin  -BINARY
 	cat 	zloader.bin dos65.bin> dos65.com
 	@rm -f dos651.s
+	@rm -f dos651.s1
+	@rm -f com.s
 	@rm -f dos65.bin
 	cp dos65.com ../bin/
 

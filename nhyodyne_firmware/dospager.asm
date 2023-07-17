@@ -56,10 +56,10 @@ PAGER_INIT:
 ;       X=Control Word
 ;	7 6 5 4  3 2 1 0
 ;	^ ^ ^ ^  ^ ^ ^ ^
-;       : : : X  X X X X    = UNUSED
-;	: : :-------------0 = Read=0, Write=1
-;	: :---------------0 = RAM=0, ROM=1
-;	:-----------------0 = LOW=0, HIGH=1
+;       X : : X  X X X X    = UNUSED
+;	X : :-------------0 = Read=0, Write=1
+;	X :---------------0 = RAM=0, ROM=1
+;
 ;       A= bank
 ;       Y= page
 ;
@@ -85,7 +85,8 @@ md_pagecode:
         PLA
         ORA     #$80
         STA     MPCL_RAM
-        JMP     MD_PAGE_COPYFRM
+        CLC
+        BCC     MD_PAGE_COPYFRM
 MD_PAGE_ROREAD:
         LDA     #$00
         STA     MPCL_RAM
@@ -101,7 +102,17 @@ MD_PAGE_COPYFRM:
         STA     hstbuf,X
         INX
         INY
-        CPX     #$80
+        CPX     #$00
+        BNE     :-
+        LDX     #$00
+        LDY     #$00
+        INC     DEST+1
+:
+        LDA     (DEST),Y
+        STA     hstbuf+$100,X
+        INX
+        INY
+        CPX     #$00
         BNE     :-
         LDA     #$80
         STA     MPCL_ROM
@@ -124,7 +135,17 @@ MD_PAGE_WRITE:
         STA     (DEST),Y
         INX
         INY
-        CPX     #$80
+        CPX     #$00
+        BNE     :-
+        LDX     #$00
+        LDY     #$00
+        INC     DEST+1
+:
+        LDA     hstbuf+$100,X
+        STA     (DEST),Y
+        INX
+        INY
+        CPX     #$00
         BNE     :-
         LDA     #$8C
         STA     MPCL_RAM

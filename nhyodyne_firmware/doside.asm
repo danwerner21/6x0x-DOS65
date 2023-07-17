@@ -564,6 +564,7 @@ IDEBUFWT1:
 ;*____________________________________________________________________________________________________
 IDE_SETUP_LBA:
         PRTDBG  "PPIDE SETUP LBA$"
+        LDA     CURRENT_IDE_DRIVE
         AND     #$01            ; only want drive cfg
         ASL     a               ; SHIFT 4
         ASL     a               ;
@@ -590,6 +591,7 @@ IDE_SETUP_LBA:
         LDX     #$01
         LDA     #PPIDE_SEC_CNT
         JSR     IDE_WRITE
+
         RTS
 
 

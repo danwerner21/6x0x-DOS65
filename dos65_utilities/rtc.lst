@@ -1,0 +1,1136 @@
+ca65 V2.19 - Git 128b15a71
+Main file   : rtc.asm
+Current file: rtc.asm
+
+000000r 1               
+000000r 1               ;
+000000r 1               ; Program:	rtc.asm
+000000r 1               ; Author:		Andrew Lynch
+000000r 1               ; Date:		22 Feb 2007
+000000r 1               ; Enviroment:	TASM MS-DOS Z80 Cross Assembler source for CP/M
+000000r 1               ;
+000000r 1               
+000000r 1               ; constants
+000000r 1               
+000000r 1               
+000000r 1               farfunct        = $32           ; function to call in driver area
+000000r 1               farpointer      = $33           ;
+000000r 1               TEMPWORD        = $40
+000000r 1               TEMP            = $42
+000000r 1               TEMP1           = $43
+000000r 1               TEMPPAUSE       = $44
+000000r 1               
+000000r 1               PEM             = $103          ;PEM ENTRY
+000000r 1               DFLFCB          = $107          ;DEFAULT FCB
+000000r 1               TEA             = $800          ;TEA START
+000000r 1               
+000000r 1               DO_FARCALL      = $FFF0
+000000r 1               
+000000r 1                       .SEGMENT "TEA"
+000000r 1                       .ORG    TEA
+000800  1               ; print message 16 times
+000800  1               Print:
+000800  1               
+000800  1               
+000800  1  A9 EF                LDA     #<MSG           ;SEND
+000802  1  A0 0B                LDY     #>MSG
+000804  1  A2 09                LDX     #9              ;MESSAGE
+000806  1  20 03 01             JSR     PEM
+000809  1               
+000809  1               
+000809  1  20 58 0A             JSR     RTC_TOP_LOOP
+00080C  1               
+00080C  1               
+00080C  1  A2 0E                LDX     #14             ;DEFAULT
+00080E  1  4C 03 01             JMP     PEM             ;AND RETURN
+000811  1               
+000811  1  00                   BRK                     ; This code is never reached
+000812  1               
+000812  1               
+000812  1               
+000812  1               ; function RTC_WR_PROTECT
+000812  1               ; input x (address) $07
+000812  1               ; input y (value) $80
+000812  1               ; uses A
+000812  1               ;
+000812  1               ; based on following algorithm
+000812  1               ;
+000812  1               ;  PROCEDURE rtc_wr_protect;
+000812  1               ;  BEGIN
+000812  1               ;    rtc_write(7,128);
+000812  1               ;  END;
+000812  1               
+000812  1               RTC_WR_PROTECT:
+000812  1  A2 07                LDX     #%00000111
+000814  1  A0 80                LDY     #%10000000
+000816  1  A9 32                LDA     #50             ; rtc_write
+000818  1  85 32                STA     farfunct
+00081A  1  20 F0 FF             JSR     DO_FARCALL
+00081D  1  60                   RTS
+00081E  1               
+00081E  1               
+00081E  1               ; function RTC_WR_UNPROTECT
+00081E  1               ; input D (address) $07
+00081E  1               ; input E (value) $00
+00081E  1               ; uses A
+00081E  1               ;
+00081E  1               ; based on following algorithm
+00081E  1               ;
+00081E  1               ;  PROCEDURE rtc_wr_unprotect;
+00081E  1               ;  BEGIN
+00081E  1               ;    rtc_write(7,0);
+00081E  1               ;  END;
+00081E  1               
+00081E  1               RTC_WR_UNPROTECT:
+00081E  1  A2 07                LDX     #%00000111
+000820  1  A0 00                LDY     #%00000000
+000822  1  A9 32                LDA     #50             ; rtc_write
+000824  1  85 32                STA     farfunct
+000826  1  20 F0 FF             JSR     DO_FARCALL
+000829  1               
+000829  1  60                   RTS
+00082A  1               
+00082A  1               
+00082A  1               ; function RTC_GET_TIME
+00082A  1               ; input HL (memory address of buffer)
+00082A  1               ; uses A,C,D,E
+00082A  1               ;
+00082A  1               ; based on following algorithm
+00082A  1               ;
+00082A  1               ;  PROCEDURE rtc_get_time(var buf: string);
+00082A  1               ;   var
+00082A  1               ;     n  : int;
+00082A  1               ;  BEGIN
+00082A  1               ;    lock();
+00082A  1               ;    rtc_reset_off();
+00082A  1               ;    { Write command, burst read }
+00082A  1               ;    rtc_wr(255 - 64);
+00082A  1               ;    { Read seconds }
+00082A  1               ;    n := rtc_rd(); 0
+00082A  1               ;    buf[16] := char(((n / 16) and $07)) + '0';
+00082A  1               ;    buf[17] := char((n and $0f)) + '0';
+00082A  1               ;    { Read minutes }
+00082A  1               ;    n := rtc_rd(); 1
+00082A  1               ;    buf[13] := char(((n / 16) and $07)) + '0';
+00082A  1               ;    buf[14] := char((n and $0f)) + '0';
+00082A  1               ;    buf[15] := ':';
+00082A  1               ;    { Read hours }
+00082A  1               ;    n := rtc_rd(); 2
+00082A  1               ;    buf[10] := char(((n / 16) and $03)) + '0';
+00082A  1               ;    buf[11] := char((n and $0f)) + '0';
+00082A  1               ;    buf[12] := ':';
+00082A  1               ;    { Read date }
+00082A  1               ;    n := rtc_rd(); 3
+00082A  1               ;    buf[7] := char(((n / 16) and $03)) + '0';
+00082A  1               ;    buf[8] := char((n and $0f)) + '0';
+00082A  1               ;    buf[9] := ' ';
+00082A  1               ;    { Read month }
+00082A  1               ;    n := rtc_rd(); 4
+00082A  1               ;    buf[4] := char(((n / 16) and $03)) + '0';
+00082A  1               ;    buf[5] := char((n and $0f)) + '0';
+00082A  1               ;    buf[6] := '-';
+00082A  1               ;    { Read day }
+00082A  1               ;    n := rtc_rd(); 5
+00082A  1               ;    {
+00082A  1               ;    buf[4] := char(((n / 16) and $03)) + '0';
+00082A  1               ;    buf[4] := char((n and $0f)) + '0';
+00082A  1               ;    }
+00082A  1               ;    { Read year }
+00082A  1               ;    n := rtc_rd(); 6
+00082A  1               ;    buf[1] := char(((n / 16) and $0f)) + '0';
+00082A  1               ;    buf[2] := char((n and $0f)) + '0';
+00082A  1               ;    buf[3] := '-';
+00082A  1               ;    length(buf) := 17;
+00082A  1               ;    rtc_reset_on();
+00082A  1               ;    unlock();
+00082A  1               ;  END rtc_get_time;
+00082A  1               
+00082A  1               RTC_GET_TIME:
+00082A  1               ;    { Read seconds }
+00082A  1               
+00082A  1  A2 00                LDX     #$00
+00082C  1  A9 33                LDA     #51             ; rtc_read
+00082E  1  85 32                STA     farfunct
+000830  1  20 F0 FF             JSR     DO_FARCALL
+000833  1  98                   TYA
+000834  1  48                   PHA
+000835  1               ; digit 16
+000835  1  18                   CLC
+000836  1  4A                   LSR     A
+000837  1  4A                   LSR     A
+000838  1  4A                   LSR     A
+000839  1  4A                   LSR     A
+00083A  1  29 07                AND     #$07
+00083C  1  18                   CLC
+00083D  1  69 30                ADC     #'0'
+00083F  1  8D 7E 0E             STA     RTC_PRINT_BUFFER+15
+000842  1               
+000842  1               ; digit 17
+000842  1  68                   PLA
+000843  1  29 0F                AND     #$0F
+000845  1  18                   CLC
+000846  1  69 30                ADC     #'0'
+000848  1  8D 7F 0E             STA     RTC_PRINT_BUFFER+16
+00084B  1               
+00084B  1               ;    { Read minutes }
+00084B  1               
+00084B  1  A2 01                LDX     #$01
+00084D  1  A9 33                LDA     #51             ; rtc_read
+00084F  1  85 32                STA     farfunct
+000851  1  20 F0 FF             JSR     DO_FARCALL
+000854  1  98                   TYA
+000855  1  48                   PHA
+000856  1               ; digit 13
+000856  1  18                   CLC
+000857  1  4A                   LSR     A
+000858  1  4A                   LSR     A
+000859  1  4A                   LSR     A
+00085A  1  4A                   LSR     A
+00085B  1  29 07                AND     #$07
+00085D  1  18                   CLC
+00085E  1  69 30                ADC     #'0'
+000860  1  8D 7B 0E             STA     RTC_PRINT_BUFFER+12
+000863  1               
+000863  1               ; digit 14
+000863  1  68                   PLA
+000864  1  29 0F                AND     #$0F
+000866  1  18                   CLC
+000867  1  69 30                ADC     #'0'
+000869  1  8D 7C 0E             STA     RTC_PRINT_BUFFER+13
+00086C  1               
+00086C  1               ; digit 15
+00086C  1  A9 3A                LDA     #':'
+00086E  1  8D 7D 0E             STA     RTC_PRINT_BUFFER+14
+000871  1               
+000871  1               ;    { Read hours }
+000871  1  A2 02                LDX     #$02
+000873  1  A9 33                LDA     #51             ; rtc_read
+000875  1  85 32                STA     farfunct
+000877  1  20 F0 FF             JSR     DO_FARCALL
+00087A  1               
+00087A  1  98                   TYA
+00087B  1               
+00087B  1  48                   PHA
+00087C  1               ; digit 10
+00087C  1  18                   CLC
+00087D  1  4A                   LSR     A
+00087E  1  4A                   LSR     A
+00087F  1  4A                   LSR     A
+000880  1  4A                   LSR     A
+000881  1  29 03                AND     #$03
+000883  1  18                   CLC
+000884  1  69 30                ADC     #'0'
+000886  1  8D 78 0E             STA     RTC_PRINT_BUFFER+09
+000889  1               
+000889  1               ; digit 11
+000889  1  68                   PLA
+00088A  1  29 0F                AND     #$0F
+00088C  1  18                   CLC
+00088D  1  69 30                ADC     #'0'
+00088F  1  8D 79 0E             STA     RTC_PRINT_BUFFER+10
+000892  1               
+000892  1               ; digit 12
+000892  1  A9 3A                LDA     #':'
+000894  1  8D 7A 0E             STA     RTC_PRINT_BUFFER+11
+000897  1               
+000897  1               ;    { Read date }
+000897  1  A2 03                LDX     #$03
+000899  1  A9 33                LDA     #51             ; rtc_read
+00089B  1  85 32                STA     farfunct
+00089D  1  20 F0 FF             JSR     DO_FARCALL
+0008A0  1               
+0008A0  1  98                   TYA
+0008A1  1               
+0008A1  1  48                   PHA
+0008A2  1               ; digit 07
+0008A2  1  18                   CLC
+0008A3  1  4A                   LSR     A
+0008A4  1  4A                   LSR     A
+0008A5  1  4A                   LSR     A
+0008A6  1  4A                   LSR     A
+0008A7  1  29 03                AND     #$03
+0008A9  1  18                   CLC
+0008AA  1  69 30                ADC     #'0'
+0008AC  1  8D 75 0E             STA     RTC_PRINT_BUFFER+06
+0008AF  1               
+0008AF  1               ; digit 08
+0008AF  1  68                   PLA
+0008B0  1  29 0F                AND     #$0F
+0008B2  1  18                   CLC
+0008B3  1  69 30                ADC     #'0'
+0008B5  1  8D 76 0E             STA     RTC_PRINT_BUFFER+07
+0008B8  1               
+0008B8  1               ; digit 09
+0008B8  1  A9 20                LDA     #' '
+0008BA  1  8D 77 0E             STA     RTC_PRINT_BUFFER+08
+0008BD  1               
+0008BD  1               ;    { Read month }
+0008BD  1  A2 04                LDX     #$04
+0008BF  1  A9 33                LDA     #51             ; rtc_read
+0008C1  1  85 32                STA     farfunct
+0008C3  1  20 F0 FF             JSR     DO_FARCALL
+0008C6  1               
+0008C6  1  98                   TYA
+0008C7  1               
+0008C7  1  48                   PHA
+0008C8  1               ; digit 04
+0008C8  1  18                   CLC
+0008C9  1  4A                   LSR     A
+0008CA  1  4A                   LSR     A
+0008CB  1  4A                   LSR     A
+0008CC  1  4A                   LSR     A
+0008CD  1  29 03                AND     #$03
+0008CF  1  18                   CLC
+0008D0  1  69 30                ADC     #'0'
+0008D2  1  8D 72 0E             STA     RTC_PRINT_BUFFER+03
+0008D5  1               
+0008D5  1               ; digit 05
+0008D5  1  68                   PLA
+0008D6  1  29 0F                AND     #$0F
+0008D8  1  18                   CLC
+0008D9  1  69 30                ADC     #'0'
+0008DB  1  8D 73 0E             STA     RTC_PRINT_BUFFER+04
+0008DE  1               
+0008DE  1               ; digit 06
+0008DE  1  A9 2D                LDA     #'-'
+0008E0  1  8D 74 0E             STA     RTC_PRINT_BUFFER+05
+0008E3  1               
+0008E3  1               
+0008E3  1               ;    { Read year }
+0008E3  1  A2 06                LDX     #$06
+0008E5  1  A9 33                LDA     #51             ; rtc_read
+0008E7  1  85 32                STA     farfunct
+0008E9  1  20 F0 FF             JSR     DO_FARCALL
+0008EC  1               
+0008EC  1  98                   TYA
+0008ED  1               
+0008ED  1  48                   PHA
+0008EE  1               ; digit 01
+0008EE  1  18                   CLC
+0008EF  1  4A                   LSR     A
+0008F0  1  4A                   LSR     A
+0008F1  1  4A                   LSR     A
+0008F2  1  4A                   LSR     A
+0008F3  1  29 0F                AND     #$0F
+0008F5  1  18                   CLC
+0008F6  1  69 30                ADC     #'0'
+0008F8  1  8D 6F 0E             STA     RTC_PRINT_BUFFER+00
+0008FB  1               
+0008FB  1               ; digit 02
+0008FB  1  68                   PLA
+0008FC  1  29 0F                AND     #$0F
+0008FE  1  18                   CLC
+0008FF  1  69 30                ADC     #'0'
+000901  1  8D 70 0E             STA     RTC_PRINT_BUFFER+01
+000904  1               
+000904  1               ; digit 03
+000904  1  A9 2D                LDA     #'-'
+000906  1  8D 71 0E             STA     RTC_PRINT_BUFFER+02
+000909  1               
+000909  1  60                   RTS                     ; Yes, end function and return
+00090A  1               
+00090A  1               
+00090A  1               ; function RTC_SET
+00090A  1               ; uses A, D, E
+00090A  1               ;
+00090A  1               ; based on following algorithm
+00090A  1               ;
+00090A  1               ;  { Set time to 96-02-18 19:43:00 }
+00090A  1               ;  PROCEDURE rtc_set_now;
+00090A  1               ;  BEGIN
+00090A  1               ;    rtc_wr_unprotect();
+00090A  1               ;    { Set seconds }
+00090A  1               ;    rtc_write(0,0);
+00090A  1               ;    { Set minutes }
+00090A  1               ;    rtc_write(1,$43);
+00090A  1               ;    { Set hours }
+00090A  1               ;    rtc_write(2,$19);
+00090A  1               ;    { Set date }
+00090A  1               ;    rtc_write(3,$18);
+00090A  1               ;    { Set month }
+00090A  1               ;    rtc_write(4,$02);
+00090A  1               ;    { Set day }
+00090A  1               ;    rtc_write(5,$07);
+00090A  1               ;    { Set year }
+00090A  1               ;    rtc_write(6,$96);
+00090A  1               ;    rtc_wr_protect();
+00090A  1               ;  END;
+00090A  1               
+00090A  1               RTC_SET:
+00090A  1               
+00090A  1  20 1E 08             JSR     RTC_WR_UNPROTECT
+00090D  1  A9 14                LDA     #20
+00090F  1  8D 6F 0E             STA     RTC_PRINT_BUFFER
+000912  1               
+000912  1               ; seconds
+000912  1  A2 00                LDX     #$00
+000914  1  A0 00                LDY     #$00
+000916  1  A9 32                LDA     #50             ; rtc_write
+000918  1  85 32                STA     farfunct
+00091A  1  20 F0 FF             JSR     DO_FARCALL
+00091D  1               
+00091D  1  A9 3B                LDA     #<RTC_TOP_LOOP1_SET_TIME
+00091F  1  A0 0E                LDY     #>RTC_TOP_LOOP1_SET_TIME
+000921  1  A2 09                LDX     #9              ;MESSAGE
+000923  1  20 03 01             JSR     PEM
+000926  1               
+000926  1  A9 6F                LDA     #<RTC_PRINT_BUFFER
+000928  1  A0 0E                LDY     #>RTC_PRINT_BUFFER
+00092A  1  A2 0A                LDX     #10             ;MESSAGE
+00092C  1  20 03 01             JSR     PEM
+00092F  1               
+00092F  1  AD 75 0E             LDA     RTC_PRINT_BUFFER+6
+000932  1  29 0F                AND     #$0F
+000934  1  85 42                STA     TEMP
+000936  1  AD 74 0E             LDA     RTC_PRINT_BUFFER+5
+000939  1  29 0F                AND     #$0F
+00093B  1  18                   CLC
+00093C  1  0A                   ASL     A
+00093D  1  0A                   ASL     A
+00093E  1  0A                   ASL     A
+00093F  1  0A                   ASL     A
+000940  1  18                   CLC
+000941  1  65 42                ADC     TEMP
+000943  1  A8                   TAY
+000944  1               
+000944  1               ; minutes
+000944  1  A2 01                LDX     #$01
+000946  1  A9 32                LDA     #50             ; rtc_write
+000948  1  85 32                STA     farfunct
+00094A  1  20 F0 FF             JSR     DO_FARCALL
+00094D  1               
+00094D  1               
+00094D  1  AD 72 0E             LDA     RTC_PRINT_BUFFER+3
+000950  1  29 0F                AND     #$0F
+000952  1  85 42                STA     TEMP
+000954  1  AD 71 0E             LDA     RTC_PRINT_BUFFER+2
+000957  1  29 0F                AND     #$0F
+000959  1  18                   CLC
+00095A  1  0A                   ASL     A
+00095B  1  0A                   ASL     A
+00095C  1  0A                   ASL     A
+00095D  1  0A                   ASL     A
+00095E  1  18                   CLC
+00095F  1  65 42                ADC     TEMP
+000961  1  A8                   TAY
+000962  1               
+000962  1               ; hours
+000962  1  A2 02                LDX     #$02
+000964  1  A9 32                LDA     #50             ; rtc_write
+000966  1  85 32                STA     farfunct
+000968  1  20 F0 FF             JSR     DO_FARCALL
+00096B  1               
+00096B  1  A9 6C                LDA     #<RTC_TOP_LOOP1_OTHER2
+00096D  1  A0 0E                LDY     #>RTC_TOP_LOOP1_OTHER2
+00096F  1  A2 09                LDX     #9              ;MESSAGE
+000971  1  20 03 01             JSR     PEM
+000974  1               
+000974  1  A9 4B                LDA     #<RTC_TOP_LOOP1_SET_DATE
+000976  1  A0 0E                LDY     #>RTC_TOP_LOOP1_SET_DATE
+000978  1  A2 09                LDX     #9              ;MESSAGE
+00097A  1  20 03 01             JSR     PEM
+00097D  1               
+00097D  1  A9 6F                LDA     #<RTC_PRINT_BUFFER
+00097F  1  A0 0E                LDY     #>RTC_PRINT_BUFFER
+000981  1  A2 0A                LDX     #10             ;MESSAGE
+000983  1  20 03 01             JSR     PEM
+000986  1               
+000986  1               
+000986  1  A9 6C                LDA     #<RTC_TOP_LOOP1_OTHER2
+000988  1  A0 0E                LDY     #>RTC_TOP_LOOP1_OTHER2
+00098A  1  A2 09                LDX     #9              ;MESSAGE
+00098C  1  20 03 01             JSR     PEM
+00098F  1               
+00098F  1               
+00098F  1  AD 75 0E             LDA     RTC_PRINT_BUFFER+6
+000992  1  29 0F                AND     #$0F
+000994  1  85 42                STA     TEMP
+000996  1  AD 74 0E             LDA     RTC_PRINT_BUFFER+5
+000999  1  29 0F                AND     #$0F
+00099B  1  18                   CLC
+00099C  1  0A                   ASL     A
+00099D  1  0A                   ASL     A
+00099E  1  0A                   ASL     A
+00099F  1  0A                   ASL     A
+0009A0  1  18                   CLC
+0009A1  1  65 42                ADC     TEMP
+0009A3  1  A8                   TAY
+0009A4  1               
+0009A4  1               
+0009A4  1               ; date
+0009A4  1  A2 03                LDX     #$03
+0009A6  1  A9 32                LDA     #50             ; rtc_write
+0009A8  1  85 32                STA     farfunct
+0009AA  1  20 F0 FF             JSR     DO_FARCALL
+0009AD  1               
+0009AD  1               
+0009AD  1  AD 72 0E             LDA     RTC_PRINT_BUFFER+3
+0009B0  1  29 0F                AND     #$0F
+0009B2  1  85 42                STA     TEMP
+0009B4  1  AD 71 0E             LDA     RTC_PRINT_BUFFER+2
+0009B7  1  29 0F                AND     #$0F
+0009B9  1  18                   CLC
+0009BA  1  0A                   ASL     A
+0009BB  1  0A                   ASL     A
+0009BC  1  0A                   ASL     A
+0009BD  1  0A                   ASL     A
+0009BE  1  18                   CLC
+0009BF  1  65 42                ADC     TEMP
+0009C1  1  A8                   TAY
+0009C2  1               
+0009C2  1               
+0009C2  1               ; month
+0009C2  1  A2 04                LDX     #$04
+0009C4  1  A9 32                LDA     #50             ; rtc_write
+0009C6  1  85 32                STA     farfunct
+0009C8  1  20 F0 FF             JSR     DO_FARCALL
+0009CB  1               
+0009CB  1               ; day
+0009CB  1  A2 05                LDX     #$05
+0009CD  1  A0 00                LDY     #$00
+0009CF  1  A9 32                LDA     #50             ; rtc_write
+0009D1  1  85 32                STA     farfunct
+0009D3  1  20 F0 FF             JSR     DO_FARCALL
+0009D6  1               
+0009D6  1               
+0009D6  1  AD 78 0E             LDA     RTC_PRINT_BUFFER+9
+0009D9  1  29 0F                AND     #$0F
+0009DB  1  85 42                STA     TEMP
+0009DD  1  AD 77 0E             LDA     RTC_PRINT_BUFFER+8
+0009E0  1  29 0F                AND     #$0F
+0009E2  1  18                   CLC
+0009E3  1  0A                   ASL     A
+0009E4  1  0A                   ASL     A
+0009E5  1  0A                   ASL     A
+0009E6  1  0A                   ASL     A
+0009E7  1  18                   CLC
+0009E8  1  65 42                ADC     TEMP
+0009EA  1  A8                   TAY
+0009EB  1               
+0009EB  1               
+0009EB  1               ; year
+0009EB  1  A2 06                LDX     #$06
+0009ED  1  A9 32                LDA     #50             ; rtc_write
+0009EF  1  85 32                STA     farfunct
+0009F1  1  20 F0 FF             JSR     DO_FARCALL
+0009F4  1               
+0009F4  1               
+0009F4  1  20 12 08             JSR     RTC_WR_PROTECT
+0009F7  1  60                   RTS
+0009F8  1               
+0009F8  1               
+0009F8  1               ; function RTC_RESTART
+0009F8  1               ;
+0009F8  1               ; uses A, D, E,
+0009F8  1               ;
+0009F8  1               ; based on the following algorithm
+0009F8  1               ;
+0009F8  1               ;  { Restart clock, set seconds to 00 }
+0009F8  1               ;  PROCEDURE rtc_restart;
+0009F8  1               ;  BEGIN
+0009F8  1               ;    rtc_wr_unprotect();
+0009F8  1               ;    { Set seconds }
+0009F8  1               ;    rtc_write(0,0);
+0009F8  1               ;    rtc_wr_protect();
+0009F8  1               ;  END;
+0009F8  1               
+0009F8  1               RTC_RESTART:
+0009F8  1  20 1E 08             JSR     RTC_WR_UNPROTECT
+0009FB  1  A2 00                LDX     #$00
+0009FD  1  A0 00                LDY     #$00
+0009FF  1  A9 32                LDA     #50             ; rtc_write
+000A01  1  85 32                STA     farfunct
+000A03  1  20 F0 FF             JSR     DO_FARCALL
+000A06  1               
+000A06  1  20 12 08             JSR     RTC_WR_PROTECT
+000A09  1  60                   RTS
+000A0A  1               
+000A0A  1               
+000A0A  1               ; function RTC_CHARGE_ENABLE
+000A0A  1               ;
+000A0A  1               ; uses A, D, E
+000A0A  1               ;
+000A0A  1               ; based on following algorithm
+000A0A  1               ;
+000A0A  1               ;  PROCEDURE rtc_charge_enable;
+000A0A  1               ;  BEGIN
+000A0A  1               ;    rtc_wr_unprotect();
+000A0A  1               ;    { Enable trickle charger, 2kohm, 1 diode }
+000A0A  1               ;    rtc_write(8,$a5);
+000A0A  1               ;    rtc_wr_protect();
+000A0A  1               ;  END;
+000A0A  1               
+000A0A  1               RTC_CHARGE_ENABLE:
+000A0A  1  20 1E 08             JSR     RTC_WR_UNPROTECT
+000A0D  1  A2 08                LDX     #$08
+000A0F  1  A0 A5                LDY     #$A5
+000A11  1  A9 32                LDA     #50             ; rtc_write
+000A13  1  85 32                STA     farfunct
+000A15  1  20 F0 FF             JSR     DO_FARCALL
+000A18  1               
+000A18  1  20 12 08             JSR     RTC_WR_PROTECT
+000A1B  1  60                   RTS
+000A1C  1               
+000A1C  1               
+000A1C  1               ; function RTC_CHARGE_DISABLE
+000A1C  1               ;
+000A1C  1               ; uses A, D, E
+000A1C  1               ;
+000A1C  1               ; based on following algorithm
+000A1C  1               ;
+000A1C  1               ;  PROCEDURE rtc_charge_disable;
+000A1C  1               ;  BEGIN
+000A1C  1               ;    rtc_wr_unprotect();
+000A1C  1               ;    { Disable trickle charger}
+000A1C  1               ;    rtc_write(8,$00);
+000A1C  1               ;    rtc_wr_protect();
+000A1C  1               ;  END;
+000A1C  1               
+000A1C  1               RTC_CHARGE_DISABLE:
+000A1C  1  20 1E 08             JSR     RTC_WR_UNPROTECT
+000A1F  1  A2 08                LDX     #$08
+000A21  1  A0 00                LDY     #$00
+000A23  1  A9 32                LDA     #50             ; rtc_write
+000A25  1  85 32                STA     farfunct
+000A27  1  20 F0 FF             JSR     DO_FARCALL
+000A2A  1               
+000A2A  1  20 12 08             JSR     RTC_WR_PROTECT
+000A2D  1  60                   RTS
+000A2E  1               
+000A2E  1               
+000A2E  1               ; function TEST_BIT_DELAY
+000A2E  1               ;
+000A2E  1               ; based on the following algorithm
+000A2E  1               ;
+000A2E  1               ;
+000A2E  1               ;  PROCEDURE test_bit_delay();
+000A2E  1               ;   var
+000A2E  1               ;     i,t0,t1 : int;
+000A2E  1               ;  BEGIN
+000A2E  1               ;    putln("Testing bit delay...");
+000A2E  1               ;    t0 := sys_time();
+000A2E  1               ;    for i := 0 while i < 1000 do inc(i) loop
+000A2E  1               ;      rtc_bit_delay();
+000A2E  1               ;    end loop;
+000A2E  1               ;    t1 := sys_time();
+000A2E  1               ;    putln(i," rtc_bit_delay calls took ",t1-t0," ms.");
+000A2E  1               ;  END;
+000A2E  1               
+000A2E  1               RTC_TEST_BIT_DELAY:
+000A2E  1  A9 12                LDA     #<TESTING_BIT_DELAY_MSG
+000A30  1  A0 0C                LDY     #>TESTING_BIT_DELAY_MSG
+000A32  1  A2 09                LDX     #9              ;MESSAGE
+000A34  1  20 03 01             JSR     PEM
+000A37  1               
+000A37  1               ; test should take approximately 43 seconds based on the following code analysis
+000A37  1               ; of Z80 T-states on a 4 MHz processor
+000A37  1               ; =(4+15*(7+255*(7+255*(17+144+4+10)+4+10)+10)+7)/4/1000000
+000A37  1               
+000A37  1  A0 FF                LDY     #$FF
+000A39  1               PAUSE1:
+000A39  1  A9 FF                LDA     #$FF            ; ADJUST THE TIME 13h IS FOR 4 MHZ
+000A3B  1  85 44                STA     TEMPPAUSE
+000A3D  1               PAUSE2:
+000A3D  1               
+000A3D  1  C6 44                DEC     TEMPPAUSE       ; DEC COUNTER.
+000A3F  1  D0 FC                BNE     PAUSE2          ; JUMP TO PAUSE2 IF A <> 0.
+000A41  1  88                   DEY                     ; DEC COUNTER
+000A42  1  D0 F5                BNE     PAUSE1          ; JUMP TO PAUSE1 IF C <> 0.
+000A44  1               
+000A44  1               
+000A44  1  A9 85                LDA     #<TESTING_BIT_DELAY_OVER
+000A46  1  A0 0C                LDY     #>TESTING_BIT_DELAY_OVER
+000A48  1  A2 09                LDX     #9              ;MESSAGE
+000A4A  1  20 03 01             JSR     PEM
+000A4D  1  60                   RTS
+000A4E  1               
+000A4E  1               
+000A4E  1               ; function RTC_HELP
+000A4E  1               ;
+000A4E  1               ; based on following algorithm
+000A4E  1               ;
+000A4E  1               ;  PROCEDURE help();
+000A4E  1               ;  BEGIN
+000A4E  1               ;    putln();
+000A4E  1               ;    putln("rtc: ",version);
+000A4E  1               ;    putln("rtc: Commands: (E)xit (T)ime st(A)rt (S)et (R)aw (L)oop (C)harge (N)ocharge (H)elp");
+000A4E  1               ;  END;
+000A4E  1               
+000A4E  1               RTC_HELP:
+000A4E  1  A9 A5                LDA     #<RTC_HELP_MSG
+000A50  1  A0 0C                LDY     #>RTC_HELP_MSG
+000A52  1  A2 09                LDX     #9              ;MESSAGE
+000A54  1  20 03 01             JSR     PEM
+000A57  1  60                   RTS
+000A58  1               
+000A58  1               
+000A58  1               ; function RTC_TOP_LOOP
+000A58  1               ;
+000A58  1               ; based on following algorithm
+000A58  1               ;
+000A58  1               ;  PROCEDURE toploop();
+000A58  1               ;   var
+000A58  1               ;     err,i,n,fd  : int;
+000A58  1               ;  BEGIN
+000A58  1               ;    putln();
+000A58  1               ;    help();
+000A58  1               ;    rtc_reset_on();
+000A58  1               ;    hold(100);
+000A58  1               ;    test_bit_delay();
+000A58  1               ;    rtc_charge_disable();
+000A58  1               ;    putln("rtc: trickle charger disabled.");
+000A58  1               ;    loop
+000A58  1               ;       put("rtc>");
+000A58  1               ;       gets(line);
+000A58  1               ;       if line = "exit" then
+000A58  1               ;          putln("Bye.");
+000A58  1               ;          exit(0);
+000A58  1               ;       elsif line = "charge" then
+000A58  1               ;          putln("Trickle charger enabled.");
+000A58  1               ;          rtc_charge_enable();
+000A58  1               ;       elsif line = "nocharge" then
+000A58  1               ;          putln("Trickle charger disabled.");
+000A58  1               ;          rtc_charge_disable();
+000A58  1               ;       elsif line = "start" then
+000A58  1               ;          rtc_restart();
+000A58  1               ;          putln("Restarting RTC");
+000A58  1               ;       elsif line = "t" then
+000A58  1               ;          rtc_get_time(line);
+000A58  1               ;          putln("Current time: ",line);
+000A58  1               ;       elsif line = "raw" then
+000A58  1               ;          putln();
+000A58  1               ;          putln("Raw read loop, hit any key to stop...");
+000A58  1               ;          while read(0,@n,1 + RD_NOWAIT) = 0 loop
+000A58  1               ;             put(#13,"sec=",hexstr(rtc_read(0))^);
+000A58  1               ;             put(" min=",hexstr(rtc_read(1))^);
+000A58  1               ;             hold(500);
+000A58  1               ;          end loop;
+000A58  1               ;       elsif line = "loop" then
+000A58  1               ;          putln();
+000A58  1               ;          putln("Clock loop, hit any key to stop...");
+000A58  1               ;          while read(0,@n,1 + RD_NOWAIT) = 0 loop
+000A58  1               ;             rtc_get_time(line);
+000A58  1               ;             put(#13,line);
+000A58  1               ;             hold(200);
+000A58  1               ;          end loop;
+000A58  1               ;       elsif line = "set" then
+000A58  1               ;          putln("Setting RTC time to 96-02-18 19:43:00");
+000A58  1               ;          rtc_set_now();
+000A58  1               ;       elsif (line = "help") or (line = "?") then
+000A58  1               ;          help();
+000A58  1               ;       elsif length(line) <> 0 then
+000A58  1               ;          putln("You typed: """,line,"""");
+000A58  1               ;       end;
+000A58  1               ;    end loop;
+000A58  1               ;  END toploop;
+000A58  1               
+000A58  1               RTC_TOP_LOOP:
+000A58  1  A9 0F                LDA     #<CRLF_MSG
+000A5A  1  A0 0C                LDY     #>CRLF_MSG
+000A5C  1  A2 09                LDX     #9              ;MESSAGE
+000A5E  1  20 03 01             JSR     PEM
+000A61  1               
+000A61  1  20 4E 0A             JSR     RTC_HELP
+000A64  1               
+000A64  1  A9 26                LDA     #<RTC_TOP_LOOP1_MSG
+000A66  1  A0 0D                LDY     #>RTC_TOP_LOOP1_MSG
+000A68  1  A2 09                LDX     #9              ;MESSAGE
+000A6A  1  20 03 01             JSR     PEM
+000A6D  1               
+000A6D  1               
+000A6D  1               RTC_TOP_LOOP_1:
+000A6D  1  A9 49                LDA     #<RTC_TOP_LOOP1_PROMPT
+000A6F  1  A0 0D                LDY     #>RTC_TOP_LOOP1_PROMPT
+000A71  1  A2 09                LDX     #9              ;MESSAGE
+000A73  1  20 03 01             JSR     PEM
+000A76  1               
+000A76  1               
+000A76  1  A2 01                LDX     #01             ; CP/M console input call
+000A78  1  20 03 01             JSR     PEM
+000A7B  1               
+000A7B  1  29 5F                AND     #%01011111      ; handle lower case responses to menu
+000A7D  1               
+000A7D  1  C9 45                CMP     #'E'
+000A7F  1  F0 40                BEQ     JRTC_TOP_LOOP_EXIT
+000A81  1               
+000A81  1  C9 43                CMP     #'C'
+000A83  1  F0 3F                BEQ     JRTC_TOP_LOOP_CHARGE
+000A85  1               
+000A85  1  C9 4E                CMP     #'N'
+000A87  1  F0 3E                BEQ     JRTC_TOP_LOOP_NOCHARGE
+000A89  1               
+000A89  1  C9 41                CMP     #'A'
+000A8B  1  F0 3D                BEQ     JRTC_TOP_LOOP_START
+000A8D  1               
+000A8D  1  C9 54                CMP     #'T'
+000A8F  1  F0 3C                BEQ     JRTC_TOP_LOOP_TIME
+000A91  1               
+000A91  1  C9 52                CMP     #'R'
+000A93  1  F0 3B                BEQ     JRTC_TOP_LOOP_RAW
+000A95  1               
+000A95  1  C9 4C                CMP     #'L'
+000A97  1  F0 3A                BEQ     JRTC_TOP_LOOP_LOOP
+000A99  1               
+000A99  1  C9 48                CMP     #'H'
+000A9B  1  F0 39                BEQ     JRTC_TOP_LOOP_HELP
+000A9D  1               
+000A9D  1  C9 44                CMP     #'D'
+000A9F  1  F0 38                BEQ     JRTC_TOP_LOOP_DELAY
+000AA1  1               
+000AA1  1  C9 53                CMP     #'S'
+000AA3  1  F0 37                BEQ     JRTC_TOP_LOOP_SET
+000AA5  1               
+000AA5  1  48                   PHA
+000AA6  1  A9 5E                LDA     #<RTC_TOP_LOOP1_OTHER1
+000AA8  1  A0 0E                LDY     #>RTC_TOP_LOOP1_OTHER1
+000AAA  1  A2 09                LDX     #9              ;MESSAGE
+000AAC  1  20 03 01             JSR     PEM
+000AAF  1               
+000AAF  1  68                   PLA
+000AB0  1  A2 02                LDX     #02             ; CP/M Console output call
+000AB2  1  20 03 01             JSR     PEM
+000AB5  1               
+000AB5  1  A9 6C                LDA     #<RTC_TOP_LOOP1_OTHER2
+000AB7  1  A0 0E                LDY     #>RTC_TOP_LOOP1_OTHER2
+000AB9  1  A2 09                LDX     #9              ;MESSAGE
+000ABB  1  20 03 01             JSR     PEM
+000ABE  1               
+000ABE  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000AC1  1               
+000AC1  1               
+000AC1  1               JRTC_TOP_LOOP_EXIT:
+000AC1  1  4C 00 01             JMP     $0100
+000AC4  1               JRTC_TOP_LOOP_CHARGE:
+000AC4  1  4C DF 0A             JMP     RTC_TOP_LOOP_CHARGE
+000AC7  1               JRTC_TOP_LOOP_NOCHARGE:
+000AC7  1  4C EE 0A             JMP     RTC_TOP_LOOP_NOCHARGE
+000ACA  1               JRTC_TOP_LOOP_START:
+000ACA  1  4C FD 0A             JMP     RTC_TOP_LOOP_START
+000ACD  1               JRTC_TOP_LOOP_TIME:
+000ACD  1  4C 0C 0B             JMP     RTC_TOP_LOOP_TIME
+000AD0  1               JRTC_TOP_LOOP_RAW:
+000AD0  1  4C 24 0B             JMP     RTC_TOP_LOOP_RAW
+000AD3  1               JRTC_TOP_LOOP_LOOP:
+000AD3  1  4C BB 0B             JMP     RTC_TOP_LOOP_LOOP
+000AD6  1               JRTC_TOP_LOOP_HELP:
+000AD6  1  4C E9 0B             JMP     RTC_TOP_LOOP_HELP
+000AD9  1               JRTC_TOP_LOOP_DELAY:
+000AD9  1  4C E3 0B             JMP     RTC_TOP_LOOP_DELAY
+000ADC  1               JRTC_TOP_LOOP_SET:
+000ADC  1  4C DD 0B             JMP     RTC_TOP_LOOP_SET
+000ADF  1               
+000ADF  1               
+000ADF  1               
+000ADF  1               RTC_TOP_LOOP_CHARGE:
+000ADF  1  A9 50                LDA     #<RTC_TOP_LOOP1_CHARGE
+000AE1  1  A0 0D                LDY     #>RTC_TOP_LOOP1_CHARGE
+000AE3  1  A2 09                LDX     #9              ;MESSAGE
+000AE5  1  20 03 01             JSR     PEM
+000AE8  1  20 0A 0A             JSR     RTC_CHARGE_ENABLE
+000AEB  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000AEE  1               
+000AEE  1               RTC_TOP_LOOP_NOCHARGE:
+000AEE  1  A9 6D                LDA     #<RTC_TOP_LOOP1_NOCHARGE
+000AF0  1  A0 0D                LDY     #>RTC_TOP_LOOP1_NOCHARGE
+000AF2  1  A2 09                LDX     #9              ;MESSAGE
+000AF4  1  20 03 01             JSR     PEM
+000AF7  1  20 1C 0A             JSR     RTC_CHARGE_DISABLE
+000AFA  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000AFD  1               
+000AFD  1               RTC_TOP_LOOP_START:
+000AFD  1  A9 8B                LDA     #<RTC_TOP_LOOP1_START
+000AFF  1  A0 0D                LDY     #>RTC_TOP_LOOP1_START
+000B01  1  A2 09                LDX     #9              ;MESSAGE
+000B03  1  20 03 01             JSR     PEM
+000B06  1  20 F8 09             JSR     RTC_RESTART
+000B09  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000B0C  1               
+000B0C  1               RTC_TOP_LOOP_TIME:
+000B0C  1  A9 9F                LDA     #<RTC_TOP_LOOP1_TIME
+000B0E  1  A0 0D                LDY     #>RTC_TOP_LOOP1_TIME
+000B10  1  A2 09                LDX     #9              ;MESSAGE
+000B12  1  20 03 01             JSR     PEM
+000B15  1  20 2A 08             JSR     RTC_GET_TIME
+000B18  1  A9 6F                LDA     #<RTC_PRINT_BUFFER
+000B1A  1  A0 0E                LDY     #>RTC_PRINT_BUFFER
+000B1C  1  A2 09                LDX     #9              ;MESSAGE
+000B1E  1  20 03 01             JSR     PEM
+000B21  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000B24  1               
+000B24  1               RTC_TOP_LOOP_RAW:
+000B24  1  A9 B0                LDA     #<RTC_TOP_LOOP1_RAW
+000B26  1  A0 0D                LDY     #>RTC_TOP_LOOP1_RAW
+000B28  1  A2 09                LDX     #9              ;MESSAGE
+000B2A  1  20 03 01             JSR     PEM
+000B2D  1               
+000B2D  1               RTC_TOP_LOOP_RAW1:
+000B2D  1               
+000B2D  1               ;	{ Read seconds }
+000B2D  1  A2 00                LDX     #$00            ; seconds register in DS1302
+000B2F  1  A9 33                LDA     #51             ; rtc_read
+000B31  1  85 32                STA     farfunct
+000B33  1  20 F0 FF             JSR     DO_FARCALL
+000B36  1               ; read value from DS1302, value is in Reg C
+000B36  1  98                   TYA
+000B37  1  48                   PHA
+000B38  1               ; digit 16
+000B38  1  18                   CLC
+000B39  1  4A                   LSR     A
+000B3A  1  4A                   LSR     A
+000B3B  1  4A                   LSR     A
+000B3C  1  4A                   LSR     A
+000B3D  1  29 07                AND     #$07
+000B3F  1  18                   CLC
+000B40  1  69 30                ADC     #'0'
+000B42  1  8D 7E 0E             STA     RTC_PRINT_BUFFER+15
+000B45  1               
+000B45  1               ; digit 17
+000B45  1  68                   PLA
+000B46  1  29 0F                AND     #$0F
+000B48  1  18                   CLC
+000B49  1  69 30                ADC     #'0'
+000B4B  1  8D 7F 0E             STA     RTC_PRINT_BUFFER+16
+000B4E  1               
+000B4E  1               ;	{ Read minutes }
+000B4E  1               
+000B4E  1  A2 01                LDX     #$01            ; minutes register in DS1302
+000B50  1  A9 33                LDA     #51             ; rtc_read
+000B52  1  85 32                STA     farfunct
+000B54  1  20 F0 FF             JSR     DO_FARCALL
+000B57  1               ; read value from DS1302, value is in Reg C
+000B57  1  98                   TYA
+000B58  1  48                   PHA
+000B59  1               ; digit 13
+000B59  1  18                   CLC
+000B5A  1  4A                   LSR     A
+000B5B  1  4A                   LSR     A
+000B5C  1  4A                   LSR     A
+000B5D  1  4A                   LSR     A
+000B5E  1  29 07                AND     #$07
+000B60  1  18                   CLC
+000B61  1  69 30                ADC     #'0'
+000B63  1  8D 7B 0E             STA     RTC_PRINT_BUFFER+12
+000B66  1               
+000B66  1               ; digit 14
+000B66  1  68                   PLA
+000B67  1  29 0F                AND     #$0F
+000B69  1  18                   CLC
+000B6A  1  69 30                ADC     #'0'
+000B6C  1  8D 7C 0E             STA     RTC_PRINT_BUFFER+13
+000B6F  1               
+000B6F  1               ; digit 15
+000B6F  1  A9 3A                LDA     #':'
+000B71  1  8D 7D 0E             STA     RTC_PRINT_BUFFER+14
+000B74  1               
+000B74  1               ; digits 1-12 and 18-20 are spaces
+000B74  1  A9 20                LDA     #' '            ; space
+000B76  1  8D 82 0E             STA     RTC_PRINT_BUFFER+19
+000B79  1  8D 81 0E             STA     RTC_PRINT_BUFFER+18
+000B7C  1  8D 80 0E             STA     RTC_PRINT_BUFFER+17
+000B7F  1  8D 7A 0E             STA     RTC_PRINT_BUFFER+11
+000B82  1  8D 79 0E             STA     RTC_PRINT_BUFFER+10
+000B85  1  8D 78 0E             STA     RTC_PRINT_BUFFER+09
+000B88  1  8D 77 0E             STA     RTC_PRINT_BUFFER+08
+000B8B  1  8D 76 0E             STA     RTC_PRINT_BUFFER+07
+000B8E  1  8D 75 0E             STA     RTC_PRINT_BUFFER+06
+000B91  1  8D 74 0E             STA     RTC_PRINT_BUFFER+05
+000B94  1  8D 73 0E             STA     RTC_PRINT_BUFFER+04
+000B97  1  8D 72 0E             STA     RTC_PRINT_BUFFER+03
+000B9A  1  8D 71 0E             STA     RTC_PRINT_BUFFER+02
+000B9D  1  8D 70 0E             STA     RTC_PRINT_BUFFER+01
+000BA0  1  8D 6F 0E             STA     RTC_PRINT_BUFFER+00
+000BA3  1               
+000BA3  1  A9 6F                LDA     #<RTC_PRINT_BUFFER
+000BA5  1  A0 0E                LDY     #>RTC_PRINT_BUFFER
+000BA7  1  A2 09                LDX     #9              ;MESSAGE
+000BA9  1  20 03 01             JSR     PEM
+000BAC  1               
+000BAC  1  A2 01                LDX     #01             ; CP/M console input call
+000BAE  1  20 03 01             JSR     PEM
+000BB1  1               
+000BB1  1  C9 20                CMP     #' '            ; space
+000BB3  1  D0 03                BNE     :+
+000BB5  1  4C 2D 0B             JMP     RTC_TOP_LOOP_RAW1
+000BB8  1               :
+000BB8  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000BBB  1               
+000BBB  1               RTC_TOP_LOOP_LOOP:
+000BBB  1  A9 F7                LDA     #<RTC_TOP_LOOP1_LOOP
+000BBD  1  A0 0D                LDY     #>RTC_TOP_LOOP1_LOOP
+000BBF  1  A2 09                LDX     #9              ;MESSAGE
+000BC1  1  20 03 01             JSR     PEM
+000BC4  1               
+000BC4  1               
+000BC4  1               RTC_TOP_LOOP_LOOP1:
+000BC4  1  20 2A 08             JSR     RTC_GET_TIME
+000BC7  1               
+000BC7  1  A9 6F                LDA     #<RTC_PRINT_BUFFER;SEND
+000BC9  1  A0 0E                LDY     #>RTC_PRINT_BUFFER
+000BCB  1  A2 09                LDX     #9              ;MESSAGE
+000BCD  1  20 03 01             JSR     PEM
+000BD0  1               
+000BD0  1  A2 01                LDX     #01             ; CP/M console input call
+000BD2  1  20 03 01             JSR     PEM
+000BD5  1               
+000BD5  1  C9 20                CMP     #' '
+000BD7  1  4C C4 0B             JMP     RTC_TOP_LOOP_LOOP1
+000BDA  1               
+000BDA  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000BDD  1               
+000BDD  1               RTC_TOP_LOOP_SET:
+000BDD  1  20 0A 09             JSR     RTC_SET
+000BE0  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000BE3  1               
+000BE3  1               RTC_TOP_LOOP_DELAY:
+000BE3  1  20 2E 0A             JSR     RTC_TEST_BIT_DELAY
+000BE6  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000BE9  1               
+000BE9  1               RTC_TOP_LOOP_HELP:
+000BE9  1  20 4E 0A             JSR     RTC_HELP
+000BEC  1  4C 6D 0A             JMP     RTC_TOP_LOOP_1
+000BEF  1               
+000BEF  1               ;
+000BEF  1               ; Text Strings
+000BEF  1               ;
+000BEF  1               MSG:
+000BEF  1  53 74 61 72          .BYTE   "Start Real Time Clock Program"
+000BF3  1  74 20 52 65  
+000BF7  1  61 6C 20 54  
+000C0C  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000C0E  1  24                   .BYTE   "$"             ; Line terminator
+000C0F  1               
+000C0F  1               CRLF_MSG:
+000C0F  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000C11  1  24                   .BYTE   "$"             ; Line terminator
+000C12  1               
+000C12  1               TESTING_BIT_DELAY_MSG:
+000C12  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000C14  1  54 65 73 74          .BYTE   "Testing bit delay.  Successful test is approximately xx seconds."
+000C18  1  69 6E 67 20  
+000C1C  1  62 69 74 20  
+000C54  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000C56  1  53 74 61 72          .BYTE   "Start clock and press space bar to continue."
+000C5A  1  74 20 63 6C  
+000C5E  1  6F 63 6B 20  
+000C82  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000C84  1  24                   .BYTE   "$"             ; Line terminator
+000C85  1               
+000C85  1               TESTING_BIT_DELAY_OVER:
+000C85  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000C87  1  54 65 73 74          .BYTE   "Test complete.  Stop clock."
+000C8B  1  20 63 6F 6D  
+000C8F  1  70 6C 65 74  
+000CA2  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000CA4  1  24                   .BYTE   "$"             ; Line terminator
+000CA5  1               
+000CA5  1               RTC_HELP_MSG:
+000CA5  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000CA7  1  52 54 43 3A          .BYTE   "RTC: Version 1.0"
+000CAB  1  20 56 65 72  
+000CAF  1  73 69 6F 6E  
+000CB7  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000CB9  1  52 54 43 3A          .BYTE   "RTC: Commands: (E)xit (T)ime st(A)rt (S)et (R)aw (L)oop (C)harge"
+000CBD  1  20 43 6F 6D  
+000CC1  1  6D 61 6E 64  
+000CF9  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000CFB  1  20 20 20 20          .BYTE   "               (N)ocharge (D)elay (H)elp"
+000CFF  1  20 20 20 20  
+000D03  1  20 20 20 20  
+000D23  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D25  1  24                   .BYTE   "$"             ; Line terminator
+000D26  1               
+000D26  1               RTC_TOP_LOOP1_MSG:
+000D26  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D28  1  52 54 43 3A          .BYTE   "RTC: trickle charger disabled."
+000D2C  1  20 74 72 69  
+000D30  1  63 6B 6C 65  
+000D46  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D48  1  24                   .BYTE   "$"             ; Line terminator
+000D49  1               
+000D49  1               RTC_TOP_LOOP1_PROMPT:
+000D49  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D4B  1  52 54 43 3E          .BYTE   "RTC>"
+000D4F  1  24                   .BYTE   "$"             ; Line terminator
+000D50  1               
+000D50  1               RTC_TOP_LOOP1_CHARGE:
+000D50  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D52  1  54 72 69 63          .BYTE   "Trickle charger enabled."
+000D56  1  6B 6C 65 20  
+000D5A  1  63 68 61 72  
+000D6A  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D6C  1  24                   .BYTE   "$"             ; Line terminator
+000D6D  1               
+000D6D  1               RTC_TOP_LOOP1_NOCHARGE:
+000D6D  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D6F  1  54 72 69 63          .BYTE   "Trickle charger disabled."
+000D73  1  6B 6C 65 20  
+000D77  1  63 68 61 72  
+000D88  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D8A  1  24                   .BYTE   "$"             ; Line terminator
+000D8B  1               
+000D8B  1               RTC_TOP_LOOP1_START:
+000D8B  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D8D  1  52 65 73 74          .BYTE   "Restarting RTC."
+000D91  1  61 72 74 69  
+000D95  1  6E 67 20 52  
+000D9C  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000D9E  1  24                   .BYTE   "$"             ; Line terminator
+000D9F  1               
+000D9F  1               RTC_TOP_LOOP1_TIME:
+000D9F  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000DA1  1  43 75 72 72          .BYTE   "Current time: "
+000DA5  1  65 6E 74 20  
+000DA9  1  74 69 6D 65  
+000DAF  1  24                   .BYTE   "$"             ; Line terminator
+000DB0  1               
+000DB0  1               RTC_TOP_LOOP1_RAW:
+000DB0  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000DB2  1  52 61 77 20          .BYTE   "Raw read Loop.  Press SPACE BAR for next or any other key to stop."
+000DB6  1  72 65 61 64  
+000DBA  1  20 4C 6F 6F  
+000DF4  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000DF6  1  24                   .BYTE   "$"             ; Line terminator
+000DF7  1               
+000DF7  1               RTC_TOP_LOOP1_LOOP:
+000DF7  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000DF9  1  43 6C 6F 63          .BYTE   "Clock Loop.  Press SPACE BAR for next or any other key to stop."
+000DFD  1  6B 20 4C 6F  
+000E01  1  6F 70 2E 20  
+000E38  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000E3A  1  24                   .BYTE   "$"             ; Line terminator
+000E3B  1               
+000E3B  1               RTC_TOP_LOOP1_SET_TIME:
+000E3B  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000E3D  1  54 49 4D 45          .BYTE   "TIME (HH:MM)>"
+000E41  1  20 28 48 48  
+000E45  1  3A 4D 4D 29  
+000E4A  1  24                   .BYTE   "$"             ; Line terminator
+000E4B  1               
+000E4B  1               RTC_TOP_LOOP1_SET_DATE:
+000E4B  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000E4D  1  44 41 54 45          .BYTE   "DATE (MM/DD/YY)>"
+000E51  1  20 28 4D 4D  
+000E55  1  2F 44 44 2F  
+000E5D  1  24                   .BYTE   "$"             ; Line terminator
+000E5E  1               
+000E5E  1               
+000E5E  1               RTC_TOP_LOOP1_OTHER1:
+000E5E  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000E60  1  59 4F 55 20          .BYTE   "YOU TYPED: "
+000E64  1  54 59 50 45  
+000E68  1  44 3A 20     
+000E6B  1  24                   .BYTE   "$"             ; Line terminator
+000E6C  1               
+000E6C  1               RTC_TOP_LOOP1_OTHER2:
+000E6C  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000E6E  1  24                   .BYTE   "$"             ; Line terminator
+000E6F  1               
+000E6F  1               RTC_PRINT_BUFFER:
+000E6F  1  20 20 20 20          .BYTE   "                     "; Buffer for formatted date & time to print
+000E73  1  20 20 20 20  
+000E77  1  20 20 20 20  
+000E84  1  0A 0D                .BYTE   $0A, $0D        ; line feed and carriage return
+000E86  1  24                   .BYTE   "$"             ; line terminator
+000E87  1               
+000E87  1               
+000E87  1               .end

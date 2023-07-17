@@ -22,14 +22,10 @@ UART5           = $036D         ; LINE STATUS
 UART6           = $036E         ; MODEM STATUS
 UART7           = $036F         ; SCRATCH REG.
 
-TEMPWORD        = $3B           ;
-TEMPWORD1       = $3D           ;
-TEMPWORD2       = $3F           ;
-STRPTR          = $41           ;
 
         .INCLUDE "../dos65_os/dosdefn.asm"; base addresses and definitions
 
-ROM_FARCALL     = farcall - md_pagecode + $0500
+ROM_FARCALL     = farcall - md_pagecode + MD_PAGERA
 
         .SEGMENT "SROM"
 
@@ -51,8 +47,10 @@ COLD_START:
         STA     IRQVECTOR+1
         STA     NMIVECTOR+1
 
-        JSR     INIT_SERIAL
         JSR     PAGER_INIT
+
+        LDA     #$04            ; SET SERIAL DEFAULT CONSOLE
+        STA     CONSOLE
 
         LDA     #<STARTUP       ; OUTPUT STARTUP STRING
         STA     STRPTR          ;
@@ -125,6 +123,7 @@ IOF_CONINW:
         STA     farfunct
         JMP     DO_FARCALL
 
+
 ;__IOF_CONIN_____________________________________________________________________________________________
 ;
 ; PERFORM NON-BLOCKING CONSOLE READ
@@ -147,6 +146,7 @@ IOF_OUTCH:
         JSR     DO_FARCALL
         PLA
         RTS
+
 
 ;__OUTSTR______________________________________________________
 ;
@@ -188,12 +188,12 @@ STARTUP:
         .BYTE   "* 65c02 SuperMON ",$0D,$0A,$00
 
         .SEGMENT "IVECTOR"
-    ;    .ORG    $FFF0
-        JMP     ROM_FARCALL   ;F0
-        JMP     LOADS19       ;F3
+;    .ORG    $FFF0
+        JMP     ROM_FARCALL     ;F0
+        JMP     LOADS19         ;F3
 
         .SEGMENT "VECTORS"
-    ;    .ORG    $FFFA
+;    .ORG    $FFFA
 NNTVECTOR:
         .WORD   NINTERRUPT      ;
 RSTVECTOR:

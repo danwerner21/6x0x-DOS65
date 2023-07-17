@@ -10,6 +10,7 @@
 ; ** K17 MUST BE OPEN FOR PAGED MEMORY TO OPERATE ON THE 6502 CPU
 
         .INCLUDE "bios_defines.asm"
+        .INCLUDE "../dos65_os/dosdefn.asm"; base addresses and definitions
 
 STARTOS         = $B800
 
@@ -271,7 +272,7 @@ STARTUP:
 
         .SEGMENT "IVECTOR"
         .ORG    $FFF0
-        JMP     DO_FARCALL
+        JMP     DO_FARCALL_ACTUAL
         JMP     LOADS19
 
         .SEGMENT "VECTORS"

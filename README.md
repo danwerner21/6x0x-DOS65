@@ -11,6 +11,14 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
+
+Nhyodyne port issues --  dos/65 issues
+* mem disks-- NEED DIFFERENT DCB FROM THE SD DISKS IN THE 6X0X
+** PROBABLY NEED TO MOVE THE DRIVE TABLE TO THE DEVICE SPECIFIC FOLDER
+** BIN FOLDER NEEDS A HEIRARCHY
+* UPDATE docs FOR NHYODYNE
+
+
 1. add dbasic docs
 1. add xmr & xms docs
 1. add FORMAT.COM docs
@@ -22,7 +30,7 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. add building a custom rom image to readme
 1. add images of backplane in an atx case
 1. add 6x0x backplane repo to wiki
-1. MD support
+1. MD support FOR 6X0X
 
 1. IO ASSIGNMENT?
  * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)

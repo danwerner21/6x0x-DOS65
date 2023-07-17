@@ -5,6 +5,7 @@
 ;________________________________________________________________________________________________________________________________
 ;
         .INCLUDE "../6X0X_FIRMWARE/BIOS_DEFINES.ASM"
+        .INCLUDE "../dos65_os/dosdefn.asm"; base addresses and definitions
 
 ;
 DFLFCB          = $107          ;DEFAULT FCB
@@ -19,8 +20,7 @@ MAXCOL          = 80
 USEDSKYNG       = 0
 USEDSKY         = 0
 
-OUTMSG_W        = $F0
-STACKA          = $3A
+
 DENS            = 2             ; DENSITY
 EOTSEC          = 09            ; LAST SECTOR OF TRACK
 

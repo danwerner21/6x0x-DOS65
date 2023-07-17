@@ -61,7 +61,7 @@ PAGE_ENTER:
         RTS
 
 
-DO_FARCALL:
+DO_FARCALL_ACTUAL:
         JSR     PAGE_ENTER
         JSR     FUNCTION_DISPATCHER
         JMP     PAGE_EXIT

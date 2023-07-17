@@ -69,14 +69,6 @@ MD_READ_SECTOR:
         ASL     a               ;
         AND     #%01011111      ; TOGGLE READ
         TAX                     ; STASH CONTROL WORD
-        LDA     seksec          ;
-        AND     #$01            ; GET SECTOR INDEX
-        CMP     #$00
-        BEQ     @1
-        TXA
-        ORA     #%10000000      ; TOGGLE TOP HALF OF PAGE
-        TAX
-@1:
         JSR     MD_CONVERT_SECTOR
         TXA
         AND     #%01000000
@@ -112,12 +104,6 @@ MD_WRITE_SECTOR:
 MD_WRITE_SECTOR_RAM:
         JSR     MD_CONVERT_SECTOR
         LDX     #%00100000      ; TOGGLE WRITE RAM (LO)
-        LDA     seksec          ;
-        AND     #$01            ; GET SECTOR INDEX
-        CMP     #$00
-        BEQ     @1
-        LDX     #%10100000      ; TOGGLE WRITE RAM (HI)
-@1:
         LDA     debcyll         ; GET BANK
         LDY     debsehd         ; GET PAGE
         PRTDBG  "DO PAGER WR$"
@@ -137,7 +123,7 @@ MD_CONVERT_SECTOR:
         PHA
         LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
         LSR     A               ; DIVIDE BY 2 (FOR BLOCKING)
-        AND     #$1F            ; CLEAR UPPER 3 BITS (JUST 'CAUSE)
+        AND     #$1E            ; CLEAR UPPER 3 BITS AND ALWAYS GET EVENS (TO MAKE DEBLOCKING WORK PROPERLY)
         STA     debsehd         ; STORE IN SECTOR/HEAD
         LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
         AND     #$03            ; BOTTOM 2 BITS ARE PART OF PAGE (PAGES ARE 32k)

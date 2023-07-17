@@ -76,6 +76,12 @@ farpointer      = $33           ;
 IRQVECTOR       = $35           ; VECTOR FOR USER IRQ RTN
 NMIVECTOR       = $37           ; VECTOR FOR USER NMI RTN
 CONSOLE         = $3A
+TEMPWORD        = $3B           ;
+TEMPWORD1       = $3D           ;
+TEMPWORD2       = $3F           ;
+STRPTR          = $41           ;
+DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
+
 
 DO_FARCALL      = $FFF0
 
@@ -108,6 +114,6 @@ delete          = $08           ;delete character
 numcmd          = 36            ;number commands
 DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
 
-    .DEFINE COMSUFFIX "COM"
+        .DEFINE COMSUFFIX "COM"
 DEBUG           = 0
 BANKED_DRIVER_DISPATCHER=$8800
