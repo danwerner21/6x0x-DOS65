@@ -12,8 +12,10 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 ## todo:
 * UPDATE docs FOR NHYODYNE
+* Make format system independent
 * Add RTC support for NHYODYNE
 * Add ROM support for NHYODYNE
+* re-test entire system for both targets
 
 1. add dbasic docs
 1. add xmr & xms docs

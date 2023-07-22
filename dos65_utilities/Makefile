@@ -1,16 +1,16 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com cpm.co6 \
-	dbasic.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com
+	dbasic.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com clrdir.s19
 
 assign.com: assign.c
 	cc65  -t none -O --cpu 6502  assign.c
 	ca65 --cpu 6502  assign.s
 	ld65 assign.o  ./rbc/rbc.lib -m assign.map -C dos65c.cfg -o assign.com
 	srec_cat  assign.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  assign.s19  -data-only
-	cp assign.com ../bin/
+	cp assign.com ../bin/common/
 	sed -i -e '$$aS9' assign.s19
-	cp assign.s19 ../bin/
+	cp assign.s19 ../bin/common/
 
 alloc.out: alloc203.asm
 	ca65 --cpu 6502 alloc203.asm -l alloc.lst
@@ -23,6 +23,10 @@ bcompile.out: compl203.asm
 asm.out: asm211.asm
 	ca65 --cpu 6502 asm211.asm -l asm.lst
 	ld65 asm211.o  -m asm.map -C dos65.cfg -o asm.out
+
+clrdir.out: clrdir.asm
+	ca65 clrdir.asm -l clrdir.lst
+	ld65 clrdir.o -vm -v -m clrdir.map -C dos65.cfg -o clrdir.out
 
 compare.out: compr202.asm
 	ca65 --cpu 6502 compr202.asm -l compare.lst
@@ -57,9 +61,9 @@ nvset.com: nvset.c
 	ca65 --cpu 6502  nvset.s
 	ld65 nvset.o  ./rbc/rbc.lib -m nvset.map -C dos65c.cfg -o nvset.com
 	srec_cat  nvset.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  nvset.s19  -data-only
-	cp nvset.com ../bin/
+	cp nvset.com ../bin/common/
 	sed -i -e '$$aS9' nvset.s19
-	cp nvset.s19 ../bin/
+	cp nvset.s19 ../bin/common/
 
 run.out: run205.asm
 	ca65 --cpu 6502 run205.asm -l run.lst
@@ -87,8 +91,8 @@ alloc.com: alloc.out
 	srec_cat  allocA.s -o alloc.com  -BINARY
 	@rm -f allocA.s
 	sed -i -e '$$aS9' alloc.s19
-	cp alloc.com ../bin/
-	cp alloc.s19 ../bin/
+	cp alloc.com ../bin/common/
+	cp alloc.s19 ../bin/common/
 
 bcompile.com: bcompile.out
 	srec_cat  bcompile.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  bcompile.s19  -data-only
@@ -96,8 +100,8 @@ bcompile.com: bcompile.out
 	srec_cat  bcompileA.s -o bcompile.com  -BINARY
 	@rm -f bcompileA.s
 	sed -i -e '$$aS9' bcompile.s19
-	cp bcompile.com ../bin/
-	cp bcompile.s19 ../bin/
+	cp bcompile.com ../bin/common/
+	cp bcompile.s19 ../bin/common/
 
 asm.com: asm.out
 	srec_cat  asm.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  asm.s19  -data-only
@@ -105,8 +109,13 @@ asm.com: asm.out
 	srec_cat  asmA.s -o asm.com  -BINARY
 	@rm -f asmA.s
 	sed -i -e '$$aS9' asm.s19
-	cp asm.com ../bin/
-	cp asm.s19 ../bin/
+	cp asm.com ../bin/common/
+	cp asm.s19 ../bin/common/
+
+clrdir.s19: clrdir.out
+	srec_cat  clrdir.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  clrdir.s19  -data-only
+	sed -i -e '$$aS9' clrdir.s19
+	cp clrdir.s19 ../bin/common/
 
 compare.com: compare.out
 	srec_cat  compare.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  compare.s19  -data-only
@@ -114,8 +123,8 @@ compare.com: compare.out
 	srec_cat  compareA.s -o compare.com  -BINARY
 	@rm -f compareA.s
 	sed -i -e '$$aS9' compare.s19
-	cp compare.com ../bin/
-	cp compare.s19 ../bin/
+	cp compare.com ../bin/common/
+	cp compare.s19 ../bin/common/
 
 copy.com: copy.out
 	srec_cat  copy.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  copy.s19  -data-only
@@ -123,8 +132,8 @@ copy.com: copy.out
 	srec_cat  copyA.s -o copy.com  -BINARY
 	@rm -f copyA.s
 	sed -i -e '$$aS9' copy.s19
-	cp copy.com ../bin/
-	cp copy.s19 ../bin/
+	cp copy.com ../bin/common/
+	cp copy.s19 ../bin/common/
 
 cpm.co6: cpm.out
 	srec_cat  cpm.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  cpm.s19  -data-only
@@ -132,8 +141,8 @@ cpm.co6: cpm.out
 	srec_cat  cpmA.s -o cpm.co6  -BINARY
 	@rm -f cpmA.s
 	sed -i -e '$$aS9' cpm.s19
-	cp cpm.co6 ../bin/
-	cp cpm.s19 ../bin/
+	cp cpm.co6 ../bin/nhyodyne/
+	cp cpm.s19 ../bin/nhyodyne/
 
 debug.com: debug.out
 	srec_cat  debug.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  debug.s19  -data-only
@@ -141,8 +150,8 @@ debug.com: debug.out
 	srec_cat  debugA.s -o debug.com  -BINARY
 	@rm -f debugA.s
 	sed -i -e '$$aS9' debug.s19
-	cp debug.com ../bin/
-	cp debug.s19 ../bin/
+	cp debug.com ../bin/common/
+	cp debug.s19 ../bin/common/
 
 dbasic.com: dbasic.out
 	srec_cat  dbasic.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  dbasic.s19  -data-only
@@ -150,8 +159,8 @@ dbasic.com: dbasic.out
 	srec_cat  dbasicA.s -o dbasic.com  -BINARY
 	@rm -f dbasicA.s
 	sed -i -e '$$aS9' dbasic.s19
-	cp dbasic.com ../bin/
-	cp dbasic.s19 ../bin/
+	cp dbasic.com ../bin/common/
+	cp dbasic.s19 ../bin/common/
 
 edit.com: edit.out
 	srec_cat  edit.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  edit.s19  -data-only
@@ -159,8 +168,8 @@ edit.com: edit.out
 	srec_cat  editA.s -o edit.com  -BINARY
 	@rm -f editA.s
 	sed -i -e '$$aS9' edit.s19
-	cp edit.com ../bin/
-	cp edit.s19 ../bin/
+	cp edit.com ../bin/common/
+	cp edit.s19 ../bin/common/
 
 format.com: format.out
 	srec_cat  format.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  format.s19  -data-only
@@ -168,8 +177,8 @@ format.com: format.out
 	srec_cat  formatA.s -o format.com  -BINARY
 	@rm -f formatA.s
 	sed -i -e '$$aS9' format.s19
-	cp format.com ../bin/
-	cp format.s19 ../bin/
+	cp format.com ../bin/common/
+	cp format.s19 ../bin/common/
 
 run.com: run.out
 	srec_cat  run.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  run.s19  -data-only
@@ -177,8 +186,8 @@ run.com: run.out
 	srec_cat  runA.s -o run.com  -BINARY
 	@rm -f runA.s
 	sed -i -e '$$aS9' run.s19
-	cp run.com ../bin/
-	cp run.s19 ../bin/
+	cp run.com ../bin/common/
+	cp run.s19 ../bin/common/
 
 sedit.com: sedit.out
 	srec_cat  sedit.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  sedit.s19  -data-only
@@ -186,8 +195,8 @@ sedit.com: sedit.out
 	srec_cat  seditA.s -o sedit.com  -BINARY
 	@rm -f seditA.s
 	sed -i -e '$$aS9' sedit.s19
-	cp sedit.com ../bin/
-	cp sedit.s19 ../bin/
+	cp sedit.com ../bin/common/
+	cp sedit.s19 ../bin/common/
 
 s19.com: s19.out
 	srec_cat  s19.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  s19.s19  -data-only
@@ -195,8 +204,8 @@ s19.com: s19.out
 	srec_cat  s19A.s -o s19.com  -BINARY
 	@rm -f s19A.s
 	sed -i -e '$$aS9' s19.s19
-	cp s19.com ../bin/
-	cp s19.s19 ../bin/
+	cp s19.com ../bin/common/
+	cp s19.s19 ../bin/common/
 
 writeos.com: writeos.out
 	srec_cat  writeos.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  writeos.s19  -data-only
@@ -204,8 +213,8 @@ writeos.com: writeos.out
 	srec_cat  writeosA.s -o writeos.com  -BINARY
 	@rm -f writeosA.s
 	sed -i -e '$$aS9' writeos.s19
-	cp writeos.com ../bin/
-	cp writeos.s19 ../bin/
+	cp writeos.com ../bin/common/
+	cp writeos.s19 ../bin/common/
 
 rtc.com: rtc.out
 	srec_cat  rtc.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  rtc.s19  -data-only
@@ -213,26 +222,26 @@ rtc.com: rtc.out
 	srec_cat  rtcA.s -o rtc.com  -BINARY
 	@rm -f rtcA.s
 	sed -i -e '$$aS9' rtc.s19
-	cp rtc.com ../bin/
-	cp rtc.s19 ../bin/
+	cp rtc.com ../bin/6x0x/
+	cp rtc.s19 ../bin/6x0x/
 
 xmr.com: xmr.c
 	cc65  -t none -O --cpu 6502  xmr.c
 	ca65 --cpu 6502  xmr.s
 	ld65 xmr.o  ./rbc/rbc.lib -m xmr.map -C dos65c.cfg -o xmr.com
 	srec_cat  xmr.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  xmr.s19  -data-only
-	cp xmr.com ../bin/
+	cp xmr.com ../bin/common/
 	sed -i -e '$$aS9' xmr.s19
-	cp xmr.s19 ../bin/
+	cp xmr.s19 ../bin/common/
 
 xms.com: xms.c
 	cc65  -t none -O --cpu 6502  xms.c
 	ca65 --cpu 6502  xms.s
 	ld65 xms.o  ./rbc/rbc.lib -m xms.map -C dos65c.cfg -o xms.com
 	srec_cat  xms.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  xms.s19  -data-only
-	cp xms.com ../bin/
+	cp xms.com ../bin/common/
 	sed -i -e '$$aS9' xms.s19
-	cp xms.s19 ../bin/
+	cp xms.s19 ../bin/common/
 
 pretty:
 	cp *.asm ./backup
@@ -250,6 +259,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/s19.asm s19.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/writeos.asm writeos.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/rtc.asm rtc.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/clrdir.asm clrdir.asm
 
 clean:
 	@rm -f *.o

@@ -12,12 +12,12 @@ dos65_d000.out: dos65.asm ccm215.asm pemrbc.asm simrbc.asm dosdefn.asm macro.asm
 dos65_b800.s19: dos65_b800.out
 	srec_cat  dos65_b800.out -binary -offset 0x0100 -exclude 0x0000 0xB800 -o  dos65_b800.s19  -data-only
 	sed -i -e '$$aS9' dos65_b800.s19
-	cp dos65_b800.s19 ../bin/
+	cp dos65_b800.s19 ../bin/6x0x/
 
 dos65_d000.s19: dos65_d000.out
 	srec_cat  dos65_d000.out -binary -offset 0x0100 -exclude 0x0000 0xD000 -o  dos65_d000.s19  -data-only
 	sed -i -e '$$aS9' dos65_d000.s19
-	cp dos65_d000.s19 ../bin/
+	cp dos65_d000.s19 ../bin/nhyodyne/
 
 pretty:
 	cp *.asm ./backup

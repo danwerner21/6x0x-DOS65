@@ -33,14 +33,14 @@ dos65.com: ../dos65_os/dos65_d000.out zloader.bin com.s19
 	@rm -f dos651.s1
 	@rm -f com.s
 	@rm -f dos65.bin
-	cp dos65.com ../bin/
+	cp dos65.com ../bin/nhyodyne/
 
 dos65drv.sys: dos65drv.out
 	srec_cat  dos65drv.out -binary -exclude 0x0000 0x8800 -o  dos65drv.s19  -data-only
 	srec_cat  dos65drv.s19  -offset -0x8800  -o  dos65drvA.s  -data-only
 	srec_cat  dos65drvA.s -o dos65drv.sys  -BINARY
 	@rm -f dos65drvA.s
-	cp dos65drv.sys ../bin/
+	cp dos65drv.sys ../bin/nhyodyne/
 
 dos65drv.rom: dos65drvr.out
 	srec_cat  dos65drvr.out -binary -exclude 0x0000 0x8800 -o  dos65drvr.s19  -data-only
@@ -57,7 +57,7 @@ rom.bin: rom.asm dos65drv.rom  ../supermon/supermon.asm dospager.asm ../dos65_os
 	@rm rom.s1
 	@rm rom.o
 	@rm romB.s
-	cp rom.bin ../bin/mbcrom.bin
+	cp rom.bin ../bin/nhyodyne/mbcrom.bin
 
 
 pretty:
@@ -70,6 +70,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dosdskyn.asm dosdskyn.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dosflp.asm dosflp.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/doside.asm doside.asm
+
 
 clean:
 	@rm -f *.o
