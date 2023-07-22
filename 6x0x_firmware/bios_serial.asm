@@ -150,9 +150,9 @@ RDSER1W:
 SERIALSTATUS:
         LDA     UART1STATUS     ; GET STATUS REGISTER
         AND     #%00001000      ; IS RX READY
-        BNE     RDSTAT1         ; NO, INDICATE NO CHAR
-        LDA     #$00            ; GET DATA CHAR
+        BNE     RDSTAT1         ; INDICATE CHAR
+        LDA     #$00            ; NO CHAR
         RTS
 RDSTAT1:
-        LDA     #$FF            ; GET DATA CHAR
+        LDA     #$FF            ; DATA CHAR
         RTS

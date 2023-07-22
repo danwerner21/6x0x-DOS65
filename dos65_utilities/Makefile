@@ -1,6 +1,6 @@
 
 all:  	assign.com alloc.com asm.com \
-	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com \
+	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com cpm.co6 \
 	dbasic.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com
 
 assign.com: assign.c
@@ -31,6 +31,10 @@ compare.out: compr202.asm
 copy.out: copy201.asm
 	ca65 --cpu 6502 copy201.asm -l copy.lst
 	ld65 copy201.o  -m copy.map -C dos65.cfg -o copy.out
+
+cpm.out: cpm.asm
+	ca65 --cpu 6502 cpm.asm -l cpm.lst
+	ld65 cpm.o  -m cpm.map -C dos65.cfg -o cpm.out
 
 dbasic.out: dbasic.asm
 	ca65 --cpu 6502 dbasic.asm -l dbasic.lst
@@ -121,6 +125,15 @@ copy.com: copy.out
 	sed -i -e '$$aS9' copy.s19
 	cp copy.com ../bin/
 	cp copy.s19 ../bin/
+
+cpm.co6: cpm.out
+	srec_cat  cpm.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  cpm.s19  -data-only
+	srec_cat  cpm.s19  -offset -0x0800  -o  cpmA.s  -data-only
+	srec_cat  cpmA.s -o cpm.co6  -BINARY
+	@rm -f cpmA.s
+	sed -i -e '$$aS9' cpm.s19
+	cp cpm.co6 ../bin/
+	cp cpm.s19 ../bin/
 
 debug.com: debug.out
 	srec_cat  debug.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  debug.s19  -data-only

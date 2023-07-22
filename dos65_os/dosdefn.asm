@@ -114,6 +114,14 @@ delete          = $08           ;delete character
 numcmd          = 36            ;number commands
 DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
 
+
+        .IFDEF RBC6X0X
         .DEFINE COMSUFFIX "COM"
+        .ENDIF
+
+        .IFDEF NHYODYNE
+        .DEFINE COMSUFFIX "CO6"
+        .ENDIF
+
 DEBUG           = 0
 BANKED_DRIVER_DISPATCHER=$8800

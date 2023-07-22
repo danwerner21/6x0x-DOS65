@@ -58,7 +58,7 @@ COLD_START:
         STA     STRPTR+1        ;
         JSR     OUTSTR          ;
 
-
+        JMP     $D000           ; START DOS/65
 
 ;
         BRK                     ; PERFORM BRK (START MONITOR)

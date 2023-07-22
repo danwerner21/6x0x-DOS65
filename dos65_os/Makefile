@@ -2,11 +2,11 @@
 all:  	dos65_b800.out dos65_d000.out dos65_b800.s19 dos65_d000.s19
 
 dos65_b800.out: dos65.asm ccm215.asm pemrbc.asm simrbc.asm dosdefn.asm macro.asm
-	ca65 -D DOSBEGIN=47104  dos65.asm -l dos65_b800.lst -o dos65_b800.o
+	ca65 -D DOSBEGIN=47104  -D RBC6X0X  dos65.asm -l dos65_b800.lst -o dos65_b800.o
 	ld65 dos65_b800.o -m dos65_b800.map -C dos65_b800.cfg -o dos65_b800.out
 
 dos65_d000.out: dos65.asm ccm215.asm pemrbc.asm simrbc.asm dosdefn.asm macro.asm
-	ca65 -D DOSBEGIN=53248 dos65.asm -l dos65_d000.lst -o dos65_d000.o
+	ca65 -D DOSBEGIN=53248 -D NHYODYNE  dos65.asm -l dos65_d000.lst -o dos65_d000.o
 	ld65 dos65_d000.o -m dos65_d000.map -C dos65_d000.cfg -o dos65_d000.out
 
 dos65_b800.s19: dos65_b800.out

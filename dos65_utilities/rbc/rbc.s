@@ -35,19 +35,22 @@ _cgetc:
 
 _cputserial:
                 sta     tmpsave
-:
-                LDA     UART1STATUS     ; GET STATUS
-                AND     #%00010000      ; IS TX READY
-                BEQ     :-              ; NO, WAIT FOR IT
-                lda     tmpsave
-                STA     UART1DATA       ; WRITE DATA
-                rts
+                LDA     #04
+                STA     farfunct
+                LDA     tmpsave
+                JMP     DO_FARCALL
+
 
 _cgetserial:
-                LDA     UART1STATUS     ; GET STATUS REGISTER
-                AND     #%00001000      ; IS RX READY
-                BEQ     :+              ; NO, INDICATE NO CHAR
-                LDA     UART1DATA       ; GET DATA CHAR
+                LDA     #07             ; get status
+                STA     farfunct
+                JSR     DO_FARCALL
+                CMP     #$FF
+                BNE     :+              ; NO, INDICATE NO CHAR
+
+                LDA     #05
+                STA     farfunct
+                JSR     DO_FARCALL
                 LDX     #$00            ; set high bit to 0
                 RTS
 :
