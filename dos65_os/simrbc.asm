@@ -806,6 +806,94 @@ dftdskcfg:
 
         .ENDIF
 
+;__________________________________________________________________________________________________________________________________
+        .IFDEF DUODYNE
+dcba:
+            .WORD   127             ;max block number
+            .WORD   64              ;sectors per track
+            .WORD   0               ;number system tracks
+            .BYTE   1               ;block size = 2048
+            .WORD   255             ;max directory number
+            .WORD   almpa           ;address of map for a
+            .BYTE   00              ;do checksums
+            .WORD   ckmp            ;checksum map
+dcbb:
+            .WORD   191             ;max block number
+            .WORD   64              ;sectors per track
+            .WORD   0               ;number system tracks
+            .BYTE   1               ;block size = 2048
+            .WORD   155             ;max directory number
+            .WORD   almpb           ;address of map for b
+            .BYTE   00              ;do checksums
+            .WORD   ckmp            ;checksum map
+dcbc:
+            .WORD   2047            ;max block number
+            .WORD   64              ;sectors per track
+            .WORD   16              ;number system tracks
+            .BYTE   2               ;block size = 4096
+            .WORD   511             ;max directory number
+            .WORD   almpc           ;address of map for C
+            .BYTE   0               ;do checksums
+            .WORD   ckmp            ;checksum map
+dcbd:
+            .WORD   350             ;max block number
+            .WORD   36              ;sectors per track
+            .WORD   4               ;number system tracks
+            .BYTE   1               ;block size = 2048
+            .WORD   127             ;max directory number
+            .WORD   almpd           ;address of map for d
+            .BYTE   0               ;do checksums
+            .WORD   ckmp            ;checksum map
+dcbe:
+            .WORD   350             ;max block number
+            .WORD   36              ;sectors per track
+            .WORD   4               ;number system tracks
+            .BYTE   1               ;block size = 2048
+            .WORD   127             ;max directory number
+            .WORD   almpe           ;address of map for e
+            .BYTE   0               ;do checksums
+            .WORD   ckmp            ;checksum map
+dcbf:
+            .WORD   2047            ;max block number
+            .WORD   64              ;sectors per track
+            .WORD   16              ;number system tracks
+            .BYTE   2               ;block size = 4096
+            .WORD   511             ;max directory number
+            .WORD   almpf           ;address of map for f
+            .BYTE   0               ;do checksums
+            .WORD   ckmp            ;checksum map
+dcbg:
+            .WORD   2047            ;max block number
+            .WORD   64              ;sectors per track
+            .WORD   16              ;number system tracks
+            .BYTE   2               ;block size = 4096
+            .WORD   511             ;max directory number
+            .WORD   almpg           ;address of map for g
+            .BYTE   0               ;do checksums
+            .WORD   ckmp            ;checksum map
+dcbh:
+            .WORD   2047            ;max block number
+            .WORD   64              ;sectors per track
+            .WORD   16              ;number system tracks
+            .BYTE   2               ;block size = 4096
+            .WORD   511             ;max directory number
+            .WORD   almph           ;address of map for h
+            .BYTE   0               ;do checksums
+            .WORD   ckmp            ;checksum map
+
+dftdskcfg:
+            .BYTE   $F0, $00        ; disk A: unit, slice (invalid for floppy and RAM disks)
+            .BYTE   $F1, $00        ; disk B: unit, slice (invalid for floppy and RAM disks)
+            .BYTE   $F0, $06        ; disk C: unit, slice
+            .BYTE   $F0, $00        ; disk D: unit, slice
+            .BYTE   $F1, $00        ; disk E: unit, slice
+            .BYTE   $F0, $03        ; disk F: unit, slice
+            .BYTE   $F0, $04        ; disk G: unit, slice
+            .BYTE   $F0, $00        ; disk H: unit, slice
+
+        .ENDIF
+
+
 ;allocation maps
 almpa:
         .RES    256
