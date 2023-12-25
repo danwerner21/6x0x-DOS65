@@ -58,17 +58,27 @@ opnmsg:
 opnmsg1:
         .BYTE   "88  .8D `8b  d8' db   8D 88' `8D     `8D ", cr, lf
         .BYTE   "Y8888D'  `Y88P'  `8888Y' `8888P  88oobY'", cr, lf
-        .BYTE   17, "DOS / 65 V3.00", cr, lf, 0
+        .BYTE   "DOS/65 V3.00", cr, lf, 0
 
 DSKYMSG:
         .BYTE   $54, $6E, $5C, $5E, $6E, $54, $79, $40
 
 ;cold entry from loader
 boot:
+        .IFDEF DUODYNE
+        CLD                     ; VERIFY DECIMAL MODE IS OFF
+        CLC                     ;
+        XCE                     ; SET NATIVE MODE
+        ACCUMULATORINDEX16
+        LDA     #STACK          ; get the stack address
+        TCS                     ; and set the stack to it
+        ACCUMULATORINDEX8
+        .ELSE
         SEI
         LDX     #$ff            ;set stack
         TXS                     ;pointer
         CLD                     ;set binary mode
+        .ENDIF
 
         LDA     #<opnmsg        ;point to message
         LDY     #>opnmsg
@@ -123,10 +133,8 @@ boot:
         STA     dcbpc + 1
 
 
-
-
 setup:
-;        LDX     #0              ;clear index
+        LDX     #0              ;clear index
 ;first clear key dba variables
 ;        STX     hstact          ;host buffer inactive
 ;        STX     unacnt          ;clear unalloc count
@@ -155,7 +163,7 @@ setupl:
         LDA     #DEFDRV         ;set zero
         JSR     seldsk          ;and select drive zero
         JSR     home            ;home that drive
-
+        LDA     #DEFDRV         ;set zero
         JMP     ccm             ;and go to ccm
 ;initialization table
 inttbl:
@@ -165,9 +173,12 @@ inttbl:
 
 
 wboot:
+        .IFNDEF DUODYNE
         SEI
         LDX     #$ff            ;set stack
         TXS                     ;pointer
+        .ENDIF
+
         CLD                     ;set binary mode
 
         JMP     setup           ;go setup
@@ -882,8 +893,8 @@ dcbh:
             .WORD   ckmp            ;checksum map
 
 dftdskcfg:
-            .BYTE   $F0, $00        ; disk A: unit, slice (invalid for floppy and RAM disks)
-            .BYTE   $F1, $00        ; disk B: unit, slice (invalid for floppy and RAM disks)
+            .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks)
+            .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks)
             .BYTE   $F0, $06        ; disk C: unit, slice
             .BYTE   $F0, $00        ; disk D: unit, slice
             .BYTE   $F1, $00        ; disk E: unit, slice

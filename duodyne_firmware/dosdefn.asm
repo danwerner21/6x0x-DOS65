@@ -82,8 +82,10 @@ TEMPWORD2       = $3F           ;
 STRPTR          = $41           ;
 DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
 
-
-DO_FARCALL      = $FFF0
+IO_AREA         = $00DF00
+OPTIONREGISTER  = IO_AREA+$51   ;   OPTION REG.
+STACK           = $5FFF         ;   POINTER TO TOP OF STACK
+DO_FARCALL      = $F200
 
 ;page zero and system ram assignments
 DEST            = $EC           ;pointer for OutMsg

@@ -1,0 +1,122 @@
+;__MD DRIVERS____________________________________________________________________________________________________________________
+;
+; 	Duodyne Memory disk drivers
+;
+;	Entry points:
+;		MD_SHOW         - called during OS init
+;		MD_READ_SECTOR  - read a sector from drive
+;		MD_WRITE_SECTOR - write a sector to drive
+;________________________________________________________________________________________________________________________________
+;
+; RAM BANK $1E is RAM area for Drivers
+; RAM BANK $1D is operating bank for DOS/65 $8000-$FFFF
+;
+; ROM BANKS $00 and $0C-$0F are reserved for ROMWBW code
+;
+
+
+;__MD_SHOW___________________________________________________________________________________________
+;
+;  Display info on MD devices
+;____________________________________________________________________________________________________
+;
+MD_SHOW:
+        PRTDBG  "MD INIT:$"
+        PRTS    "MD: UNITS=2 RAMDISK=256KB ROMDISK=384KB$"
+        JSR     NEWLINE
+        RTS
+
+;*__MD_READ_SECTOR____________________________________________________________________________________
+;*
+;*  READ MD SECTOR INTO BUFFER
+;*
+;*____________________________________________________________________________________________________
+MD_READ_SECTOR:
+        PRTDBG  "MD Read Sector$"
+        LDA     DSKUNIT
+        AND     #$01            ; only want drive cfg
+        ASL     a               ; SHIFT 6
+        ASL     a               ;
+        ASL     a               ;
+        ASL     a               ;
+        ASL     a               ;
+        ASL     a               ;
+        AND     #%01011111      ; TOGGLE READ
+        TAX                     ; STASH CONTROL WORD
+        JSR     MD_CONVERT_SECTOR
+        TXA
+        AND     #%01000000
+        CMP     #$00            ; read if ram
+        BEQ     :+
+        INC     debcyll         ; if rom, inc bank by 4 ()
+        INC     debcyll
+        INC     debcyll
+        INC     debcyll
+:
+        LDA     debcyll         ; GET BANK
+        LDY     debsehd         ; GET PAGE
+        PRTDBG  "DO PAGER RD$"
+        JSR     MD_PAGERA
+        PRTDBG  "PAGER RETURN$"
+        LDA     #$00
+        RTS
+
+
+;*__MD_WRITE_SECTOR___________________________________________________________________________________
+;*
+;*  WRITE MD SECTOR FROM BUFFER
+;*
+;*____________________________________________________________________________________________________
+MD_WRITE_SECTOR:
+        PRTDBG  "MD Write Sector$"
+        LDA     DSKUNIT
+        AND     #$01            ; only want drive cfg
+        CMP     #$00            ; NO WRITE FOR ROM
+        BEQ     MD_WRITE_SECTOR_RAM
+        LDA     #$FF
+        RTS
+MD_WRITE_SECTOR_RAM:
+        JSR     MD_CONVERT_SECTOR
+        LDX     #%00100000      ; TOGGLE WRITE RAM (LO)
+        LDA     debcyll         ; GET BANK
+        LDY     debsehd         ; GET PAGE
+        PRTDBG  "DO PAGER WR$"
+        JSR     MD_PAGERA
+        PRTDBG  "PAGER RETURN$"
+        LDA     #$00
+        RTS
+
+;___MD_CONVERT_SECTOR___________________________________________________________________________________
+;
+; 	TRANSLATE SECTORS INTO MD FORMAT
+;________________________________________________________________________________________________________
+MD_CONVERT_SECTOR:
+        PRTDBG  "CONVERT SECTOR$"
+        PHA
+        TXA
+        PHA
+        LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
+        LSR     A               ; DIVIDE BY 2 (FOR BLOCKING)
+        AND     #$1E            ; CLEAR UPPER 3 BITS AND ALWAYS GET EVENS (TO MAKE DEBLOCKING WORK PROPERLY)
+        STA     debsehd         ; STORE IN SECTOR/HEAD
+        LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+        AND     #$03            ; BOTTOM 2 BITS ARE PART OF PAGE (PAGES ARE 32k)
+        ASL     a               ; MOVE TO HIGH BITS
+        ASL     a
+        ASL     a
+        ASL     a
+        ASL     a
+        ORA     #$80            ; PAGES ARE ALWAYS IN UPPER BANK
+        ORA     debsehd         ; STORE IN SECTOR/HEAD
+        STA     debsehd         ; STORE IN SECTOR/HEAD
+                                ; AT THIS POINT PAGE REGISTER SHOULD BE
+                                ; SET
+        LDA     sektrk          ; LOAD TRACK #
+        LSR     a               ; LOSE BOTTOM TWO BITS
+        LSR     a
+        STA     debcyll         ; THIS SHOULD BE BANK#
+
+        PLA
+        TAX
+        PLA
+        RTS

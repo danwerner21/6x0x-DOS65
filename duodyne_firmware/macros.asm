@@ -47,5 +47,3 @@
 		.A8
                 .I8
 .endmacro
-
-;
