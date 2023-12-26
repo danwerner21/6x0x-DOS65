@@ -42,7 +42,12 @@ noswin:
         PHA                     ;as return
         LDA     bytinp          ;get input value
         LDY     bytinp+1
+        .IFDEF DUODYNE
+        ldx     #$00
+        JMP     (xqtvec,x)        ;then execute
+        .ELSE
         JMP     (xqtvec)        ;then execute
+        .ENDIF
 extexq:
         STA     bytout          ;save value
         STY     addout+1        ;and address

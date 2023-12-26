@@ -253,6 +253,15 @@ read:
         AND     #$F0            ; only want first nybble
         CMP     #$00
         BNE     :+              ; not SD drive
+;MD
+        LDA     #64             ; md read sector
+        STA     farfunct
+        JSR     DO_FARCALL
+        JSR     DEBSECR
+        RTS
+:
+        CMP     #$10
+        BNE     :+              ; not SD drive
 ;SD
         JSR     CONVERT_SECTOR_LBA
         LDA     #64             ; sd read sector
@@ -294,6 +303,18 @@ write:
         AND     #$F0            ; only want first nybble
 
         CMP     #$00
+        BNE     :+              ; not MD drive
+;MD
+        LDA     #64             ;PPP_READ_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
+        JSR     BLKSECR
+        LDA     #65             ;PPP_WRITE_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
+        RTS
+:
+        CMP     #$10
         BNE     :+              ; not SD drive
 ;SD
         JSR     CONVERT_SECTOR_LBA
@@ -303,6 +324,7 @@ write:
         JSR     DO_FARCALL
         RTS
 :
+
         CMP     #$20
         BNE     :+              ; not floppy drive
 ;FD
@@ -548,6 +570,7 @@ SETUP_FD_CHS:
 ;
 ;________________________________________________________________________________________________________
 DEBSECR:
+        PHP
         PHA
         LDA     seksec          ;
         AND     #$03            ; GET SECTOR INDEX
@@ -565,6 +588,7 @@ DEBSECR:
         STA     DEST+1          ;
         JSR     COPY_DOS_SECTOR ;
         PLA
+        PLP
         RTS
 
 DEBTAB:
@@ -580,6 +604,7 @@ DEBTAB:
 ;
 ;________________________________________________________________________________________________________
 BLKSECR:
+        PHP
         LDA     seksec          ;
         AND     #$03            ; GET SECTOR INDEX
         CLC                     ;
@@ -595,6 +620,7 @@ BLKSECR:
         LDA     dmaadr+1        ;
         STA     SRC+1           ;
         JSR     COPY_DOS_SECTOR ;
+        PLP
         RTS
 
 
@@ -895,13 +921,12 @@ dcbh:
 dftdskcfg:
             .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks)
             .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks)
-            .BYTE   $F0, $06        ; disk C: unit, slice
-            .BYTE   $F0, $00        ; disk D: unit, slice
-            .BYTE   $F1, $00        ; disk E: unit, slice
-            .BYTE   $F0, $03        ; disk F: unit, slice
-            .BYTE   $F0, $04        ; disk G: unit, slice
-            .BYTE   $F0, $00        ; disk H: unit, slice
-
+            .BYTE   $00, $06        ; disk C: unit, slice
+            .BYTE   $00, $00        ; disk D: unit, slice
+            .BYTE   $00, $00        ; disk E: unit, slice
+            .BYTE   $00, $03        ; disk F: unit, slice
+            .BYTE   $00, $04        ; disk G: unit, slice
+            .BYTE   $00, $00        ; disk H: unit, slice
         .ENDIF
 
 

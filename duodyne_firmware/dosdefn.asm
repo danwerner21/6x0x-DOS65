@@ -17,6 +17,7 @@ IO              = $0300         ; 0300-03FF Memory mapped IO
 MPCL_ROM        = $037C         ; ROM MAPPER
 MPCL_RAM        = $0378         ; RAM MAPPER
 hstbuf          = $0400         ; 0400-05ff host buffer
+LHSTBUF         = (DOS65BANK*$10000)+$0400         ; 0400-05ff host buffer
 ;
 ; DRIVER WORKING STORAGE
 ;
@@ -26,14 +27,13 @@ DSKY_BUF        = $0600         ; Eight Bytes DSKY display buffer
 DSKY_BUFLEN     = 8             ;
 DSKY_HEXBUF     = $0608         ; Four Bytes DSKY hex buffer
 DSKY_HEXBUFLEN  = 4             ;
-sektrk          = $060C         ; seek track number
-seksec          = $060E         ; seek sector number
-debcyll         = $0610         ; DEBLOCKED CYLINDER LSB
-debcylm         = $0611         ; DEBLOCKED CYLINDER MSB
-debsehd         = $0612         ; DEBLOCKED SECTOR AND HEAD (HS)
+debsehd         = $0610         ; DEBLOCKED SECTOR AND HEAD (HS)
+debcyll         = $0611         ; DEBLOCKED CYLINDER LSB
+debcylm         = $0612         ; DEBLOCKED CYLINDER MSB
 sekdsk          = $0616         ; seek disk number
 dskcfg          = $0617         ; 16 bytes disk configuration table
 DSKUNIT         = $0628         ; seek disk number
+LDSKUNIT        = (DOS65BANK*$10000)+$0628         ; seek disk number
 slicetmp        = $0631         ; (word)
 STACKA          = $0635
 nmsstr          = $0636
@@ -50,9 +50,10 @@ DSKY_TEMP_VAL   = $0640
 DSKY_PPIX_VAL   = $0641
 FLOPPY_DETCT    = $0642
 DSKY_PRESENT    = $0643
-Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
-Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
-Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
+Cdebsehd        = $0644         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
+Cdebcyll        = $0645         ; DEBLOCKED CYLINDER LSB (IN CACHE)
+Cdebcylm        = $0646         ; DEBLOCKED CYLINDER MSB (IN CACHE)
+
 
 tea             = $800          ;tea start
 
@@ -81,6 +82,9 @@ TEMPWORD1       = $3D           ;
 TEMPWORD2       = $3F           ;
 STRPTR          = $41           ;
 DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
+sektrk          = $44           ; seek track number
+seksec          = $46           ; seek sector number
+
 
 IO_AREA         = $00DF00
 OPTIONREGISTER  = IO_AREA+$51   ;   OPTION REG.

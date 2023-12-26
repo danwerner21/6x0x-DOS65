@@ -44,9 +44,11 @@ FUNCTION_DISPATCHER1:
         TAX
         PLA
         JSR     jsrindirect
+        PHA
         LDA     #DOS65BANK
         PHA
         PLB
+        PLA
         PLP
         JML     $1DF204
 
