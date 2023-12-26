@@ -123,9 +123,9 @@ DISPATCHTABLE:
         .WORD   drv_noop        ; FUNCTION 58
         .WORD   drv_noop        ; FUNCTION 59
 
-        .WORD   drv_noop        ; PPIDE_INIT      ; FUNCTION 60 - called during OS init
-        .WORD   drv_noop        ; IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
-        .WORD   drv_noop        ; IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
+        .WORD   PPIDE_INIT      ; FUNCTION 60 - called during OS init
+        .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
+        .WORD   IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
 ;
         .WORD   MD_SHOW         ; FUNCTION 63 - init the mem device
         .WORD   MD_READ_SECTOR  ; FUNCTION 64 - read a sector from the memory device
@@ -143,7 +143,7 @@ DISPATCHTABLE:
 ;
         .INCLUDE "drvmacros.asm"
         .INCLUDE "dosser.asm"
-;        .INCLUDE "doside.asm"
+        .INCLUDE "doside.asm"
 ;        .INCLUDE "dosdskyn.asm"
         .INCLUDE "dosmd.asm"
 ;        .INCLUDE "dosflp.asm"

@@ -743,8 +743,8 @@ dcbh:
 
 ; See Platform Documentation for Drive Types.
 dftdskcfg:
-        .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy disks)
-        .BYTE   $30, $00        ; disk B: unit, slice (invalid for floppy disks)
+        .BYTE   $10, $00        ; disk A: unit, slice (invalid for floppy disks) SD
+        .BYTE   $30, $00        ; disk B: unit, slice (invalid for floppy disks) PPIDE
         .BYTE   $90, $00        ; disk C: unit, slice (invalid for floppy disks)
         .BYTE   $90, $00        ; disk D: unit, slice (invalid for floppy disks)
         .BYTE   $90, $00        ; disk E: unit, slice (invalid for floppy disks)
@@ -832,14 +832,14 @@ dcbh:
             .WORD   ckmp            ;checksum map
 
 dftdskcfg:
-            .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks)
-            .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks)
-            .BYTE   $30, $06        ; disk C: unit, slice
-            .BYTE   $20, $00        ; disk D: unit, slice
-            .BYTE   $21, $00        ; disk E: unit, slice
-            .BYTE   $30, $03        ; disk F: unit, slice
-            .BYTE   $30, $04        ; disk G: unit, slice
-            .BYTE   $30, $00        ; disk H: unit, slice
+            .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
+            .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
+            .BYTE   $30, $06        ; disk C: unit, slice IDE
+            .BYTE   $20, $00        ; disk D: unit, slice FLOPPY A
+            .BYTE   $21, $00        ; disk E: unit, slice FLOPPY B
+            .BYTE   $30, $03        ; disk F: unit, slice IDE
+            .BYTE   $30, $04        ; disk G: unit, slice IDE
+            .BYTE   $30, $00        ; disk H: unit, slice IDE
 
         .ENDIF
 
@@ -919,8 +919,8 @@ dcbh:
             .WORD   ckmp            ;checksum map
 
 dftdskcfg:
-            .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks)
-            .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks)
+            .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
+            .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
             .BYTE   $00, $06        ; disk C: unit, slice
             .BYTE   $00, $00        ; disk D: unit, slice
             .BYTE   $00, $00        ; disk E: unit, slice

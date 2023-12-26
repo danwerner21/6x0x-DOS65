@@ -225,7 +225,7 @@ Current file: dos65.asm
 000811  1               ; Then copy Drivers into Driver Bank
 000811  1  A2 30 2A             LDX     #OSBEGIN+DOSSIZE
 000814  1  A0 00 80             LDY     #DRIVERBEGIN
-000817  1  A9 DD 02             LDA     #DRIVERSIZE-1
+000817  1  A9 94 07             LDA     #DRIVERSIZE-1
 00081A  1  54 1E 00             MVN     #00, #DOS65DRIVERSBNK
 00081D  1               
 00081D  1               ; Set Default Console
@@ -4034,8 +4034,8 @@ Current file: dos65.asm
 00E85D  2               
 00E85D  2               ; See Platform Documentation for Drive Types.
 00E85D  2               dftdskcfg:
-00E85D  2                       .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy disks)
-00E85D  2                       .BYTE   $30, $00        ; disk B: unit, slice (invalid for floppy disks)
+00E85D  2                       .BYTE   $10, $00        ; disk A: unit, slice (invalid for floppy disks) SD
+00E85D  2                       .BYTE   $30, $00        ; disk B: unit, slice (invalid for floppy disks) PPIDE
 00E85D  2                       .BYTE   $90, $00        ; disk C: unit, slice (invalid for floppy disks)
 00E85D  2                       .BYTE   $90, $00        ; disk D: unit, slice (invalid for floppy disks)
 00E85D  2                       .BYTE   $90, $00        ; disk E: unit, slice (invalid for floppy disks)
@@ -4123,14 +4123,14 @@ Current file: dos65.asm
 00E85D  2                           .WORD   ckmp            ;checksum map
 00E85D  2               
 00E85D  2               dftdskcfg:
-00E85D  2                           .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks)
-00E85D  2                           .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks)
-00E85D  2                           .BYTE   $30, $06        ; disk C: unit, slice
-00E85D  2                           .BYTE   $20, $00        ; disk D: unit, slice
-00E85D  2                           .BYTE   $21, $00        ; disk E: unit, slice
-00E85D  2                           .BYTE   $30, $03        ; disk F: unit, slice
-00E85D  2                           .BYTE   $30, $04        ; disk G: unit, slice
-00E85D  2                           .BYTE   $30, $00        ; disk H: unit, slice
+00E85D  2                           .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
+00E85D  2                           .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
+00E85D  2                           .BYTE   $30, $06        ; disk C: unit, slice IDE
+00E85D  2                           .BYTE   $20, $00        ; disk D: unit, slice FLOPPY A
+00E85D  2                           .BYTE   $21, $00        ; disk E: unit, slice FLOPPY B
+00E85D  2                           .BYTE   $30, $03        ; disk F: unit, slice IDE
+00E85D  2                           .BYTE   $30, $04        ; disk G: unit, slice IDE
+00E85D  2                           .BYTE   $30, $00        ; disk H: unit, slice IDE
 00E85D  2               
 00E85D  2                       .ENDIF
 00E85D  2               
@@ -4210,8 +4210,8 @@ Current file: dos65.asm
 00E8CB  2  DD F0                    .WORD   ckmp            ;checksum map
 00E8CD  2               
 00E8CD  2               dftdskcfg:
-00E8CD  2  00 00                    .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks)
-00E8CF  2  01 00                    .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks)
+00E8CD  2  00 00                    .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
+00E8CF  2  01 00                    .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
 00E8D1  2  00 06                    .BYTE   $00, $06        ; disk C: unit, slice
 00E8D3  2  00 00                    .BYTE   $00, $00        ; disk D: unit, slice
 00E8D5  2  00 00                    .BYTE   $00, $00        ; disk E: unit, slice
@@ -4332,10 +4332,10 @@ Current file: dos65.asm
 008029  2  6C 33 00             JMP     (farpointer)
 00802C  2               
 00802C  2               DISPATCHTABLE:
-00802C  2  CA 82                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
-00802E  2  CA 82                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
-008030  2  CA 82                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
-008032  2  CA 82                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
+00802C  2  81 87                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
+00802E  2  81 87                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
+008030  2  81 87                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
+008032  2  81 87                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
 008034  2               
 008034  2  47 81                .WORD   WRSER1          ; FUNCTION 04 - WRITE SERIAL PORT
 008036  2  58 81                .WORD   RDSER1          ; FUNCTION 05 - READ SERIAL PORT
@@ -4349,67 +4349,67 @@ Current file: dos65.asm
 008044  2  7B 81                .WORD   SERIALSTATUS    ; FUNCTION 12 - GET KEYBOARD STATUS
 008046  2  46 81                .WORD   SERIALINIT      ; FUNCTION 13 - INIT INTERFACE
 008048  2               
-008048  2  DD 82                .WORD   drv_noop        ; FUNCTION 14
-00804A  2  DD 82                .WORD   drv_noop        ; FUNCTION 15
-00804C  2  DD 82                .WORD   drv_noop        ; FUNCTION 16
-00804E  2  DD 82                .WORD   drv_noop        ; FUNCTION 17
-008050  2  DD 82                .WORD   drv_noop        ; FUNCTION 18
-008052  2  DD 82                .WORD   drv_noop        ; FUNCTION 19
-008054  2  DD 82                .WORD   drv_noop        ; FUNCTION 20
-008056  2  DD 82                .WORD   drv_noop        ; FUNCTION 21
-008058  2  DD 82                .WORD   drv_noop        ; FUNCTION 22
-00805A  2  DD 82                .WORD   drv_noop        ; FUNCTION 23
-00805C  2  DD 82                .WORD   drv_noop        ; FUNCTION 24
-00805E  2  DD 82                .WORD   drv_noop        ; FUNCTION 25
-008060  2  DD 82                .WORD   drv_noop        ; FUNCTION 26
-008062  2  DD 82                .WORD   drv_noop        ; FUNCTION 27
-008064  2  DD 82                .WORD   drv_noop        ; FUNCTION 28
-008066  2  DD 82                .WORD   drv_noop        ; FUNCTION 29
-008068  2  DD 82                .WORD   drv_noop        ; FUNCTION 30
-00806A  2  DD 82                .WORD   drv_noop        ; FUNCTION 31
-00806C  2  DD 82                .WORD   drv_noop        ; FUNCTION 32
-00806E  2  DD 82                .WORD   drv_noop        ; FUNCTION 33
-008070  2  DD 82                .WORD   drv_noop        ; FUNCTION 34
-008072  2  DD 82                .WORD   drv_noop        ; FUNCTION 35
-008074  2  DD 82                .WORD   drv_noop        ; FUNCTION 36
-008076  2  DD 82                .WORD   drv_noop        ; FUNCTION 37
-008078  2  DD 82                .WORD   drv_noop        ; FUNCTION 38
-00807A  2  DD 82                .WORD   drv_noop        ; FUNCTION 39
+008048  2  94 87                .WORD   drv_noop        ; FUNCTION 14
+00804A  2  94 87                .WORD   drv_noop        ; FUNCTION 15
+00804C  2  94 87                .WORD   drv_noop        ; FUNCTION 16
+00804E  2  94 87                .WORD   drv_noop        ; FUNCTION 17
+008050  2  94 87                .WORD   drv_noop        ; FUNCTION 18
+008052  2  94 87                .WORD   drv_noop        ; FUNCTION 19
+008054  2  94 87                .WORD   drv_noop        ; FUNCTION 20
+008056  2  94 87                .WORD   drv_noop        ; FUNCTION 21
+008058  2  94 87                .WORD   drv_noop        ; FUNCTION 22
+00805A  2  94 87                .WORD   drv_noop        ; FUNCTION 23
+00805C  2  94 87                .WORD   drv_noop        ; FUNCTION 24
+00805E  2  94 87                .WORD   drv_noop        ; FUNCTION 25
+008060  2  94 87                .WORD   drv_noop        ; FUNCTION 26
+008062  2  94 87                .WORD   drv_noop        ; FUNCTION 27
+008064  2  94 87                .WORD   drv_noop        ; FUNCTION 28
+008066  2  94 87                .WORD   drv_noop        ; FUNCTION 29
+008068  2  94 87                .WORD   drv_noop        ; FUNCTION 30
+00806A  2  94 87                .WORD   drv_noop        ; FUNCTION 31
+00806C  2  94 87                .WORD   drv_noop        ; FUNCTION 32
+00806E  2  94 87                .WORD   drv_noop        ; FUNCTION 33
+008070  2  94 87                .WORD   drv_noop        ; FUNCTION 34
+008072  2  94 87                .WORD   drv_noop        ; FUNCTION 35
+008074  2  94 87                .WORD   drv_noop        ; FUNCTION 36
+008076  2  94 87                .WORD   drv_noop        ; FUNCTION 37
+008078  2  94 87                .WORD   drv_noop        ; FUNCTION 38
+00807A  2  94 87                .WORD   drv_noop        ; FUNCTION 39
 00807C  2               
-00807C  2  DD 82                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
-00807E  2  DD 82                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
-008080  2  DD 82                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
-008082  2  DD 82                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
-008084  2  DD 82                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
-008086  2  DD 82                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
-008088  2  DD 82                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
-00808A  2  DD 82                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
-00808C  2  DD 82                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
-00808E  2  DD 82                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
+00807C  2  94 87                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
+00807E  2  94 87                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
+008080  2  94 87                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
+008082  2  94 87                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
+008084  2  94 87                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
+008086  2  94 87                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
+008088  2  94 87                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
+00808A  2  94 87                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
+00808C  2  94 87                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
+00808E  2  94 87                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
 008090  2               ;
-008090  2  DD 82                .WORD   drv_noop        ; FUNCTION 50 -
-008092  2  DD 82                .WORD   drv_noop        ; FUNCTION 51 -
-008094  2  DD 82                .WORD   drv_noop        ; FUNCTION 52 -
+008090  2  94 87                .WORD   drv_noop        ; FUNCTION 50 -
+008092  2  94 87                .WORD   drv_noop        ; FUNCTION 51 -
+008094  2  94 87                .WORD   drv_noop        ; FUNCTION 52 -
 008096  2               
-008096  2  DD 82                .WORD   drv_noop        ; FUNCTION 53
-008098  2  DD 82                .WORD   drv_noop        ; FUNCTION 54
-00809A  2  DD 82                .WORD   drv_noop        ; FUNCTION 55
-00809C  2  DD 82                .WORD   drv_noop        ; FUNCTION 56
-00809E  2  DD 82                .WORD   drv_noop        ; FUNCTION 57
-0080A0  2  DD 82                .WORD   drv_noop        ; FUNCTION 58
-0080A2  2  DD 82                .WORD   drv_noop        ; FUNCTION 59
+008096  2  94 87                .WORD   drv_noop        ; FUNCTION 53
+008098  2  94 87                .WORD   drv_noop        ; FUNCTION 54
+00809A  2  94 87                .WORD   drv_noop        ; FUNCTION 55
+00809C  2  94 87                .WORD   drv_noop        ; FUNCTION 56
+00809E  2  94 87                .WORD   drv_noop        ; FUNCTION 57
+0080A0  2  94 87                .WORD   drv_noop        ; FUNCTION 58
+0080A2  2  94 87                .WORD   drv_noop        ; FUNCTION 59
 0080A4  2               
-0080A4  2  DD 82                .WORD   drv_noop        ; PPIDE_INIT      ; FUNCTION 60 - called during OS init
-0080A6  2  DD 82                .WORD   drv_noop        ; IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
-0080A8  2  DD 82                .WORD   drv_noop        ; IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
+0080A4  2  8B 81                .WORD   PPIDE_INIT      ; FUNCTION 60 - called during OS init
+0080A6  2  3C 84                .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
+0080A8  2  86 84                .WORD   IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
 0080AA  2               ;
-0080AA  2  8B 81                .WORD   MD_SHOW         ; FUNCTION 63 - init the mem device
-0080AC  2  1F 82                .WORD   MD_READ_SECTOR  ; FUNCTION 64 - read a sector from the memory device
-0080AE  2  59 82                .WORD   MD_WRITE_SECTOR ; FUNCTION 65 - write a sector to the memory device
+0080AA  2  42 86                .WORD   MD_SHOW         ; FUNCTION 63 - init the mem device
+0080AC  2  D6 86                .WORD   MD_READ_SECTOR  ; FUNCTION 64 - read a sector from the memory device
+0080AE  2  10 87                .WORD   MD_WRITE_SECTOR ; FUNCTION 65 - write a sector to the memory device
 0080B0  2               ;
-0080B0  2  DD 82                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
-0080B2  2  DD 82                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
-0080B4  2  DD 82                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
+0080B0  2  94 87                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
+0080B2  2  94 87                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
+0080B4  2  94 87                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
 0080B6  2               
 0080B6  2               ;______________________________________________________________________________
 0080B6  2               
@@ -4740,205 +4740,900 @@ Current file: dos65.asm
 00818B  3               
 00818B  3               ; end
 00818B  3               
-00818B  2               ;        .INCLUDE "doside.asm"
-00818B  2               ;        .INCLUDE "dosdskyn.asm"
-00818B  2                       .INCLUDE "dosmd.asm"
-00818B  3               ;__MD DRIVERS____________________________________________________________________________________________________________________
+00818B  2                       .INCLUDE "doside.asm"
+00818B  3               ;__IDE DRIVERS___________________________________________________________________________________________________________________
 00818B  3               ;
-00818B  3               ; 	Duodyne Memory disk drivers
+00818B  3               ; 	Duodyne IDE disk drivers for Z80PPIDE card
 00818B  3               ;
 00818B  3               ;	Entry points:
-00818B  3               ;		MD_SHOW         - called during OS init
-00818B  3               ;		MD_READ_SECTOR  - read a sector from drive
-00818B  3               ;		MD_WRITE_SECTOR - write a sector to drive
+00818B  3               ;		PPIDE_INIT   	- called during OS init
+00818B  3               ;		IDE_READ_SECTOR - read a sector from drive
+00818B  3               ;		IDE_WRITE_SECTOR- write a sector to drive
 00818B  3               ;________________________________________________________________________________________________________________________________
 00818B  3               ;
-00818B  3               ; RAM BANK $1E is RAM area for Drivers
-00818B  3               ; RAM BANK $1D is operating bank for DOS/65 $8000-$FFFF
+00818B  3               PPIDE_PPI       = IO_AREA+$88   ; PORT A
 00818B  3               ;
-00818B  3               ; ROM BANKS $00 and $0C-$0F are reserved for ROMWBW code
-00818B  3               ; ROM Drive starts in bank $22
-00818B  3               ; RAM Drive starts in bank $02
-00818B  3               ;
-00818B  3               ; "Magic" number at $01FFFF.  If $E5 do not format RAM Drive.
+00818B  3               PPIDELO         = PPIDE_PPI+0   ; LSB
+00818B  3               PPIDEHI         = PPIDE_PPI+1   ; MSB
+00818B  3               PPIDECNTRL      = PPIDE_PPI+2   ; Control Signals
+00818B  3               PPIDEPPIC       = PPIDE_PPI+3   ; CONTROL BYTE PPI 82C55
 00818B  3               
-00818B  3               MD_MAGIC        = $01FFFF
-00818B  3               MD_RAM_START    = $020000
+00818B  3               PPIDE_A0_LINE   = $01           ;DIRECT FROM 8255 TO IDE INTERFACE
+00818B  3               PPIDE_A1_LINE   = $02           ;DIRECT FROM 8255 TO IDE INTERFACE
+00818B  3               PPIDE_A2_LINE   = $04           ;DIRECT FROM 8255 TO IDE INTERFACE
+00818B  3               PPIDE_CS0_LINE  = $08           ;INVERTER BETWEEN 8255 AND IDE INTERFACE
+00818B  3               PPIDE_CS1_LINE  = $10           ;INVERTER BETWEEN 8255 AND IDE INTERFACE
+00818B  3               PPIDE_WR_LINE   = $20           ;INVERTER BETWEEN 8255 AND IDE INTERFACE
+00818B  3               PPIDE_RD_LINE   = $40           ;INVERTER BETWEEN 8255 AND IDE INTERFACE
+00818B  3               PPIDE_RST_LINE  = $80           ;INVERTER BETWEEN 8255 AND IDE INTERFACE
 00818B  3               
-00818B  3               ;__MD_SHOW___________________________________________________________________________________________
+00818B  3               PPIDE_DATA      = PPIDE_CS0_LINE
+00818B  3               PPIDE_ERR       = PPIDE_CS0_LINE + PPIDE_A0_LINE
+00818B  3               PPIDE_SEC_CNT   = PPIDE_CS0_LINE + PPIDE_A1_LINE
+00818B  3               PPIDE_LBALOW    = PPIDE_CS0_LINE + PPIDE_A1_LINE + PPIDE_A0_LINE
+00818B  3               PPIDE_LBAMID    = PPIDE_CS0_LINE + PPIDE_A2_LINE
+00818B  3               PPIDE_LBAHI     = PPIDE_CS0_LINE + PPIDE_A2_LINE + PPIDE_A0_LINE
+00818B  3               PPIDE_DEVICE    = PPIDE_CS0_LINE + PPIDE_A2_LINE + PPIDE_A1_LINE
+00818B  3               PPIDE_COMMAND   = PPIDE_CS0_LINE + PPIDE_A2_LINE + PPIDE_A1_LINE + PPIDE_A0_LINE
+00818B  3               PPIDE_STATUS    = PPIDE_CS0_LINE + PPIDE_A2_LINE + PPIDE_A1_LINE + PPIDE_A0_LINE
+00818B  3               PPIDE_CONTROL   = PPIDE_CS1_LINE + PPIDE_A2_LINE + PPIDE_A1_LINE
+00818B  3               PPIDE_ASTATUS   = PPIDE_CS1_LINE + PPIDE_A2_LINE + PPIDE_A1_LINE + PPIDE_A0_LINE
+00818B  3               
+00818B  3               
+00818B  3               ;IDE COMMAND CONSTANTS.  THESE SHOULD NEVER CHANGE.
+00818B  3               PPIDE_CMD_RECAL = $10
+00818B  3               PPIDE_CMD_READ  = $20
+00818B  3               PPIDE_CMD_WRITE = $30
+00818B  3               PPIDE_CMD_INIT  = $91
+00818B  3               PPIDE_CMD_ID    = $EC
+00818B  3               PPIDE_CMD_SPINDOWN = $E0
+00818B  3               PPIDE_CMD_SPINUP = $E1
+00818B  3               
+00818B  3               
+00818B  3               PPRD_IDE_8255   = %10010010     ;IDE_8255_CTL OUT, IDE_8255_LSB/MSB INPUT
+00818B  3               PPWR_IDE_8255   = %10000000     ;ALL THREE PORTS OUTPUT
+00818B  3               
+00818B  3               
+00818B  3               ;__PPIDE_INIT_________________________________________________________________________________________
 00818B  3               ;
-00818B  3               ;  Display info on MD devices
+00818B  3               ;  INIT AND DISPLAY IDE INFO
 00818B  3               ;____________________________________________________________________________________________________
 00818B  3               ;
-00818B  3               MD_SHOW:
-00818B  3                       PRTDBG  "MD INIT:$"
-00818B  3  48 DA 5A A2          PRTS    "MD: UNITS=2 RAMDISK=256KB ROMDISK=384KB$"
+00818B  3               PPIDE_INIT:
+00818B  3                       PRTDBG  "PPIDE INIT:$"
+00818B  3  48 DA 5A A2          PRTS    "PPIDE :$"
 00818F  3  00 BD A4 81  
 008193  3  E8 C9 24 F0  
-0081CC  3  20 E2 80             JSR     NEWLINE
-0081CF  3  AF FF FF 01          LDA     f:MD_MAGIC
-0081D3  3  C9 E5                CMP     #$E5
-0081D5  3  F0 47                BEQ     :++
-0081D7  3               
-0081D7  3  48 DA 5A A2          PRTS    "MD: FORMATTING RAM DRIVE$"
-0081DB  3  00 BD F0 81  
-0081DF  3  E8 C9 24 F0  
-008209  3  E2 20                ACCUMULATOR8
-00820B  3  C2 10                INDEX16
-00820D  3  A2 00 00             LDX     #$0000
-008210  3  A9 E5                LDA     #$E5
-008212  3               :
-008212  3  9F FF FF 01          STA     f:MD_MAGIC,x
-008216  3  E8                   INX
-008217  3  E0 00 00             CPX     #0
-00821A  3  D0 F6                BNE     :-
-00821C  3  E2 30                ACCUMULATORINDEX8
-00821E  3               :
-00821E  3  60                   RTS
-00821F  3               
-00821F  3               ;*__MD_READ_SECTOR____________________________________________________________________________________
-00821F  3               ;*
-00821F  3               ;*  READ MD SECTOR INTO BUFFER
-00821F  3               ;*
-00821F  3               ;*____________________________________________________________________________________________________
-00821F  3               MD_READ_SECTOR:
-00821F  3                       PRTDBG  "MD Read Sector$"
-00821F  3  AF 28 06 1D          LDA     f:LDSKUNIT
-008223  3  29 01                AND     #$01            ; only want drive cfg
-008225  3  0A                   ASL     a               ; SHIFT 5
-008226  3  0A                   ASL     a               ;
-008227  3  0A                   ASL     a               ;
-008228  3  0A                   ASL     a               ;
-008229  3  0A                   ASL     a               ;
-00822A  3  AA                   TAX                     ; STASH BANK
-00822B  3  20 96 82             JSR     MD_CONVERT_SECTOR
-00822E  3               
-00822E  3  AD 10 06             LDA     debsehd
-008231  3  85 3B                STA     TEMPWORD
-008233  3  AD 11 06             LDA     debsehd+1
-008236  3  85 3C                STA     TEMPWORD+1
-008238  3  AD 12 06             LDA     debsehd+2
-00823B  3  85 3D                STA     TEMPWORD+2
-00823D  3               
-00823D  3               ; Then copy sector to buffer
-00823D  3  E2 20                ACCUMULATOR8
-00823F  3  C2 10                INDEX16
-008241  3  A2 00 00             LDX     #$0000
-008244  3  A0 00 00             LDY     #$0000
-008247  3               :
-008247  3  B7 3B                LDA     [TEMPWORD],y
-008249  3  9F 00 04 1D          STA     f:LHSTBUF,x
-00824D  3  E8                   INX
-00824E  3  C8                   INY
-00824F  3  E0 00 02             CPX     #512
-008252  3  D0 F3                BNE     :-
-008254  3  E2 30                ACCUMULATORINDEX8
-008256  3  A9 00                LDA     #$00
-008258  3  60                   RTS
-008259  3               
-008259  3               
-008259  3               ;*__MD_WRITE_SECTOR___________________________________________________________________________________
-008259  3               ;*
-008259  3               ;*  WRITE MD SECTOR FROM BUFFER
-008259  3               ;*
-008259  3               ;*____________________________________________________________________________________________________
-008259  3               MD_WRITE_SECTOR:
-008259  3                       PRTDBG  "MD Write Sector$"
-008259  3  AF 28 06 1D          LDA     f:LDSKUNIT
-00825D  3  29 01                AND     #$01            ; only want drive cfg
-00825F  3  C9 00                CMP     #$00            ; NO WRITE FOR ROM
-008261  3  F0 03                BEQ     MD_WRITE_SECTOR_RAM
-008263  3  A9 FF                LDA     #$FF
-008265  3  60                   RTS
-008266  3               MD_WRITE_SECTOR_RAM:
-008266  3  A2 00                LDX     #$00
-008268  3  20 96 82             JSR     MD_CONVERT_SECTOR
-00826B  3               
-00826B  3  AD 10 06             LDA     debsehd
-00826E  3  85 3B                STA     TEMPWORD
-008270  3  AD 11 06             LDA     debsehd+1
-008273  3  85 3C                STA     TEMPWORD+1
-008275  3  AD 12 06             LDA     debsehd+2
-008278  3  85 3D                STA     TEMPWORD+2
-00827A  3               
-00827A  3               ; Then copy sector to buffer
-00827A  3  E2 20                ACCUMULATOR8
-00827C  3  C2 10                INDEX16
-00827E  3  A2 00 00             LDX     #$0000
-008281  3  A0 00 00             LDY     #$0000
-008284  3               :
-008284  3  BF 00 04 1D          LDA     f:LHSTBUF,x
-008288  3  97 3B                STA     [TEMPWORD],y
-00828A  3  E8                   INX
-00828B  3  C8                   INY
-00828C  3  E0 00 02             CPX     #512
-00828F  3  D0 F3                BNE     :-
-008291  3  E2 30                ACCUMULATORINDEX8
-008293  3  A9 00                LDA     #$00
-008295  3  60                   RTS
-008296  3               
-008296  3               ;___MD_CONVERT_SECTOR___________________________________________________________________________________
-008296  3               ;
-008296  3               ; 	TRANSLATE SECTORS INTO MD FORMAT
-008296  3               ;________________________________________________________________________________________________________
-008296  3               MD_CONVERT_SECTOR:
-008296  3                       PRTDBG  "CONVERT SECTOR$"
-008296  3  48                   PHA
-008297  3  DA                   PHX
-008298  3  A9 00                LDA     #$00
-00829A  3  8D 10 06             STA     debsehd
-00829D  3  A5 46                LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
-00829F  3  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING, 512 byte "Sectors")
-0082A0  3  4A                   LSR     A               ;
-0082A1  3  29 1F                AND     #$1F            ; Ensure we have no junk in number
-0082A3  3  8D 11 06             STA     debcyll         ; STORE IN SECTOR/HEAD
-0082A6  3  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
-0082A8  3  29 03                AND     #$03            ; BOTTOM 2 BITS ARE PART OF SECTOR
-0082AA  3  0A                   ASL     a               ; MOVE TO HIGH BITS
-0082AB  3  0A                   ASL     a
-0082AC  3  0A                   ASL     a
-0082AD  3  0A                   ASL     a
-0082AE  3  0A                   ASL     a
-0082AF  3  0D 11 06             ORA     debcyll
-0082B2  3  8D 11 06             STA     debcyll         ; STORE IN SECTOR/HEAD
-0082B5  3  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
-0082B7  3  4A                   LSR     A               ; DIVIDE BY 4 TO GET BANK
-0082B8  3  4A                   LSR     A
-0082B9  3  29 3F                AND     #$3F            ; Ensure we have no junk in number
-0082BB  3  8D 12 06             STA     debcylm         ;
-0082BE  3  8A                   TXA                     ; Adjust for ROM/RAM DISK
-0082BF  3  0D 12 06             ORA     debcylm         ;
-0082C2  3  1A                   INC     A
-0082C3  3  1A                   INC     A
-0082C4  3  8D 12 06             STA     debcylm         ; THIS SHOULD BE BANK#
-0082C7  3  FA                   PLX
-0082C8  3  68                   PLA
-0082C9  3  60                   RTS
-0082CA  3               
-0082CA  2               ;        .INCLUDE "dosflp.asm"
-0082CA  2               
-0082CA  2               
-0082CA  2               
-0082CA  2               
-0082CA  2               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
-0082CA  2               ;
-0082CA  2               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
-0082CA  2               ;________________________________________________________________________________________________________________________________
-0082CA  2               DFT_CONSOLE:
-0082CA  2  8D DC 82             STA     drvtmp
-0082CD  2  A5 3A                LDA     CONSOLE
-0082CF  2  18                   CLC
-0082D0  2  65 32                ADC     farfunct
-0082D2  2  85 32                STA     farfunct
-0082D4  2  68                   PLA
-0082D5  2  68                   PLA
-0082D6  2  AD DC 82             LDA     drvtmp
-0082D9  2  4C 01 80             JMP     FUNCTION_DISPATCHER1
-0082DC  2               drvtmp:
-0082DC  2  00                   .BYTE   00
-0082DD  2               
-0082DD  2               drv_noop:
-0082DD  2  60                   RTS
-0082DE  2               
-0082DE  1               DRIVEREND:
-0082DE  1                       .END
+0081AC  3  20 E2 80             JSR     NEWLINE
+0081AF  3  20 2C 84             JSR     IDE_PPIDETECT   ; TEST FOR PPI HARDWARE
+0081B2  3  D0 35                BNE     IDE_ABORT       ; BAIL OUT IF NOT THERE
+0081B4  3               ;
+0081B4  3  48 DA 5A A2          PRTS    " IO=0x$"
+0081B8  3  00 BD CD 81  
+0081BC  3  E8 C9 24 F0  
+0081D4  3  A9 DF                LDA     #>PPIDE_PPI     ; GET BASE PORT
+0081D6  3  20 B6 80             JSR     PRTHEXBYTE      ; PRINT BASE PORT
+0081D9  3  A9 88                LDA     #<PPIDE_PPI     ; GET BASE PORT
+0081DB  3  20 B6 80             JSR     PRTHEXBYTE      ; PRINT BASE PORT
+0081DE  3               ;
+0081DE  3  20 B3 84             JSR     PPIDE_RESET     ; RESET THE BUS
+0081E1  3  20 77 82             JSR     PPIDE_PROBE     ; DETECT AN ATA DEVICE, ABORT IF NOT FOUND
+0081E4  3  B0 03                BCS     IDE_ABORT
+0081E6  3  4C 12 82             JMP     IDE_PRINT_INFO
+0081E9  3               IDE_ABORT:
+0081E9  3  48 DA 5A A2          PRTS    " NOT PRESENT$" ; NOT PRESENT
+0081ED  3  00 BD 02 82  
+0081F1  3  E8 C9 24 F0  
+00820F  3  4C 73 82             JMP     IDE_INITA
+008212  3               IDE_PRINT_INFO:
+008212  3  20 E2 80             JSR     NEWLINE
+008215  3  48 DA 5A A2          PRTS    " PPIDE0: Blocks=$"
+008219  3  00 BD 2E 82  
+00821D  3  E8 C9 24 F0  
+00823F  3  A9 00                LDA     #$00
+008241  3  20 07 83             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
+008244  3  48 DA 5A A2          PRTS    " PPIDE1: Blocks=$"
+008248  3  00 BD 5D 82  
+00824C  3  E8 C9 24 F0  
+00826E  3  A9 01                LDA     #$01
+008270  3  20 07 83             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
+008273  3               IDE_INITA:
+008273  3  20 E2 80             JSR     NEWLINE
+008276  3  60                   RTS                     ; DONE
+008277  3               ;
+008277  3               ;__PPIDE_PROBE_______________________________________________________________________________________
+008277  3               ;
+008277  3               ;  PROBE FOR IDE HARDWARE
+008277  3               ;____________________________________________________________________________________________________
+008277  3               ;
+008277  3               PPIDE_PROBE:
+008277  3               ;
+008277  3               ; BELOW TESTS FOR EXISTENCE OF AN IDE CONTROLLER ON THE
+008277  3               ; PPIDE INTERFACE.  WE WRITE A VALUE OF ZERO FIRST SO THAT
+008277  3               ; THE PPI BUS HOLD WILL RETURN A VALUE OF ZERO IF THERE IS
+008277  3               ; NOTHING CONNECTED TO PPI PORT A.  THEN WE READ THE STATUS
+008277  3               ; REGISTER.  IF AN IDE CONTROLLER IS THERE, IT SHOULD ALWAYS
+008277  3               ; RETURN SOMETHING OTHER THAN ZERO.  IF AN IDE CONTROLLER IS
+008277  3               ; THERE, THEN THE VALUE WRITTEN TO PPI PORT A IS IGNORED
+008277  3               ; BECAUSE THE WRITE SIGNAL IS NEVER PULSED.
+008277  3               
+008277  3  A9 00                LDA     #$00
+008279  3  8F 88 DF 00          STA     f:PPIDELO       ; PPI PORT A, DATALO
+00827D  3               
+00827D  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY; WAIT FOR BUSY TO CLEAR
+008280  3  B0 34                BCS     PPIDE_PROBE_FAIL; IF TIMEOUT, REPORT NO IDE PRESENT
+008282  3  A9 0F                LDA     #PPIDE_STATUS   ; GET STATUS
+008284  3  20 E4 85             JSR     IDE_READ
+008287  3  8A                   TXA
+008288  3  29 40                AND     #%01000000
+00828A  3  C9 00                CMP     #$00
+00828C  3  F0 28                BEQ     PPIDE_PROBE_FAIL; IF NOT RDY BIT (BIT 6) THEN REPORT NO IDE PRESENT
+00828E  3               
+00828E  3               ; CHECK SIGNATURE
+00828E  3  A9 0A                LDA     #PPIDE_SEC_CNT
+008290  3  20 E4 85             JSR     IDE_READ
+008293  3  E0 01                CPX     #$01
+008295  3  D0 1F                BNE     PPIDE_PROBE_FAIL; IF not '01' THEN REPORT NO IDE PRESENT
+008297  3  A9 0B                LDA     #PPIDE_LBALOW
+008299  3  20 E4 85             JSR     IDE_READ
+00829C  3  E0 01                CPX     #$01
+00829E  3  D0 16                BNE     PPIDE_PROBE_FAIL; IF not '01' THEN REPORT NO IDE PRESENT
+0082A0  3  A9 0C                LDA     #PPIDE_LBAMID
+0082A2  3  20 E4 85             JSR     IDE_READ
+0082A5  3  E0 00                CPX     #$00
+0082A7  3  D0 0D                BNE     PPIDE_PROBE_FAIL; IF not '00' THEN REPORT NO IDE PRESENT
+0082A9  3  A9 0D                LDA     #PPIDE_LBAHI
+0082AB  3  20 E4 85             JSR     IDE_READ
+0082AE  3  E0 00                CPX     #$00
+0082B0  3  D0 04                BNE     PPIDE_PROBE_FAIL; IF not '00' THEN REPORT NO IDE PRESENT
+0082B2  3  18                   CLC
+0082B3  3  4C B7 82             JMP     PPIDE_PROBE_SUCCESS
+0082B6  3               PPIDE_PROBE_FAIL:
+0082B6  3  38                   SEC
+0082B7  3               PPIDE_PROBE_SUCCESS:
+0082B7  3  60                   RTS                     ; DONE, NOTE THAT A=0 AND Z IS SET
+0082B8  3               
+0082B8  3               
+0082B8  3               ;___IDE_IDENTIFY_TYPE____________________________________________________________________________________
+0082B8  3               ;
+0082B8  3               ; 	READ THE DISK TYPE AND DETERMINE IF IT IS USABLE BY DOS/65
+0082B8  3               ; 	A=IDE DEVICE (0=MST,1=SLV)
+0082B8  3               ;________________________________________________________________________________________________________
+0082B8  3               
+0082B8  3               IDE_IDENTIFY_TYPE:
+0082B8  3  48                   PHA
+0082B9  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+0082BC  3  B0 46                BCS     IDE_IDENTIFY_TYPE_ERROR; IF TIMEOUT, REPORT ERROR
+0082BE  3  A9 00                LDA     #$00
+0082C0  3  8D 10 06             STA     debsehd
+0082C3  3  8D 11 06             STA     debcyll         ; STORE IN TRACK (lsb)
+0082C6  3  8D 12 06             STA     debcylm         ; STORE IN TRACK (msb)
+0082C9  3  68                   PLA                     ; GET DRIVE TYPE
+0082CA  3  20 5C 84             JSR     IDE_READ_SECTOR_DIRTY1
+0082CD  3  C9 FF                CMP     #$FF            ; IS THERE A READ ERROR?
+0082CF  3  F0 33                BEQ     IDE_IDENTIFY_TYPE_ERROR
+0082D1  3  AF FE 05 1D          LDA     f:LHSTBUF+$01FE
+0082D5  3  C9 55                CMP     #$55
+0082D7  3  D0 28                BNE     IDE_IDENTIFY_TYPE_OK
+0082D9  3  AF FF 05 1D          LDA     f:LHSTBUF+$01FF
+0082DD  3  C9 AA                CMP     #$AA
+0082DF  3  D0 20                BNE     IDE_IDENTIFY_TYPE_OK
+0082E1  3  AF C2 05 1D          LDA     f:LHSTBUF+$01C2
+0082E5  3  C9 00                CMP     #$00
+0082E7  3  D0 1B                BNE     IDE_IDENTIFY_TYPE_ERROR
+0082E9  3  AF D2 05 1D          LDA     f:LHSTBUF+$01D2
+0082ED  3  C9 00                CMP     #$00
+0082EF  3  D0 13                BNE     IDE_IDENTIFY_TYPE_ERROR
+0082F1  3  AF E2 05 1D          LDA     f:LHSTBUF+$01E2
+0082F5  3  C9 00                CMP     #$00
+0082F7  3  D0 0B                BNE     IDE_IDENTIFY_TYPE_ERROR
+0082F9  3  AF F2 05 1D          LDA     f:LHSTBUF+$01F2
+0082FD  3  C9 00                CMP     #$00
+0082FF  3  D0 03                BNE     IDE_IDENTIFY_TYPE_ERROR
+008301  3               IDE_IDENTIFY_TYPE_OK:
+008301  3  A9 00                LDA     #$00            ; EVERYTHING IS AWESOME
+008303  3  60                   RTS
+008304  3               IDE_IDENTIFY_TYPE_ERROR:
+008304  3  A9 FF                LDA     #$FF            ; SIGNIFY ERROR
+008306  3  60                   RTS
+008307  3               
+008307  3               
+008307  3               ;*__IDE_READ_INFO___________________________________________________________________________________
+008307  3               ;*
+008307  3               ;*  READ IDE INFORMATION
+008307  3               ;*	CARRY SET ON ERROR
+008307  3               ;* 	A=MST/SLV
+008307  3               ;*____________________________________________________________________________________________________
+008307  3               IDE_READ_INFO:
+008307  3                       PRTDBG  "IDE Read INFORMATION$"
+008307  3  48                   PHA
+008308  3  48                   PHA
+008309  3               ; SET DRIVE BIT
+008309  3  29 01                AND     #$01            ; ONLY WANT THE 1 BIT (MST/SLV)
+00830B  3  0A                   ASL     a               ; SHIFT 4
+00830C  3  0A                   ASL     a               ;
+00830D  3  0A                   ASL     a               ;
+00830E  3  0A                   ASL     a               ;
+00830F  3  09 E0                ORA     #$E0            ; E0=MST  F0=SLV
+008311  3  AA                   TAX
+008312  3  A0 00                LDY     #$00
+008314  3  A9 0E                LDA     #PPIDE_DEVICE
+008316  3  20 0A 86             JSR     IDE_WRITE
+008319  3               
+008319  3               
+008319  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+00831C  3  B0 52                BCS     IDE_READ_INFO_ABORT
+00831E  3  A9 0F                LDA     #PPIDE_COMMAND  ;SELECT IDE REGISTER
+008320  3  A2 EC                LDX     #PPIDE_CMD_ID
+008322  3  20 0A 86             JSR     IDE_WRITE       ;ASK THE DRIVE TO READ IT
+008325  3  20 09 85             JSR     IDE_WAIT_DRQ    ;WAIT UNTIL IT'S GOT THE DATA
+008328  3  B0 46                BCS     IDE_READ_INFO_ABORT
+00832A  3  20 3D 85             JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
+00832D  3  48 DA 5A A2          PRTS    "0x$"
+008331  3  00 BD 46 83  
+008335  3  E8 C9 24 F0  
+008349  3  AF 7B 04 1D          LDA     f:LHSTBUF+123
+00834D  3  20 B6 80             JSR     PRTHEXBYTE
+008350  3  AF 7A 04 1D          LDA     f:LHSTBUF+122
+008354  3  20 B6 80             JSR     PRTHEXBYTE
+008357  3  AF 79 04 1D          LDA     f:LHSTBUF+121
+00835B  3  20 B6 80             JSR     PRTHEXBYTE
+00835E  3  AF 78 04 1D          LDA     f:LHSTBUF+120
+008362  3  20 B6 80             JSR     PRTHEXBYTE
+008365  3  68                   PLA
+008366  3  20 B8 82             JSR     IDE_IDENTIFY_TYPE
+008369  3  C9 00                CMP     #$00
+00836B  3  D0 32                BNE     IDE_READ_INFO_BADFS
+00836D  3  4C D1 83             JMP     IDE_READ_INFO_OK
+008370  3               IDE_READ_INFO_ABORT:
+008370  3  68                   PLA
+008371  3  48 DA 5A A2          PRTS    "NOT PRESENT$"  ; NOT PRESENT
+008375  3  00 BD 8A 83  
+008379  3  E8 C9 24 F0  
+008396  3  20 E2 80             JSR     NEWLINE
+008399  3  68                   PLA
+00839A  3  20 08 84             JSR     IDE_REMOVE_DRIVE_ASSIGNMENTS
+00839D  3  38                   SEC
+00839E  3  60                   RTS                     ;
+00839F  3               IDE_READ_INFO_BADFS:
+00839F  3  48 DA 5A A2          PRTS    " BAD FILESYSTEM$"; NOT PRESENT
+0083A3  3  00 BD B8 83  
+0083A7  3  E8 C9 24 F0  
+0083C8  3  20 E2 80             JSR     NEWLINE
+0083CB  3  68                   PLA
+0083CC  3  20 08 84             JSR     IDE_REMOVE_DRIVE_ASSIGNMENTS
+0083CF  3  38                   SEC
+0083D0  3  60                   RTS                     ;
+0083D1  3               IDE_READ_INFO_OK:
+0083D1  3  48 DA 5A A2          PRTS    " FILE SYSTEM COMPATIBLE$"; NOT PRESENT
+0083D5  3  00 BD EA 83  
+0083D9  3  E8 C9 24 F0  
+008402  3  20 E2 80             JSR     NEWLINE
+008405  3  68                   PLA
+008406  3  18                   CLC
+008407  3  60                   RTS
+008408  3               
+008408  3               IDE_REMOVE_DRIVE_ASSIGNMENTS:
+008408  3  18                   CLC
+008409  3  69 30                ADC     #$30
+00840B  3  A2 00                LDX     #$00
+00840D  3               @1:
+00840D  3  DD 17 06             CMP     dskcfg,X        ; GET device
+008410  3  F0 09                BEQ     @2
+008412  3  E8                   INX
+008413  3  E8                   INX
+008414  3  E0 10                CPX     #16
+008416  3  D0 F5                BNE     @1
+008418  3  4C 2B 84             JMP     @3
+00841B  3               @2:
+00841B  3  48                   PHA
+00841C  3  A9 00                LDA     #$00
+00841E  3  9D 17 06             STA     dskcfg,X        ; SET device
+008421  3  E8                   INX
+008422  3  9D 17 06             STA     dskcfg,X        ; SET device
+008425  3  68                   PLA
+008426  3  E8                   INX
+008427  3  E0 10                CPX     #16
+008429  3  D0 E2                BNE     @1
+00842B  3               @3:
+00842B  3  60                   RTS
+00842C  3               
+00842C  3               ;__IDE_PPIDETECT____________________________________________________________________________________
+00842C  3               ;
+00842C  3               ;  PROBE FOR PPI HARDWARE
+00842C  3               ;____________________________________________________________________________________________________
+00842C  3               ;
+00842C  3               IDE_PPIDETECT:
+00842C  3               ;
+00842C  3               ; TEST FOR PPI EXISTENCE
+00842C  3               ; WE SETUP THE PPI TO WRITE, THEN WRITE A VALUE OF ZERO
+00842C  3               ; TO PORT A (DATALO), THEN READ IT BACK.  IF THE PPI IS THERE
+00842C  3               ; THEN THE BUS HOLD CIRCUITRY WILL READ BACK THE ZERO. SINCE
+00842C  3               ; WE ARE IN WRITE MODE, AN IDE CONTROLLER WILL NOT BE ABLE TO
+00842C  3               ; INTERFERE WITH THE VALUE BEING READ.
+00842C  3  20 39 86             JSR     SET_PPI_WR
+00842F  3               ;
+00842F  3  A9 00                LDA     #$00            ; VALUE ZERO
+008431  3  8F 88 DF 00          STA     f:PPIDELO       ; PUSH VALUE TO PORT
+008435  3  AF 88 DF 00          LDA     f:PPIDELO       ; GET PORT VALUE
+008439  3  C9 00                CMP     #$00
+00843B  3  60                   RTS                     ; AND RETURN
+00843C  3               ;
+00843C  3               
+00843C  3               
+00843C  3               ;*__IDE_READ_SECTOR___________________________________________________________________________________
+00843C  3               ;*
+00843C  3               ;*  READ IDE SECTOR (IN LBA) INTO BUFFER
+00843C  3               ;*
+00843C  3               ;*____________________________________________________________________________________________________
+00843C  3               IDE_READ_SECTOR:
+00843C  3  AD 10 06             LDA     debsehd         ; STORE CURRENT PARMS
+00843F  3  CD 44 06             CMP     Cdebsehd        ;
+008442  3  D0 13                BNE     IDE_READ_SECTOR_DIRTY
+008444  3  AD 12 06             LDA     debcylm         ;
+008447  3  CD 46 06             CMP     Cdebcylm        ;
+00844A  3  D0 0B                BNE     IDE_READ_SECTOR_DIRTY
+00844C  3  AD 11 06             LDA     debcyll         ;
+00844F  3  CD 45 06             CMP     Cdebcyll        ;
+008452  3  D0 03                BNE     IDE_READ_SECTOR_DIRTY
+008454  3  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
+008456  3  60                   RTS
+008457  3               
+008457  3               IDE_READ_SECTOR_DIRTY:
+008457  3                       PRTDBG  "IDE Read Sector Buffer Dirty$"
+008457  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+00845A  3  B0 27                BCS     IDE_READ_SECTOR_DIRTY_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00845C  3               IDE_READ_SECTOR_DIRTY1:
+00845C  3  20 B1 85             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
+00845F  3  A9 0F                LDA     #PPIDE_COMMAND  ;SELECT IDE REGISTER
+008461  3  A2 20                LDX     #PPIDE_CMD_READ
+008463  3  20 0A 86             JSR     IDE_WRITE       ;ASK THE DRIVE TO READ IT
+008466  3  20 09 85             JSR     IDE_WAIT_DRQ    ;WAIT UNTIL IT'S GOT THE DATA
+008469  3  B0 18                BCS     IDE_READ_SECTOR_DIRTY_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00846B  3  20 3D 85             JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
+00846E  3  AD 10 06             LDA     debsehd         ; STORE CURRENT PARMS
+008471  3  8D 44 06             STA     Cdebsehd        ;
+008474  3  AD 11 06             LDA     debcyll         ;
+008477  3  8D 45 06             STA     Cdebcyll        ;
+00847A  3  AD 12 06             LDA     debcylm         ;
+00847D  3  8D 46 06             STA     Cdebcylm        ;
+008480  3               
+008480  3  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
+008482  3  60                   RTS
+008483  3               IDE_READ_SECTOR_DIRTY_ERROR:
+008483  3  A9 FF                LDA     #$FF            ; ZERO = 1 ON RETURN = OPERATION OK
+008485  3  60                   RTS
+008486  3               
+008486  3               ;*__IDE_WRITE_SECTOR__________________________________________________________________________________
+008486  3               ;*
+008486  3               ;*  WRITE IDE SECTOR (IN LBA) FROM BUFFER
+008486  3               ;*
+008486  3               ;*____________________________________________________________________________________________________
+008486  3               IDE_WRITE_SECTOR:
+008486  3                       PRTDBG  "IDE Write Sector$"
+008486  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+008489  3  B0 25                BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00848B  3               IDE_WRITE_SECTOR_RAW:
+00848B  3  20 B1 85             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
+00848E  3  A9 0F                LDA     #PPIDE_COMMAND
+008490  3  A2 30                LDX     #PPIDE_CMD_WRITE
+008492  3  20 0A 86             JSR     IDE_WRITE       ;TELL DRIVE TO WRITE A SECTOR
+008495  3  20 09 85             JSR     IDE_WAIT_DRQ    ;WAIT UNIT IT WANTS THE DATA
+008498  3  B0 16                BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00849A  3  20 76 85             JSR     IDE_WRITE_BUFFER;GIVE THE DATA TO THE DRIVE
+00849D  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;WAIT UNTIL THE WRITE IS COMPLETE
+0084A0  3  B0 0E                BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+0084A2  3  A9 FF                LDA     #$FF            ; STORE CURRENT PARMS
+0084A4  3  8D 44 06             STA     Cdebsehd        ;
+0084A7  3  8D 45 06             STA     Cdebcyll        ;
+0084AA  3  8D 46 06             STA     Cdebcylm        ;
+0084AD  3               
+0084AD  3  A9 00                LDA     #$00            ; ZERO ON RETURN = OPERATION OK
+0084AF  3  60                   RTS
+0084B0  3               IDE_WRITE_SECTOR_ERROR:
+0084B0  3  A9 FF                LDA     #$FF            ; 1 ON RETURN = OPERATION FAIL
+0084B2  3  60                   RTS
+0084B3  3               
+0084B3  3               ;*__PPIDE_RESET____________________________________________________________________________________
+0084B3  3               ;*
+0084B3  3               ;*  SOFT RESET IDE CHANNEL
+0084B3  3               ;*
+0084B3  3               ;*____________________________________________________________________________________________________
+0084B3  3               PPIDE_RESET:
+0084B3  3                       PRTDBG  "IDE Reset$"
+0084B3  3  A9 00                LDA     #$00
+0084B5  3  8D 10 06             STA     debsehd
+0084B8  3  8D 11 06             STA     debcyll
+0084BB  3  8D 12 06             STA     debcylm
+0084BE  3  A9 FF                LDA     #$FF            ;
+0084C0  3  8D 44 06             STA     Cdebsehd        ;
+0084C3  3  8D 45 06             STA     Cdebcyll        ;
+0084C6  3  8D 46 06             STA     Cdebcylm        ;
+0084C9  3               
+0084C9  3  A9 80                LDA     #PPIDE_RST_LINE
+0084CB  3  8F 8A DF 00          STA     f:PPIDECNTRL    ; ASSERT RST LINE ON IDE INTERFACE
+0084CF  3  A2 00                LDX     #$00
+0084D1  3                       PRTDBG  "IDE Reset Delay$"
+0084D1  3               RST_DLY:
+0084D1  3  CA                   DEX
+0084D2  3  E0 00                CPX     #$00
+0084D4  3  D0 FB                BNE     RST_DLY
+0084D6  3  A9 00                LDA     #$00
+0084D8  3  8F 8A DF 00          STA     f:PPIDECNTRL    ; DEASSERT RST LINE ON IDE INTERFACE
+0084DC  3               
+0084DC  3               ; IF A DSKYNG IS ACTIVE AND IS ON THE SAME PPI PORT AS THE PPISD BEING
+0084DC  3               ; RESET, THEN THE DSKYNG WILL ALSO BE RESET.  SO, THE DSKY IS ALSO INITIALIZED.
+0084DC  3               ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  JSR     DSKY_REINIT
+0084DC  3               
+0084DC  3  60                   RTS
+0084DD  3               
+0084DD  3               
+0084DD  3               ;*__IDE_WAIT_NOT_BUSY_______________________________________________________________________________
+0084DD  3               ;*
+0084DD  3               ;*  WAIT FOR IDE CHANNEL TO BECOME READY
+0084DD  3               ;*
+0084DD  3               ;*____________________________________________________________________________________________________
+0084DD  3               IDE_WAIT_NOT_BUSY:
+0084DD  3  48                   PHA
+0084DE  3  8A                   TXA
+0084DF  3  48                   PHA
+0084E0  3  98                   TYA
+0084E1  3  48                   PHA
+0084E2  3  A9 00                LDA     #$00
+0084E4  3  8D 37 06             STA     FLRETRY
+0084E7  3  8D 38 06             STA     FLRETRY+1
+0084EA  3               IDE_WAIT_NOT_BUSY1:
+0084EA  3  A9 0F                LDA     #PPIDE_STATUS   ;WAIT FOR RDY BIT TO BE SET
+0084EC  3  20 E4 85             JSR     IDE_READ
+0084EF  3  8A                   TXA
+0084F0  3  29 80                AND     #$80
+0084F2  3  F0 0E                BEQ     IDE_WAIT_NOT_BUSY2
+0084F4  3  EE 37 06             INC     FLRETRY
+0084F7  3  D0 F1                BNE     IDE_WAIT_NOT_BUSY1
+0084F9  3  EE 38 06             INC     FLRETRY+1
+0084FC  3  D0 EC                BNE     IDE_WAIT_NOT_BUSY1
+0084FE  3  38                   SEC
+0084FF  3  4C 03 85             JMP     IDE_WAIT_NOT_BUSY3
+008502  3               IDE_WAIT_NOT_BUSY2:
+008502  3  18                   CLC
+008503  3               IDE_WAIT_NOT_BUSY3:
+008503  3  68                   PLA
+008504  3  A8                   TAY
+008505  3  68                   PLA
+008506  3  AA                   TAX
+008507  3  68                   PLA
+008508  3  60                   RTS
+008509  3               
+008509  3               ;*__IDE_WAIT_DRQ______________________________________________________________________________________
+008509  3               ;*
+008509  3               ;*	WAIT FOR THE DRIVE TO BE READY TO TRANSFER DATA.
+008509  3               ;*
+008509  3               ;*____________________________________________________________________________________________________
+008509  3               IDE_WAIT_DRQ:
+008509  3  48                   PHA
+00850A  3  8A                   TXA
+00850B  3  48                   PHA
+00850C  3  98                   TYA
+00850D  3  48                   PHA
+00850E  3  A9 00                LDA     #$00
+008510  3  8D 37 06             STA     FLRETRY
+008513  3  8D 38 06             STA     FLRETRY+1
+008516  3               IDE_WAIT_DRQ1:
+008516  3  A9 0F                LDA     #PPIDE_STATUS   ;WAIT FOR DRQ BIT TO BE SET
+008518  3  20 E4 85             JSR     IDE_READ
+00851B  3  8A                   TXA
+00851C  3  29 88                AND     #%10001000      ; MASK OFF BUSY(7) AND DRQ(3)
+00851E  3  C9 08                CMP     #%00001000      ; WE WANT BUSY(7) TO BE 0 AND DRQ (3) TO BE 1
+008520  3  F0 14                BEQ     IDE_WAIT_DRQ2
+008522  3  29 01                AND     #%00000001      ; IS ERROR?
+008524  3  C9 01                CMP     #%00000001      ;
+008526  3  F0 0A                BEQ     IDE_WAIT_DRQE
+008528  3  EE 37 06             INC     FLRETRY
+00852B  3  D0 E9                BNE     IDE_WAIT_DRQ1
+00852D  3  EE 38 06             INC     FLRETRY+1
+008530  3  D0 E4                BNE     IDE_WAIT_DRQ1
+008532  3               IDE_WAIT_DRQE:
+008532  3  38                   SEC
+008533  3  4C 37 85             JMP     IDE_WAIT_DRQ3
+008536  3               IDE_WAIT_DRQ2:
+008536  3  18                   CLC
+008537  3               IDE_WAIT_DRQ3:
+008537  3  68                   PLA
+008538  3  A8                   TAY
+008539  3  68                   PLA
+00853A  3  AA                   TAX
+00853B  3  68                   PLA
+00853C  3  60                   RTS
+00853D  3               
+00853D  3               
+00853D  3               
+00853D  3               ;*__IDE_READ_BUFFER___________________________________________________________________________________
+00853D  3               ;*
+00853D  3               ;*  READ IDE BUFFER LITTLE ENDIAN
+00853D  3               ;*
+00853D  3               ;*____________________________________________________________________________________________________
+00853D  3               IDE_READ_BUFFER:
+00853D  3  A2 00                LDX     #$00            ; INDEX
+00853F  3               IDEBUFRD:
+00853F  3  8E 3C 06             STX     PPIDEINDEX
+008542  3  A9 08                LDA     #PPIDE_DATA
+008544  3  20 E4 85             JSR     IDE_READ
+008547  3  8A                   TXA
+008548  3  AE 3C 06             LDX     PPIDEINDEX
+00854B  3  9F 00 04 1D          STA     f:LHSTBUF,X     ;
+00854F  3  E8                   INX                     ;
+008550  3  98                   TYA                     ; THEN HIGH BYTE OF WORD
+008551  3  9F 00 04 1D          STA     f:LHSTBUF,X     ;
+008555  3  E8                   INX
+008556  3  E0 00                CPX     #$00            ;
+008558  3  D0 E5                BNE     IDEBUFRD        ;
+00855A  3               IDEBUFRD1:
+00855A  3  8E 3C 06             STX     PPIDEINDEX
+00855D  3  A9 08                LDA     #PPIDE_DATA
+00855F  3  20 E4 85             JSR     IDE_READ
+008562  3  8A                   TXA
+008563  3  AE 3C 06             LDX     PPIDEINDEX
+008566  3  9F 00 05 1D          STA     f:LHSTBUF+256,X ;
+00856A  3  E8                   INX                     ;
+00856B  3  98                   TYA                     ; THEN HIGH BYTE OF WORD
+00856C  3  9F 00 05 1D          STA     f:LHSTBUF+256,X ;
+008570  3  E8                   INX                     ;
+008571  3  E0 00                CPX     #$00            ;
+008573  3  D0 E5                BNE     IDEBUFRD1       ;
+008575  3  60                   RTS                     ;
+008576  3               
+008576  3               ;*__IDE_WRITE_BUFFER___________________________________________________________________________________
+008576  3               ;*
+008576  3               ;*  WRITE IDE BUFFER LITTLE ENDIAN
+008576  3               ;*
+008576  3               ;*____________________________________________________________________________________________________
+008576  3               IDE_WRITE_BUFFER:
+008576  3  A2 00                LDX     #$00            ; INDEX
+008578  3               IDEBUFWT:
+008578  3  8E 3C 06             STX     PPIDEINDEX
+00857B  3  BF 01 04 1D          LDA     f:LHSTBUF+1,X   ; SECTORS ARE BIG ENDIAN
+00857F  3  A8                   TAY                     ;
+008580  3  BF 00 04 1D          LDA     f:LHSTBUF,X     ; SECTORS ARE BIG ENDIAN
+008584  3  AA                   TAX
+008585  3  A9 08                LDA     #PPIDE_DATA
+008587  3  20 0A 86             JSR     IDE_WRITE
+00858A  3  AE 3C 06             LDX     PPIDEINDEX
+00858D  3  E8                   INX                     ;
+00858E  3  E8                   INX                     ;
+00858F  3  E0 00                CPX     #$00            ;
+008591  3  D0 E5                BNE     IDEBUFWT        ;
+008593  3  A2 00                LDX     #$00            ; INDEX
+008595  3               IDEBUFWT1:
+008595  3  8E 3C 06             STX     PPIDEINDEX
+008598  3  BF 01 05 1D          LDA     f:LHSTBUF+257,X ; SECTORS ARE BIG ENDIAN
+00859C  3  A8                   TAY
+00859D  3  BF 00 05 1D          LDA     f:LHSTBUF+256,X ; SECTORS ARE BIG ENDIAN
+0085A1  3  AA                   TAX
+0085A2  3  A9 08                LDA     #PPIDE_DATA
+0085A4  3  20 0A 86             JSR     IDE_WRITE
+0085A7  3  AE 3C 06             LDX     PPIDEINDEX
+0085AA  3  E8                   INX                     ;
+0085AB  3  E8                   INX                     ;
+0085AC  3  E0 00                CPX     #$00            ;
+0085AE  3  D0 E5                BNE     IDEBUFWT1       ;
+0085B0  3  60                   RTS                     ;
+0085B1  3               
+0085B1  3               ;*__IDE_SETUP_LBA_____________________________________________________________________________________
+0085B1  3               ;*
+0085B1  3               ;*  SETUP LBA DATA
+0085B1  3               ;*  A= DRIVE DEVICE
+0085B1  3               ;*____________________________________________________________________________________________________
+0085B1  3               IDE_SETUP_LBA:
+0085B1  3                       PRTDBG  "PPIDE SETUP LBA$"
+0085B1  3  AD 3D 06             LDA     CURRENT_IDE_DRIVE
+0085B4  3  29 01                AND     #$01            ; only want drive cfg
+0085B6  3  0A                   ASL     a               ; SHIFT 4
+0085B7  3  0A                   ASL     a               ;
+0085B8  3  0A                   ASL     a               ;
+0085B9  3  0A                   ASL     a               ;
+0085BA  3  09 E0                ORA     #$E0            ; E0=MST  F0=SLV
+0085BC  3  AA                   TAX
+0085BD  3  A0 00                LDY     #$00
+0085BF  3  A9 0E                LDA     #PPIDE_DEVICE
+0085C1  3  20 0A 86             JSR     IDE_WRITE
+0085C4  3               
+0085C4  3  AE 12 06             LDX     debcylm
+0085C7  3  A9 0D                LDA     #PPIDE_LBAHI
+0085C9  3  20 0A 86             JSR     IDE_WRITE
+0085CC  3               
+0085CC  3  AE 11 06             LDX     debcyll         ;
+0085CF  3  A9 0C                LDA     #PPIDE_LBAMID
+0085D1  3  20 0A 86             JSR     IDE_WRITE
+0085D4  3               
+0085D4  3  AE 10 06             LDX     debsehd         ;
+0085D7  3  A9 0B                LDA     #PPIDE_LBALOW
+0085D9  3  20 0A 86             JSR     IDE_WRITE
+0085DC  3               
+0085DC  3  A2 01                LDX     #$01
+0085DE  3  A9 0A                LDA     #PPIDE_SEC_CNT
+0085E0  3  20 0A 86             JSR     IDE_WRITE
+0085E3  3               
+0085E3  3  60                   RTS
+0085E4  3               
+0085E4  3               
+0085E4  3               ;-------------------------------------------------------------------------------
+0085E4  3               
+0085E4  3               ; LOW LEVEL I/O TO THE DRIVE.  THESE ARE THE ROUTINES THAT TALK
+0085E4  3               ; DIRECTLY TO THE DRIVE, VIA THE 8255 CHIP.  NORMALLY A MAIN
+0085E4  3               ; PROGRAM WOULD NOT CALL TO THESE.
+0085E4  3               
+0085E4  3               ;DO A READ BUS CYCLE TO THE DRIVE, USING THE 8255.
+0085E4  3               ;INPUT A = IDE REGSITER ADDRESS
+0085E4  3               ;OUTPUT X = LOWER BYTE READ FROM IDE DRIVE
+0085E4  3               ;OUTPUT Y = UPPER BYTE READ FROM IDE DRIVE
+0085E4  3               
+0085E4  3               IDE_READ:
+0085E4  3  20 30 86             JSR     SET_PPI_RD      ; SETUP FOR A READ CYCLE
+0085E7  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DRIVE ADDRESS ONTO CONTROL LINES
+0085EB  3  09 40                ORA     #PPIDE_RD_LINE  ; ASSERT RD PIN
+0085ED  3  8F 8A DF 00          STA     f:PPIDECNTRL
+0085F1  3  48                   PHA
+0085F2  3  AF 88 DF 00          LDA     f:PPIDELO       ; READ LOWER BYTE
+0085F6  3  AA                   TAX
+0085F7  3  AF 89 DF 00          LDA     f:PPIDEHI       ; READ UPPER BYTE
+0085FB  3  A8                   TAY
+0085FC  3  68                   PLA
+0085FD  3  49 40                EOR     #PPIDE_RD_LINE  ; DE-ASSERT RD SIGNAL
+0085FF  3  8F 8A DF 00          STA     f:PPIDECNTRL
+008603  3  A9 00                LDA     #$00
+008605  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
+008609  3  60                   RTS
+00860A  3               
+00860A  3               
+00860A  3               
+00860A  3               
+00860A  3               ;DO A WRITE BUS CYCLE TO THE DRIVE, VIA THE 8255
+00860A  3               ;INPUT A = IDE REGISTER ADDRESS
+00860A  3               ;INPUT REGISTER X = LSB TO WRITE
+00860A  3               ;INPUT REGISTER Y = MSB TO WRITE
+00860A  3               ;
+00860A  3               
+00860A  3               
+00860A  3               IDE_WRITE:
+00860A  3  20 39 86             JSR     SET_PPI_WR      ; SETUP FOR A WRITE CYCLE
+00860D  3               
+00860D  3  48                   PHA
+00860E  3  8A                   TXA
+00860F  3  8F 88 DF 00          STA     f:PPIDELO       ; WRITE LOWER BYTE
+008613  3  98                   TYA
+008614  3  8F 89 DF 00          STA     f:PPIDEHI       ; WRITE UPPER BYTE
+008618  3  68                   PLA
+008619  3               
+008619  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DRIVE ADDRESS ONTO CONTROL LINES
+00861D  3               
+00861D  3  09 20                ORA     #PPIDE_WR_LINE  ; ASSERT WRITE PIN
+00861F  3  8F 8A DF 00          STA     f:PPIDECNTRL
+008623  3               
+008623  3  49 20                EOR     #PPIDE_WR_LINE  ; DE ASSERT WR PIN
+008625  3  8F 8A DF 00          STA     f:PPIDECNTRL
+008629  3               
+008629  3  A9 00                LDA     #$00
+00862B  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
+00862F  3  60                   RTS
+008630  3               
+008630  3               
+008630  3               ;-----------------------------------------------------------------------------------
+008630  3               ; PPI SETUP ROUTINE TO CONFIGURE THE APPROPRIATE PPI MODE
+008630  3               ;
+008630  3               ;------------------------------------------------------------------------------------
+008630  3               
+008630  3               SET_PPI_RD:
+008630  3  48                   PHA
+008631  3  A9 92                LDA     #PPRD_IDE_8255
+008633  3  8F 8B DF 00          STA     f:PPIDEPPIC     ;CONFIG 8255 CHIP, READ MODE
+008637  3  68                   PLA
+008638  3  60                   RTS
+008639  3               
+008639  3               SET_PPI_WR:
+008639  3  48                   PHA
+00863A  3  A9 80                LDA     #PPWR_IDE_8255
+00863C  3  8F 8B DF 00          STA     f:PPIDEPPIC     ;CONFIG 8255 CHIP, WRITE MODE
+008640  3  68                   PLA
+008641  3  60                   RTS
+008642  3               
+008642  2               ;        .INCLUDE "dosdskyn.asm"
+008642  2                       .INCLUDE "dosmd.asm"
+008642  3               ;__MD DRIVERS____________________________________________________________________________________________________________________
+008642  3               ;
+008642  3               ; 	Duodyne Memory disk drivers
+008642  3               ;
+008642  3               ;	Entry points:
+008642  3               ;		MD_SHOW         - called during OS init
+008642  3               ;		MD_READ_SECTOR  - read a sector from drive
+008642  3               ;		MD_WRITE_SECTOR - write a sector to drive
+008642  3               ;________________________________________________________________________________________________________________________________
+008642  3               ;
+008642  3               ; RAM BANK $1E is RAM area for Drivers
+008642  3               ; RAM BANK $1D is operating bank for DOS/65 $8000-$FFFF
+008642  3               ;
+008642  3               ; ROM BANKS $00 and $0C-$0F are reserved for ROMWBW code
+008642  3               ; ROM Drive starts in bank $22
+008642  3               ; RAM Drive starts in bank $02
+008642  3               ;
+008642  3               ; "Magic" number at $01FFFF.  If $E5 do not format RAM Drive.
+008642  3               
+008642  3               MD_MAGIC        = $01FFFF
+008642  3               MD_RAM_START    = $020000
+008642  3               
+008642  3               ;__MD_SHOW___________________________________________________________________________________________
+008642  3               ;
+008642  3               ;  Display info on MD devices
+008642  3               ;____________________________________________________________________________________________________
+008642  3               ;
+008642  3               MD_SHOW:
+008642  3                       PRTDBG  "MD INIT:$"
+008642  3  48 DA 5A A2          PRTS    "MD: UNITS=2 RAMDISK=256KB ROMDISK=384KB$"
+008646  3  00 BD 5B 86  
+00864A  3  E8 C9 24 F0  
+008683  3  20 E2 80             JSR     NEWLINE
+008686  3  AF FF FF 01          LDA     f:MD_MAGIC
+00868A  3  C9 E5                CMP     #$E5
+00868C  3  F0 47                BEQ     :++
+00868E  3               
+00868E  3  48 DA 5A A2          PRTS    "MD: FORMATTING RAM DRIVE$"
+008692  3  00 BD A7 86  
+008696  3  E8 C9 24 F0  
+0086C0  3  E2 20                ACCUMULATOR8
+0086C2  3  C2 10                INDEX16
+0086C4  3  A2 00 00             LDX     #$0000
+0086C7  3  A9 E5                LDA     #$E5
+0086C9  3               :
+0086C9  3  9F FF FF 01          STA     f:MD_MAGIC,x
+0086CD  3  E8                   INX
+0086CE  3  E0 00 00             CPX     #0
+0086D1  3  D0 F6                BNE     :-
+0086D3  3  E2 30                ACCUMULATORINDEX8
+0086D5  3               :
+0086D5  3  60                   RTS
+0086D6  3               
+0086D6  3               ;*__MD_READ_SECTOR____________________________________________________________________________________
+0086D6  3               ;*
+0086D6  3               ;*  READ MD SECTOR INTO BUFFER
+0086D6  3               ;*
+0086D6  3               ;*____________________________________________________________________________________________________
+0086D6  3               MD_READ_SECTOR:
+0086D6  3                       PRTDBG  "MD Read Sector$"
+0086D6  3  AF 28 06 1D          LDA     f:LDSKUNIT
+0086DA  3  29 01                AND     #$01            ; only want drive cfg
+0086DC  3  0A                   ASL     a               ; SHIFT 5
+0086DD  3  0A                   ASL     a               ;
+0086DE  3  0A                   ASL     a               ;
+0086DF  3  0A                   ASL     a               ;
+0086E0  3  0A                   ASL     a               ;
+0086E1  3  AA                   TAX                     ; STASH BANK
+0086E2  3  20 4D 87             JSR     MD_CONVERT_SECTOR
+0086E5  3               
+0086E5  3  AD 10 06             LDA     debsehd
+0086E8  3  85 3B                STA     TEMPWORD
+0086EA  3  AD 11 06             LDA     debsehd+1
+0086ED  3  85 3C                STA     TEMPWORD+1
+0086EF  3  AD 12 06             LDA     debsehd+2
+0086F2  3  85 3D                STA     TEMPWORD+2
+0086F4  3               
+0086F4  3               ; Then copy sector to buffer
+0086F4  3  E2 20                ACCUMULATOR8
+0086F6  3  C2 10                INDEX16
+0086F8  3  A2 00 00             LDX     #$0000
+0086FB  3  A0 00 00             LDY     #$0000
+0086FE  3               :
+0086FE  3  B7 3B                LDA     [TEMPWORD],y
+008700  3  9F 00 04 1D          STA     f:LHSTBUF,x
+008704  3  E8                   INX
+008705  3  C8                   INY
+008706  3  E0 00 02             CPX     #512
+008709  3  D0 F3                BNE     :-
+00870B  3  E2 30                ACCUMULATORINDEX8
+00870D  3  A9 00                LDA     #$00
+00870F  3  60                   RTS
+008710  3               
+008710  3               
+008710  3               ;*__MD_WRITE_SECTOR___________________________________________________________________________________
+008710  3               ;*
+008710  3               ;*  WRITE MD SECTOR FROM BUFFER
+008710  3               ;*
+008710  3               ;*____________________________________________________________________________________________________
+008710  3               MD_WRITE_SECTOR:
+008710  3                       PRTDBG  "MD Write Sector$"
+008710  3  AF 28 06 1D          LDA     f:LDSKUNIT
+008714  3  29 01                AND     #$01            ; only want drive cfg
+008716  3  C9 00                CMP     #$00            ; NO WRITE FOR ROM
+008718  3  F0 03                BEQ     MD_WRITE_SECTOR_RAM
+00871A  3  A9 FF                LDA     #$FF
+00871C  3  60                   RTS
+00871D  3               MD_WRITE_SECTOR_RAM:
+00871D  3  A2 00                LDX     #$00
+00871F  3  20 4D 87             JSR     MD_CONVERT_SECTOR
+008722  3               
+008722  3  AD 10 06             LDA     debsehd
+008725  3  85 3B                STA     TEMPWORD
+008727  3  AD 11 06             LDA     debsehd+1
+00872A  3  85 3C                STA     TEMPWORD+1
+00872C  3  AD 12 06             LDA     debsehd+2
+00872F  3  85 3D                STA     TEMPWORD+2
+008731  3               
+008731  3               ; Then copy sector to buffer
+008731  3  E2 20                ACCUMULATOR8
+008733  3  C2 10                INDEX16
+008735  3  A2 00 00             LDX     #$0000
+008738  3  A0 00 00             LDY     #$0000
+00873B  3               :
+00873B  3  BF 00 04 1D          LDA     f:LHSTBUF,x
+00873F  3  97 3B                STA     [TEMPWORD],y
+008741  3  E8                   INX
+008742  3  C8                   INY
+008743  3  E0 00 02             CPX     #512
+008746  3  D0 F3                BNE     :-
+008748  3  E2 30                ACCUMULATORINDEX8
+00874A  3  A9 00                LDA     #$00
+00874C  3  60                   RTS
+00874D  3               
+00874D  3               ;___MD_CONVERT_SECTOR___________________________________________________________________________________
+00874D  3               ;
+00874D  3               ; 	TRANSLATE SECTORS INTO MD FORMAT
+00874D  3               ;________________________________________________________________________________________________________
+00874D  3               MD_CONVERT_SECTOR:
+00874D  3                       PRTDBG  "CONVERT SECTOR$"
+00874D  3  48                   PHA
+00874E  3  DA                   PHX
+00874F  3  A9 00                LDA     #$00
+008751  3  8D 10 06             STA     debsehd
+008754  3  A5 46                LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
+008756  3  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING, 512 byte "Sectors")
+008757  3  4A                   LSR     A               ;
+008758  3  29 1F                AND     #$1F            ; Ensure we have no junk in number
+00875A  3  8D 11 06             STA     debcyll         ; STORE IN SECTOR/HEAD
+00875D  3  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+00875F  3  29 03                AND     #$03            ; BOTTOM 2 BITS ARE PART OF SECTOR
+008761  3  0A                   ASL     a               ; MOVE TO HIGH BITS
+008762  3  0A                   ASL     a
+008763  3  0A                   ASL     a
+008764  3  0A                   ASL     a
+008765  3  0A                   ASL     a
+008766  3  0D 11 06             ORA     debcyll
+008769  3  8D 11 06             STA     debcyll         ; STORE IN SECTOR/HEAD
+00876C  3  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+00876E  3  4A                   LSR     A               ; DIVIDE BY 4 TO GET BANK
+00876F  3  4A                   LSR     A
+008770  3  29 3F                AND     #$3F            ; Ensure we have no junk in number
+008772  3  8D 12 06             STA     debcylm         ;
+008775  3  8A                   TXA                     ; Adjust for ROM/RAM DISK
+008776  3  0D 12 06             ORA     debcylm         ;
+008779  3  1A                   INC     A
+00877A  3  1A                   INC     A
+00877B  3  8D 12 06             STA     debcylm         ; THIS SHOULD BE BANK#
+00877E  3  FA                   PLX
+00877F  3  68                   PLA
+008780  3  60                   RTS
+008781  3               
+008781  2               ;        .INCLUDE "dosflp.asm"
+008781  2               
+008781  2               
+008781  2               
+008781  2               
+008781  2               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
+008781  2               ;
+008781  2               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
+008781  2               ;________________________________________________________________________________________________________________________________
+008781  2               DFT_CONSOLE:
+008781  2  8D 93 87             STA     drvtmp
+008784  2  A5 3A                LDA     CONSOLE
+008786  2  18                   CLC
+008787  2  65 32                ADC     farfunct
+008789  2  85 32                STA     farfunct
+00878B  2  68                   PLA
+00878C  2  68                   PLA
+00878D  2  AD 93 87             LDA     drvtmp
+008790  2  4C 01 80             JMP     FUNCTION_DISPATCHER1
+008793  2               drvtmp:
+008793  2  00                   .BYTE   00
+008794  2               
+008794  2               drv_noop:
+008794  2  60                   RTS
+008795  2               
+008795  1               DRIVEREND:
+008795  1                       .END
