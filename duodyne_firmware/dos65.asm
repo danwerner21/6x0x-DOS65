@@ -35,6 +35,7 @@ DRIVERSIZE      = DRIVEREND-DRIVERBEGIN
         LDA     #DRIVERSIZE-1
         MVN     #00, #DOS65DRIVERSBNK
 
+
 ; Set Default Console
         ACCUMULATORINDEX8
         LDA     #$04

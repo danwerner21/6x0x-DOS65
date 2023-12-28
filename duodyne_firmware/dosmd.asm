@@ -151,6 +151,7 @@ MD_CONVERT_SECTOR:
         ASL     a
         ASL     a
         ORA     debcyll
+        ASL     A
         STA     debcyll         ; STORE IN SECTOR/HEAD
         LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
         LSR     A               ; DIVIDE BY 4 TO GET BANK

@@ -101,8 +101,8 @@ Current file: dos65.asm
 000000r 2               debsehd         = $0610         ; DEBLOCKED SECTOR AND HEAD (HS)
 000000r 2               debcyll         = $0611         ; DEBLOCKED CYLINDER LSB
 000000r 2               debcylm         = $0612         ; DEBLOCKED CYLINDER MSB
-000000r 2               sekdsk          = $0616         ; seek disk number
 000000r 2               dskcfg          = $0617         ; 16 bytes disk configuration table
+000000r 2               LDSKCFG         = (DOS65BANK*$10000)+$0617         ; 16 bytes disk configuration table
 000000r 2               DSKUNIT         = $0628         ; seek disk number
 000000r 2               LDSKUNIT        = (DOS65BANK*$10000)+$0628         ; seek disk number
 000000r 2               slicetmp        = $0631         ; (word)
@@ -155,6 +155,7 @@ Current file: dos65.asm
 000000r 2               DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
 000000r 2               sektrk          = $44           ; seek track number
 000000r 2               seksec          = $46           ; seek sector number
+000000r 2               sekdsk          = $48           ; seek disk number
 000000r 2               
 000000r 2               
 000000r 2               IO_AREA         = $00DF00
@@ -225,8 +226,9 @@ Current file: dos65.asm
 000811  1               ; Then copy Drivers into Driver Bank
 000811  1  A2 30 2A             LDX     #OSBEGIN+DOSSIZE
 000814  1  A0 00 80             LDY     #DRIVERBEGIN
-000817  1  A9 94 07             LDA     #DRIVERSIZE-1
+000817  1  A9 3B 08             LDA     #DRIVERSIZE-1
 00081A  1  54 1E 00             MVN     #00, #DOS65DRIVERSBNK
+00081D  1               
 00081D  1               
 00081D  1               ; Set Default Console
 00081D  1  E2 30                ACCUMULATORINDEX8
@@ -3290,24 +3292,24 @@ Current file: dos65.asm
 00E3E9  2               sim:
 00E3E9  2  4C 3B E5             JMP     boot            ;from cold start
 00E3EC  2               wboote:
-00E3EC  2  4C DA E5             JMP     wboot           ;from warm boot
-00E3EF  2  4C B0 E6             JMP     consts          ;check for input
-00E3F2  2  4C B7 E6             JMP     conrde          ;get input
-00E3F5  2  4C BE E6             JMP     conwrt          ;send to terminal
-00E3F8  2  4C C7 E6             JMP     prnwrt          ;printer output
-00E3FB  2  4C C8 E6             JMP     punwrt          ;punch output
-00E3FE  2  4C C9 E6             JMP     rdrinp          ;reader input
-00E401  2  4C FC E5             JMP     home            ;home drive
-00E404  2  4C DE E5             JMP     seldsk          ;select disk
-00E407  2  4C 00 E6             JMP     seltrk          ;set track
-00E40A  2  4C 05 E6             JMP     selsec          ;set sector
-00E40D  2  4C AB E6             JMP     setdma          ;set buffer address
-00E410  2  4C 0A E6             JMP     read            ;read sector
-00E413  2  4C 57 E6             JMP     write           ;write sector
+00E3EC  2  4C D9 E5             JMP     wboot           ;from warm boot
+00E3EF  2  4C AE E6             JMP     consts          ;check for input
+00E3F2  2  4C B5 E6             JMP     conrde          ;get input
+00E3F5  2  4C BC E6             JMP     conwrt          ;send to terminal
+00E3F8  2  4C C5 E6             JMP     prnwrt          ;printer output
+00E3FB  2  4C C6 E6             JMP     punwrt          ;punch output
+00E3FE  2  4C C7 E6             JMP     rdrinp          ;reader input
+00E401  2  4C FA E5             JMP     home            ;home drive
+00E404  2  4C DD E5             JMP     seldsk          ;select disk
+00E407  2  4C FE E5             JMP     seltrk          ;set track
+00E40A  2  4C 03 E6             JMP     selsec          ;set sector
+00E40D  2  4C A9 E6             JMP     setdma          ;set buffer address
+00E410  2  4C 08 E6             JMP     read            ;read sector
+00E413  2  4C 55 E6             JMP     write           ;write sector
 00E416  2  A9 01                LDA     #1              ;printer always ready
 00E418  2  60                   RTS
-00E419  2  4C CA E6             JMP     rdtime          ;clock entry
-00E41C  2  4C CD E6             JMP     xlate           ;translate
+00E419  2  4C C8 E6             JMP     rdtime          ;clock entry
+00E41C  2  4C CB E6             JMP     xlate           ;translate
 00E41F  2               
 00E41F  2               ;console definition block
 00E41F  2               sysdef:
@@ -3372,16 +3374,16 @@ Current file: dos65.asm
 00E546  2               
 00E546  2  A9 29                LDA     #<opnmsg        ;point to message
 00E548  2  A0 E4                LDY     #>opnmsg
-00E54A  2  20 CE E6             JSR     outmsg          ;send it
+00E54A  2  20 CC E6             JSR     outmsg          ;send it
 00E54D  2  A9 CF                LDA     #<opnmsg1       ;point to message
 00E54F  2  A0 E4                LDY     #>opnmsg1
-00E551  2  20 CE E6             JSR     outmsg          ;send it
+00E551  2  20 CC E6             JSR     outmsg          ;send it
 00E554  2               ;set up jumps into dos/65 in page one
 00E554  2               
 00E554  2               ; setup diskconfig table
 00E554  2  A2 00                LDX     #0
 00E556  2               :
-00E556  2  BD CD E8             LDA     dftdskcfg, x
+00E556  2  BD C7 E8             LDA     dftdskcfg, x
 00E559  2  9D 17 06             STA     dskcfg, x
 00E55C  2  E8                   INX
 00E55D  2  E0 10                CPX     #$10
@@ -3417,7 +3419,7 @@ Current file: dos65.asm
 00E590  2  A9 06                LDA     #>dskcfg
 00E592  2  85 2F                STA     dskcfpc + 1
 00E594  2               
-00E594  2  A9 5D                LDA     #<dcba          ; STORE POINTER TO DCB TABLES FOR APPS
+00E594  2  A9 57                LDA     #<dcba          ; STORE POINTER TO DCB TABLES FOR APPS
 00E596  2  85 2C                STA     dcbpc
 00E598  2  A9 E8                LDA     #>dcba
 00E59A  2  85 2D                STA     dcbpc + 1
@@ -3429,844 +3431,844 @@ Current file: dos65.asm
 00E59E  2               ;        STX     hstact          ;host buffer inactive
 00E59E  2               ;        STX     unacnt          ;clear unalloc count
 00E59E  2               setupl:
-00E59E  2  BD D4 E5             LDA     inttbl,x        ;get byte
+00E59E  2  BD D3 E5             LDA     inttbl,x        ;get byte
 00E5A1  2  9D 00 01             STA     $100,x          ;insert at start
 00E5A4  2  E8                   INX
 00E5A5  2  E0 06                CPX     #6
 00E5A7  2  D0 F5                BNE     setupl          ;loop until done
 00E5A9  2  A9 28                LDA     #<dflbuf        ;get low buffer
 00E5AB  2  A0 01                LDY     #>dflbuf        ;and high
-00E5AD  2  20 AB E6             JSR     setdma          ;and set
-00E5B0  2  AD 16 06             LDA     sekdsk          ;get disk
-00E5B3  2               
-00E5B3  2  A2 00                LDX     #$00            ; SHOW A STARTUP MESSAGE ON DSKY
-00E5B5  2               :
-00E5B5  2  BD 33 E5             LDA     DSKYMSG,x
-00E5B8  2  9D 00 06             STA     DSKY_BUF,x
-00E5BB  2  E8                   INX
-00E5BC  2  E0 08                CPX     #8
-00E5BE  2  D0 F5                BNE     :-
-00E5C0  2  A9 29                LDA     #41             ; DSKY_SHOW
-00E5C2  2  85 32                STA     farfunct
-00E5C4  2  20 00 F2             JSR     DO_FARCALL
-00E5C7  2               
-00E5C7  2  A9 00                LDA     #DEFDRV         ;set zero
-00E5C9  2  20 DE E5             JSR     seldsk          ;and select drive zero
-00E5CC  2  20 FC E5             JSR     home            ;home that drive
-00E5CF  2  A9 00                LDA     #DEFDRV         ;set zero
-00E5D1  2  4C 05 D0             JMP     ccm             ;and go to ccm
-00E5D4  2               ;initialization table
-00E5D4  2               inttbl:
-00E5D4  2  4C EC E3 4C          .BYTE   $4c,<wboote,>wboote,$4c,<pem,>pem
-00E5D8  2  05 D8        
-00E5DA  2               ;warm boot-read dos/65 back except sim and then
-00E5DA  2               ; jump to ccm.
+00E5AD  2  20 A9 E6             JSR     setdma          ;and set
+00E5B0  2  A5 48                LDA     sekdsk          ;get disk
+00E5B2  2               
+00E5B2  2  A2 00                LDX     #$00            ; SHOW A STARTUP MESSAGE ON DSKY
+00E5B4  2               :
+00E5B4  2  BD 33 E5             LDA     DSKYMSG,x
+00E5B7  2  9D 00 06             STA     DSKY_BUF,x
+00E5BA  2  E8                   INX
+00E5BB  2  E0 08                CPX     #8
+00E5BD  2  D0 F5                BNE     :-
+00E5BF  2  A9 29                LDA     #41             ; DSKY_SHOW
+00E5C1  2  85 32                STA     farfunct
+00E5C3  2  20 00 F2             JSR     DO_FARCALL
+00E5C6  2               
+00E5C6  2  A9 00                LDA     #DEFDRV         ;set zero
+00E5C8  2  20 DD E5             JSR     seldsk          ;and select drive zero
+00E5CB  2  20 FA E5             JSR     home            ;home that drive
+00E5CE  2  A9 00                LDA     #DEFDRV         ;set zero
+00E5D0  2  4C 05 D0             JMP     ccm             ;and go to ccm
+00E5D3  2               ;initialization table
+00E5D3  2               inttbl:
+00E5D3  2  4C EC E3 4C          .BYTE   $4c,<wboote,>wboote,$4c,<pem,>pem
+00E5D7  2  05 D8        
+00E5D9  2               ;warm boot-read dos/65 back except sim and then
+00E5D9  2               ; jump to ccm.
+00E5D9  2               
+00E5D9  2               
+00E5D9  2               wboot:
+00E5D9  2                       .IFNDEF DUODYNE
+00E5D9  2                       SEI
+00E5D9  2                       LDX     #$ff            ;set stack
+00E5D9  2                       TXS                     ;pointer
+00E5D9  2                       .ENDIF
+00E5D9  2               
+00E5D9  2  D8                   CLD                     ;set binary mode
 00E5DA  2               
-00E5DA  2               
-00E5DA  2               wboot:
-00E5DA  2                       .IFNDEF DUODYNE
-00E5DA  2                       SEI
-00E5DA  2                       LDX     #$ff            ;set stack
-00E5DA  2                       TXS                     ;pointer
-00E5DA  2                       .ENDIF
-00E5DA  2               
-00E5DA  2  D8                   CLD                     ;set binary mode
-00E5DB  2               
-00E5DB  2  4C 9C E5             JMP     setup           ;go setup
-00E5DE  2               
-00E5DE  2               
-00E5DE  2               
-00E5DE  2               ;__SELDSK_________________________________________________________________________________________________
-00E5DE  2               ;
-00E5DE  2               ; 	PERFORM DOS/65 DISK DRIVE SELECT
-00E5DE  2               ;________________________________________________________________________________________________________
-00E5DE  2               ;select disk
-00E5DE  2               seldsk:
-00E5DE  2  29 07                AND     #7              ;eight drives only
-00E5E0  2  8D 16 06             STA     sekdsk          ;save for later
-00E5E3  2  0A                   ASL     a               ;multiply by two
-00E5E4  2  AA                   TAX                     ;make an Index
-00E5E5  2  BD EC E5             LDA     dcbtbl,x        ;get address
-00E5E8  2  BC ED E5             LDY     dcbtbl+1,x
-00E5EB  2  60                   RTS
-00E5EC  2               
-00E5EC  2               ;table of dcb addresses
-00E5EC  2               dcbtbl:
-00E5EC  2  5D E8                .WORD   dcba
-00E5EE  2  6B E8                .WORD   dcbb
-00E5F0  2  79 E8                .WORD   dcbc
-00E5F2  2  87 E8                .WORD   dcbd
-00E5F4  2  95 E8                .WORD   dcbe
-00E5F6  2  A3 E8                .WORD   dcbf
-00E5F8  2  B1 E8                .WORD   dcbg
-00E5FA  2  BF E8                .WORD   dcbh
-00E5FC  2               
-00E5FC  2               
-00E5FC  2               
-00E5FC  2               ;__HOME__________________________________________________________________________________________________
-00E5FC  2               ;
-00E5FC  2               ; 	PERFORM DOS/65 HEAD HOME
-00E5FC  2               ;________________________________________________________________________________________________________
-00E5FC  2               home:
-00E5FC  2  A9 00                LDA     #$00
-00E5FE  2  A0 00                LDY     #$00
-00E600  2               
-00E600  2               ;__SELTRK________________________________________________________________________________________________
-00E600  2               ;
-00E600  2               ; 	PERFORM DOS/65 SELECT TRACK
-00E600  2               ;
-00E600  2               ;	A=TRACK LOW BYTE
-00E600  2               ;	Y=TRACK HIGH BYTE
-00E600  2               ;________________________________________________________________________________________________________
-00E600  2               seltrk:
-00E600  2  85 44                STA     sektrk          ;save number
-00E602  2  84 45                STY     sektrk+1
-00E604  2  60                   RTS
-00E605  2               
-00E605  2               ;__SELSEC________________________________________________________________________________________________
-00E605  2               ;
-00E605  2               ; 	PERFORM DOS/65 SECTOR SELECT
-00E605  2               ;
-00E605  2               ;	A=SECTOR LOW BYTE
-00E605  2               ;	Y=SECTOR HIGH BYTE
-00E605  2               ;________________________________________________________________________________________________________
-00E605  2               selsec:
-00E605  2  85 46                STA     seksec          ;save low and high
-00E607  2  84 47                STY     seksec+1
-00E609  2  60                   RTS
-00E60A  2               
-00E60A  2               ;__READ__________________________________________________________________________________________________
-00E60A  2               ;
-00E60A  2               ; PERFORM DOS / 65 SECTOR READ
-00E60A  2               ;________________________________________________________________________________________________________
-00E60A  2               read:
-00E60A  2  20 3B E8             JSR     GET_DRIVE_DEVICE;
-00E60D  2  29 F0                AND     #$F0            ; only want first nybble
-00E60F  2  C9 00                CMP     #$00
-00E611  2  D0 0B                BNE     :+              ; not SD drive
-00E613  2               ;MD
-00E613  2  A9 40                LDA     #64             ; md read sector
-00E615  2  85 32                STA     farfunct
-00E617  2  20 00 F2             JSR     DO_FARCALL
-00E61A  2  20 E4 E7             JSR     DEBSECR
-00E61D  2  60                   RTS
-00E61E  2               :
-00E61E  2  C9 10                CMP     #$10
-00E620  2  D0 0E                BNE     :+              ; not SD drive
-00E622  2               ;SD
-00E622  2  20 E2 E6             JSR     CONVERT_SECTOR_LBA
-00E625  2  A9 40                LDA     #64             ; sd read sector
-00E627  2  85 32                STA     farfunct
-00E629  2  20 00 F2             JSR     DO_FARCALL
-00E62C  2  20 E4 E7             JSR     DEBSECR
-00E62F  2  60                   RTS
-00E630  2               :
-00E630  2  C9 20                CMP     #$20
-00E632  2  D0 0E                BNE     :+              ; not floppy drive
-00E634  2               ;FD
-00E634  2  20 A9 E7             JSR     SETUP_FD_CHS
-00E637  2  A9 43                LDA     #67             ; floppy read sector
-00E639  2  85 32                STA     farfunct
-00E63B  2  20 00 F2             JSR     DO_FARCALL
-00E63E  2  20 E4 E7             JSR     DEBSECR
-00E641  2  60                   RTS
-00E642  2               :
-00E642  2  C9 30                CMP     #$30
-00E644  2  D0 0E                BNE     :+              ; invalid drive
-00E646  2               ;PPIDE
-00E646  2  20 E2 E6             JSR     CONVERT_SECTOR_LBA
-00E649  2  A9 3D                LDA     #61             ; IDE_READ_SECTOR
-00E64B  2  85 32                STA     farfunct
-00E64D  2  20 00 F2             JSR     DO_FARCALL
-00E650  2  20 E4 E7             JSR     DEBSECR
-00E653  2  60                   RTS
-00E654  2               :
-00E654  2  A9 FF                LDA     #$FF            ; signal error
-00E656  2  60                   RTS                     ;
-00E657  2               
-00E657  2               
-00E657  2               ;__WRITE_________________________________________________________________________________________________
-00E657  2               ;
-00E657  2               ; PERFORM DOS / 65 SECTOR WRITE
-00E657  2               ;________________________________________________________________________________________________________
-00E657  2               write:
-00E657  2  20 3B E8             JSR     GET_DRIVE_DEVICE;
-00E65A  2  29 F0                AND     #$F0            ; only want first nybble
-00E65C  2               
-00E65C  2  C9 00                CMP     #$00
-00E65E  2  D0 12                BNE     :+              ; not MD drive
-00E660  2               ;MD
-00E660  2  A9 40                LDA     #64             ;PPP_READ_SECTOR
-00E662  2  85 32                STA     farfunct
-00E664  2  20 00 F2             JSR     DO_FARCALL
-00E667  2  20 0E E8             JSR     BLKSECR
-00E66A  2  A9 41                LDA     #65             ;PPP_WRITE_SECTOR
-00E66C  2  85 32                STA     farfunct
-00E66E  2  20 00 F2             JSR     DO_FARCALL
-00E671  2  60                   RTS
-00E672  2               :
-00E672  2  C9 10                CMP     #$10
-00E674  2  D0 0E                BNE     :+              ; not SD drive
-00E676  2               ;SD
-00E676  2  20 E2 E6             JSR     CONVERT_SECTOR_LBA
-00E679  2  20 0E E8             JSR     BLKSECR
-00E67C  2  A9 41                LDA     #65             ;PPP_WRITE_SECTOR
-00E67E  2  85 32                STA     farfunct
-00E680  2  20 00 F2             JSR     DO_FARCALL
-00E683  2  60                   RTS
-00E684  2               :
-00E684  2               
-00E684  2  C9 20                CMP     #$20
-00E686  2  D0 0E                BNE     :+              ; not floppy drive
-00E688  2               ;FD
-00E688  2  20 A9 E7             JSR     SETUP_FD_CHS
-00E68B  2  20 0E E8             JSR     BLKSECR
-00E68E  2  A9 44                LDA     #68             ; floppy write sector
-00E690  2  85 32                STA     farfunct
-00E692  2  20 00 F2             JSR     DO_FARCALL
-00E695  2  60                   RTS
-00E696  2               :
-00E696  2  C9 30                CMP     #$30
-00E698  2  D0 0E                BNE     :+              ; invalid drive
-00E69A  2               ;PPIDE
-00E69A  2  20 E2 E6             JSR     CONVERT_SECTOR_LBA
-00E69D  2  20 0E E8             JSR     BLKSECR
-00E6A0  2  A9 3E                LDA     #62             ; IDE_WRITE_SECTOR
-00E6A2  2  85 32                STA     farfunct
-00E6A4  2  20 00 F2             JSR     DO_FARCALL
-00E6A7  2  60                   RTS
-00E6A8  2               :
-00E6A8  2  A9 FF                LDA     #$FF            ; signal error
-00E6AA  2  60                   RTS                     ;
-00E6AB  2               
-00E6AB  2               
-00E6AB  2               ;__SETDMA________________________________________________________________________________________________
-00E6AB  2               ;
-00E6AB  2               ; 	PERFORM DOS/65 BUFFER ADDRESS SELECTION
-00E6AB  2               ;
-00E6AB  2               ;	A=BUFFER LOW BYTE
-00E6AB  2               ;	Y=BUFFER HIGH BYTE
-00E6AB  2               ;________________________________________________________________________________________________________
-00E6AB  2               setdma:
-00E6AB  2  85 F4                STA     dmaadr          ;store low
-00E6AD  2  84 F5                STY     dmaadr+1        ;and high
-00E6AF  2  60                   RTS
-00E6B0  2               
-00E6B0  2               
-00E6B0  2               ;__CONSTS________________________________________________________________________________________________
-00E6B0  2               ;
-00E6B0  2               ; 	GET DOS/65 CONSOLE STATUS
-00E6B0  2               ;________________________________________________________________________________________________________
-00E6B0  2               consts:
-00E6B0  2  A9 03                LDA     #03
-00E6B2  2  85 32                STA     farfunct
-00E6B4  2  4C 00 F2             JMP     DO_FARCALL
-00E6B7  2               
-00E6B7  2               ;__CONRDE________________________________________________________________________________________________
-00E6B7  2               ;
-00E6B7  2               ; 	PERFORM DOS/65 CONSOLE READ
-00E6B7  2               ;________________________________________________________________________________________________________
-00E6B7  2               conrde:
-00E6B7  2  A9 02                LDA     #02
-00E6B9  2  85 32                STA     farfunct
-00E6BB  2  4C 00 F2             JMP     DO_FARCALL      ;console read
-00E6BE  2               
-00E6BE  2               ;__CONWRT________________________________________________________________________________________________
-00E6BE  2               ;
-00E6BE  2               ; 	PERFORM DOS/65 CONSOLE WRITE
-00E6BE  2               ;________________________________________________________________________________________________________
-00E6BE  2               conwrt:
-00E6BE  2  48                   PHA
-00E6BF  2  A9 00                LDA     #00
-00E6C1  2  85 32                STA     farfunct
-00E6C3  2  68                   PLA
-00E6C4  2  4C 00 F2             JMP     DO_FARCALL
-00E6C7  2               
-00E6C7  2               prnwrt:
-00E6C7  2  60                   RTS                     ;printer
-00E6C8  2               punwrt:
-00E6C8  2  60                   RTS                     ;punch output
-00E6C9  2               rdrinp:
-00E6C9  2  60                   RTS                     ;reader input
-00E6CA  2               rdtime:
-00E6CA  2  A2 80                LDX     #128
-00E6CC  2  60                   RTS                     ;read clock
-00E6CD  2               xlate:
-00E6CD  2  60                   RTS                     ;sector translate
-00E6CE  2               
-00E6CE  2               
-00E6CE  2               ;__OUTMSG________________________________________________________________________________________________
-00E6CE  2               ;
-00E6CE  2               ; 	WRITE A NULL TERMINATED STRING TO THE CONSOLE
-00E6CE  2               ;
-00E6CE  2               ;	A=POINTER LOW BYTE
-00E6CE  2               ;	Y=POINTER HIGH BYTE
-00E6CE  2               ;________________________________________________________________________________________________________
-00E6CE  2               outmsg: ;output message
-00E6CE  2  85 F0                STA     OUTMSG_W
-00E6D0  2  84 F1                STY     OUTMSG_W+1
-00E6D2  2  A0 00                LDY     #$00
-00E6D4  2               OUTSTRLP:
-00E6D4  2  B1 F0                LDA     (OUTMSG_W),Y    ; LOAD NEXT CHAR FROM STRING INTO ACC
-00E6D6  2  C9 00                CMP     #$00            ; IS NULL?
-00E6D8  2  F0 07                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-00E6DA  2  20 BE E6             JSR     conwrt          ; PRINT CHAR IN ACC
-00E6DD  2  C8                   INY                     ; Y=Y+1 (BUMP INDEX)
-00E6DE  2  4C D4 E6             JMP     OUTSTRLP        ; DO NEXT CHAR
-00E6E1  2               ENDOUTSTR:
-00E6E1  2  60                   RTS                     ; RETURN
-00E6E2  2               
-00E6E2  2               
-00E6E2  2               ;___CONVERT_SECTOR_LBA___________________________________________________________________________________
-00E6E2  2               ;
-00E6E2  2               ; 	TRANSLATE LBA SECTORS
-00E6E2  2               ;________________________________________________________________________________________________________
-00E6E2  2               CONVERT_SECTOR_LBA:
-00E6E2  2  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
-00E6E4  2  29 0F                AND     #$0F            ; ISOLATE HEAD IN LOW 4 BITS
-00E6E6  2  0A                   ASL     a               ; MOVE TO HIGH BYTE
+00E5DA  2  4C 9C E5             JMP     setup           ;go setup
+00E5DD  2               
+00E5DD  2               
+00E5DD  2               
+00E5DD  2               ;__SELDSK_________________________________________________________________________________________________
+00E5DD  2               ;
+00E5DD  2               ; 	PERFORM DOS/65 DISK DRIVE SELECT
+00E5DD  2               ;________________________________________________________________________________________________________
+00E5DD  2               ;select disk
+00E5DD  2               seldsk:
+00E5DD  2  29 07                AND     #7              ;eight drives only
+00E5DF  2  85 48                STA     sekdsk          ;save for later
+00E5E1  2  0A                   ASL     a               ;multiply by two
+00E5E2  2  AA                   TAX                     ;make an Index
+00E5E3  2  BD EA E5             LDA     dcbtbl,x        ;get address
+00E5E6  2  BC EB E5             LDY     dcbtbl+1,x
+00E5E9  2  60                   RTS
+00E5EA  2               
+00E5EA  2               ;table of dcb addresses
+00E5EA  2               dcbtbl:
+00E5EA  2  57 E8                .WORD   dcba
+00E5EC  2  65 E8                .WORD   dcbb
+00E5EE  2  73 E8                .WORD   dcbc
+00E5F0  2  81 E8                .WORD   dcbd
+00E5F2  2  8F E8                .WORD   dcbe
+00E5F4  2  9D E8                .WORD   dcbf
+00E5F6  2  AB E8                .WORD   dcbg
+00E5F8  2  B9 E8                .WORD   dcbh
+00E5FA  2               
+00E5FA  2               
+00E5FA  2               
+00E5FA  2               ;__HOME__________________________________________________________________________________________________
+00E5FA  2               ;
+00E5FA  2               ; 	PERFORM DOS/65 HEAD HOME
+00E5FA  2               ;________________________________________________________________________________________________________
+00E5FA  2               home:
+00E5FA  2  A9 00                LDA     #$00
+00E5FC  2  A0 00                LDY     #$00
+00E5FE  2               
+00E5FE  2               ;__SELTRK________________________________________________________________________________________________
+00E5FE  2               ;
+00E5FE  2               ; 	PERFORM DOS/65 SELECT TRACK
+00E5FE  2               ;
+00E5FE  2               ;	A=TRACK LOW BYTE
+00E5FE  2               ;	Y=TRACK HIGH BYTE
+00E5FE  2               ;________________________________________________________________________________________________________
+00E5FE  2               seltrk:
+00E5FE  2  85 44                STA     sektrk          ;save number
+00E600  2  84 45                STY     sektrk+1
+00E602  2  60                   RTS
+00E603  2               
+00E603  2               ;__SELSEC________________________________________________________________________________________________
+00E603  2               ;
+00E603  2               ; 	PERFORM DOS/65 SECTOR SELECT
+00E603  2               ;
+00E603  2               ;	A=SECTOR LOW BYTE
+00E603  2               ;	Y=SECTOR HIGH BYTE
+00E603  2               ;________________________________________________________________________________________________________
+00E603  2               selsec:
+00E603  2  85 46                STA     seksec          ;save low and high
+00E605  2  84 47                STY     seksec+1
+00E607  2  60                   RTS
+00E608  2               
+00E608  2               ;__READ__________________________________________________________________________________________________
+00E608  2               ;
+00E608  2               ; PERFORM DOS / 65 SECTOR READ
+00E608  2               ;________________________________________________________________________________________________________
+00E608  2               read:
+00E608  2  20 36 E8             JSR     GET_DRIVE_DEVICE;
+00E60B  2  29 F0                AND     #$F0            ; only want first nybble
+00E60D  2  C9 00                CMP     #$00
+00E60F  2  D0 0B                BNE     :+              ; not SD drive
+00E611  2               ;MD
+00E611  2  A9 40                LDA     #64             ; md read sector
+00E613  2  85 32                STA     farfunct
+00E615  2  20 00 F2             JSR     DO_FARCALL
+00E618  2  20 DF E7             JSR     DEBSECR
+00E61B  2  60                   RTS
+00E61C  2               :
+00E61C  2  C9 10                CMP     #$10
+00E61E  2  D0 0E                BNE     :+              ; not SD drive
+00E620  2               ;SD
+00E620  2  20 E0 E6             JSR     CONVERT_SECTOR_LBA
+00E623  2  A9 40                LDA     #64             ; sd read sector
+00E625  2  85 32                STA     farfunct
+00E627  2  20 00 F2             JSR     DO_FARCALL
+00E62A  2  20 DF E7             JSR     DEBSECR
+00E62D  2  60                   RTS
+00E62E  2               :
+00E62E  2  C9 20                CMP     #$20
+00E630  2  D0 0E                BNE     :+              ; not floppy drive
+00E632  2               ;FD
+00E632  2  20 A5 E7             JSR     SETUP_FD_CHS
+00E635  2  A9 43                LDA     #67             ; floppy read sector
+00E637  2  85 32                STA     farfunct
+00E639  2  20 00 F2             JSR     DO_FARCALL
+00E63C  2  20 DF E7             JSR     DEBSECR
+00E63F  2  60                   RTS
+00E640  2               :
+00E640  2  C9 30                CMP     #$30
+00E642  2  D0 0E                BNE     :+              ; invalid drive
+00E644  2               ;PPIDE
+00E644  2  20 E0 E6             JSR     CONVERT_SECTOR_LBA
+00E647  2  A9 3D                LDA     #61             ; IDE_READ_SECTOR
+00E649  2  85 32                STA     farfunct
+00E64B  2  20 00 F2             JSR     DO_FARCALL
+00E64E  2  20 DF E7             JSR     DEBSECR
+00E651  2  60                   RTS
+00E652  2               :
+00E652  2  A9 FF                LDA     #$FF            ; signal error
+00E654  2  60                   RTS                     ;
+00E655  2               
+00E655  2               
+00E655  2               ;__WRITE_________________________________________________________________________________________________
+00E655  2               ;
+00E655  2               ; PERFORM DOS / 65 SECTOR WRITE
+00E655  2               ;________________________________________________________________________________________________________
+00E655  2               write:
+00E655  2  20 36 E8             JSR     GET_DRIVE_DEVICE;
+00E658  2  29 F0                AND     #$F0            ; only want first nybble
+00E65A  2               
+00E65A  2  C9 00                CMP     #$00
+00E65C  2  D0 12                BNE     :+              ; not MD drive
+00E65E  2               ;MD
+00E65E  2  A9 40                LDA     #64             ;PPP_READ_SECTOR
+00E660  2  85 32                STA     farfunct
+00E662  2  20 00 F2             JSR     DO_FARCALL
+00E665  2  20 09 E8             JSR     BLKSECR
+00E668  2  A9 41                LDA     #65             ;PPP_WRITE_SECTOR
+00E66A  2  85 32                STA     farfunct
+00E66C  2  20 00 F2             JSR     DO_FARCALL
+00E66F  2  60                   RTS
+00E670  2               :
+00E670  2  C9 10                CMP     #$10
+00E672  2  D0 0E                BNE     :+              ; not SD drive
+00E674  2               ;SD
+00E674  2  20 E0 E6             JSR     CONVERT_SECTOR_LBA
+00E677  2  20 09 E8             JSR     BLKSECR
+00E67A  2  A9 41                LDA     #65             ;PPP_WRITE_SECTOR
+00E67C  2  85 32                STA     farfunct
+00E67E  2  20 00 F2             JSR     DO_FARCALL
+00E681  2  60                   RTS
+00E682  2               :
+00E682  2               
+00E682  2  C9 20                CMP     #$20
+00E684  2  D0 0E                BNE     :+              ; not floppy drive
+00E686  2               ;FD
+00E686  2  20 A5 E7             JSR     SETUP_FD_CHS
+00E689  2  20 09 E8             JSR     BLKSECR
+00E68C  2  A9 44                LDA     #68             ; floppy write sector
+00E68E  2  85 32                STA     farfunct
+00E690  2  20 00 F2             JSR     DO_FARCALL
+00E693  2  60                   RTS
+00E694  2               :
+00E694  2  C9 30                CMP     #$30
+00E696  2  D0 0E                BNE     :+              ; invalid drive
+00E698  2               ;PPIDE
+00E698  2  20 E0 E6             JSR     CONVERT_SECTOR_LBA
+00E69B  2  20 09 E8             JSR     BLKSECR
+00E69E  2  A9 3E                LDA     #62             ; IDE_WRITE_SECTOR
+00E6A0  2  85 32                STA     farfunct
+00E6A2  2  20 00 F2             JSR     DO_FARCALL
+00E6A5  2  60                   RTS
+00E6A6  2               :
+00E6A6  2  A9 FF                LDA     #$FF            ; signal error
+00E6A8  2  60                   RTS                     ;
+00E6A9  2               
+00E6A9  2               
+00E6A9  2               ;__SETDMA________________________________________________________________________________________________
+00E6A9  2               ;
+00E6A9  2               ; 	PERFORM DOS/65 BUFFER ADDRESS SELECTION
+00E6A9  2               ;
+00E6A9  2               ;	A=BUFFER LOW BYTE
+00E6A9  2               ;	Y=BUFFER HIGH BYTE
+00E6A9  2               ;________________________________________________________________________________________________________
+00E6A9  2               setdma:
+00E6A9  2  85 F4                STA     dmaadr          ;store low
+00E6AB  2  84 F5                STY     dmaadr+1        ;and high
+00E6AD  2  60                   RTS
+00E6AE  2               
+00E6AE  2               
+00E6AE  2               ;__CONSTS________________________________________________________________________________________________
+00E6AE  2               ;
+00E6AE  2               ; 	GET DOS/65 CONSOLE STATUS
+00E6AE  2               ;________________________________________________________________________________________________________
+00E6AE  2               consts:
+00E6AE  2  A9 03                LDA     #03
+00E6B0  2  85 32                STA     farfunct
+00E6B2  2  4C 00 F2             JMP     DO_FARCALL
+00E6B5  2               
+00E6B5  2               ;__CONRDE________________________________________________________________________________________________
+00E6B5  2               ;
+00E6B5  2               ; 	PERFORM DOS/65 CONSOLE READ
+00E6B5  2               ;________________________________________________________________________________________________________
+00E6B5  2               conrde:
+00E6B5  2  A9 02                LDA     #02
+00E6B7  2  85 32                STA     farfunct
+00E6B9  2  4C 00 F2             JMP     DO_FARCALL      ;console read
+00E6BC  2               
+00E6BC  2               ;__CONWRT________________________________________________________________________________________________
+00E6BC  2               ;
+00E6BC  2               ; 	PERFORM DOS/65 CONSOLE WRITE
+00E6BC  2               ;________________________________________________________________________________________________________
+00E6BC  2               conwrt:
+00E6BC  2  48                   PHA
+00E6BD  2  A9 00                LDA     #00
+00E6BF  2  85 32                STA     farfunct
+00E6C1  2  68                   PLA
+00E6C2  2  4C 00 F2             JMP     DO_FARCALL
+00E6C5  2               
+00E6C5  2               prnwrt:
+00E6C5  2  60                   RTS                     ;printer
+00E6C6  2               punwrt:
+00E6C6  2  60                   RTS                     ;punch output
+00E6C7  2               rdrinp:
+00E6C7  2  60                   RTS                     ;reader input
+00E6C8  2               rdtime:
+00E6C8  2  A2 80                LDX     #128
+00E6CA  2  60                   RTS                     ;read clock
+00E6CB  2               xlate:
+00E6CB  2  60                   RTS                     ;sector translate
+00E6CC  2               
+00E6CC  2               
+00E6CC  2               ;__OUTMSG________________________________________________________________________________________________
+00E6CC  2               ;
+00E6CC  2               ; 	WRITE A NULL TERMINATED STRING TO THE CONSOLE
+00E6CC  2               ;
+00E6CC  2               ;	A=POINTER LOW BYTE
+00E6CC  2               ;	Y=POINTER HIGH BYTE
+00E6CC  2               ;________________________________________________________________________________________________________
+00E6CC  2               outmsg: ;output message
+00E6CC  2  85 F0                STA     OUTMSG_W
+00E6CE  2  84 F1                STY     OUTMSG_W+1
+00E6D0  2  A0 00                LDY     #$00
+00E6D2  2               OUTSTRLP:
+00E6D2  2  B1 F0                LDA     (OUTMSG_W),Y    ; LOAD NEXT CHAR FROM STRING INTO ACC
+00E6D4  2  C9 00                CMP     #$00            ; IS NULL?
+00E6D6  2  F0 07                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00E6D8  2  20 BC E6             JSR     conwrt          ; PRINT CHAR IN ACC
+00E6DB  2  C8                   INY                     ; Y=Y+1 (BUMP INDEX)
+00E6DC  2  4C D2 E6             JMP     OUTSTRLP        ; DO NEXT CHAR
+00E6DF  2               ENDOUTSTR:
+00E6DF  2  60                   RTS                     ; RETURN
+00E6E0  2               
+00E6E0  2               
+00E6E0  2               ;___CONVERT_SECTOR_LBA___________________________________________________________________________________
+00E6E0  2               ;
+00E6E0  2               ; 	TRANSLATE LBA SECTORS
+00E6E0  2               ;________________________________________________________________________________________________________
+00E6E0  2               CONVERT_SECTOR_LBA:
+00E6E0  2  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+00E6E2  2  29 0F                AND     #$0F            ; ISOLATE HEAD IN LOW 4 BITS
+00E6E4  2  0A                   ASL     a               ; MOVE TO HIGH BYTE
+00E6E5  2  0A                   ASL     a
+00E6E6  2  0A                   ASL     a
 00E6E7  2  0A                   ASL     a
-00E6E8  2  0A                   ASL     a
-00E6E9  2  0A                   ASL     a
-00E6EA  2  AA                   TAX                     ; PARK IN X
-00E6EB  2  A5 46                LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
-00E6ED  2  4A                   LSR     A               ;
-00E6EE  2  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING)
-00E6EF  2  29 0F                AND     #$0F            ; CLEAR UPPER 4 BITS (JUST 'CAUSE)
-00E6F1  2  8D 10 06             STA     debsehd         ; STORE IN SECTOR/HEAD
-00E6F4  2  8A                   TXA                     ; GET HEAD BACK
-00E6F5  2  0D 10 06             ORA     debsehd
-00E6F8  2  8D 10 06             STA     debsehd         ; STORE IN SECTOR/HEAD
-00E6FB  2               
-00E6FB  2  A5 44                LDA     sektrk
-00E6FD  2  8D 11 06             STA     debcyll         ; STORE IN TRACK (lsb)
-00E700  2  A5 45                LDA     sektrk+1
-00E702  2  8D 12 06             STA     debcylm         ; STORE IN TRACK (msb)
-00E705  2               ; REMOVE HEAD FROM TRACK VALUE (DIV/4)
-00E705  2  AD 12 06             LDA     debcylm
-00E708  2  4A                   LSR     A
-00E709  2  8D 12 06             STA     debcylm
-00E70C  2  AD 11 06             LDA     debcyll
-00E70F  2  6A                   ROR     A
-00E710  2  8D 11 06             STA     debcyll
-00E713  2               
-00E713  2  AD 12 06             LDA     debcylm
-00E716  2  4A                   LSR     A
-00E717  2  8D 12 06             STA     debcylm
-00E71A  2  AD 11 06             LDA     debcyll
-00E71D  2  6A                   ROR     A
-00E71E  2  8D 11 06             STA     debcyll
-00E721  2               
-00E721  2  AD 12 06             LDA     debcylm
-00E724  2  4A                   LSR     A
-00E725  2  8D 12 06             STA     debcylm
-00E728  2  AD 11 06             LDA     debcyll
-00E72B  2  6A                   ROR     A
-00E72C  2  8D 11 06             STA     debcyll
-00E72F  2               
-00E72F  2  AD 12 06             LDA     debcylm
-00E732  2  4A                   LSR     A
-00E733  2  8D 12 06             STA     debcylm
-00E736  2  AD 11 06             LDA     debcyll
-00E739  2  6A                   ROR     A
-00E73A  2  8D 11 06             STA     debcyll
-00E73D  2               ;	ADD SLICE OFFSET
-00E73D  2  AD 16 06             LDA     sekdsk          ; GET DRIVE#
-00E740  2  29 07                AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
-00E742  2  0A                   ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
-00E743  2  AA                   TAX                     ; MOVE TO X REGISTER
-00E744  2  E8                   INX                     ; WANT SECOND BYTE OF ENTRY
-00E745  2  BD 17 06             LDA     dskcfg,X        ; GET SLICE#
-00E748  2  8D 32 06             STA     slicetmp+1      ; SLICE OFFSET MSB
-00E74B  2  A9 00                LDA     #0              ; GET SLICE#
-00E74D  2  8D 31 06             STA     slicetmp        ; SLICE OFFSET LSB
-00E750  2  18                   CLC                     ; VOODOO MATH TO TAKE SLICE*$4000
-00E751  2  6E 32 06             ROR     slicetmp+1
-00E754  2  6E 31 06             ROR     slicetmp
-00E757  2  6E 32 06             ROR     slicetmp+1
-00E75A  2  6E 31 06             ROR     slicetmp
-00E75D  2               
-00E75D  2  BD 17 06             LDA     dskcfg,X        ; GET SLICE#
-00E760  2  18                   CLC
-00E761  2  6D 31 06             ADC     slicetmp
-00E764  2  8D 31 06             STA     slicetmp
-00E767  2  A9 00                LDA     #$00            ; LOGIC ERROR FOR SLICES THAT CARRY?
-00E769  2  6D 32 06             ADC     slicetmp+1      ;
-00E76C  2  8D 32 06             STA     slicetmp+1      ;
-00E76F  2               
-00E76F  2               ; ADD SLICE OFFSET TO TRACK #
-00E76F  2  18                   CLC                     ; clear carry
-00E770  2  AD 31 06             LDA     slicetmp
-00E773  2  6D 11 06             ADC     debcyll
-00E776  2  8D 11 06             STA     debcyll         ; store sum of LSBs
-00E779  2  AD 32 06             LDA     slicetmp+1
-00E77C  2  6D 12 06             ADC     debcylm         ; add the MSBs using carry from
-00E77F  2  8D 12 06             STA     debcylm         ; the previous calculation
-00E782  2               
-00E782  2               
-00E782  2               ; DISPLAY ON DSKY IF PRESENT
-00E782  2  AD 16 06             LDA     sekdsk
-00E785  2  8D 08 06             STA     DSKY_HEXBUF
-00E788  2  AD 12 06             LDA     debcylm
-00E78B  2  8D 09 06             STA     DSKY_HEXBUF+1
-00E78E  2  AD 11 06             LDA     debcyll
-00E791  2  8D 0A 06             STA     DSKY_HEXBUF+2
-00E794  2  AD 10 06             LDA     debsehd
-00E797  2  8D 0B 06             STA     DSKY_HEXBUF+3
-00E79A  2  A9 2A                LDA     #42             ; DSKY_BIN2SEG
-00E79C  2  85 32                STA     farfunct
-00E79E  2  20 00 F2             JSR     DO_FARCALL
-00E7A1  2  A9 29                LDA     #41             ; DSKY_SHOW
-00E7A3  2  85 32                STA     farfunct
-00E7A5  2  20 00 F2             JSR     DO_FARCALL
-00E7A8  2  60                   RTS
-00E7A9  2               
-00E7A9  2               ;__SETUP_FD_CHS__________________________________________________________________________________________________________________
-00E7A9  2               ;
-00E7A9  2               ; 	TRANSFORM DOS65 CHS TO FLOPPY
-00E7A9  2               ;________________________________________________________________________________________________________________________________
-00E7A9  2               ;
-00E7A9  2               SETUP_FD_CHS:
-00E7A9  2  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
-00E7AB  2  29 01                AND     #$01            ; FILTER OUT HEAD
-00E7AD  2  8D 12 06             STA     debcylm         ; STORE HEAD
-00E7B0  2  A5 44                LDA     sektrk          ; SAVE TRACK IN A
-00E7B2  2  4A                   LSR     A               ; REMOVE HEAD BIT
-00E7B3  2  8D 11 06             STA     debcyll         ; STORE IN TRACK
-00E7B6  2  A5 46                LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
-00E7B8  2  4A                   LSR     A               ;
-00E7B9  2  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING)
-00E7BA  2  8D 10 06             STA     debsehd         ; STORE IN SECTOR
-00E7BD  2               
-00E7BD  2  AD 16 06             LDA     sekdsk
-00E7C0  2  8D 08 06             STA     DSKY_HEXBUF
-00E7C3  2  AD 12 06             LDA     debcylm
-00E7C6  2  8D 09 06             STA     DSKY_HEXBUF+1
-00E7C9  2  AD 11 06             LDA     debcyll
-00E7CC  2  8D 0A 06             STA     DSKY_HEXBUF+2
-00E7CF  2  AD 10 06             LDA     debsehd
-00E7D2  2  8D 0B 06             STA     DSKY_HEXBUF+3
-00E7D5  2  A9 2A                LDA     #42             ; DSKY_BIN2SEG
-00E7D7  2  85 32                STA     farfunct
-00E7D9  2  20 00 F2             JSR     DO_FARCALL
-00E7DC  2  A9 29                LDA     #41             ; DSKY_SHOW
-00E7DE  2  85 32                STA     farfunct
-00E7E0  2  20 00 F2             JSR     DO_FARCALL
-00E7E3  2  60                   RTS
-00E7E4  2               
-00E7E4  2               
-00E7E4  2               ;___DEBSECR______________________________________________________________________________________________
-00E7E4  2               ;
-00E7E4  2               ;	DEBLOCK 512 BYTE SECTOR FOR DOS/65
-00E7E4  2               ;
-00E7E4  2               ;________________________________________________________________________________________________________
-00E7E4  2               DEBSECR:
-00E7E4  2  08                   PHP
-00E7E5  2  48                   PHA
-00E7E6  2  A5 46                LDA     seksec          ;
-00E7E8  2  29 03                AND     #$03            ; GET SECTOR INDEX
-00E7EA  2  18                   CLC                     ;
-00E7EB  2  2A                   ROL     A               ;
-00E7EC  2  AA                   TAX                     ;
-00E7ED  2  BD 06 E8             LDA     DEBTAB,X        ;
-00E7F0  2  85 EE                STA     SRC
-00E7F2  2  E8                   INX
-00E7F3  2  BD 06 E8             LDA     DEBTAB,X        ;
-00E7F6  2  85 EF                STA     SRC+1           ;
-00E7F8  2  A5 F4                LDA     dmaadr          ;
-00E7FA  2  85 EC                STA     DEST            ;
-00E7FC  2  A5 F5                LDA     dmaadr+1        ;
-00E7FE  2  85 ED                STA     DEST+1          ;
-00E800  2  20 2E E8             JSR     COPY_DOS_SECTOR ;
-00E803  2  68                   PLA
-00E804  2  28                   PLP
-00E805  2  60                   RTS
-00E806  2               
-00E806  2               DEBTAB:
-00E806  2  00 04                .WORD   hstbuf          ;
-00E808  2  80 04                .WORD   hstbuf+128      ;
-00E80A  2  00 05                .WORD   hstbuf+256      ;
-00E80C  2  80 05                .WORD   hstbuf+384      ;
-00E80E  2               
-00E80E  2               
-00E80E  2               ;___BLKSECR______________________________________________________________________________________________
-00E80E  2               ;
-00E80E  2               ;	BLOCK 512 BYTE SECTOR FOR DOS/65
-00E80E  2               ;
-00E80E  2               ;________________________________________________________________________________________________________
-00E80E  2               BLKSECR:
-00E80E  2  08                   PHP
-00E80F  2  A5 46                LDA     seksec          ;
-00E811  2  29 03                AND     #$03            ; GET SECTOR INDEX
-00E813  2  18                   CLC                     ;
-00E814  2  2A                   ROL     A               ;
-00E815  2  AA                   TAX                     ;
-00E816  2  BD 06 E8             LDA     DEBTAB,X        ;
-00E819  2  85 EC                STA     DEST
-00E81B  2  E8                   INX
-00E81C  2  BD 06 E8             LDA     DEBTAB,X        ;
-00E81F  2  85 ED                STA     DEST+1          ;
-00E821  2  A5 F4                LDA     dmaadr          ;
-00E823  2  85 EE                STA     SRC             ;
-00E825  2  A5 F5                LDA     dmaadr+1        ;
-00E827  2  85 EF                STA     SRC+1           ;
-00E829  2  20 2E E8             JSR     COPY_DOS_SECTOR ;
-00E82C  2  28                   PLP
-00E82D  2  60                   RTS
-00E82E  2               
-00E82E  2               
-00E82E  2               ;___COPY_DOS_SECTOR______________________________________________________________________________________
-00E82E  2               ;
-00E82E  2               ;	COPY 128 BYTE SECTOR FOR DOS/65
-00E82E  2               ;
-00E82E  2               ;________________________________________________________________________________________________________
-00E82E  2               COPY_DOS_SECTOR:
-00E82E  2  A0 00                LDY     #$00            ;
-00E830  2               COPY_DOS_SECTOR1:
-00E830  2  B1 EE                LDA     (SRC),Y         ;
-00E832  2  91 EC                STA     (DEST),Y        ;
-00E834  2  C8                   INY                     ;
-00E835  2  98                   TYA                     ;
-00E836  2  C9 80                CMP     #$80            ;
-00E838  2  D0 F6                BNE     COPY_DOS_SECTOR1;
-00E83A  2  60                   RTS
-00E83B  2               
-00E83B  2               ;___GET_DRIVE_DEVICE_____________________________________________________________________________________
-00E83B  2               ;
-00E83B  2               ; GET SELECTED DEVICE TYPE AND UNIT, RETURN IN "A"
-00E83B  2               ;
-00E83B  2               ;________________________________________________________________________________________________________
-00E83B  2               GET_DRIVE_DEVICE:
-00E83B  2  8E 5C E8             STX     GET_DRIVE_DEVICE_TMP
-00E83E  2  AD 16 06             LDA     sekdsk          ; GET DRIVE
-00E841  2  29 07                AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
-00E843  2  0A                   ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
-00E844  2  AA                   TAX                     ; MOVE TO X REGISTER
-00E845  2  BD 17 06             LDA     dskcfg, X       ; GET device
-00E848  2  29 0F                AND     #$0F
-00E84A  2  8D 3D 06             STA     CURRENT_IDE_DRIVE
-00E84D  2  BD 17 06             LDA     dskcfg, X       ; GET device
-00E850  2               ; SETUP FLOPPY CONTROL WHILE WE ARE HERE
-00E850  2  29 01                AND     #$01
-00E852  2  8D 28 06             STA     DSKUNIT
-00E855  2  BD 17 06             LDA     dskcfg, X       ; GET device
-00E858  2  AE 5C E8             LDX     GET_DRIVE_DEVICE_TMP
-00E85B  2  60                   RTS
-00E85C  2               
-00E85C  2               GET_DRIVE_DEVICE_TMP:
-00E85C  2  00                   .BYTE   00
-00E85D  2               ;------------------------------------------------------------------------------------
-00E85D  2               
-00E85D  2                       .IFDEF  RBC6X0X
-00E85D  2               ;disk control blocks
-00E85D  2               dcba:
-00E85D  2                       .WORD   2047            ;max block number
-00E85D  2                       .WORD   64              ;sectors per track
-00E85D  2                       .WORD   16              ;number system tracks
-00E85D  2                       .BYTE   2               ;block size = 4096
-00E85D  2                       .WORD   511             ;max directory number
-00E85D  2                       .WORD   almpa           ;address of map for a
-00E85D  2                       .BYTE   128             ;no checksums
-00E85D  2                       .WORD   ckmp            ;checksum map
-00E85D  2               dcbb:
-00E85D  2                       .WORD   2047            ;max block number
-00E85D  2                       .WORD   64              ;sectors per track
-00E85D  2                       .WORD   16              ;number system tracks
-00E85D  2                       .BYTE   2               ;block size = 4096
-00E85D  2                       .WORD   511             ;max directory number
-00E85D  2                       .WORD   almpb           ;address of map for a
-00E85D  2                       .BYTE   128             ;no checksums
-00E85D  2                       .WORD   ckmp            ;checksum map
-00E85D  2               dcbc:
-00E85D  2                       .WORD   2047            ;max block number
-00E85D  2                       .WORD   64              ;sectors per track
-00E85D  2                       .WORD   16              ;number system tracks
-00E85D  2                       .BYTE   2               ;block size = 4096
-00E85D  2                       .WORD   511             ;max directory number
-00E85D  2                       .WORD   almpc           ;address of map for a
-00E85D  2                       .BYTE   128             ;no checksums
-00E85D  2                       .WORD   ckmp            ;checksum map
-00E85D  2               dcbd:
-00E85D  2                       .WORD   2047            ;max block number
-00E85D  2                       .WORD   64              ;sectors per track
-00E85D  2                       .WORD   16              ;number system tracks
-00E85D  2                       .BYTE   2               ;block size = 4096
-00E85D  2                       .WORD   511             ;max directory number
-00E85D  2                       .WORD   almpd           ;address of map for a
-00E85D  2                       .BYTE   128             ;no checksums
-00E85D  2                       .WORD   ckmp            ;checksum map
-00E85D  2               dcbe:
-00E85D  2                       .WORD   2047            ;max block number
-00E85D  2                       .WORD   64              ;sectors per track
-00E85D  2                       .WORD   16              ;number system tracks
-00E85D  2                       .BYTE   2               ;block size = 4096
-00E85D  2                       .WORD   511             ;max directory number
-00E85D  2                       .WORD   almpe           ;address of map for a
-00E85D  2                       .BYTE   128             ;no checksums
-00E85D  2                       .WORD   ckmp            ;checksum map
-00E85D  2               dcbf:
-00E85D  2                       .WORD   2047            ;max block number
-00E85D  2                       .WORD   64              ;sectors per track
-00E85D  2                       .WORD   16              ;number system tracks
-00E85D  2                       .BYTE   2               ;block size = 4096
-00E85D  2                       .WORD   511             ;max directory number
-00E85D  2                       .WORD   almpf           ;address of map for a
-00E85D  2                       .BYTE   128             ;no checksums
-00E85D  2                       .WORD   ckmp            ;checksum map
-00E85D  2               dcbg:
-00E85D  2                       .WORD   2047            ;max block number
-00E85D  2                       .WORD   64              ;sectors per track
-00E85D  2                       .WORD   16              ;number system tracks
-00E85D  2                       .BYTE   2               ;block size = 4096
-00E85D  2                       .WORD   511             ;max directory number
-00E85D  2                       .WORD   almpg           ;address of map for a
-00E85D  2                       .BYTE   128             ;no checksums
-00E85D  2                       .WORD   ckmp            ;checksum map
-00E85D  2               dcbh:
-00E85D  2                       .WORD   2047            ;max block number
-00E85D  2                       .WORD   64              ;sectors per track
-00E85D  2                       .WORD   16              ;number system tracks
-00E85D  2                       .BYTE   2               ;block size = 4096
-00E85D  2                       .WORD   511             ;max directory number
-00E85D  2                       .WORD   almph           ;address of map for a
-00E85D  2                       .BYTE   128             ;no checksums
-00E85D  2                       .WORD   ckmp            ;checksum map
-00E85D  2               
-00E85D  2               ; See Platform Documentation for Drive Types.
-00E85D  2               dftdskcfg:
-00E85D  2                       .BYTE   $10, $00        ; disk A: unit, slice (invalid for floppy disks) SD
-00E85D  2                       .BYTE   $30, $00        ; disk B: unit, slice (invalid for floppy disks) PPIDE
-00E85D  2                       .BYTE   $90, $00        ; disk C: unit, slice (invalid for floppy disks)
-00E85D  2                       .BYTE   $90, $00        ; disk D: unit, slice (invalid for floppy disks)
-00E85D  2                       .BYTE   $90, $00        ; disk E: unit, slice (invalid for floppy disks)
-00E85D  2                       .BYTE   $90, $00        ; disk F: unit, slice (invalid for floppy disks)
-00E85D  2                       .BYTE   $90, $00        ; disk G: unit, slice (invalid for floppy disks)
-00E85D  2                       .BYTE   $90, $00        ; disk H: unit, slice (invalid for floppy disks)
-00E85D  2               
-00E85D  2               
-00E85D  2               
-00E85D  2                       .ENDIF
-00E85D  2               
-00E85D  2               ;__________________________________________________________________________________________________________________________________
-00E85D  2                       .IFDEF NHYODYNE
-00E85D  2               dcba:
-00E85D  2                           .WORD   127             ;max block number
-00E85D  2                           .WORD   64              ;sectors per track
-00E85D  2                           .WORD   0               ;number system tracks
-00E85D  2                           .BYTE   1               ;block size = 2048
-00E85D  2                           .WORD   255             ;max directory number
-00E85D  2                           .WORD   almpa           ;address of map for a
-00E85D  2                           .BYTE   00              ;do checksums
-00E85D  2                           .WORD   ckmp            ;checksum map
-00E85D  2               dcbb:
-00E85D  2                           .WORD   191             ;max block number
-00E85D  2                           .WORD   64              ;sectors per track
-00E85D  2                           .WORD   0               ;number system tracks
-00E85D  2                           .BYTE   1               ;block size = 2048
-00E85D  2                           .WORD   155             ;max directory number
-00E85D  2                           .WORD   almpb           ;address of map for b
-00E85D  2                           .BYTE   00              ;do checksums
-00E85D  2                           .WORD   ckmp            ;checksum map
-00E85D  2               dcbc:
-00E85D  2                           .WORD   2047            ;max block number
-00E85D  2                           .WORD   64              ;sectors per track
-00E85D  2                           .WORD   16              ;number system tracks
-00E85D  2                           .BYTE   2               ;block size = 4096
-00E85D  2                           .WORD   511             ;max directory number
-00E85D  2                           .WORD   almpc           ;address of map for C
-00E85D  2                           .BYTE   0               ;do checksums
-00E85D  2                           .WORD   ckmp            ;checksum map
-00E85D  2               dcbd:
-00E85D  2                           .WORD   350             ;max block number
-00E85D  2                           .WORD   36              ;sectors per track
-00E85D  2                           .WORD   4               ;number system tracks
-00E85D  2                           .BYTE   1               ;block size = 2048
-00E85D  2                           .WORD   127             ;max directory number
-00E85D  2                           .WORD   almpd           ;address of map for d
-00E85D  2                           .BYTE   0               ;do checksums
-00E85D  2                           .WORD   ckmp            ;checksum map
-00E85D  2               dcbe:
-00E85D  2                           .WORD   350             ;max block number
-00E85D  2                           .WORD   36              ;sectors per track
-00E85D  2                           .WORD   4               ;number system tracks
-00E85D  2                           .BYTE   1               ;block size = 2048
-00E85D  2                           .WORD   127             ;max directory number
-00E85D  2                           .WORD   almpe           ;address of map for e
-00E85D  2                           .BYTE   0               ;do checksums
-00E85D  2                           .WORD   ckmp            ;checksum map
-00E85D  2               dcbf:
-00E85D  2                           .WORD   2047            ;max block number
-00E85D  2                           .WORD   64              ;sectors per track
-00E85D  2                           .WORD   16              ;number system tracks
-00E85D  2                           .BYTE   2               ;block size = 4096
-00E85D  2                           .WORD   511             ;max directory number
-00E85D  2                           .WORD   almpf           ;address of map for f
-00E85D  2                           .BYTE   0               ;do checksums
-00E85D  2                           .WORD   ckmp            ;checksum map
-00E85D  2               dcbg:
-00E85D  2                           .WORD   2047            ;max block number
-00E85D  2                           .WORD   64              ;sectors per track
-00E85D  2                           .WORD   16              ;number system tracks
-00E85D  2                           .BYTE   2               ;block size = 4096
-00E85D  2                           .WORD   511             ;max directory number
-00E85D  2                           .WORD   almpg           ;address of map for g
-00E85D  2                           .BYTE   0               ;do checksums
-00E85D  2                           .WORD   ckmp            ;checksum map
-00E85D  2               dcbh:
-00E85D  2                           .WORD   2047            ;max block number
-00E85D  2                           .WORD   64              ;sectors per track
-00E85D  2                           .WORD   16              ;number system tracks
-00E85D  2                           .BYTE   2               ;block size = 4096
-00E85D  2                           .WORD   511             ;max directory number
-00E85D  2                           .WORD   almph           ;address of map for h
-00E85D  2                           .BYTE   0               ;do checksums
-00E85D  2                           .WORD   ckmp            ;checksum map
-00E85D  2               
-00E85D  2               dftdskcfg:
-00E85D  2                           .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
-00E85D  2                           .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
-00E85D  2                           .BYTE   $30, $06        ; disk C: unit, slice IDE
-00E85D  2                           .BYTE   $20, $00        ; disk D: unit, slice FLOPPY A
-00E85D  2                           .BYTE   $21, $00        ; disk E: unit, slice FLOPPY B
-00E85D  2                           .BYTE   $30, $03        ; disk F: unit, slice IDE
-00E85D  2                           .BYTE   $30, $04        ; disk G: unit, slice IDE
-00E85D  2                           .BYTE   $30, $00        ; disk H: unit, slice IDE
-00E85D  2               
-00E85D  2                       .ENDIF
-00E85D  2               
-00E85D  2               ;__________________________________________________________________________________________________________________________________
-00E85D  2                       .IFDEF DUODYNE
-00E85D  2               dcba:
-00E85D  2  7F 00                    .WORD   127             ;max block number
-00E85F  2  40 00                    .WORD   64              ;sectors per track
-00E861  2  00 00                    .WORD   0               ;number system tracks
-00E863  2  01                       .BYTE   1               ;block size = 2048
-00E864  2  FF 00                    .WORD   255             ;max directory number
-00E866  2  DD E8                    .WORD   almpa           ;address of map for a
-00E868  2  00                       .BYTE   00              ;do checksums
-00E869  2  DD F0                    .WORD   ckmp            ;checksum map
-00E86B  2               dcbb:
-00E86B  2  BF 00                    .WORD   191             ;max block number
-00E86D  2  40 00                    .WORD   64              ;sectors per track
-00E86F  2  00 00                    .WORD   0               ;number system tracks
-00E871  2  01                       .BYTE   1               ;block size = 2048
-00E872  2  9B 00                    .WORD   155             ;max directory number
-00E874  2  DD E9                    .WORD   almpb           ;address of map for b
-00E876  2  00                       .BYTE   00              ;do checksums
-00E877  2  DD F0                    .WORD   ckmp            ;checksum map
-00E879  2               dcbc:
-00E879  2  FF 07                    .WORD   2047            ;max block number
-00E87B  2  40 00                    .WORD   64              ;sectors per track
-00E87D  2  10 00                    .WORD   16              ;number system tracks
-00E87F  2  02                       .BYTE   2               ;block size = 4096
-00E880  2  FF 01                    .WORD   511             ;max directory number
-00E882  2  DD EA                    .WORD   almpc           ;address of map for C
-00E884  2  00                       .BYTE   0               ;do checksums
-00E885  2  DD F0                    .WORD   ckmp            ;checksum map
-00E887  2               dcbd:
-00E887  2  5E 01                    .WORD   350             ;max block number
-00E889  2  24 00                    .WORD   36              ;sectors per track
-00E88B  2  04 00                    .WORD   4               ;number system tracks
-00E88D  2  01                       .BYTE   1               ;block size = 2048
-00E88E  2  7F 00                    .WORD   127             ;max directory number
-00E890  2  DD EB                    .WORD   almpd           ;address of map for d
-00E892  2  00                       .BYTE   0               ;do checksums
-00E893  2  DD F0                    .WORD   ckmp            ;checksum map
-00E895  2               dcbe:
-00E895  2  5E 01                    .WORD   350             ;max block number
-00E897  2  24 00                    .WORD   36              ;sectors per track
-00E899  2  04 00                    .WORD   4               ;number system tracks
-00E89B  2  01                       .BYTE   1               ;block size = 2048
-00E89C  2  7F 00                    .WORD   127             ;max directory number
-00E89E  2  DD EC                    .WORD   almpe           ;address of map for e
-00E8A0  2  00                       .BYTE   0               ;do checksums
-00E8A1  2  DD F0                    .WORD   ckmp            ;checksum map
-00E8A3  2               dcbf:
-00E8A3  2  FF 07                    .WORD   2047            ;max block number
-00E8A5  2  40 00                    .WORD   64              ;sectors per track
-00E8A7  2  10 00                    .WORD   16              ;number system tracks
-00E8A9  2  02                       .BYTE   2               ;block size = 4096
-00E8AA  2  FF 01                    .WORD   511             ;max directory number
-00E8AC  2  DD ED                    .WORD   almpf           ;address of map for f
-00E8AE  2  00                       .BYTE   0               ;do checksums
-00E8AF  2  DD F0                    .WORD   ckmp            ;checksum map
-00E8B1  2               dcbg:
-00E8B1  2  FF 07                    .WORD   2047            ;max block number
-00E8B3  2  40 00                    .WORD   64              ;sectors per track
-00E8B5  2  10 00                    .WORD   16              ;number system tracks
-00E8B7  2  02                       .BYTE   2               ;block size = 4096
-00E8B8  2  FF 01                    .WORD   511             ;max directory number
-00E8BA  2  DD EE                    .WORD   almpg           ;address of map for g
-00E8BC  2  00                       .BYTE   0               ;do checksums
-00E8BD  2  DD F0                    .WORD   ckmp            ;checksum map
-00E8BF  2               dcbh:
-00E8BF  2  FF 07                    .WORD   2047            ;max block number
-00E8C1  2  40 00                    .WORD   64              ;sectors per track
-00E8C3  2  10 00                    .WORD   16              ;number system tracks
-00E8C5  2  02                       .BYTE   2               ;block size = 4096
-00E8C6  2  FF 01                    .WORD   511             ;max directory number
-00E8C8  2  DD EF                    .WORD   almph           ;address of map for h
-00E8CA  2  00                       .BYTE   0               ;do checksums
-00E8CB  2  DD F0                    .WORD   ckmp            ;checksum map
-00E8CD  2               
-00E8CD  2               dftdskcfg:
-00E8CD  2  00 00                    .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
-00E8CF  2  01 00                    .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
-00E8D1  2  00 06                    .BYTE   $00, $06        ; disk C: unit, slice
-00E8D3  2  00 00                    .BYTE   $00, $00        ; disk D: unit, slice
-00E8D5  2  00 00                    .BYTE   $00, $00        ; disk E: unit, slice
-00E8D7  2  00 03                    .BYTE   $00, $03        ; disk F: unit, slice
-00E8D9  2  00 04                    .BYTE   $00, $04        ; disk G: unit, slice
-00E8DB  2  00 00                    .BYTE   $00, $00        ; disk H: unit, slice
-00E8DD  2                       .ENDIF
-00E8DD  2               
-00E8DD  2               
-00E8DD  2               ;allocation maps
-00E8DD  2               almpa:
-00E8DD  2  xx xx xx xx          .RES    256
-00E8E1  2  xx xx xx xx  
-00E8E5  2  xx xx xx xx  
-00E9DD  2               almpb:
-00E9DD  2  xx xx xx xx          .RES    256
-00E9E1  2  xx xx xx xx  
-00E9E5  2  xx xx xx xx  
-00EADD  2               almpc:
-00EADD  2  xx xx xx xx          .RES    256
-00EAE1  2  xx xx xx xx  
-00EAE5  2  xx xx xx xx  
-00EBDD  2               almpd:
-00EBDD  2  xx xx xx xx          .RES    256
-00EBE1  2  xx xx xx xx  
-00EBE5  2  xx xx xx xx  
-00ECDD  2               almpe:
-00ECDD  2  xx xx xx xx          .RES    256
-00ECE1  2  xx xx xx xx  
-00ECE5  2  xx xx xx xx  
-00EDDD  2               almpf:
-00EDDD  2  xx xx xx xx          .RES    256
-00EDE1  2  xx xx xx xx  
-00EDE5  2  xx xx xx xx  
-00EEDD  2               almpg:
-00EEDD  2  xx xx xx xx          .RES    256
-00EEE1  2  xx xx xx xx  
-00EEE5  2  xx xx xx xx  
-00EFDD  2               almph:
-00EFDD  2  xx xx xx xx          .RES    256
-00EFE1  2  xx xx xx xx  
-00EFE5  2  xx xx xx xx  
-00F0DD  2               
-00F0DD  2               ;checksum maps
-00F0DD  2               ;drive a
-00F0DD  2               ckmp:
-00F0DD  2  xx xx xx xx          .RES    128
-00F0E1  2  xx xx xx xx  
-00F0E5  2  xx xx xx xx  
-00F15D  2               
-00F15D  1               
-00F15D  1               OSVECTAG:
-00F15D  1  xx xx xx xx          .RES    $F200-OSVECTAG
-00F161  1  xx xx xx xx  
-00F165  1  xx xx xx xx  
+00E6E8  2  AA                   TAX                     ; PARK IN X
+00E6E9  2  A5 46                LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
+00E6EB  2  4A                   LSR     A               ;
+00E6EC  2  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING)
+00E6ED  2  29 0F                AND     #$0F            ; CLEAR UPPER 4 BITS (JUST 'CAUSE)
+00E6EF  2  8D 10 06             STA     debsehd         ; STORE IN SECTOR/HEAD
+00E6F2  2  8A                   TXA                     ; GET HEAD BACK
+00E6F3  2  0D 10 06             ORA     debsehd
+00E6F6  2  8D 10 06             STA     debsehd         ; STORE IN SECTOR/HEAD
+00E6F9  2               
+00E6F9  2  A5 44                LDA     sektrk
+00E6FB  2  8D 11 06             STA     debcyll         ; STORE IN TRACK (lsb)
+00E6FE  2  A5 45                LDA     sektrk+1
+00E700  2  8D 12 06             STA     debcylm         ; STORE IN TRACK (msb)
+00E703  2               ; REMOVE HEAD FROM TRACK VALUE (DIV/4)
+00E703  2  AD 12 06             LDA     debcylm
+00E706  2  4A                   LSR     A
+00E707  2  8D 12 06             STA     debcylm
+00E70A  2  AD 11 06             LDA     debcyll
+00E70D  2  6A                   ROR     A
+00E70E  2  8D 11 06             STA     debcyll
+00E711  2               
+00E711  2  AD 12 06             LDA     debcylm
+00E714  2  4A                   LSR     A
+00E715  2  8D 12 06             STA     debcylm
+00E718  2  AD 11 06             LDA     debcyll
+00E71B  2  6A                   ROR     A
+00E71C  2  8D 11 06             STA     debcyll
+00E71F  2               
+00E71F  2  AD 12 06             LDA     debcylm
+00E722  2  4A                   LSR     A
+00E723  2  8D 12 06             STA     debcylm
+00E726  2  AD 11 06             LDA     debcyll
+00E729  2  6A                   ROR     A
+00E72A  2  8D 11 06             STA     debcyll
+00E72D  2               
+00E72D  2  AD 12 06             LDA     debcylm
+00E730  2  4A                   LSR     A
+00E731  2  8D 12 06             STA     debcylm
+00E734  2  AD 11 06             LDA     debcyll
+00E737  2  6A                   ROR     A
+00E738  2  8D 11 06             STA     debcyll
+00E73B  2               ;	ADD SLICE OFFSET
+00E73B  2  A5 48                LDA     sekdsk          ; GET DRIVE#
+00E73D  2  29 07                AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
+00E73F  2  0A                   ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
+00E740  2  AA                   TAX                     ; MOVE TO X REGISTER
+00E741  2  E8                   INX                     ; WANT SECOND BYTE OF ENTRY
+00E742  2  BD 17 06             LDA     dskcfg,X        ; GET SLICE#
+00E745  2  8D 32 06             STA     slicetmp+1      ; SLICE OFFSET MSB
+00E748  2  A9 00                LDA     #0              ; GET SLICE#
+00E74A  2  8D 31 06             STA     slicetmp        ; SLICE OFFSET LSB
+00E74D  2  18                   CLC                     ; VOODOO MATH TO TAKE SLICE*$4000
+00E74E  2  6E 32 06             ROR     slicetmp+1
+00E751  2  6E 31 06             ROR     slicetmp
+00E754  2  6E 32 06             ROR     slicetmp+1
+00E757  2  6E 31 06             ROR     slicetmp
+00E75A  2               
+00E75A  2  BD 17 06             LDA     dskcfg,X        ; GET SLICE#
+00E75D  2  18                   CLC
+00E75E  2  6D 31 06             ADC     slicetmp
+00E761  2  8D 31 06             STA     slicetmp
+00E764  2  A9 00                LDA     #$00            ; LOGIC ERROR FOR SLICES THAT CARRY?
+00E766  2  6D 32 06             ADC     slicetmp+1      ;
+00E769  2  8D 32 06             STA     slicetmp+1      ;
+00E76C  2               
+00E76C  2               ; ADD SLICE OFFSET TO TRACK #
+00E76C  2  18                   CLC                     ; clear carry
+00E76D  2  AD 31 06             LDA     slicetmp
+00E770  2  6D 11 06             ADC     debcyll
+00E773  2  8D 11 06             STA     debcyll         ; store sum of LSBs
+00E776  2  AD 32 06             LDA     slicetmp+1
+00E779  2  6D 12 06             ADC     debcylm         ; add the MSBs using carry from
+00E77C  2  8D 12 06             STA     debcylm         ; the previous calculation
+00E77F  2               
+00E77F  2               
+00E77F  2               ; DISPLAY ON DSKY IF PRESENT
+00E77F  2  A5 48                LDA     sekdsk
+00E781  2  8D 08 06             STA     DSKY_HEXBUF
+00E784  2  AD 12 06             LDA     debcylm
+00E787  2  8D 09 06             STA     DSKY_HEXBUF+1
+00E78A  2  AD 11 06             LDA     debcyll
+00E78D  2  8D 0A 06             STA     DSKY_HEXBUF+2
+00E790  2  AD 10 06             LDA     debsehd
+00E793  2  8D 0B 06             STA     DSKY_HEXBUF+3
+00E796  2  A9 2A                LDA     #42             ; DSKY_BIN2SEG
+00E798  2  85 32                STA     farfunct
+00E79A  2  20 00 F2             JSR     DO_FARCALL
+00E79D  2  A9 29                LDA     #41             ; DSKY_SHOW
+00E79F  2  85 32                STA     farfunct
+00E7A1  2  20 00 F2             JSR     DO_FARCALL
+00E7A4  2  60                   RTS
+00E7A5  2               
+00E7A5  2               ;__SETUP_FD_CHS__________________________________________________________________________________________________________________
+00E7A5  2               ;
+00E7A5  2               ; 	TRANSFORM DOS65 CHS TO FLOPPY
+00E7A5  2               ;________________________________________________________________________________________________________________________________
+00E7A5  2               ;
+00E7A5  2               SETUP_FD_CHS:
+00E7A5  2  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+00E7A7  2  29 01                AND     #$01            ; FILTER OUT HEAD
+00E7A9  2  8D 12 06             STA     debcylm         ; STORE HEAD
+00E7AC  2  A5 44                LDA     sektrk          ; SAVE TRACK IN A
+00E7AE  2  4A                   LSR     A               ; REMOVE HEAD BIT
+00E7AF  2  8D 11 06             STA     debcyll         ; STORE IN TRACK
+00E7B2  2  A5 46                LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
+00E7B4  2  4A                   LSR     A               ;
+00E7B5  2  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING)
+00E7B6  2  8D 10 06             STA     debsehd         ; STORE IN SECTOR
+00E7B9  2               
+00E7B9  2  A5 48                LDA     sekdsk
+00E7BB  2  8D 08 06             STA     DSKY_HEXBUF
+00E7BE  2  AD 12 06             LDA     debcylm
+00E7C1  2  8D 09 06             STA     DSKY_HEXBUF+1
+00E7C4  2  AD 11 06             LDA     debcyll
+00E7C7  2  8D 0A 06             STA     DSKY_HEXBUF+2
+00E7CA  2  AD 10 06             LDA     debsehd
+00E7CD  2  8D 0B 06             STA     DSKY_HEXBUF+3
+00E7D0  2  A9 2A                LDA     #42             ; DSKY_BIN2SEG
+00E7D2  2  85 32                STA     farfunct
+00E7D4  2  20 00 F2             JSR     DO_FARCALL
+00E7D7  2  A9 29                LDA     #41             ; DSKY_SHOW
+00E7D9  2  85 32                STA     farfunct
+00E7DB  2  20 00 F2             JSR     DO_FARCALL
+00E7DE  2  60                   RTS
+00E7DF  2               
+00E7DF  2               
+00E7DF  2               ;___DEBSECR______________________________________________________________________________________________
+00E7DF  2               ;
+00E7DF  2               ;	DEBLOCK 512 BYTE SECTOR FOR DOS/65
+00E7DF  2               ;
+00E7DF  2               ;________________________________________________________________________________________________________
+00E7DF  2               DEBSECR:
+00E7DF  2  08                   PHP
+00E7E0  2  48                   PHA
+00E7E1  2  A5 46                LDA     seksec          ;
+00E7E3  2  29 03                AND     #$03            ; GET SECTOR INDEX
+00E7E5  2  18                   CLC                     ;
+00E7E6  2  2A                   ROL     A               ;
+00E7E7  2  AA                   TAX                     ;
+00E7E8  2  BD 01 E8             LDA     DEBTAB,X        ;
+00E7EB  2  85 EE                STA     SRC
+00E7ED  2  E8                   INX
+00E7EE  2  BD 01 E8             LDA     DEBTAB,X        ;
+00E7F1  2  85 EF                STA     SRC+1           ;
+00E7F3  2  A5 F4                LDA     dmaadr          ;
+00E7F5  2  85 EC                STA     DEST            ;
+00E7F7  2  A5 F5                LDA     dmaadr+1        ;
+00E7F9  2  85 ED                STA     DEST+1          ;
+00E7FB  2  20 29 E8             JSR     COPY_DOS_SECTOR ;
+00E7FE  2  68                   PLA
+00E7FF  2  28                   PLP
+00E800  2  60                   RTS
+00E801  2               
+00E801  2               DEBTAB:
+00E801  2  00 04                .WORD   hstbuf          ;
+00E803  2  80 04                .WORD   hstbuf+128      ;
+00E805  2  00 05                .WORD   hstbuf+256      ;
+00E807  2  80 05                .WORD   hstbuf+384      ;
+00E809  2               
+00E809  2               
+00E809  2               ;___BLKSECR______________________________________________________________________________________________
+00E809  2               ;
+00E809  2               ;	BLOCK 512 BYTE SECTOR FOR DOS/65
+00E809  2               ;
+00E809  2               ;________________________________________________________________________________________________________
+00E809  2               BLKSECR:
+00E809  2  08                   PHP
+00E80A  2  A5 46                LDA     seksec          ;
+00E80C  2  29 03                AND     #$03            ; GET SECTOR INDEX
+00E80E  2  18                   CLC                     ;
+00E80F  2  2A                   ROL     A               ;
+00E810  2  AA                   TAX                     ;
+00E811  2  BD 01 E8             LDA     DEBTAB,X        ;
+00E814  2  85 EC                STA     DEST
+00E816  2  E8                   INX
+00E817  2  BD 01 E8             LDA     DEBTAB,X        ;
+00E81A  2  85 ED                STA     DEST+1          ;
+00E81C  2  A5 F4                LDA     dmaadr          ;
+00E81E  2  85 EE                STA     SRC             ;
+00E820  2  A5 F5                LDA     dmaadr+1        ;
+00E822  2  85 EF                STA     SRC+1           ;
+00E824  2  20 29 E8             JSR     COPY_DOS_SECTOR ;
+00E827  2  28                   PLP
+00E828  2  60                   RTS
+00E829  2               
+00E829  2               
+00E829  2               ;___COPY_DOS_SECTOR______________________________________________________________________________________
+00E829  2               ;
+00E829  2               ;	COPY 128 BYTE SECTOR FOR DOS/65
+00E829  2               ;
+00E829  2               ;________________________________________________________________________________________________________
+00E829  2               COPY_DOS_SECTOR:
+00E829  2  A0 00                LDY     #$00            ;
+00E82B  2               COPY_DOS_SECTOR1:
+00E82B  2  B1 EE                LDA     (SRC),Y         ;
+00E82D  2  91 EC                STA     (DEST),Y        ;
+00E82F  2  C8                   INY                     ;
+00E830  2  98                   TYA                     ;
+00E831  2  C9 80                CMP     #$80            ;
+00E833  2  D0 F6                BNE     COPY_DOS_SECTOR1;
+00E835  2  60                   RTS
+00E836  2               
+00E836  2               ;___GET_DRIVE_DEVICE_____________________________________________________________________________________
+00E836  2               ;
+00E836  2               ; GET SELECTED DEVICE TYPE AND UNIT, RETURN IN "A"
+00E836  2               ;
+00E836  2               ;________________________________________________________________________________________________________
+00E836  2               GET_DRIVE_DEVICE:
+00E836  2  8E 56 E8             STX     GET_DRIVE_DEVICE_TMP
+00E839  2  A5 48                LDA     sekdsk          ; GET DRIVE
+00E83B  2  29 07                AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
+00E83D  2  0A                   ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
+00E83E  2  AA                   TAX                     ; MOVE TO X REGISTER
+00E83F  2  BD 17 06             LDA     dskcfg, X       ; GET device
+00E842  2  29 0F                AND     #$0F
+00E844  2  8D 3D 06             STA     CURRENT_IDE_DRIVE
+00E847  2  BD 17 06             LDA     dskcfg, X       ; GET device
+00E84A  2               ; SETUP FLOPPY CONTROL WHILE WE ARE HERE
+00E84A  2  29 01                AND     #$01
+00E84C  2  8D 28 06             STA     DSKUNIT
+00E84F  2  BD 17 06             LDA     dskcfg, X       ; GET device
+00E852  2  AE 56 E8             LDX     GET_DRIVE_DEVICE_TMP
+00E855  2  60                   RTS
+00E856  2               
+00E856  2               GET_DRIVE_DEVICE_TMP:
+00E856  2  00                   .BYTE   00
+00E857  2               ;------------------------------------------------------------------------------------
+00E857  2               
+00E857  2                       .IFDEF  RBC6X0X
+00E857  2               ;disk control blocks
+00E857  2               dcba:
+00E857  2                       .WORD   2047            ;max block number
+00E857  2                       .WORD   64              ;sectors per track
+00E857  2                       .WORD   16              ;number system tracks
+00E857  2                       .BYTE   2               ;block size = 4096
+00E857  2                       .WORD   511             ;max directory number
+00E857  2                       .WORD   almpa           ;address of map for a
+00E857  2                       .BYTE   128             ;no checksums
+00E857  2                       .WORD   ckmp            ;checksum map
+00E857  2               dcbb:
+00E857  2                       .WORD   2047            ;max block number
+00E857  2                       .WORD   64              ;sectors per track
+00E857  2                       .WORD   16              ;number system tracks
+00E857  2                       .BYTE   2               ;block size = 4096
+00E857  2                       .WORD   511             ;max directory number
+00E857  2                       .WORD   almpb           ;address of map for a
+00E857  2                       .BYTE   128             ;no checksums
+00E857  2                       .WORD   ckmp            ;checksum map
+00E857  2               dcbc:
+00E857  2                       .WORD   2047            ;max block number
+00E857  2                       .WORD   64              ;sectors per track
+00E857  2                       .WORD   16              ;number system tracks
+00E857  2                       .BYTE   2               ;block size = 4096
+00E857  2                       .WORD   511             ;max directory number
+00E857  2                       .WORD   almpc           ;address of map for a
+00E857  2                       .BYTE   128             ;no checksums
+00E857  2                       .WORD   ckmp            ;checksum map
+00E857  2               dcbd:
+00E857  2                       .WORD   2047            ;max block number
+00E857  2                       .WORD   64              ;sectors per track
+00E857  2                       .WORD   16              ;number system tracks
+00E857  2                       .BYTE   2               ;block size = 4096
+00E857  2                       .WORD   511             ;max directory number
+00E857  2                       .WORD   almpd           ;address of map for a
+00E857  2                       .BYTE   128             ;no checksums
+00E857  2                       .WORD   ckmp            ;checksum map
+00E857  2               dcbe:
+00E857  2                       .WORD   2047            ;max block number
+00E857  2                       .WORD   64              ;sectors per track
+00E857  2                       .WORD   16              ;number system tracks
+00E857  2                       .BYTE   2               ;block size = 4096
+00E857  2                       .WORD   511             ;max directory number
+00E857  2                       .WORD   almpe           ;address of map for a
+00E857  2                       .BYTE   128             ;no checksums
+00E857  2                       .WORD   ckmp            ;checksum map
+00E857  2               dcbf:
+00E857  2                       .WORD   2047            ;max block number
+00E857  2                       .WORD   64              ;sectors per track
+00E857  2                       .WORD   16              ;number system tracks
+00E857  2                       .BYTE   2               ;block size = 4096
+00E857  2                       .WORD   511             ;max directory number
+00E857  2                       .WORD   almpf           ;address of map for a
+00E857  2                       .BYTE   128             ;no checksums
+00E857  2                       .WORD   ckmp            ;checksum map
+00E857  2               dcbg:
+00E857  2                       .WORD   2047            ;max block number
+00E857  2                       .WORD   64              ;sectors per track
+00E857  2                       .WORD   16              ;number system tracks
+00E857  2                       .BYTE   2               ;block size = 4096
+00E857  2                       .WORD   511             ;max directory number
+00E857  2                       .WORD   almpg           ;address of map for a
+00E857  2                       .BYTE   128             ;no checksums
+00E857  2                       .WORD   ckmp            ;checksum map
+00E857  2               dcbh:
+00E857  2                       .WORD   2047            ;max block number
+00E857  2                       .WORD   64              ;sectors per track
+00E857  2                       .WORD   16              ;number system tracks
+00E857  2                       .BYTE   2               ;block size = 4096
+00E857  2                       .WORD   511             ;max directory number
+00E857  2                       .WORD   almph           ;address of map for a
+00E857  2                       .BYTE   128             ;no checksums
+00E857  2                       .WORD   ckmp            ;checksum map
+00E857  2               
+00E857  2               ; See Platform Documentation for Drive Types.
+00E857  2               dftdskcfg:
+00E857  2                       .BYTE   $10, $00        ; disk A: unit, slice (invalid for floppy disks) SD
+00E857  2                       .BYTE   $30, $00        ; disk B: unit, slice (invalid for floppy disks) PPIDE
+00E857  2                       .BYTE   $90, $00        ; disk C: unit, slice (invalid for floppy disks)
+00E857  2                       .BYTE   $90, $00        ; disk D: unit, slice (invalid for floppy disks)
+00E857  2                       .BYTE   $90, $00        ; disk E: unit, slice (invalid for floppy disks)
+00E857  2                       .BYTE   $90, $00        ; disk F: unit, slice (invalid for floppy disks)
+00E857  2                       .BYTE   $90, $00        ; disk G: unit, slice (invalid for floppy disks)
+00E857  2                       .BYTE   $90, $00        ; disk H: unit, slice (invalid for floppy disks)
+00E857  2               
+00E857  2               
+00E857  2               
+00E857  2                       .ENDIF
+00E857  2               
+00E857  2               ;__________________________________________________________________________________________________________________________________
+00E857  2                       .IFDEF NHYODYNE
+00E857  2               dcba:
+00E857  2                           .WORD   127             ;max block number
+00E857  2                           .WORD   64              ;sectors per track
+00E857  2                           .WORD   0               ;number system tracks
+00E857  2                           .BYTE   1               ;block size = 2048
+00E857  2                           .WORD   255             ;max directory number
+00E857  2                           .WORD   almpa           ;address of map for a
+00E857  2                           .BYTE   00              ;do checksums
+00E857  2                           .WORD   ckmp            ;checksum map
+00E857  2               dcbb:
+00E857  2                           .WORD   191             ;max block number
+00E857  2                           .WORD   64              ;sectors per track
+00E857  2                           .WORD   0               ;number system tracks
+00E857  2                           .BYTE   1               ;block size = 2048
+00E857  2                           .WORD   155             ;max directory number
+00E857  2                           .WORD   almpb           ;address of map for b
+00E857  2                           .BYTE   00              ;do checksums
+00E857  2                           .WORD   ckmp            ;checksum map
+00E857  2               dcbc:
+00E857  2                           .WORD   2047            ;max block number
+00E857  2                           .WORD   64              ;sectors per track
+00E857  2                           .WORD   16              ;number system tracks
+00E857  2                           .BYTE   2               ;block size = 4096
+00E857  2                           .WORD   511             ;max directory number
+00E857  2                           .WORD   almpc           ;address of map for C
+00E857  2                           .BYTE   0               ;do checksums
+00E857  2                           .WORD   ckmp            ;checksum map
+00E857  2               dcbd:
+00E857  2                           .WORD   350             ;max block number
+00E857  2                           .WORD   36              ;sectors per track
+00E857  2                           .WORD   4               ;number system tracks
+00E857  2                           .BYTE   1               ;block size = 2048
+00E857  2                           .WORD   127             ;max directory number
+00E857  2                           .WORD   almpd           ;address of map for d
+00E857  2                           .BYTE   0               ;do checksums
+00E857  2                           .WORD   ckmp            ;checksum map
+00E857  2               dcbe:
+00E857  2                           .WORD   350             ;max block number
+00E857  2                           .WORD   36              ;sectors per track
+00E857  2                           .WORD   4               ;number system tracks
+00E857  2                           .BYTE   1               ;block size = 2048
+00E857  2                           .WORD   127             ;max directory number
+00E857  2                           .WORD   almpe           ;address of map for e
+00E857  2                           .BYTE   0               ;do checksums
+00E857  2                           .WORD   ckmp            ;checksum map
+00E857  2               dcbf:
+00E857  2                           .WORD   2047            ;max block number
+00E857  2                           .WORD   64              ;sectors per track
+00E857  2                           .WORD   16              ;number system tracks
+00E857  2                           .BYTE   2               ;block size = 4096
+00E857  2                           .WORD   511             ;max directory number
+00E857  2                           .WORD   almpf           ;address of map for f
+00E857  2                           .BYTE   0               ;do checksums
+00E857  2                           .WORD   ckmp            ;checksum map
+00E857  2               dcbg:
+00E857  2                           .WORD   2047            ;max block number
+00E857  2                           .WORD   64              ;sectors per track
+00E857  2                           .WORD   16              ;number system tracks
+00E857  2                           .BYTE   2               ;block size = 4096
+00E857  2                           .WORD   511             ;max directory number
+00E857  2                           .WORD   almpg           ;address of map for g
+00E857  2                           .BYTE   0               ;do checksums
+00E857  2                           .WORD   ckmp            ;checksum map
+00E857  2               dcbh:
+00E857  2                           .WORD   2047            ;max block number
+00E857  2                           .WORD   64              ;sectors per track
+00E857  2                           .WORD   16              ;number system tracks
+00E857  2                           .BYTE   2               ;block size = 4096
+00E857  2                           .WORD   511             ;max directory number
+00E857  2                           .WORD   almph           ;address of map for h
+00E857  2                           .BYTE   0               ;do checksums
+00E857  2                           .WORD   ckmp            ;checksum map
+00E857  2               
+00E857  2               dftdskcfg:
+00E857  2                           .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
+00E857  2                           .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
+00E857  2                           .BYTE   $30, $06        ; disk C: unit, slice IDE
+00E857  2                           .BYTE   $20, $00        ; disk D: unit, slice FLOPPY A
+00E857  2                           .BYTE   $21, $00        ; disk E: unit, slice FLOPPY B
+00E857  2                           .BYTE   $30, $03        ; disk F: unit, slice IDE
+00E857  2                           .BYTE   $30, $04        ; disk G: unit, slice IDE
+00E857  2                           .BYTE   $30, $00        ; disk H: unit, slice IDE
+00E857  2               
+00E857  2                       .ENDIF
+00E857  2               
+00E857  2               ;__________________________________________________________________________________________________________________________________
+00E857  2                       .IFDEF DUODYNE
+00E857  2               dcba:
+00E857  2  7F 00                    .WORD   127             ;max block number
+00E859  2  40 00                    .WORD   64              ;sectors per track
+00E85B  2  00 00                    .WORD   0               ;number system tracks
+00E85D  2  01                       .BYTE   1               ;block size = 2048
+00E85E  2  FF 00                    .WORD   255             ;max directory number
+00E860  2  D7 E8                    .WORD   almpa           ;address of map for a
+00E862  2  00                       .BYTE   00              ;do checksums
+00E863  2  D7 F0                    .WORD   ckmp            ;checksum map
+00E865  2               dcbb:
+00E865  2  BF 00                    .WORD   191             ;max block number
+00E867  2  40 00                    .WORD   64              ;sectors per track
+00E869  2  00 00                    .WORD   0               ;number system tracks
+00E86B  2  01                       .BYTE   1               ;block size = 2048
+00E86C  2  9B 00                    .WORD   155             ;max directory number
+00E86E  2  D7 E9                    .WORD   almpb           ;address of map for b
+00E870  2  00                       .BYTE   00              ;do checksums
+00E871  2  D7 F0                    .WORD   ckmp            ;checksum map
+00E873  2               dcbc:
+00E873  2  FF 07                    .WORD   2047            ;max block number
+00E875  2  40 00                    .WORD   64              ;sectors per track
+00E877  2  10 00                    .WORD   16              ;number system tracks
+00E879  2  02                       .BYTE   2               ;block size = 4096
+00E87A  2  FF 01                    .WORD   511             ;max directory number
+00E87C  2  D7 EA                    .WORD   almpc           ;address of map for C
+00E87E  2  00                       .BYTE   0               ;do checksums
+00E87F  2  D7 F0                    .WORD   ckmp            ;checksum map
+00E881  2               dcbd:
+00E881  2  5E 01                    .WORD   350             ;max block number
+00E883  2  24 00                    .WORD   36              ;sectors per track
+00E885  2  04 00                    .WORD   4               ;number system tracks
+00E887  2  01                       .BYTE   1               ;block size = 2048
+00E888  2  7F 00                    .WORD   127             ;max directory number
+00E88A  2  D7 EB                    .WORD   almpd           ;address of map for d
+00E88C  2  00                       .BYTE   0               ;do checksums
+00E88D  2  D7 F0                    .WORD   ckmp            ;checksum map
+00E88F  2               dcbe:
+00E88F  2  5E 01                    .WORD   350             ;max block number
+00E891  2  24 00                    .WORD   36              ;sectors per track
+00E893  2  04 00                    .WORD   4               ;number system tracks
+00E895  2  01                       .BYTE   1               ;block size = 2048
+00E896  2  7F 00                    .WORD   127             ;max directory number
+00E898  2  D7 EC                    .WORD   almpe           ;address of map for e
+00E89A  2  00                       .BYTE   0               ;do checksums
+00E89B  2  D7 F0                    .WORD   ckmp            ;checksum map
+00E89D  2               dcbf:
+00E89D  2  FF 07                    .WORD   2047            ;max block number
+00E89F  2  40 00                    .WORD   64              ;sectors per track
+00E8A1  2  10 00                    .WORD   16              ;number system tracks
+00E8A3  2  02                       .BYTE   2               ;block size = 4096
+00E8A4  2  FF 01                    .WORD   511             ;max directory number
+00E8A6  2  D7 ED                    .WORD   almpf           ;address of map for f
+00E8A8  2  00                       .BYTE   0               ;do checksums
+00E8A9  2  D7 F0                    .WORD   ckmp            ;checksum map
+00E8AB  2               dcbg:
+00E8AB  2  FF 07                    .WORD   2047            ;max block number
+00E8AD  2  40 00                    .WORD   64              ;sectors per track
+00E8AF  2  10 00                    .WORD   16              ;number system tracks
+00E8B1  2  02                       .BYTE   2               ;block size = 4096
+00E8B2  2  FF 01                    .WORD   511             ;max directory number
+00E8B4  2  D7 EE                    .WORD   almpg           ;address of map for g
+00E8B6  2  00                       .BYTE   0               ;do checksums
+00E8B7  2  D7 F0                    .WORD   ckmp            ;checksum map
+00E8B9  2               dcbh:
+00E8B9  2  FF 07                    .WORD   2047            ;max block number
+00E8BB  2  40 00                    .WORD   64              ;sectors per track
+00E8BD  2  10 00                    .WORD   16              ;number system tracks
+00E8BF  2  02                       .BYTE   2               ;block size = 4096
+00E8C0  2  FF 01                    .WORD   511             ;max directory number
+00E8C2  2  D7 EF                    .WORD   almph           ;address of map for h
+00E8C4  2  00                       .BYTE   0               ;do checksums
+00E8C5  2  D7 F0                    .WORD   ckmp            ;checksum map
+00E8C7  2               
+00E8C7  2               dftdskcfg:
+00E8C7  2  00 00                    .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
+00E8C9  2  01 00                    .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
+00E8CB  2  30 06                    .BYTE   $30, $06        ; disk C: unit, slice
+00E8CD  2  30 00                    .BYTE   $30, $00        ; disk D: unit, slice
+00E8CF  2  30 01                    .BYTE   $30, $01        ; disk E: unit, slice
+00E8D1  2  30 02                    .BYTE   $30, $02        ; disk F: unit, slice
+00E8D3  2  30 03                    .BYTE   $30, $03        ; disk G: unit, slice
+00E8D5  2  30 04                    .BYTE   $30, $04        ; disk H: unit, slice
+00E8D7  2                       .ENDIF
+00E8D7  2               
+00E8D7  2               
+00E8D7  2               ;allocation maps
+00E8D7  2               almpa:
+00E8D7  2  xx xx xx xx          .RES    256
+00E8DB  2  xx xx xx xx  
+00E8DF  2  xx xx xx xx  
+00E9D7  2               almpb:
+00E9D7  2  xx xx xx xx          .RES    256
+00E9DB  2  xx xx xx xx  
+00E9DF  2  xx xx xx xx  
+00EAD7  2               almpc:
+00EAD7  2  xx xx xx xx          .RES    256
+00EADB  2  xx xx xx xx  
+00EADF  2  xx xx xx xx  
+00EBD7  2               almpd:
+00EBD7  2  xx xx xx xx          .RES    256
+00EBDB  2  xx xx xx xx  
+00EBDF  2  xx xx xx xx  
+00ECD7  2               almpe:
+00ECD7  2  xx xx xx xx          .RES    256
+00ECDB  2  xx xx xx xx  
+00ECDF  2  xx xx xx xx  
+00EDD7  2               almpf:
+00EDD7  2  xx xx xx xx          .RES    256
+00EDDB  2  xx xx xx xx  
+00EDDF  2  xx xx xx xx  
+00EED7  2               almpg:
+00EED7  2  xx xx xx xx          .RES    256
+00EEDB  2  xx xx xx xx  
+00EEDF  2  xx xx xx xx  
+00EFD7  2               almph:
+00EFD7  2  xx xx xx xx          .RES    256
+00EFDB  2  xx xx xx xx  
+00EFDF  2  xx xx xx xx  
+00F0D7  2               
+00F0D7  2               ;checksum maps
+00F0D7  2               ;drive a
+00F0D7  2               ckmp:
+00F0D7  2  xx xx xx xx          .RES    128
+00F0DB  2  xx xx xx xx  
+00F0DF  2  xx xx xx xx  
+00F157  2               
+00F157  1               
+00F157  1               OSVECTAG:
+00F157  1  xx xx xx xx          .RES    $F200-OSVECTAG
+00F15B  1  xx xx xx xx  
+00F15F  1  xx xx xx xx  
 00F200  1  5C 00 80 1E          JML     $1E8000
 00F204  1  60                   RTS
 00F205  1               OSEND:
@@ -4332,10 +4334,10 @@ Current file: dos65.asm
 008029  2  6C 33 00             JMP     (farpointer)
 00802C  2               
 00802C  2               DISPATCHTABLE:
-00802C  2  81 87                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
-00802E  2  81 87                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
-008030  2  81 87                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
-008032  2  81 87                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
+00802C  2  28 88                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
+00802E  2  28 88                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
+008030  2  28 88                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
+008032  2  28 88                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
 008034  2               
 008034  2  47 81                .WORD   WRSER1          ; FUNCTION 04 - WRITE SERIAL PORT
 008036  2  58 81                .WORD   RDSER1          ; FUNCTION 05 - READ SERIAL PORT
@@ -4349,67 +4351,67 @@ Current file: dos65.asm
 008044  2  7B 81                .WORD   SERIALSTATUS    ; FUNCTION 12 - GET KEYBOARD STATUS
 008046  2  46 81                .WORD   SERIALINIT      ; FUNCTION 13 - INIT INTERFACE
 008048  2               
-008048  2  94 87                .WORD   drv_noop        ; FUNCTION 14
-00804A  2  94 87                .WORD   drv_noop        ; FUNCTION 15
-00804C  2  94 87                .WORD   drv_noop        ; FUNCTION 16
-00804E  2  94 87                .WORD   drv_noop        ; FUNCTION 17
-008050  2  94 87                .WORD   drv_noop        ; FUNCTION 18
-008052  2  94 87                .WORD   drv_noop        ; FUNCTION 19
-008054  2  94 87                .WORD   drv_noop        ; FUNCTION 20
-008056  2  94 87                .WORD   drv_noop        ; FUNCTION 21
-008058  2  94 87                .WORD   drv_noop        ; FUNCTION 22
-00805A  2  94 87                .WORD   drv_noop        ; FUNCTION 23
-00805C  2  94 87                .WORD   drv_noop        ; FUNCTION 24
-00805E  2  94 87                .WORD   drv_noop        ; FUNCTION 25
-008060  2  94 87                .WORD   drv_noop        ; FUNCTION 26
-008062  2  94 87                .WORD   drv_noop        ; FUNCTION 27
-008064  2  94 87                .WORD   drv_noop        ; FUNCTION 28
-008066  2  94 87                .WORD   drv_noop        ; FUNCTION 29
-008068  2  94 87                .WORD   drv_noop        ; FUNCTION 30
-00806A  2  94 87                .WORD   drv_noop        ; FUNCTION 31
-00806C  2  94 87                .WORD   drv_noop        ; FUNCTION 32
-00806E  2  94 87                .WORD   drv_noop        ; FUNCTION 33
-008070  2  94 87                .WORD   drv_noop        ; FUNCTION 34
-008072  2  94 87                .WORD   drv_noop        ; FUNCTION 35
-008074  2  94 87                .WORD   drv_noop        ; FUNCTION 36
-008076  2  94 87                .WORD   drv_noop        ; FUNCTION 37
-008078  2  94 87                .WORD   drv_noop        ; FUNCTION 38
-00807A  2  94 87                .WORD   drv_noop        ; FUNCTION 39
+008048  2  3B 88                .WORD   drv_noop        ; FUNCTION 14
+00804A  2  3B 88                .WORD   drv_noop        ; FUNCTION 15
+00804C  2  3B 88                .WORD   drv_noop        ; FUNCTION 16
+00804E  2  3B 88                .WORD   drv_noop        ; FUNCTION 17
+008050  2  3B 88                .WORD   drv_noop        ; FUNCTION 18
+008052  2  3B 88                .WORD   drv_noop        ; FUNCTION 19
+008054  2  3B 88                .WORD   drv_noop        ; FUNCTION 20
+008056  2  3B 88                .WORD   drv_noop        ; FUNCTION 21
+008058  2  3B 88                .WORD   drv_noop        ; FUNCTION 22
+00805A  2  3B 88                .WORD   drv_noop        ; FUNCTION 23
+00805C  2  3B 88                .WORD   drv_noop        ; FUNCTION 24
+00805E  2  3B 88                .WORD   drv_noop        ; FUNCTION 25
+008060  2  3B 88                .WORD   drv_noop        ; FUNCTION 26
+008062  2  3B 88                .WORD   drv_noop        ; FUNCTION 27
+008064  2  3B 88                .WORD   drv_noop        ; FUNCTION 28
+008066  2  3B 88                .WORD   drv_noop        ; FUNCTION 29
+008068  2  3B 88                .WORD   drv_noop        ; FUNCTION 30
+00806A  2  3B 88                .WORD   drv_noop        ; FUNCTION 31
+00806C  2  3B 88                .WORD   drv_noop        ; FUNCTION 32
+00806E  2  3B 88                .WORD   drv_noop        ; FUNCTION 33
+008070  2  3B 88                .WORD   drv_noop        ; FUNCTION 34
+008072  2  3B 88                .WORD   drv_noop        ; FUNCTION 35
+008074  2  3B 88                .WORD   drv_noop        ; FUNCTION 36
+008076  2  3B 88                .WORD   drv_noop        ; FUNCTION 37
+008078  2  3B 88                .WORD   drv_noop        ; FUNCTION 38
+00807A  2  3B 88                .WORD   drv_noop        ; FUNCTION 39
 00807C  2               
-00807C  2  94 87                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
-00807E  2  94 87                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
-008080  2  94 87                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
-008082  2  94 87                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
-008084  2  94 87                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
-008086  2  94 87                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
-008088  2  94 87                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
-00808A  2  94 87                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
-00808C  2  94 87                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
-00808E  2  94 87                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
+00807C  2  3B 88                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
+00807E  2  3B 88                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
+008080  2  3B 88                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
+008082  2  3B 88                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
+008084  2  3B 88                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
+008086  2  3B 88                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
+008088  2  3B 88                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
+00808A  2  3B 88                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
+00808C  2  3B 88                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
+00808E  2  3B 88                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
 008090  2               ;
-008090  2  94 87                .WORD   drv_noop        ; FUNCTION 50 -
-008092  2  94 87                .WORD   drv_noop        ; FUNCTION 51 -
-008094  2  94 87                .WORD   drv_noop        ; FUNCTION 52 -
+008090  2  3B 88                .WORD   drv_noop        ; FUNCTION 50 -
+008092  2  3B 88                .WORD   drv_noop        ; FUNCTION 51 -
+008094  2  3B 88                .WORD   drv_noop        ; FUNCTION 52 -
 008096  2               
-008096  2  94 87                .WORD   drv_noop        ; FUNCTION 53
-008098  2  94 87                .WORD   drv_noop        ; FUNCTION 54
-00809A  2  94 87                .WORD   drv_noop        ; FUNCTION 55
-00809C  2  94 87                .WORD   drv_noop        ; FUNCTION 56
-00809E  2  94 87                .WORD   drv_noop        ; FUNCTION 57
-0080A0  2  94 87                .WORD   drv_noop        ; FUNCTION 58
-0080A2  2  94 87                .WORD   drv_noop        ; FUNCTION 59
+008096  2  3B 88                .WORD   drv_noop        ; FUNCTION 53
+008098  2  3B 88                .WORD   drv_noop        ; FUNCTION 54
+00809A  2  3B 88                .WORD   drv_noop        ; FUNCTION 55
+00809C  2  3B 88                .WORD   drv_noop        ; FUNCTION 56
+00809E  2  3B 88                .WORD   drv_noop        ; FUNCTION 57
+0080A0  2  3B 88                .WORD   drv_noop        ; FUNCTION 58
+0080A2  2  3B 88                .WORD   drv_noop        ; FUNCTION 59
 0080A4  2               
 0080A4  2  8B 81                .WORD   PPIDE_INIT      ; FUNCTION 60 - called during OS init
 0080A6  2  3C 84                .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
-0080A8  2  86 84                .WORD   IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
+0080A8  2  89 84                .WORD   IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
 0080AA  2               ;
-0080AA  2  42 86                .WORD   MD_SHOW         ; FUNCTION 63 - init the mem device
-0080AC  2  D6 86                .WORD   MD_READ_SECTOR  ; FUNCTION 64 - read a sector from the memory device
-0080AE  2  10 87                .WORD   MD_WRITE_SECTOR ; FUNCTION 65 - write a sector to the memory device
+0080AA  2  E8 86                .WORD   MD_SHOW         ; FUNCTION 63 - init the mem device
+0080AC  2  7C 87                .WORD   MD_READ_SECTOR  ; FUNCTION 64 - read a sector from the memory device
+0080AE  2  B6 87                .WORD   MD_WRITE_SECTOR ; FUNCTION 65 - write a sector to the memory device
 0080B0  2               ;
-0080B0  2  94 87                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
-0080B2  2  94 87                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
-0080B4  2  94 87                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
+0080B0  2  3B 88                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
+0080B2  2  3B 88                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
+0080B4  2  3B 88                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
 0080B6  2               
 0080B6  2               ;______________________________________________________________________________
 0080B6  2               
@@ -4816,7 +4818,7 @@ Current file: dos65.asm
 0081D9  3  A9 88                LDA     #<PPIDE_PPI     ; GET BASE PORT
 0081DB  3  20 B6 80             JSR     PRTHEXBYTE      ; PRINT BASE PORT
 0081DE  3               ;
-0081DE  3  20 B3 84             JSR     PPIDE_RESET     ; RESET THE BUS
+0081DE  3  20 B9 84             JSR     PPIDE_RESET     ; RESET THE BUS
 0081E1  3  20 77 82             JSR     PPIDE_PROBE     ; DETECT AN ATA DEVICE, ABORT IF NOT FOUND
 0081E4  3  B0 03                BCS     IDE_ABORT
 0081E6  3  4C 12 82             JMP     IDE_PRINT_INFO
@@ -4859,11 +4861,10 @@ Current file: dos65.asm
 008277  3               
 008277  3  A9 00                LDA     #$00
 008279  3  8F 88 DF 00          STA     f:PPIDELO       ; PPI PORT A, DATALO
-00827D  3               
-00827D  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY; WAIT FOR BUSY TO CLEAR
+00827D  3  20 E9 84             JSR     IDE_WAIT_NOT_BUSY; WAIT FOR BUSY TO CLEAR
 008280  3  B0 34                BCS     PPIDE_PROBE_FAIL; IF TIMEOUT, REPORT NO IDE PRESENT
 008282  3  A9 0F                LDA     #PPIDE_STATUS   ; GET STATUS
-008284  3  20 E4 85             JSR     IDE_READ
+008284  3  20 E8 85             JSR     IDE_READ
 008287  3  8A                   TXA
 008288  3  29 40                AND     #%01000000
 00828A  3  C9 00                CMP     #$00
@@ -4871,19 +4872,19 @@ Current file: dos65.asm
 00828E  3               
 00828E  3               ; CHECK SIGNATURE
 00828E  3  A9 0A                LDA     #PPIDE_SEC_CNT
-008290  3  20 E4 85             JSR     IDE_READ
+008290  3  20 E8 85             JSR     IDE_READ
 008293  3  E0 01                CPX     #$01
 008295  3  D0 1F                BNE     PPIDE_PROBE_FAIL; IF not '01' THEN REPORT NO IDE PRESENT
 008297  3  A9 0B                LDA     #PPIDE_LBALOW
-008299  3  20 E4 85             JSR     IDE_READ
+008299  3  20 E8 85             JSR     IDE_READ
 00829C  3  E0 01                CPX     #$01
 00829E  3  D0 16                BNE     PPIDE_PROBE_FAIL; IF not '01' THEN REPORT NO IDE PRESENT
 0082A0  3  A9 0C                LDA     #PPIDE_LBAMID
-0082A2  3  20 E4 85             JSR     IDE_READ
+0082A2  3  20 E8 85             JSR     IDE_READ
 0082A5  3  E0 00                CPX     #$00
 0082A7  3  D0 0D                BNE     PPIDE_PROBE_FAIL; IF not '00' THEN REPORT NO IDE PRESENT
 0082A9  3  A9 0D                LDA     #PPIDE_LBAHI
-0082AB  3  20 E4 85             JSR     IDE_READ
+0082AB  3  20 E8 85             JSR     IDE_READ
 0082AE  3  E0 00                CPX     #$00
 0082B0  3  D0 04                BNE     PPIDE_PROBE_FAIL; IF not '00' THEN REPORT NO IDE PRESENT
 0082B2  3  18                   CLC
@@ -4902,14 +4903,14 @@ Current file: dos65.asm
 0082B8  3               
 0082B8  3               IDE_IDENTIFY_TYPE:
 0082B8  3  48                   PHA
-0082B9  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+0082B9  3  20 E9 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
 0082BC  3  B0 46                BCS     IDE_IDENTIFY_TYPE_ERROR; IF TIMEOUT, REPORT ERROR
 0082BE  3  A9 00                LDA     #$00
 0082C0  3  8D 10 06             STA     debsehd
 0082C3  3  8D 11 06             STA     debcyll         ; STORE IN TRACK (lsb)
 0082C6  3  8D 12 06             STA     debcylm         ; STORE IN TRACK (msb)
 0082C9  3  68                   PLA                     ; GET DRIVE TYPE
-0082CA  3  20 5C 84             JSR     IDE_READ_SECTOR_DIRTY1
+0082CA  3  20 5F 84             JSR     IDE_READ_SECTOR_DIRTY1
 0082CD  3  C9 FF                CMP     #$FF            ; IS THERE A READ ERROR?
 0082CF  3  F0 33                BEQ     IDE_IDENTIFY_TYPE_ERROR
 0082D1  3  AF FE 05 1D          LDA     f:LHSTBUF+$01FE
@@ -4958,17 +4959,17 @@ Current file: dos65.asm
 008311  3  AA                   TAX
 008312  3  A0 00                LDY     #$00
 008314  3  A9 0E                LDA     #PPIDE_DEVICE
-008316  3  20 0A 86             JSR     IDE_WRITE
+008316  3  20 0E 86             JSR     IDE_WRITE
 008319  3               
 008319  3               
-008319  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+008319  3  20 E9 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
 00831C  3  B0 52                BCS     IDE_READ_INFO_ABORT
 00831E  3  A9 0F                LDA     #PPIDE_COMMAND  ;SELECT IDE REGISTER
 008320  3  A2 EC                LDX     #PPIDE_CMD_ID
-008322  3  20 0A 86             JSR     IDE_WRITE       ;ASK THE DRIVE TO READ IT
-008325  3  20 09 85             JSR     IDE_WAIT_DRQ    ;WAIT UNTIL IT'S GOT THE DATA
+008322  3  20 0E 86             JSR     IDE_WRITE       ;ASK THE DRIVE TO READ IT
+008325  3  20 11 85             JSR     IDE_WAIT_DRQ    ;WAIT UNTIL IT'S GOT THE DATA
 008328  3  B0 46                BCS     IDE_READ_INFO_ABORT
-00832A  3  20 3D 85             JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
+00832A  3  20 41 85             JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
 00832D  3  48 DA 5A A2          PRTS    "0x$"
 008331  3  00 BD 46 83  
 008335  3  E8 C9 24 F0  
@@ -5051,7 +5052,7 @@ Current file: dos65.asm
 00842C  3               ; THEN THE BUS HOLD CIRCUITRY WILL READ BACK THE ZERO. SINCE
 00842C  3               ; WE ARE IN WRITE MODE, AN IDE CONTROLLER WILL NOT BE ABLE TO
 00842C  3               ; INTERFERE WITH THE VALUE BEING READ.
-00842C  3  20 39 86             JSR     SET_PPI_WR
+00842C  3  20 3D 86             JSR     SET_PPI_WR
 00842F  3               ;
 00842F  3  A9 00                LDA     #$00            ; VALUE ZERO
 008431  3  8F 88 DF 00          STA     f:PPIDELO       ; PUSH VALUE TO PORT
@@ -5067,573 +5068,706 @@ Current file: dos65.asm
 00843C  3               ;*
 00843C  3               ;*____________________________________________________________________________________________________
 00843C  3               IDE_READ_SECTOR:
-00843C  3  AD 10 06             LDA     debsehd         ; STORE CURRENT PARMS
-00843F  3  CD 44 06             CMP     Cdebsehd        ;
-008442  3  D0 13                BNE     IDE_READ_SECTOR_DIRTY
-008444  3  AD 12 06             LDA     debcylm         ;
-008447  3  CD 46 06             CMP     Cdebcylm        ;
-00844A  3  D0 0B                BNE     IDE_READ_SECTOR_DIRTY
-00844C  3  AD 11 06             LDA     debcyll         ;
-00844F  3  CD 45 06             CMP     Cdebcyll        ;
-008452  3  D0 03                BNE     IDE_READ_SECTOR_DIRTY
-008454  3  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
-008456  3  60                   RTS
-008457  3               
-008457  3               IDE_READ_SECTOR_DIRTY:
-008457  3                       PRTDBG  "IDE Read Sector Buffer Dirty$"
-008457  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
-00845A  3  B0 27                BCS     IDE_READ_SECTOR_DIRTY_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
-00845C  3               IDE_READ_SECTOR_DIRTY1:
-00845C  3  20 B1 85             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
-00845F  3  A9 0F                LDA     #PPIDE_COMMAND  ;SELECT IDE REGISTER
-008461  3  A2 20                LDX     #PPIDE_CMD_READ
-008463  3  20 0A 86             JSR     IDE_WRITE       ;ASK THE DRIVE TO READ IT
-008466  3  20 09 85             JSR     IDE_WAIT_DRQ    ;WAIT UNTIL IT'S GOT THE DATA
-008469  3  B0 18                BCS     IDE_READ_SECTOR_DIRTY_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
-00846B  3  20 3D 85             JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
-00846E  3  AD 10 06             LDA     debsehd         ; STORE CURRENT PARMS
-008471  3  8D 44 06             STA     Cdebsehd        ;
-008474  3  AD 11 06             LDA     debcyll         ;
-008477  3  8D 45 06             STA     Cdebcyll        ;
-00847A  3  AD 12 06             LDA     debcylm         ;
-00847D  3  8D 46 06             STA     Cdebcylm        ;
-008480  3               
-008480  3  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
-008482  3  60                   RTS
-008483  3               IDE_READ_SECTOR_DIRTY_ERROR:
-008483  3  A9 FF                LDA     #$FF            ; ZERO = 1 ON RETURN = OPERATION OK
+00843C  3                       PRTDBG  "IDE Read Sector$"
+00843C  3  20 46 86             JSR     IDE_CONVERT_SECTOR_LBA
+00843F  3  AD 10 06             LDA     debsehd         ; STORE CURRENT PARMS
+008442  3  CD 44 06             CMP     Cdebsehd        ;
+008445  3  D0 13                BNE     IDE_READ_SECTOR_DIRTY
+008447  3  AD 12 06             LDA     debcylm         ;
+00844A  3  CD 46 06             CMP     Cdebcylm        ;
+00844D  3  D0 0B                BNE     IDE_READ_SECTOR_DIRTY
+00844F  3  AD 11 06             LDA     debcyll         ;
+008452  3  CD 45 06             CMP     Cdebcyll        ;
+008455  3  D0 03                BNE     IDE_READ_SECTOR_DIRTY
+008457  3  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
+008459  3  60                   RTS
+00845A  3               
+00845A  3               IDE_READ_SECTOR_DIRTY:
+00845A  3                       PRTDBG  "IDE Read Sector Buffer Dirty$"
+00845A  3  20 E9 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+00845D  3  B0 27                BCS     IDE_READ_SECTOR_DIRTY_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00845F  3               IDE_READ_SECTOR_DIRTY1:
+00845F  3  20 B5 85             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
+008462  3  A9 0F                LDA     #PPIDE_COMMAND  ;SELECT IDE REGISTER
+008464  3  A2 20                LDX     #PPIDE_CMD_READ
+008466  3  20 0E 86             JSR     IDE_WRITE       ;ASK THE DRIVE TO READ IT
+008469  3  20 11 85             JSR     IDE_WAIT_DRQ    ;WAIT UNTIL IT'S GOT THE DATA
+00846C  3  B0 18                BCS     IDE_READ_SECTOR_DIRTY_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00846E  3  20 41 85             JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
+008471  3  AD 10 06             LDA     debsehd         ; STORE CURRENT PARMS
+008474  3  8D 44 06             STA     Cdebsehd        ;
+008477  3  AD 11 06             LDA     debcyll         ;
+00847A  3  8D 45 06             STA     Cdebcyll        ;
+00847D  3  AD 12 06             LDA     debcylm         ;
+008480  3  8D 46 06             STA     Cdebcylm        ;
+008483  3  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
 008485  3  60                   RTS
-008486  3               
-008486  3               ;*__IDE_WRITE_SECTOR__________________________________________________________________________________
-008486  3               ;*
-008486  3               ;*  WRITE IDE SECTOR (IN LBA) FROM BUFFER
-008486  3               ;*
-008486  3               ;*____________________________________________________________________________________________________
-008486  3               IDE_WRITE_SECTOR:
-008486  3                       PRTDBG  "IDE Write Sector$"
-008486  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
-008489  3  B0 25                BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
-00848B  3               IDE_WRITE_SECTOR_RAW:
-00848B  3  20 B1 85             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
-00848E  3  A9 0F                LDA     #PPIDE_COMMAND
-008490  3  A2 30                LDX     #PPIDE_CMD_WRITE
-008492  3  20 0A 86             JSR     IDE_WRITE       ;TELL DRIVE TO WRITE A SECTOR
-008495  3  20 09 85             JSR     IDE_WAIT_DRQ    ;WAIT UNIT IT WANTS THE DATA
-008498  3  B0 16                BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
-00849A  3  20 76 85             JSR     IDE_WRITE_BUFFER;GIVE THE DATA TO THE DRIVE
-00849D  3  20 DD 84             JSR     IDE_WAIT_NOT_BUSY;WAIT UNTIL THE WRITE IS COMPLETE
-0084A0  3  B0 0E                BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
-0084A2  3  A9 FF                LDA     #$FF            ; STORE CURRENT PARMS
-0084A4  3  8D 44 06             STA     Cdebsehd        ;
-0084A7  3  8D 45 06             STA     Cdebcyll        ;
-0084AA  3  8D 46 06             STA     Cdebcylm        ;
-0084AD  3               
-0084AD  3  A9 00                LDA     #$00            ; ZERO ON RETURN = OPERATION OK
-0084AF  3  60                   RTS
-0084B0  3               IDE_WRITE_SECTOR_ERROR:
-0084B0  3  A9 FF                LDA     #$FF            ; 1 ON RETURN = OPERATION FAIL
-0084B2  3  60                   RTS
-0084B3  3               
-0084B3  3               ;*__PPIDE_RESET____________________________________________________________________________________
-0084B3  3               ;*
-0084B3  3               ;*  SOFT RESET IDE CHANNEL
-0084B3  3               ;*
-0084B3  3               ;*____________________________________________________________________________________________________
-0084B3  3               PPIDE_RESET:
-0084B3  3                       PRTDBG  "IDE Reset$"
-0084B3  3  A9 00                LDA     #$00
-0084B5  3  8D 10 06             STA     debsehd
-0084B8  3  8D 11 06             STA     debcyll
-0084BB  3  8D 12 06             STA     debcylm
-0084BE  3  A9 FF                LDA     #$FF            ;
-0084C0  3  8D 44 06             STA     Cdebsehd        ;
-0084C3  3  8D 45 06             STA     Cdebcyll        ;
-0084C6  3  8D 46 06             STA     Cdebcylm        ;
-0084C9  3               
-0084C9  3  A9 80                LDA     #PPIDE_RST_LINE
-0084CB  3  8F 8A DF 00          STA     f:PPIDECNTRL    ; ASSERT RST LINE ON IDE INTERFACE
-0084CF  3  A2 00                LDX     #$00
-0084D1  3                       PRTDBG  "IDE Reset Delay$"
-0084D1  3               RST_DLY:
-0084D1  3  CA                   DEX
-0084D2  3  E0 00                CPX     #$00
-0084D4  3  D0 FB                BNE     RST_DLY
-0084D6  3  A9 00                LDA     #$00
-0084D8  3  8F 8A DF 00          STA     f:PPIDECNTRL    ; DEASSERT RST LINE ON IDE INTERFACE
-0084DC  3               
-0084DC  3               ; IF A DSKYNG IS ACTIVE AND IS ON THE SAME PPI PORT AS THE PPISD BEING
-0084DC  3               ; RESET, THEN THE DSKYNG WILL ALSO BE RESET.  SO, THE DSKY IS ALSO INITIALIZED.
-0084DC  3               ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  JSR     DSKY_REINIT
-0084DC  3               
-0084DC  3  60                   RTS
-0084DD  3               
-0084DD  3               
-0084DD  3               ;*__IDE_WAIT_NOT_BUSY_______________________________________________________________________________
-0084DD  3               ;*
-0084DD  3               ;*  WAIT FOR IDE CHANNEL TO BECOME READY
-0084DD  3               ;*
-0084DD  3               ;*____________________________________________________________________________________________________
-0084DD  3               IDE_WAIT_NOT_BUSY:
-0084DD  3  48                   PHA
-0084DE  3  8A                   TXA
-0084DF  3  48                   PHA
-0084E0  3  98                   TYA
-0084E1  3  48                   PHA
+008486  3               IDE_READ_SECTOR_DIRTY_ERROR:
+008486  3  A9 FF                LDA     #$FF            ; ZERO = 1 ON RETURN = OPERATION OK
+008488  3  60                   RTS
+008489  3               
+008489  3               ;*__IDE_WRITE_SECTOR__________________________________________________________________________________
+008489  3               ;*
+008489  3               ;*  WRITE IDE SECTOR (IN LBA) FROM BUFFER
+008489  3               ;*
+008489  3               ;*____________________________________________________________________________________________________
+008489  3               IDE_WRITE_SECTOR:
+008489  3                       PRTDBG  "IDE Write Sector$"
+008489  3  20 46 86             JSR     IDE_CONVERT_SECTOR_LBA
+00848C  3  20 E9 84             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+00848F  3  B0 25                BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+008491  3               IDE_WRITE_SECTOR_RAW:
+008491  3  20 B5 85             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
+008494  3  A9 0F                LDA     #PPIDE_COMMAND
+008496  3  A2 30                LDX     #PPIDE_CMD_WRITE
+008498  3  20 0E 86             JSR     IDE_WRITE       ;TELL DRIVE TO WRITE A SECTOR
+00849B  3  20 11 85             JSR     IDE_WAIT_DRQ    ;WAIT UNIT IT WANTS THE DATA
+00849E  3  B0 16                BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+0084A0  3  20 7A 85             JSR     IDE_WRITE_BUFFER;GIVE THE DATA TO THE DRIVE
+0084A3  3  20 E9 84             JSR     IDE_WAIT_NOT_BUSY;WAIT UNTIL THE WRITE IS COMPLETE
+0084A6  3  B0 0E                BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+0084A8  3  A9 FF                LDA     #$FF            ; STORE CURRENT PARMS
+0084AA  3  8D 44 06             STA     Cdebsehd        ;
+0084AD  3  8D 45 06             STA     Cdebcyll        ;
+0084B0  3  8D 46 06             STA     Cdebcylm        ;
+0084B3  3  A9 00                LDA     #$00            ; ZERO ON RETURN = OPERATION OK
+0084B5  3  60                   RTS
+0084B6  3               IDE_WRITE_SECTOR_ERROR:
+0084B6  3  A9 FF                LDA     #$FF            ; 1 ON RETURN = OPERATION FAIL
+0084B8  3  60                   RTS
+0084B9  3               
+0084B9  3               ;*__PPIDE_RESET____________________________________________________________________________________
+0084B9  3               ;*
+0084B9  3               ;*  SOFT RESET IDE CHANNEL
+0084B9  3               ;*
+0084B9  3               ;*____________________________________________________________________________________________________
+0084B9  3               PPIDE_RESET:
+0084B9  3                       PRTDBG  "IDE Reset$"
+0084B9  3  A9 00                LDA     #$00
+0084BB  3  8D 10 06             STA     debsehd
+0084BE  3  8D 11 06             STA     debcyll
+0084C1  3  8D 12 06             STA     debcylm
+0084C4  3  A9 FF                LDA     #$FF            ;
+0084C6  3  8D 44 06             STA     Cdebsehd        ;
+0084C9  3  8D 45 06             STA     Cdebcyll        ;
+0084CC  3  8D 46 06             STA     Cdebcylm        ;
+0084CF  3  A9 80                LDA     #PPIDE_RST_LINE
+0084D1  3  8F 8A DF 00          STA     f:PPIDECNTRL    ; ASSERT RST LINE ON IDE INTERFACE
+0084D5  3                       PRTDBG  "IDE Reset Delay$"
+0084D5  3               
+0084D5  3  C2 10                INDEX16
+0084D7  3  A2 00 00             LDX     #$0000
+0084DA  3               :
+0084DA  3  E8                   INX
+0084DB  3  E0 00 F0             CPX     #$F000
+0084DE  3  D0 FA                BNE     :-
+0084E0  3  E2 10                INDEX8
 0084E2  3  A9 00                LDA     #$00
-0084E4  3  8D 37 06             STA     FLRETRY
-0084E7  3  8D 38 06             STA     FLRETRY+1
-0084EA  3               IDE_WAIT_NOT_BUSY1:
-0084EA  3  A9 0F                LDA     #PPIDE_STATUS   ;WAIT FOR RDY BIT TO BE SET
-0084EC  3  20 E4 85             JSR     IDE_READ
-0084EF  3  8A                   TXA
-0084F0  3  29 80                AND     #$80
-0084F2  3  F0 0E                BEQ     IDE_WAIT_NOT_BUSY2
-0084F4  3  EE 37 06             INC     FLRETRY
-0084F7  3  D0 F1                BNE     IDE_WAIT_NOT_BUSY1
-0084F9  3  EE 38 06             INC     FLRETRY+1
-0084FC  3  D0 EC                BNE     IDE_WAIT_NOT_BUSY1
-0084FE  3  38                   SEC
-0084FF  3  4C 03 85             JMP     IDE_WAIT_NOT_BUSY3
-008502  3               IDE_WAIT_NOT_BUSY2:
-008502  3  18                   CLC
-008503  3               IDE_WAIT_NOT_BUSY3:
-008503  3  68                   PLA
-008504  3  A8                   TAY
-008505  3  68                   PLA
-008506  3  AA                   TAX
-008507  3  68                   PLA
-008508  3  60                   RTS
-008509  3               
-008509  3               ;*__IDE_WAIT_DRQ______________________________________________________________________________________
-008509  3               ;*
-008509  3               ;*	WAIT FOR THE DRIVE TO BE READY TO TRANSFER DATA.
-008509  3               ;*
-008509  3               ;*____________________________________________________________________________________________________
-008509  3               IDE_WAIT_DRQ:
-008509  3  48                   PHA
-00850A  3  8A                   TXA
-00850B  3  48                   PHA
-00850C  3  98                   TYA
-00850D  3  48                   PHA
-00850E  3  A9 00                LDA     #$00
-008510  3  8D 37 06             STA     FLRETRY
-008513  3  8D 38 06             STA     FLRETRY+1
-008516  3               IDE_WAIT_DRQ1:
-008516  3  A9 0F                LDA     #PPIDE_STATUS   ;WAIT FOR DRQ BIT TO BE SET
-008518  3  20 E4 85             JSR     IDE_READ
-00851B  3  8A                   TXA
-00851C  3  29 88                AND     #%10001000      ; MASK OFF BUSY(7) AND DRQ(3)
-00851E  3  C9 08                CMP     #%00001000      ; WE WANT BUSY(7) TO BE 0 AND DRQ (3) TO BE 1
-008520  3  F0 14                BEQ     IDE_WAIT_DRQ2
-008522  3  29 01                AND     #%00000001      ; IS ERROR?
-008524  3  C9 01                CMP     #%00000001      ;
-008526  3  F0 0A                BEQ     IDE_WAIT_DRQE
-008528  3  EE 37 06             INC     FLRETRY
-00852B  3  D0 E9                BNE     IDE_WAIT_DRQ1
-00852D  3  EE 38 06             INC     FLRETRY+1
-008530  3  D0 E4                BNE     IDE_WAIT_DRQ1
-008532  3               IDE_WAIT_DRQE:
-008532  3  38                   SEC
-008533  3  4C 37 85             JMP     IDE_WAIT_DRQ3
-008536  3               IDE_WAIT_DRQ2:
-008536  3  18                   CLC
-008537  3               IDE_WAIT_DRQ3:
-008537  3  68                   PLA
-008538  3  A8                   TAY
-008539  3  68                   PLA
-00853A  3  AA                   TAX
-00853B  3  68                   PLA
-00853C  3  60                   RTS
-00853D  3               
-00853D  3               
-00853D  3               
-00853D  3               ;*__IDE_READ_BUFFER___________________________________________________________________________________
-00853D  3               ;*
-00853D  3               ;*  READ IDE BUFFER LITTLE ENDIAN
-00853D  3               ;*
-00853D  3               ;*____________________________________________________________________________________________________
-00853D  3               IDE_READ_BUFFER:
-00853D  3  A2 00                LDX     #$00            ; INDEX
-00853F  3               IDEBUFRD:
-00853F  3  8E 3C 06             STX     PPIDEINDEX
-008542  3  A9 08                LDA     #PPIDE_DATA
-008544  3  20 E4 85             JSR     IDE_READ
-008547  3  8A                   TXA
-008548  3  AE 3C 06             LDX     PPIDEINDEX
-00854B  3  9F 00 04 1D          STA     f:LHSTBUF,X     ;
-00854F  3  E8                   INX                     ;
-008550  3  98                   TYA                     ; THEN HIGH BYTE OF WORD
-008551  3  9F 00 04 1D          STA     f:LHSTBUF,X     ;
-008555  3  E8                   INX
-008556  3  E0 00                CPX     #$00            ;
-008558  3  D0 E5                BNE     IDEBUFRD        ;
-00855A  3               IDEBUFRD1:
-00855A  3  8E 3C 06             STX     PPIDEINDEX
-00855D  3  A9 08                LDA     #PPIDE_DATA
-00855F  3  20 E4 85             JSR     IDE_READ
-008562  3  8A                   TXA
-008563  3  AE 3C 06             LDX     PPIDEINDEX
-008566  3  9F 00 05 1D          STA     f:LHSTBUF+256,X ;
-00856A  3  E8                   INX                     ;
-00856B  3  98                   TYA                     ; THEN HIGH BYTE OF WORD
-00856C  3  9F 00 05 1D          STA     f:LHSTBUF+256,X ;
-008570  3  E8                   INX                     ;
-008571  3  E0 00                CPX     #$00            ;
-008573  3  D0 E5                BNE     IDEBUFRD1       ;
-008575  3  60                   RTS                     ;
-008576  3               
-008576  3               ;*__IDE_WRITE_BUFFER___________________________________________________________________________________
-008576  3               ;*
-008576  3               ;*  WRITE IDE BUFFER LITTLE ENDIAN
-008576  3               ;*
-008576  3               ;*____________________________________________________________________________________________________
-008576  3               IDE_WRITE_BUFFER:
-008576  3  A2 00                LDX     #$00            ; INDEX
-008578  3               IDEBUFWT:
-008578  3  8E 3C 06             STX     PPIDEINDEX
-00857B  3  BF 01 04 1D          LDA     f:LHSTBUF+1,X   ; SECTORS ARE BIG ENDIAN
-00857F  3  A8                   TAY                     ;
-008580  3  BF 00 04 1D          LDA     f:LHSTBUF,X     ; SECTORS ARE BIG ENDIAN
-008584  3  AA                   TAX
-008585  3  A9 08                LDA     #PPIDE_DATA
-008587  3  20 0A 86             JSR     IDE_WRITE
-00858A  3  AE 3C 06             LDX     PPIDEINDEX
-00858D  3  E8                   INX                     ;
-00858E  3  E8                   INX                     ;
-00858F  3  E0 00                CPX     #$00            ;
-008591  3  D0 E5                BNE     IDEBUFWT        ;
-008593  3  A2 00                LDX     #$00            ; INDEX
-008595  3               IDEBUFWT1:
-008595  3  8E 3C 06             STX     PPIDEINDEX
-008598  3  BF 01 05 1D          LDA     f:LHSTBUF+257,X ; SECTORS ARE BIG ENDIAN
-00859C  3  A8                   TAY
-00859D  3  BF 00 05 1D          LDA     f:LHSTBUF+256,X ; SECTORS ARE BIG ENDIAN
-0085A1  3  AA                   TAX
-0085A2  3  A9 08                LDA     #PPIDE_DATA
-0085A4  3  20 0A 86             JSR     IDE_WRITE
-0085A7  3  AE 3C 06             LDX     PPIDEINDEX
-0085AA  3  E8                   INX                     ;
-0085AB  3  E8                   INX                     ;
-0085AC  3  E0 00                CPX     #$00            ;
-0085AE  3  D0 E5                BNE     IDEBUFWT1       ;
-0085B0  3  60                   RTS                     ;
-0085B1  3               
-0085B1  3               ;*__IDE_SETUP_LBA_____________________________________________________________________________________
-0085B1  3               ;*
-0085B1  3               ;*  SETUP LBA DATA
-0085B1  3               ;*  A= DRIVE DEVICE
-0085B1  3               ;*____________________________________________________________________________________________________
-0085B1  3               IDE_SETUP_LBA:
-0085B1  3                       PRTDBG  "PPIDE SETUP LBA$"
-0085B1  3  AD 3D 06             LDA     CURRENT_IDE_DRIVE
-0085B4  3  29 01                AND     #$01            ; only want drive cfg
-0085B6  3  0A                   ASL     a               ; SHIFT 4
-0085B7  3  0A                   ASL     a               ;
-0085B8  3  0A                   ASL     a               ;
-0085B9  3  0A                   ASL     a               ;
-0085BA  3  09 E0                ORA     #$E0            ; E0=MST  F0=SLV
-0085BC  3  AA                   TAX
-0085BD  3  A0 00                LDY     #$00
-0085BF  3  A9 0E                LDA     #PPIDE_DEVICE
-0085C1  3  20 0A 86             JSR     IDE_WRITE
-0085C4  3               
-0085C4  3  AE 12 06             LDX     debcylm
-0085C7  3  A9 0D                LDA     #PPIDE_LBAHI
-0085C9  3  20 0A 86             JSR     IDE_WRITE
-0085CC  3               
-0085CC  3  AE 11 06             LDX     debcyll         ;
-0085CF  3  A9 0C                LDA     #PPIDE_LBAMID
-0085D1  3  20 0A 86             JSR     IDE_WRITE
-0085D4  3               
-0085D4  3  AE 10 06             LDX     debsehd         ;
-0085D7  3  A9 0B                LDA     #PPIDE_LBALOW
-0085D9  3  20 0A 86             JSR     IDE_WRITE
-0085DC  3               
-0085DC  3  A2 01                LDX     #$01
-0085DE  3  A9 0A                LDA     #PPIDE_SEC_CNT
-0085E0  3  20 0A 86             JSR     IDE_WRITE
-0085E3  3               
-0085E3  3  60                   RTS
-0085E4  3               
-0085E4  3               
-0085E4  3               ;-------------------------------------------------------------------------------
-0085E4  3               
-0085E4  3               ; LOW LEVEL I/O TO THE DRIVE.  THESE ARE THE ROUTINES THAT TALK
-0085E4  3               ; DIRECTLY TO THE DRIVE, VIA THE 8255 CHIP.  NORMALLY A MAIN
-0085E4  3               ; PROGRAM WOULD NOT CALL TO THESE.
-0085E4  3               
-0085E4  3               ;DO A READ BUS CYCLE TO THE DRIVE, USING THE 8255.
-0085E4  3               ;INPUT A = IDE REGSITER ADDRESS
-0085E4  3               ;OUTPUT X = LOWER BYTE READ FROM IDE DRIVE
-0085E4  3               ;OUTPUT Y = UPPER BYTE READ FROM IDE DRIVE
-0085E4  3               
-0085E4  3               IDE_READ:
-0085E4  3  20 30 86             JSR     SET_PPI_RD      ; SETUP FOR A READ CYCLE
-0085E7  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DRIVE ADDRESS ONTO CONTROL LINES
-0085EB  3  09 40                ORA     #PPIDE_RD_LINE  ; ASSERT RD PIN
-0085ED  3  8F 8A DF 00          STA     f:PPIDECNTRL
-0085F1  3  48                   PHA
-0085F2  3  AF 88 DF 00          LDA     f:PPIDELO       ; READ LOWER BYTE
-0085F6  3  AA                   TAX
-0085F7  3  AF 89 DF 00          LDA     f:PPIDEHI       ; READ UPPER BYTE
-0085FB  3  A8                   TAY
-0085FC  3  68                   PLA
-0085FD  3  49 40                EOR     #PPIDE_RD_LINE  ; DE-ASSERT RD SIGNAL
-0085FF  3  8F 8A DF 00          STA     f:PPIDECNTRL
-008603  3  A9 00                LDA     #$00
-008605  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
-008609  3  60                   RTS
-00860A  3               
-00860A  3               
-00860A  3               
-00860A  3               
-00860A  3               ;DO A WRITE BUS CYCLE TO THE DRIVE, VIA THE 8255
-00860A  3               ;INPUT A = IDE REGISTER ADDRESS
-00860A  3               ;INPUT REGISTER X = LSB TO WRITE
-00860A  3               ;INPUT REGISTER Y = MSB TO WRITE
-00860A  3               ;
-00860A  3               
-00860A  3               
-00860A  3               IDE_WRITE:
-00860A  3  20 39 86             JSR     SET_PPI_WR      ; SETUP FOR A WRITE CYCLE
+0084E4  3  8F 8A DF 00          STA     f:PPIDECNTRL    ; DEASSERT RST LINE ON IDE INTERFACE
+0084E8  3               
+0084E8  3               ; IF A DSKYNG IS ACTIVE AND IS ON THE SAME PPI PORT AS THE PPISD BEING
+0084E8  3               ; RESET, THEN THE DSKYNG WILL ALSO BE RESET.  SO, THE DSKY IS ALSO INITIALIZED.
+0084E8  3               ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  JSR     DSKY_REINIT
+0084E8  3               
+0084E8  3  60                   RTS
+0084E9  3               
+0084E9  3               
+0084E9  3               ;*__IDE_WAIT_NOT_BUSY_______________________________________________________________________________
+0084E9  3               ;*
+0084E9  3               ;*  WAIT FOR IDE CHANNEL TO BECOME READY
+0084E9  3               ;*
+0084E9  3               ;*____________________________________________________________________________________________________
+0084E9  3               IDE_WAIT_NOT_BUSY:
+0084E9  3  48                   PHA
+0084EA  3  DA                   PHX
+0084EB  3  5A                   PHY
+0084EC  3  A9 00                LDA     #$00
+0084EE  3  8D 37 06             STA     FLRETRY
+0084F1  3  8D 38 06             STA     FLRETRY+1
+0084F4  3               IDE_WAIT_NOT_BUSY1:
+0084F4  3  A9 0F                LDA     #PPIDE_STATUS   ;WAIT FOR RDY BIT TO BE SET
+0084F6  3  20 E8 85             JSR     IDE_READ
+0084F9  3  8A                   TXA
+0084FA  3  29 80                AND     #$80
+0084FC  3  F0 0E                BEQ     IDE_WAIT_NOT_BUSY2
+0084FE  3  EE 37 06             INC     FLRETRY
+008501  3  D0 F1                BNE     IDE_WAIT_NOT_BUSY1
+008503  3  EE 38 06             INC     FLRETRY+1
+008506  3  D0 EC                BNE     IDE_WAIT_NOT_BUSY1
+008508  3  38                   SEC
+008509  3  4C 0D 85             JMP     IDE_WAIT_NOT_BUSY3
+00850C  3               IDE_WAIT_NOT_BUSY2:
+00850C  3  18                   CLC
+00850D  3               IDE_WAIT_NOT_BUSY3:
+00850D  3  7A                   PLY
+00850E  3  FA                   PLX
+00850F  3  68                   PLA
+008510  3  60                   RTS
+008511  3               
+008511  3               ;*__IDE_WAIT_DRQ______________________________________________________________________________________
+008511  3               ;*
+008511  3               ;*	WAIT FOR THE DRIVE TO BE READY TO TRANSFER DATA.
+008511  3               ;*
+008511  3               ;*____________________________________________________________________________________________________
+008511  3               IDE_WAIT_DRQ:
+008511  3  48                   PHA
+008512  3  DA                   PHX
+008513  3  5A                   PHY
+008514  3  A9 00                LDA     #$00
+008516  3  8D 37 06             STA     FLRETRY
+008519  3  8D 38 06             STA     FLRETRY+1
+00851C  3               IDE_WAIT_DRQ1:
+00851C  3  A9 0F                LDA     #PPIDE_STATUS   ;WAIT FOR DRQ BIT TO BE SET
+00851E  3  20 E8 85             JSR     IDE_READ
+008521  3  8A                   TXA
+008522  3  29 88                AND     #%10001000      ; MASK OFF BUSY(7) AND DRQ(3)
+008524  3  C9 08                CMP     #%00001000      ; WE WANT BUSY(7) TO BE 0 AND DRQ (3) TO BE 1
+008526  3  F0 14                BEQ     IDE_WAIT_DRQ2
+008528  3  29 01                AND     #%00000001      ; IS ERROR?
+00852A  3  C9 01                CMP     #%00000001      ;
+00852C  3  F0 0A                BEQ     IDE_WAIT_DRQE
+00852E  3  EE 37 06             INC     FLRETRY
+008531  3  D0 E9                BNE     IDE_WAIT_DRQ1
+008533  3  EE 38 06             INC     FLRETRY+1
+008536  3  D0 E4                BNE     IDE_WAIT_DRQ1
+008538  3               IDE_WAIT_DRQE:
+008538  3  38                   SEC
+008539  3  4C 3D 85             JMP     IDE_WAIT_DRQ3
+00853C  3               IDE_WAIT_DRQ2:
+00853C  3  18                   CLC
+00853D  3               IDE_WAIT_DRQ3:
+00853D  3  7A                   PLY
+00853E  3  FA                   PLX
+00853F  3  68                   PLA
+008540  3  60                   RTS
+008541  3               
+008541  3               
+008541  3               
+008541  3               ;*__IDE_READ_BUFFER___________________________________________________________________________________
+008541  3               ;*
+008541  3               ;*  READ IDE BUFFER LITTLE ENDIAN
+008541  3               ;*
+008541  3               ;*____________________________________________________________________________________________________
+008541  3               IDE_READ_BUFFER:
+008541  3  A2 00                LDX     #$00            ; INDEX
+008543  3               IDEBUFRD:
+008543  3  8E 3C 06             STX     PPIDEINDEX
+008546  3  A9 08                LDA     #PPIDE_DATA
+008548  3  20 E8 85             JSR     IDE_READ
+00854B  3  8A                   TXA
+00854C  3  AE 3C 06             LDX     PPIDEINDEX
+00854F  3  9F 00 04 1D          STA     f:LHSTBUF,X     ;
+008553  3  98                   TYA                     ; THEN HIGH BYTE OF WORD
+008554  3  9F 01 04 1D          STA     f:LHSTBUF+1,X   ;
+008558  3  E8                   INX
+008559  3  E8                   INX                     ;
+00855A  3               
+00855A  3               ;;       PHA
+00855A  3               ;;       phx
+00855A  3               ;;       phy
+00855A  3               ;;       txa
+00855A  3               ;;   JSR     PRTHEXBYTE
+00855A  3               ;;      ply
+00855A  3               ;;      PLX
+00855A  3               ;;      pla
+00855A  3               
+00855A  3               
+00855A  3  E0 00                CPX     #$00            ;
+00855C  3  D0 E5                BNE     IDEBUFRD        ;
+00855E  3               IDEBUFRD1:
+00855E  3  8E 3C 06             STX     PPIDEINDEX
+008561  3  A9 08                LDA     #PPIDE_DATA
+008563  3  20 E8 85             JSR     IDE_READ
+008566  3  8A                   TXA
+008567  3  AE 3C 06             LDX     PPIDEINDEX
+00856A  3  9F 00 05 1D          STA     f:LHSTBUF+256,X ;
+00856E  3  98                   TYA                     ; THEN HIGH BYTE OF WORD
+00856F  3  9F 01 05 1D          STA     f:LHSTBUF+257,X ;
+008573  3  E8                   INX                     ;
+008574  3  E8                   INX                     ;
+008575  3               ;;           PHA
+008575  3               ;;         phx
+008575  3               ;;       phy
+008575  3               ;;     txa
+008575  3               ;;     JSR     PRTHEXBYTE
+008575  3               ;;       ply
+008575  3               ;;     PLX
+008575  3               ;;      pla
+008575  3               
+008575  3  E0 00                CPX     #$00            ;
+008577  3  D0 E5                BNE     IDEBUFRD1       ;
+008579  3  60                   RTS                     ;
+00857A  3               
+00857A  3               ;*__IDE_WRITE_BUFFER___________________________________________________________________________________
+00857A  3               ;*
+00857A  3               ;*  WRITE IDE BUFFER LITTLE ENDIAN
+00857A  3               ;*
+00857A  3               ;*____________________________________________________________________________________________________
+00857A  3               IDE_WRITE_BUFFER:
+00857A  3  A2 00                LDX     #$00            ; INDEX
+00857C  3               IDEBUFWT:
+00857C  3  8E 3C 06             STX     PPIDEINDEX
+00857F  3  BF 00 04 1D          LDA     f:LHSTBUF,X     ; SECTORS ARE BIG ENDIAN
+008583  3  AA                   TAX                     ;
+008584  3  BF 01 04 1D          LDA     f:LHSTBUF+1,X   ; SECTORS ARE BIG ENDIAN
+008588  3  A8                   TAY
+008589  3  A9 08                LDA     #PPIDE_DATA
+00858B  3  20 0E 86             JSR     IDE_WRITE
+00858E  3  AE 3C 06             LDX     PPIDEINDEX
+008591  3  E8                   INX                     ;
+008592  3  E8                   INX                     ;
+008593  3  E0 00                CPX     #$00            ;
+008595  3  D0 E5                BNE     IDEBUFWT        ;
+008597  3  A2 00                LDX     #$00            ; INDEX
+008599  3               IDEBUFWT1:
+008599  3  8E 3C 06             STX     PPIDEINDEX
+00859C  3  BF 00 05 1D          LDA     f:LHSTBUF+256,X ; SECTORS ARE BIG ENDIAN
+0085A0  3  AA                   TAX
+0085A1  3  BF 01 05 1D          LDA     f:LHSTBUF+257,X ; SECTORS ARE BIG ENDIAN
+0085A5  3  A8                   TAY
+0085A6  3  A9 08                LDA     #PPIDE_DATA
+0085A8  3  20 0E 86             JSR     IDE_WRITE
+0085AB  3  AE 3C 06             LDX     PPIDEINDEX
+0085AE  3  E8                   INX                     ;
+0085AF  3  E8                   INX                     ;
+0085B0  3  E0 00                CPX     #$00            ;
+0085B2  3  D0 E5                BNE     IDEBUFWT1       ;
+0085B4  3  60                   RTS                     ;
+0085B5  3               
+0085B5  3               ;*__IDE_SETUP_LBA_____________________________________________________________________________________
+0085B5  3               ;*
+0085B5  3               ;*  SETUP LBA DATA
+0085B5  3               ;*  A= DRIVE DEVICE
+0085B5  3               ;*____________________________________________________________________________________________________
+0085B5  3               IDE_SETUP_LBA:
+0085B5  3                       PRTDBG  "PPIDE SETUP LBA$"
+0085B5  3  AD 3D 06             LDA     CURRENT_IDE_DRIVE
+0085B8  3  29 01                AND     #$01            ; only want drive cfg
+0085BA  3  0A                   ASL     a               ; SHIFT 4
+0085BB  3  0A                   ASL     a               ;
+0085BC  3  0A                   ASL     a               ;
+0085BD  3  0A                   ASL     a               ;
+0085BE  3  09 E0                ORA     #$E0            ; E0=MST  F0=SLV
+0085C0  3  AA                   TAX
+0085C1  3  A0 00                LDY     #$00
+0085C3  3  A9 0E                LDA     #PPIDE_DEVICE
+0085C5  3  20 0E 86             JSR     IDE_WRITE
+0085C8  3               
+0085C8  3  AE 12 06             LDX     debcylm
+0085CB  3  A9 0D                LDA     #PPIDE_LBAHI
+0085CD  3  20 0E 86             JSR     IDE_WRITE
+0085D0  3               
+0085D0  3  AE 11 06             LDX     debcyll         ;
+0085D3  3  A9 0C                LDA     #PPIDE_LBAMID
+0085D5  3  20 0E 86             JSR     IDE_WRITE
+0085D8  3               
+0085D8  3  AE 10 06             LDX     debsehd         ;
+0085DB  3  A9 0B                LDA     #PPIDE_LBALOW
+0085DD  3  20 0E 86             JSR     IDE_WRITE
+0085E0  3               
+0085E0  3  A2 01                LDX     #$01
+0085E2  3  A9 0A                LDA     #PPIDE_SEC_CNT
+0085E4  3  20 0E 86             JSR     IDE_WRITE
+0085E7  3               
+0085E7  3  60                   RTS
+0085E8  3               
+0085E8  3               
+0085E8  3               ;-------------------------------------------------------------------------------
+0085E8  3               
+0085E8  3               ; LOW LEVEL I/O TO THE DRIVE.  THESE ARE THE ROUTINES THAT TALK
+0085E8  3               ; DIRECTLY TO THE DRIVE, VIA THE 8255 CHIP.  NORMALLY A MAIN
+0085E8  3               ; PROGRAM WOULD NOT CALL TO THESE.
+0085E8  3               
+0085E8  3               ;DO A READ BUS CYCLE TO THE DRIVE, USING THE 8255.
+0085E8  3               ;INPUT A = IDE REGSITER ADDRESS
+0085E8  3               ;OUTPUT X = LOWER BYTE READ FROM IDE DRIVE
+0085E8  3               ;OUTPUT Y = UPPER BYTE READ FROM IDE DRIVE
+0085E8  3               
+0085E8  3               IDE_READ:
+0085E8  3  20 34 86             JSR     SET_PPI_RD      ; SETUP FOR A READ CYCLE
+0085EB  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DRIVE ADDRESS ONTO CONTROL LINES
+0085EF  3  09 40                ORA     #PPIDE_RD_LINE  ; ASSERT RD PIN
+0085F1  3  8F 8A DF 00          STA     f:PPIDECNTRL
+0085F5  3  48                   PHA
+0085F6  3  AF 88 DF 00          LDA     f:PPIDELO       ; READ LOWER BYTE
+0085FA  3  AA                   TAX
+0085FB  3  AF 89 DF 00          LDA     f:PPIDEHI       ; READ UPPER BYTE
+0085FF  3  A8                   TAY
+008600  3  68                   PLA
+008601  3  49 40                EOR     #PPIDE_RD_LINE  ; DE-ASSERT RD SIGNAL
+008603  3  8F 8A DF 00          STA     f:PPIDECNTRL
+008607  3  A9 00                LDA     #$00
+008609  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
 00860D  3               
-00860D  3  48                   PHA
-00860E  3  8A                   TXA
-00860F  3  8F 88 DF 00          STA     f:PPIDELO       ; WRITE LOWER BYTE
-008613  3  98                   TYA
-008614  3  8F 89 DF 00          STA     f:PPIDEHI       ; WRITE UPPER BYTE
-008618  3  68                   PLA
-008619  3               
-008619  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DRIVE ADDRESS ONTO CONTROL LINES
+00860D  3               ;PHA
+00860D  3               ;phx
+00860D  3               ;phy
+00860D  3               ;lda #'R'
+00860D  3               ;JSR MACRO_OUTCH
+00860D  3               ;txa
+00860D  3               ;JSR     PRTHEXBYTE
+00860D  3               ;tya
+00860D  3               ;JSR     PRTHEXBYTE
+00860D  3               ;lda #'<'
+00860D  3               ;JSR MACRO_OUTCH
+00860D  3               ;ply
+00860D  3               ;PLX
+00860D  3               ;pla
+00860D  3               
+00860D  3               
+00860D  3  60                   RTS
+00860E  3               
+00860E  3               
+00860E  3               
+00860E  3               
+00860E  3               ;DO A WRITE BUS CYCLE TO THE DRIVE, VIA THE 8255
+00860E  3               ;INPUT A = IDE REGISTER ADDRESS
+00860E  3               ;INPUT REGISTER X = LSB TO WRITE
+00860E  3               ;INPUT REGISTER Y = MSB TO WRITE
+00860E  3               ;
+00860E  3               
+00860E  3               
+00860E  3               IDE_WRITE:
+00860E  3               ;;    PHA
+00860E  3               ;;    phx
+00860E  3               ;;    phy
+00860E  3               ;;    lda #'W'
+00860E  3               ;;     JSR MACRO_OUTCH
+00860E  3               ;;    txa
+00860E  3               ;;   JSR     PRTHEXBYTE
+00860E  3               ;;    tya
+00860E  3               ;;   JSR     PRTHEXBYTE
+00860E  3               ;;   lda #'<'
+00860E  3               ;;  JSR MACRO_OUTCH
+00860E  3               ;;   ply
+00860E  3               ;;   PLX
+00860E  3               ;;   pla
+00860E  3               
+00860E  3  20 3D 86             JSR     SET_PPI_WR      ; SETUP FOR A WRITE CYCLE
+008611  3               
+008611  3  48                   PHA
+008612  3  8A                   TXA
+008613  3  8F 88 DF 00          STA     f:PPIDELO       ; WRITE LOWER BYTE
+008617  3  98                   TYA
+008618  3  8F 89 DF 00          STA     f:PPIDEHI       ; WRITE UPPER BYTE
+00861C  3  68                   PLA
 00861D  3               
-00861D  3  09 20                ORA     #PPIDE_WR_LINE  ; ASSERT WRITE PIN
-00861F  3  8F 8A DF 00          STA     f:PPIDECNTRL
-008623  3               
-008623  3  49 20                EOR     #PPIDE_WR_LINE  ; DE ASSERT WR PIN
-008625  3  8F 8A DF 00          STA     f:PPIDECNTRL
-008629  3               
-008629  3  A9 00                LDA     #$00
-00862B  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
-00862F  3  60                   RTS
-008630  3               
-008630  3               
-008630  3               ;-----------------------------------------------------------------------------------
-008630  3               ; PPI SETUP ROUTINE TO CONFIGURE THE APPROPRIATE PPI MODE
-008630  3               ;
-008630  3               ;------------------------------------------------------------------------------------
-008630  3               
-008630  3               SET_PPI_RD:
-008630  3  48                   PHA
-008631  3  A9 92                LDA     #PPRD_IDE_8255
-008633  3  8F 8B DF 00          STA     f:PPIDEPPIC     ;CONFIG 8255 CHIP, READ MODE
-008637  3  68                   PLA
-008638  3  60                   RTS
-008639  3               
-008639  3               SET_PPI_WR:
-008639  3  48                   PHA
-00863A  3  A9 80                LDA     #PPWR_IDE_8255
-00863C  3  8F 8B DF 00          STA     f:PPIDEPPIC     ;CONFIG 8255 CHIP, WRITE MODE
-008640  3  68                   PLA
-008641  3  60                   RTS
-008642  3               
-008642  2               ;        .INCLUDE "dosdskyn.asm"
-008642  2                       .INCLUDE "dosmd.asm"
-008642  3               ;__MD DRIVERS____________________________________________________________________________________________________________________
-008642  3               ;
-008642  3               ; 	Duodyne Memory disk drivers
-008642  3               ;
-008642  3               ;	Entry points:
-008642  3               ;		MD_SHOW         - called during OS init
-008642  3               ;		MD_READ_SECTOR  - read a sector from drive
-008642  3               ;		MD_WRITE_SECTOR - write a sector to drive
-008642  3               ;________________________________________________________________________________________________________________________________
-008642  3               ;
-008642  3               ; RAM BANK $1E is RAM area for Drivers
-008642  3               ; RAM BANK $1D is operating bank for DOS/65 $8000-$FFFF
-008642  3               ;
-008642  3               ; ROM BANKS $00 and $0C-$0F are reserved for ROMWBW code
-008642  3               ; ROM Drive starts in bank $22
-008642  3               ; RAM Drive starts in bank $02
-008642  3               ;
-008642  3               ; "Magic" number at $01FFFF.  If $E5 do not format RAM Drive.
-008642  3               
-008642  3               MD_MAGIC        = $01FFFF
-008642  3               MD_RAM_START    = $020000
-008642  3               
-008642  3               ;__MD_SHOW___________________________________________________________________________________________
-008642  3               ;
-008642  3               ;  Display info on MD devices
-008642  3               ;____________________________________________________________________________________________________
-008642  3               ;
-008642  3               MD_SHOW:
-008642  3                       PRTDBG  "MD INIT:$"
-008642  3  48 DA 5A A2          PRTS    "MD: UNITS=2 RAMDISK=256KB ROMDISK=384KB$"
-008646  3  00 BD 5B 86  
-00864A  3  E8 C9 24 F0  
-008683  3  20 E2 80             JSR     NEWLINE
-008686  3  AF FF FF 01          LDA     f:MD_MAGIC
-00868A  3  C9 E5                CMP     #$E5
-00868C  3  F0 47                BEQ     :++
-00868E  3               
-00868E  3  48 DA 5A A2          PRTS    "MD: FORMATTING RAM DRIVE$"
-008692  3  00 BD A7 86  
-008696  3  E8 C9 24 F0  
-0086C0  3  E2 20                ACCUMULATOR8
-0086C2  3  C2 10                INDEX16
-0086C4  3  A2 00 00             LDX     #$0000
-0086C7  3  A9 E5                LDA     #$E5
-0086C9  3               :
-0086C9  3  9F FF FF 01          STA     f:MD_MAGIC,x
-0086CD  3  E8                   INX
-0086CE  3  E0 00 00             CPX     #0
-0086D1  3  D0 F6                BNE     :-
-0086D3  3  E2 30                ACCUMULATORINDEX8
-0086D5  3               :
-0086D5  3  60                   RTS
-0086D6  3               
-0086D6  3               ;*__MD_READ_SECTOR____________________________________________________________________________________
-0086D6  3               ;*
-0086D6  3               ;*  READ MD SECTOR INTO BUFFER
-0086D6  3               ;*
-0086D6  3               ;*____________________________________________________________________________________________________
-0086D6  3               MD_READ_SECTOR:
-0086D6  3                       PRTDBG  "MD Read Sector$"
-0086D6  3  AF 28 06 1D          LDA     f:LDSKUNIT
-0086DA  3  29 01                AND     #$01            ; only want drive cfg
-0086DC  3  0A                   ASL     a               ; SHIFT 5
-0086DD  3  0A                   ASL     a               ;
-0086DE  3  0A                   ASL     a               ;
-0086DF  3  0A                   ASL     a               ;
-0086E0  3  0A                   ASL     a               ;
-0086E1  3  AA                   TAX                     ; STASH BANK
-0086E2  3  20 4D 87             JSR     MD_CONVERT_SECTOR
-0086E5  3               
-0086E5  3  AD 10 06             LDA     debsehd
-0086E8  3  85 3B                STA     TEMPWORD
-0086EA  3  AD 11 06             LDA     debsehd+1
-0086ED  3  85 3C                STA     TEMPWORD+1
-0086EF  3  AD 12 06             LDA     debsehd+2
-0086F2  3  85 3D                STA     TEMPWORD+2
-0086F4  3               
-0086F4  3               ; Then copy sector to buffer
-0086F4  3  E2 20                ACCUMULATOR8
-0086F6  3  C2 10                INDEX16
-0086F8  3  A2 00 00             LDX     #$0000
-0086FB  3  A0 00 00             LDY     #$0000
-0086FE  3               :
-0086FE  3  B7 3B                LDA     [TEMPWORD],y
-008700  3  9F 00 04 1D          STA     f:LHSTBUF,x
-008704  3  E8                   INX
-008705  3  C8                   INY
-008706  3  E0 00 02             CPX     #512
-008709  3  D0 F3                BNE     :-
-00870B  3  E2 30                ACCUMULATORINDEX8
-00870D  3  A9 00                LDA     #$00
-00870F  3  60                   RTS
-008710  3               
-008710  3               
-008710  3               ;*__MD_WRITE_SECTOR___________________________________________________________________________________
-008710  3               ;*
-008710  3               ;*  WRITE MD SECTOR FROM BUFFER
-008710  3               ;*
-008710  3               ;*____________________________________________________________________________________________________
-008710  3               MD_WRITE_SECTOR:
-008710  3                       PRTDBG  "MD Write Sector$"
-008710  3  AF 28 06 1D          LDA     f:LDSKUNIT
-008714  3  29 01                AND     #$01            ; only want drive cfg
-008716  3  C9 00                CMP     #$00            ; NO WRITE FOR ROM
-008718  3  F0 03                BEQ     MD_WRITE_SECTOR_RAM
-00871A  3  A9 FF                LDA     #$FF
-00871C  3  60                   RTS
-00871D  3               MD_WRITE_SECTOR_RAM:
-00871D  3  A2 00                LDX     #$00
-00871F  3  20 4D 87             JSR     MD_CONVERT_SECTOR
-008722  3               
-008722  3  AD 10 06             LDA     debsehd
-008725  3  85 3B                STA     TEMPWORD
-008727  3  AD 11 06             LDA     debsehd+1
-00872A  3  85 3C                STA     TEMPWORD+1
-00872C  3  AD 12 06             LDA     debsehd+2
-00872F  3  85 3D                STA     TEMPWORD+2
-008731  3               
-008731  3               ; Then copy sector to buffer
-008731  3  E2 20                ACCUMULATOR8
-008733  3  C2 10                INDEX16
-008735  3  A2 00 00             LDX     #$0000
-008738  3  A0 00 00             LDY     #$0000
-00873B  3               :
-00873B  3  BF 00 04 1D          LDA     f:LHSTBUF,x
-00873F  3  97 3B                STA     [TEMPWORD],y
-008741  3  E8                   INX
-008742  3  C8                   INY
-008743  3  E0 00 02             CPX     #512
-008746  3  D0 F3                BNE     :-
-008748  3  E2 30                ACCUMULATORINDEX8
-00874A  3  A9 00                LDA     #$00
-00874C  3  60                   RTS
-00874D  3               
-00874D  3               ;___MD_CONVERT_SECTOR___________________________________________________________________________________
-00874D  3               ;
-00874D  3               ; 	TRANSLATE SECTORS INTO MD FORMAT
-00874D  3               ;________________________________________________________________________________________________________
-00874D  3               MD_CONVERT_SECTOR:
-00874D  3                       PRTDBG  "CONVERT SECTOR$"
-00874D  3  48                   PHA
-00874E  3  DA                   PHX
-00874F  3  A9 00                LDA     #$00
-008751  3  8D 10 06             STA     debsehd
-008754  3  A5 46                LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
-008756  3  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING, 512 byte "Sectors")
-008757  3  4A                   LSR     A               ;
-008758  3  29 1F                AND     #$1F            ; Ensure we have no junk in number
-00875A  3  8D 11 06             STA     debcyll         ; STORE IN SECTOR/HEAD
-00875D  3  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
-00875F  3  29 03                AND     #$03            ; BOTTOM 2 BITS ARE PART OF SECTOR
-008761  3  0A                   ASL     a               ; MOVE TO HIGH BITS
-008762  3  0A                   ASL     a
-008763  3  0A                   ASL     a
-008764  3  0A                   ASL     a
-008765  3  0A                   ASL     a
-008766  3  0D 11 06             ORA     debcyll
-008769  3  8D 11 06             STA     debcyll         ; STORE IN SECTOR/HEAD
-00876C  3  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
-00876E  3  4A                   LSR     A               ; DIVIDE BY 4 TO GET BANK
-00876F  3  4A                   LSR     A
-008770  3  29 3F                AND     #$3F            ; Ensure we have no junk in number
-008772  3  8D 12 06             STA     debcylm         ;
-008775  3  8A                   TXA                     ; Adjust for ROM/RAM DISK
-008776  3  0D 12 06             ORA     debcylm         ;
-008779  3  1A                   INC     A
-00877A  3  1A                   INC     A
-00877B  3  8D 12 06             STA     debcylm         ; THIS SHOULD BE BANK#
-00877E  3  FA                   PLX
-00877F  3  68                   PLA
-008780  3  60                   RTS
-008781  3               
-008781  2               ;        .INCLUDE "dosflp.asm"
-008781  2               
-008781  2               
-008781  2               
-008781  2               
-008781  2               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
-008781  2               ;
-008781  2               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
-008781  2               ;________________________________________________________________________________________________________________________________
-008781  2               DFT_CONSOLE:
-008781  2  8D 93 87             STA     drvtmp
-008784  2  A5 3A                LDA     CONSOLE
-008786  2  18                   CLC
-008787  2  65 32                ADC     farfunct
-008789  2  85 32                STA     farfunct
-00878B  2  68                   PLA
-00878C  2  68                   PLA
-00878D  2  AD 93 87             LDA     drvtmp
-008790  2  4C 01 80             JMP     FUNCTION_DISPATCHER1
-008793  2               drvtmp:
-008793  2  00                   .BYTE   00
-008794  2               
-008794  2               drv_noop:
-008794  2  60                   RTS
-008795  2               
-008795  1               DRIVEREND:
-008795  1                       .END
+00861D  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DRIVE ADDRESS ONTO CONTROL LINES
+008621  3  09 20                ORA     #PPIDE_WR_LINE  ; ASSERT WRITE PIN
+008623  3  8F 8A DF 00          STA     f:PPIDECNTRL
+008627  3  49 20                EOR     #PPIDE_WR_LINE  ; DE ASSERT WR PIN
+008629  3  8F 8A DF 00          STA     f:PPIDECNTRL
+00862D  3  A9 00                LDA     #$00
+00862F  3  8F 8A DF 00          STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
+008633  3  60                   RTS
+008634  3               
+008634  3               
+008634  3               ;-----------------------------------------------------------------------------------
+008634  3               ; PPI SETUP ROUTINE TO CONFIGURE THE APPROPRIATE PPI MODE
+008634  3               ;
+008634  3               ;------------------------------------------------------------------------------------
+008634  3               
+008634  3               SET_PPI_RD:
+008634  3  48                   PHA
+008635  3  A9 92                LDA     #PPRD_IDE_8255
+008637  3  8F 8B DF 00          STA     f:PPIDEPPIC     ;CONFIG 8255 CHIP, READ MODE
+00863B  3  68                   PLA
+00863C  3  60                   RTS
+00863D  3               
+00863D  3               SET_PPI_WR:
+00863D  3  48                   PHA
+00863E  3  A9 80                LDA     #PPWR_IDE_8255
+008640  3  8F 8B DF 00          STA     f:PPIDEPPIC     ;CONFIG 8255 CHIP, WRITE MODE
+008644  3  68                   PLA
+008645  3  60                   RTS
+008646  3               
+008646  3               
+008646  3               ;___IDE_CONVERT_SECTOR_LBA_______________________________________________________________________________
+008646  3               ;
+008646  3               ; 	TRANSLATE LBA SECTORS
+008646  3               ;________________________________________________________________________________________________________
+008646  3               IDE_CONVERT_SECTOR_LBA:
+008646  3  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+008648  3  29 0F                AND     #$0F            ; ISOLATE HEAD IN LOW 4 BITS
+00864A  3  0A                   ASL     a               ; MOVE TO HIGH BYTE
+00864B  3  0A                   ASL     a
+00864C  3  0A                   ASL     a
+00864D  3  0A                   ASL     a
+00864E  3  AA                   TAX                     ; PARK IN X
+00864F  3  A5 46                LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
+008651  3  4A                   LSR     A               ;
+008652  3  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING)
+008653  3  29 0F                AND     #$0F            ; CLEAR UPPER 4 BITS (JUST 'CAUSE)
+008655  3  8D 10 06             STA     debsehd         ; STORE IN SECTOR/HEAD
+008658  3  8A                   TXA                     ; GET HEAD BACK
+008659  3  0D 10 06             ORA     debsehd
+00865C  3  8D 10 06             STA     debsehd         ; STORE IN SECTOR/HEAD
+00865F  3               
+00865F  3  A5 44                LDA     sektrk
+008661  3  8D 11 06             STA     debcyll         ; STORE IN TRACK (lsb)
+008664  3  A5 45                LDA     sektrk+1
+008666  3  8D 12 06             STA     debcylm         ; STORE IN TRACK (msb)
+008669  3               ; REMOVE HEAD FROM TRACK VALUE (DIV/4)
+008669  3  AD 12 06             LDA     debcylm
+00866C  3  4A                   LSR     A
+00866D  3  8D 12 06             STA     debcylm
+008670  3  AD 11 06             LDA     debcyll
+008673  3  6A                   ROR     A
+008674  3  8D 11 06             STA     debcyll
+008677  3               
+008677  3  AD 12 06             LDA     debcylm
+00867A  3  4A                   LSR     A
+00867B  3  8D 12 06             STA     debcylm
+00867E  3  AD 11 06             LDA     debcyll
+008681  3  6A                   ROR     A
+008682  3  8D 11 06             STA     debcyll
+008685  3               
+008685  3  AD 12 06             LDA     debcylm
+008688  3  4A                   LSR     A
+008689  3  8D 12 06             STA     debcylm
+00868C  3  AD 11 06             LDA     debcyll
+00868F  3  6A                   ROR     A
+008690  3  8D 11 06             STA     debcyll
+008693  3               
+008693  3  AD 12 06             LDA     debcylm
+008696  3  4A                   LSR     A
+008697  3  8D 12 06             STA     debcylm
+00869A  3  AD 11 06             LDA     debcyll
+00869D  3  6A                   ROR     A
+00869E  3  8D 11 06             STA     debcyll
+0086A1  3               ;	ADD SLICE OFFSET
+0086A1  3  A5 48                LDA     sekdsk          ; GET DRIVE#
+0086A3  3  29 07                AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
+0086A5  3  0A                   ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
+0086A6  3  AA                   TAX                     ; MOVE TO X REGISTER
+0086A7  3  E8                   INX                     ; WANT SECOND BYTE OF ENTRY
+0086A8  3  BF 17 06 1D          LDA     F:LDSKCFG,X     ; GET SLICE#
+0086AC  3  8D 32 06             STA     slicetmp+1      ; SLICE OFFSET MSB
+0086AF  3  A9 00                LDA     #0              ; GET SLICE#
+0086B1  3  8D 31 06             STA     slicetmp        ; SLICE OFFSET LSB
+0086B4  3  18                   CLC                     ; VOODOO MATH TO TAKE SLICE*$4000
+0086B5  3  6E 32 06             ROR     slicetmp+1
+0086B8  3  6E 31 06             ROR     slicetmp
+0086BB  3  6E 32 06             ROR     slicetmp+1
+0086BE  3  6E 31 06             ROR     slicetmp
+0086C1  3               
+0086C1  3  BF 17 06 1D          LDA     F:LDSKCFG,X     ; GET SLICE#
+0086C5  3  18                   CLC
+0086C6  3  6D 31 06             ADC     slicetmp
+0086C9  3  8D 31 06             STA     slicetmp
+0086CC  3  A9 00                LDA     #$00            ; LOGIC ERROR FOR SLICES THAT CARRY?
+0086CE  3  6D 32 06             ADC     slicetmp+1      ;
+0086D1  3  8D 32 06             STA     slicetmp+1      ;
+0086D4  3               
+0086D4  3               ; ADD SLICE OFFSET TO TRACK #
+0086D4  3  18                   CLC                     ; clear carry
+0086D5  3  AD 31 06             LDA     slicetmp
+0086D8  3  6D 11 06             ADC     debcyll
+0086DB  3  8D 11 06             STA     debcyll         ; store sum of LSBs
+0086DE  3  AD 32 06             LDA     slicetmp+1
+0086E1  3  6D 12 06             ADC     debcylm         ; add the MSBs using carry from
+0086E4  3  8D 12 06             STA     debcylm         ; the previous calculation
+0086E7  3  60                   RTS
+0086E8  3               
+0086E8  2               ;        .INCLUDE "dosdskyn.asm"
+0086E8  2                       .INCLUDE "dosmd.asm"
+0086E8  3               ;__MD DRIVERS____________________________________________________________________________________________________________________
+0086E8  3               ;
+0086E8  3               ; 	Duodyne Memory disk drivers
+0086E8  3               ;
+0086E8  3               ;	Entry points:
+0086E8  3               ;		MD_SHOW         - called during OS init
+0086E8  3               ;		MD_READ_SECTOR  - read a sector from drive
+0086E8  3               ;		MD_WRITE_SECTOR - write a sector to drive
+0086E8  3               ;________________________________________________________________________________________________________________________________
+0086E8  3               ;
+0086E8  3               ; RAM BANK $1E is RAM area for Drivers
+0086E8  3               ; RAM BANK $1D is operating bank for DOS/65 $8000-$FFFF
+0086E8  3               ;
+0086E8  3               ; ROM BANKS $00 and $0C-$0F are reserved for ROMWBW code
+0086E8  3               ; ROM Drive starts in bank $22
+0086E8  3               ; RAM Drive starts in bank $02
+0086E8  3               ;
+0086E8  3               ; "Magic" number at $01FFFF.  If $E5 do not format RAM Drive.
+0086E8  3               
+0086E8  3               MD_MAGIC        = $01FFFF
+0086E8  3               MD_RAM_START    = $020000
+0086E8  3               
+0086E8  3               ;__MD_SHOW___________________________________________________________________________________________
+0086E8  3               ;
+0086E8  3               ;  Display info on MD devices
+0086E8  3               ;____________________________________________________________________________________________________
+0086E8  3               ;
+0086E8  3               MD_SHOW:
+0086E8  3                       PRTDBG  "MD INIT:$"
+0086E8  3  48 DA 5A A2          PRTS    "MD: UNITS=2 RAMDISK=256KB ROMDISK=384KB$"
+0086EC  3  00 BD 01 87  
+0086F0  3  E8 C9 24 F0  
+008729  3  20 E2 80             JSR     NEWLINE
+00872C  3  AF FF FF 01          LDA     f:MD_MAGIC
+008730  3  C9 E5                CMP     #$E5
+008732  3  F0 47                BEQ     :++
+008734  3               
+008734  3  48 DA 5A A2          PRTS    "MD: FORMATTING RAM DRIVE$"
+008738  3  00 BD 4D 87  
+00873C  3  E8 C9 24 F0  
+008766  3  E2 20                ACCUMULATOR8
+008768  3  C2 10                INDEX16
+00876A  3  A2 00 00             LDX     #$0000
+00876D  3  A9 E5                LDA     #$E5
+00876F  3               :
+00876F  3  9F FF FF 01          STA     f:MD_MAGIC,x
+008773  3  E8                   INX
+008774  3  E0 00 00             CPX     #0
+008777  3  D0 F6                BNE     :-
+008779  3  E2 30                ACCUMULATORINDEX8
+00877B  3               :
+00877B  3  60                   RTS
+00877C  3               
+00877C  3               ;*__MD_READ_SECTOR____________________________________________________________________________________
+00877C  3               ;*
+00877C  3               ;*  READ MD SECTOR INTO BUFFER
+00877C  3               ;*
+00877C  3               ;*____________________________________________________________________________________________________
+00877C  3               MD_READ_SECTOR:
+00877C  3                       PRTDBG  "MD Read Sector$"
+00877C  3  AF 28 06 1D          LDA     f:LDSKUNIT
+008780  3  29 01                AND     #$01            ; only want drive cfg
+008782  3  0A                   ASL     a               ; SHIFT 5
+008783  3  0A                   ASL     a               ;
+008784  3  0A                   ASL     a               ;
+008785  3  0A                   ASL     a               ;
+008786  3  0A                   ASL     a               ;
+008787  3  AA                   TAX                     ; STASH BANK
+008788  3  20 F3 87             JSR     MD_CONVERT_SECTOR
+00878B  3               
+00878B  3  AD 10 06             LDA     debsehd
+00878E  3  85 3B                STA     TEMPWORD
+008790  3  AD 11 06             LDA     debsehd+1
+008793  3  85 3C                STA     TEMPWORD+1
+008795  3  AD 12 06             LDA     debsehd+2
+008798  3  85 3D                STA     TEMPWORD+2
+00879A  3               
+00879A  3               ; Then copy sector to buffer
+00879A  3  E2 20                ACCUMULATOR8
+00879C  3  C2 10                INDEX16
+00879E  3  A2 00 00             LDX     #$0000
+0087A1  3  A0 00 00             LDY     #$0000
+0087A4  3               :
+0087A4  3  B7 3B                LDA     [TEMPWORD],y
+0087A6  3  9F 00 04 1D          STA     f:LHSTBUF,x
+0087AA  3  E8                   INX
+0087AB  3  C8                   INY
+0087AC  3  E0 00 02             CPX     #512
+0087AF  3  D0 F3                BNE     :-
+0087B1  3  E2 30                ACCUMULATORINDEX8
+0087B3  3  A9 00                LDA     #$00
+0087B5  3  60                   RTS
+0087B6  3               
+0087B6  3               
+0087B6  3               ;*__MD_WRITE_SECTOR___________________________________________________________________________________
+0087B6  3               ;*
+0087B6  3               ;*  WRITE MD SECTOR FROM BUFFER
+0087B6  3               ;*
+0087B6  3               ;*____________________________________________________________________________________________________
+0087B6  3               MD_WRITE_SECTOR:
+0087B6  3                       PRTDBG  "MD Write Sector$"
+0087B6  3  AF 28 06 1D          LDA     f:LDSKUNIT
+0087BA  3  29 01                AND     #$01            ; only want drive cfg
+0087BC  3  C9 00                CMP     #$00            ; NO WRITE FOR ROM
+0087BE  3  F0 03                BEQ     MD_WRITE_SECTOR_RAM
+0087C0  3  A9 FF                LDA     #$FF
+0087C2  3  60                   RTS
+0087C3  3               MD_WRITE_SECTOR_RAM:
+0087C3  3  A2 00                LDX     #$00
+0087C5  3  20 F3 87             JSR     MD_CONVERT_SECTOR
+0087C8  3               
+0087C8  3  AD 10 06             LDA     debsehd
+0087CB  3  85 3B                STA     TEMPWORD
+0087CD  3  AD 11 06             LDA     debsehd+1
+0087D0  3  85 3C                STA     TEMPWORD+1
+0087D2  3  AD 12 06             LDA     debsehd+2
+0087D5  3  85 3D                STA     TEMPWORD+2
+0087D7  3               
+0087D7  3               ; Then copy sector to buffer
+0087D7  3  E2 20                ACCUMULATOR8
+0087D9  3  C2 10                INDEX16
+0087DB  3  A2 00 00             LDX     #$0000
+0087DE  3  A0 00 00             LDY     #$0000
+0087E1  3               :
+0087E1  3  BF 00 04 1D          LDA     f:LHSTBUF,x
+0087E5  3  97 3B                STA     [TEMPWORD],y
+0087E7  3  E8                   INX
+0087E8  3  C8                   INY
+0087E9  3  E0 00 02             CPX     #512
+0087EC  3  D0 F3                BNE     :-
+0087EE  3  E2 30                ACCUMULATORINDEX8
+0087F0  3  A9 00                LDA     #$00
+0087F2  3  60                   RTS
+0087F3  3               
+0087F3  3               ;___MD_CONVERT_SECTOR___________________________________________________________________________________
+0087F3  3               ;
+0087F3  3               ; 	TRANSLATE SECTORS INTO MD FORMAT
+0087F3  3               ;________________________________________________________________________________________________________
+0087F3  3               MD_CONVERT_SECTOR:
+0087F3  3                       PRTDBG  "CONVERT SECTOR$"
+0087F3  3  48                   PHA
+0087F4  3  DA                   PHX
+0087F5  3  A9 00                LDA     #$00
+0087F7  3  8D 10 06             STA     debsehd
+0087FA  3  A5 46                LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
+0087FC  3  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING, 512 byte "Sectors")
+0087FD  3  4A                   LSR     A               ;
+0087FE  3  29 1F                AND     #$1F            ; Ensure we have no junk in number
+008800  3  8D 11 06             STA     debcyll         ; STORE IN SECTOR/HEAD
+008803  3  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+008805  3  29 03                AND     #$03            ; BOTTOM 2 BITS ARE PART OF SECTOR
+008807  3  0A                   ASL     a               ; MOVE TO HIGH BITS
+008808  3  0A                   ASL     a
+008809  3  0A                   ASL     a
+00880A  3  0A                   ASL     a
+00880B  3  0A                   ASL     a
+00880C  3  0D 11 06             ORA     debcyll
+00880F  3  0A                   ASL     A
+008810  3  8D 11 06             STA     debcyll         ; STORE IN SECTOR/HEAD
+008813  3  A5 44                LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+008815  3  4A                   LSR     A               ; DIVIDE BY 4 TO GET BANK
+008816  3  4A                   LSR     A
+008817  3  29 3F                AND     #$3F            ; Ensure we have no junk in number
+008819  3  8D 12 06             STA     debcylm         ;
+00881C  3  8A                   TXA                     ; Adjust for ROM/RAM DISK
+00881D  3  0D 12 06             ORA     debcylm         ;
+008820  3  1A                   INC     A
+008821  3  1A                   INC     A
+008822  3  8D 12 06             STA     debcylm         ; THIS SHOULD BE BANK#
+008825  3  FA                   PLX
+008826  3  68                   PLA
+008827  3  60                   RTS
+008828  3               
+008828  2               ;        .INCLUDE "dosflp.asm"
+008828  2               
+008828  2               
+008828  2               
+008828  2               
+008828  2               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
+008828  2               ;
+008828  2               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
+008828  2               ;________________________________________________________________________________________________________________________________
+008828  2               DFT_CONSOLE:
+008828  2  8D 3A 88             STA     drvtmp
+00882B  2  A5 3A                LDA     CONSOLE
+00882D  2  18                   CLC
+00882E  2  65 32                ADC     farfunct
+008830  2  85 32                STA     farfunct
+008832  2  68                   PLA
+008833  2  68                   PLA
+008834  2  AD 3A 88             LDA     drvtmp
+008837  2  4C 01 80             JMP     FUNCTION_DISPATCHER1
+00883A  2               drvtmp:
+00883A  2  00                   .BYTE   00
+00883B  2               
+00883B  2               drv_noop:
+00883B  2  60                   RTS
+00883C  2               
+00883C  1               DRIVEREND:
+00883C  1                       .END

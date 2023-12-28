@@ -106,7 +106,6 @@ PPIDE_PROBE:
 
         LDA     #$00
         STA     f:PPIDELO       ; PPI PORT A, DATALO
-
         JSR     IDE_WAIT_NOT_BUSY; WAIT FOR BUSY TO CLEAR
         BCS     PPIDE_PROBE_FAIL; IF TIMEOUT, REPORT NO IDE PRESENT
         LDA     #PPIDE_STATUS   ; GET STATUS
@@ -306,6 +305,8 @@ IDE_PPIDETECT:
 ;*
 ;*____________________________________________________________________________________________________
 IDE_READ_SECTOR:
+        PRTDBG  "IDE Read Sector$"
+        JSR     IDE_CONVERT_SECTOR_LBA
         LDA     debsehd         ; STORE CURRENT PARMS
         CMP     Cdebsehd        ;
         BNE     IDE_READ_SECTOR_DIRTY
@@ -336,7 +337,6 @@ IDE_READ_SECTOR_DIRTY1:
         STA     Cdebcyll        ;
         LDA     debcylm         ;
         STA     Cdebcylm        ;
-
         LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
         RTS
 IDE_READ_SECTOR_DIRTY_ERROR:
@@ -350,6 +350,7 @@ IDE_READ_SECTOR_DIRTY_ERROR:
 ;*____________________________________________________________________________________________________
 IDE_WRITE_SECTOR:
         PRTDBG  "IDE Write Sector$"
+        JSR     IDE_CONVERT_SECTOR_LBA
         JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
         BCS     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
 IDE_WRITE_SECTOR_RAW:
@@ -366,7 +367,6 @@ IDE_WRITE_SECTOR_RAW:
         STA     Cdebsehd        ;
         STA     Cdebcyll        ;
         STA     Cdebcylm        ;
-
         LDA     #$00            ; ZERO ON RETURN = OPERATION OK
         RTS
 IDE_WRITE_SECTOR_ERROR:
@@ -388,15 +388,17 @@ PPIDE_RESET:
         STA     Cdebsehd        ;
         STA     Cdebcyll        ;
         STA     Cdebcylm        ;
-
         LDA     #PPIDE_RST_LINE
         STA     f:PPIDECNTRL    ; ASSERT RST LINE ON IDE INTERFACE
-        LDX     #$00
         PRTDBG  "IDE Reset Delay$"
-RST_DLY:
-        DEX
-        CPX     #$00
-        BNE     RST_DLY
+
+        INDEX16
+        LDX     #$0000
+:
+        INX
+        CPX     #$F000
+        BNE     :-
+        INDEX8
         LDA     #$00
         STA     f:PPIDECNTRL    ; DEASSERT RST LINE ON IDE INTERFACE
 
@@ -414,10 +416,8 @@ RST_DLY:
 ;*____________________________________________________________________________________________________
 IDE_WAIT_NOT_BUSY:
         PHA
-        TXA
-        PHA
-        TYA
-        PHA
+        PHX
+        PHY
         LDA     #$00
         STA     FLRETRY
         STA     FLRETRY+1
@@ -436,10 +436,8 @@ IDE_WAIT_NOT_BUSY1:
 IDE_WAIT_NOT_BUSY2:
         CLC
 IDE_WAIT_NOT_BUSY3:
-        PLA
-        TAY
-        PLA
-        TAX
+        PLY
+        PLX
         PLA
         RTS
 
@@ -450,10 +448,8 @@ IDE_WAIT_NOT_BUSY3:
 ;*____________________________________________________________________________________________________
 IDE_WAIT_DRQ:
         PHA
-        TXA
-        PHA
-        TYA
-        PHA
+        PHX
+        PHY
         LDA     #$00
         STA     FLRETRY
         STA     FLRETRY+1
@@ -477,10 +473,8 @@ IDE_WAIT_DRQE:
 IDE_WAIT_DRQ2:
         CLC
 IDE_WAIT_DRQ3:
-        PLA
-        TAY
-        PLA
-        TAX
+        PLY
+        PLX
         PLA
         RTS
 
@@ -500,10 +494,21 @@ IDEBUFRD:
         TXA
         LDX     PPIDEINDEX
         STA     f:LHSTBUF,X     ;
-        INX                     ;
         TYA                     ; THEN HIGH BYTE OF WORD
-        STA     f:LHSTBUF,X     ;
+        STA     f:LHSTBUF+1,X   ;
         INX
+        INX                     ;
+
+;;       PHA
+;;       phx
+;;       phy
+;;       txa
+;;   JSR     PRTHEXBYTE
+;;      ply
+;;      PLX
+;;      pla
+
+
         CPX     #$00            ;
         BNE     IDEBUFRD        ;
 IDEBUFRD1:
@@ -513,10 +518,19 @@ IDEBUFRD1:
         TXA
         LDX     PPIDEINDEX
         STA     f:LHSTBUF+256,X ;
-        INX                     ;
         TYA                     ; THEN HIGH BYTE OF WORD
-        STA     f:LHSTBUF+256,X ;
+        STA     f:LHSTBUF+257,X ;
         INX                     ;
+        INX                     ;
+;;           PHA
+;;         phx
+;;       phy
+;;     txa
+;;     JSR     PRTHEXBYTE
+;;       ply
+;;     PLX
+;;      pla
+
         CPX     #$00            ;
         BNE     IDEBUFRD1       ;
         RTS                     ;
@@ -530,10 +544,10 @@ IDE_WRITE_BUFFER:
         LDX     #$00            ; INDEX
 IDEBUFWT:
         STX     PPIDEINDEX
-        LDA     f:LHSTBUF+1,X   ; SECTORS ARE BIG ENDIAN
-        TAY                     ;
         LDA     f:LHSTBUF,X     ; SECTORS ARE BIG ENDIAN
-        TAX
+        TAX                     ;
+        LDA     f:LHSTBUF+1,X   ; SECTORS ARE BIG ENDIAN
+        TAY
         LDA     #PPIDE_DATA
         JSR     IDE_WRITE
         LDX     PPIDEINDEX
@@ -544,10 +558,10 @@ IDEBUFWT:
         LDX     #$00            ; INDEX
 IDEBUFWT1:
         STX     PPIDEINDEX
-        LDA     f:LHSTBUF+257,X ; SECTORS ARE BIG ENDIAN
-        TAY
         LDA     f:LHSTBUF+256,X ; SECTORS ARE BIG ENDIAN
         TAX
+        LDA     f:LHSTBUF+257,X ; SECTORS ARE BIG ENDIAN
+        TAY
         LDA     #PPIDE_DATA
         JSR     IDE_WRITE
         LDX     PPIDEINDEX
@@ -621,6 +635,23 @@ IDE_READ:
         STA     f:PPIDECNTRL
         LDA     #$00
         STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
+
+;PHA
+;phx
+;phy
+;lda #'R'
+;JSR MACRO_OUTCH
+;txa
+;JSR     PRTHEXBYTE
+;tya
+;JSR     PRTHEXBYTE
+;lda #'<'
+;JSR MACRO_OUTCH
+;ply
+;PLX
+;pla
+
+
         RTS
 
 
@@ -634,6 +665,21 @@ IDE_READ:
 
 
 IDE_WRITE:
+;;    PHA
+;;    phx
+;;    phy
+;;    lda #'W'
+;;     JSR MACRO_OUTCH
+;;    txa
+;;   JSR     PRTHEXBYTE
+;;    tya
+;;   JSR     PRTHEXBYTE
+;;   lda #'<'
+;;  JSR MACRO_OUTCH
+;;   ply
+;;   PLX
+;;   pla
+
         JSR     SET_PPI_WR      ; SETUP FOR A WRITE CYCLE
 
         PHA
@@ -644,13 +690,10 @@ IDE_WRITE:
         PLA
 
         STA     f:PPIDECNTRL    ;DRIVE ADDRESS ONTO CONTROL LINES
-
         ORA     #PPIDE_WR_LINE  ; ASSERT WRITE PIN
         STA     f:PPIDECNTRL
-
         EOR     #PPIDE_WR_LINE  ; DE ASSERT WR PIN
         STA     f:PPIDECNTRL
-
         LDA     #$00
         STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
         RTS
@@ -673,4 +716,92 @@ SET_PPI_WR:
         LDA     #PPWR_IDE_8255
         STA     f:PPIDEPPIC     ;CONFIG 8255 CHIP, WRITE MODE
         PLA
+        RTS
+
+
+;___IDE_CONVERT_SECTOR_LBA_______________________________________________________________________________
+;
+; 	TRANSLATE LBA SECTORS
+;________________________________________________________________________________________________________
+IDE_CONVERT_SECTOR_LBA:
+        LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+        AND     #$0F            ; ISOLATE HEAD IN LOW 4 BITS
+        ASL     a               ; MOVE TO HIGH BYTE
+        ASL     a
+        ASL     a
+        ASL     a
+        TAX                     ; PARK IN X
+        LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
+        LSR     A               ;
+        LSR     A               ; DIVIDE BY 4 (FOR BLOCKING)
+        AND     #$0F            ; CLEAR UPPER 4 BITS (JUST 'CAUSE)
+        STA     debsehd         ; STORE IN SECTOR/HEAD
+        TXA                     ; GET HEAD BACK
+        ORA     debsehd
+        STA     debsehd         ; STORE IN SECTOR/HEAD
+
+        LDA     sektrk
+        STA     debcyll         ; STORE IN TRACK (lsb)
+        LDA     sektrk+1
+        STA     debcylm         ; STORE IN TRACK (msb)
+; REMOVE HEAD FROM TRACK VALUE (DIV/4)
+        LDA     debcylm
+        LSR     A
+        STA     debcylm
+        LDA     debcyll
+        ROR     A
+        STA     debcyll
+
+        LDA     debcylm
+        LSR     A
+        STA     debcylm
+        LDA     debcyll
+        ROR     A
+        STA     debcyll
+
+        LDA     debcylm
+        LSR     A
+        STA     debcylm
+        LDA     debcyll
+        ROR     A
+        STA     debcyll
+
+        LDA     debcylm
+        LSR     A
+        STA     debcylm
+        LDA     debcyll
+        ROR     A
+        STA     debcyll
+;	ADD SLICE OFFSET
+        LDA     sekdsk          ; GET DRIVE#
+        AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
+        ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
+        TAX                     ; MOVE TO X REGISTER
+        INX                     ; WANT SECOND BYTE OF ENTRY
+        LDA     F:LDSKCFG,X     ; GET SLICE#
+        STA     slicetmp+1      ; SLICE OFFSET MSB
+        LDA     #0              ; GET SLICE#
+        STA     slicetmp        ; SLICE OFFSET LSB
+        CLC                     ; VOODOO MATH TO TAKE SLICE*$4000
+        ROR     slicetmp+1
+        ROR     slicetmp
+        ROR     slicetmp+1
+        ROR     slicetmp
+
+        LDA     F:LDSKCFG,X     ; GET SLICE#
+        CLC
+        ADC     slicetmp
+        STA     slicetmp
+        LDA     #$00            ; LOGIC ERROR FOR SLICES THAT CARRY?
+        ADC     slicetmp+1      ;
+        STA     slicetmp+1      ;
+
+; ADD SLICE OFFSET TO TRACK #
+        CLC                     ; clear carry
+        LDA     slicetmp
+        ADC     debcyll
+        STA     debcyll         ; store sum of LSBs
+        LDA     slicetmp+1
+        ADC     debcylm         ; add the MSBs using carry from
+        STA     debcylm         ; the previous calculation
         RTS

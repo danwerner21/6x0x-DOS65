@@ -921,12 +921,12 @@ dcbh:
 dftdskcfg:
             .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
             .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
-            .BYTE   $00, $06        ; disk C: unit, slice
-            .BYTE   $00, $00        ; disk D: unit, slice
-            .BYTE   $00, $00        ; disk E: unit, slice
-            .BYTE   $00, $03        ; disk F: unit, slice
-            .BYTE   $00, $04        ; disk G: unit, slice
-            .BYTE   $00, $00        ; disk H: unit, slice
+            .BYTE   $30, $06        ; disk C: unit, slice
+            .BYTE   $30, $00        ; disk D: unit, slice
+            .BYTE   $30, $01        ; disk E: unit, slice
+            .BYTE   $30, $02        ; disk F: unit, slice
+            .BYTE   $30, $03        ; disk G: unit, slice
+            .BYTE   $30, $04        ; disk H: unit, slice
         .ENDIF
 
 

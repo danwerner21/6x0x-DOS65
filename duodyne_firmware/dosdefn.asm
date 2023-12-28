@@ -30,8 +30,8 @@ DSKY_HEXBUFLEN  = 4             ;
 debsehd         = $0610         ; DEBLOCKED SECTOR AND HEAD (HS)
 debcyll         = $0611         ; DEBLOCKED CYLINDER LSB
 debcylm         = $0612         ; DEBLOCKED CYLINDER MSB
-sekdsk          = $0616         ; seek disk number
 dskcfg          = $0617         ; 16 bytes disk configuration table
+LDSKCFG         = (DOS65BANK*$10000)+$0617         ; 16 bytes disk configuration table
 DSKUNIT         = $0628         ; seek disk number
 LDSKUNIT        = (DOS65BANK*$10000)+$0628         ; seek disk number
 slicetmp        = $0631         ; (word)
@@ -84,6 +84,7 @@ STRPTR          = $41           ;
 DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
 sektrk          = $44           ; seek track number
 seksec          = $46           ; seek sector number
+sekdsk          = $48           ; seek disk number
 
 
 IO_AREA         = $00DF00
