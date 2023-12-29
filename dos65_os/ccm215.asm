@@ -24,7 +24,7 @@ ccm:
         LDA     cnslng          ;get buffer length
         BNE     mrecmd          ;if more handle it
 ccmlpe:
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         CLD                     ; VERIFY DECIMAL MODE IS OFF
         CLC                     ;
         XCE                     ; SET NATIVE MODE
@@ -111,8 +111,8 @@ dotrns:
         PHA                     ;return
         LDA     extcvc          ;address
         PHA                     ;on stack
-        .IFDEF DUODYNE
-        ldx     #$00
+        .IFDEF  DUODYNE
+        LDX     #$00
         JMP     (vector,x)      ;execute
         .ELSE
         JMP     (vector)        ;execute

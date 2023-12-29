@@ -230,6 +230,9 @@ IDE_READ_SECTOR:
         LDA     debcyll         ;
         CMP     Cdebcyll        ;
         BNE     IDE_READ_SECTOR_DIRTY
+        LDA     sekdsk          ;
+        CMP     currentDrive
+        BNE     IDE_READ_SECTOR_DIRTY
         LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
         RTS
 
@@ -469,7 +472,7 @@ IDEBUFWT1:
 ;*  A= DRIVE DEVICE
 ;*____________________________________________________________________________________________________
 IDE_SETUP_LBA:
-        LDA     CURRENT_IDE_DRIVE
+        LDA     currentDrive
         AND     #$01            ; only want drive cfg
         ASL     a               ; SHIFT 4
         ASL     a               ;

@@ -84,6 +84,8 @@ MD_READ_SECTOR:
         PRTDBG  "DO PAGER RD$"
         JSR     MD_PAGERA
         PRTDBG  "PAGER RETURN$"
+        LDA     #$FF
+        STA     currentDrive
         LDA     #$00
         RTS
 

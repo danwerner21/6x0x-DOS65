@@ -43,7 +43,7 @@ ST0             = $0639         ;
 FLERR           = $063A         ;
 FCMD            = $063B         ;
 PPIDEINDEX      = $063C
-CURRENT_IDE_DRIVE = $063D
+currentDrive    = $063D
 DSKY_X_STORAGE  = $063E
 DSKY_Y_STORAGE  = $063F
 DSKY_TEMP_VAL   = $0640
@@ -53,6 +53,7 @@ DSKY_PRESENT    = $0643
 Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
 Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
+
 
 tea             = $800          ;tea start
 
@@ -115,11 +116,11 @@ numcmd          = 36            ;number commands
 DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
 
 
-        .IFDEF RBC6X0X
+        .IFDEF  RBC6X0X
         .DEFINE COMSUFFIX "COM"
         .ENDIF
 
-        .IFDEF NHYODYNE
+        .IFDEF  NHYODYNE
         .DEFINE COMSUFFIX "CO6"
         .ENDIF
 

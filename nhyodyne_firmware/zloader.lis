@@ -1,0 +1,172 @@
+zloader.asm:
+     1                          ;________________________________________________________________________________________________________________________________
+     2                          ;
+     3                          ;	Nhyodyne dos/65 CP/M loader program
+     4                          ;
+     5                          ;  DWERNER 04/24/2022 	Initial
+     6                          ;  PSUMMERS 8/7/2022    Accept a command line argument for CPU to switch to (0-9)
+     7                          ;________________________________________________________________________________________________________________________________
+     8                          
+     9                          BDOS:		        EQU	$0005		; BDOS invocation vector
+    10                          DEFFCB:				EQU	$5C			; Location of default FCB
+    11                          
+    12                          MPCL_RAM:			EQU	78H			; CONTROL PORT, SHOULD ONLY BE CHANGED WHILE
+    13                          ;									  IN UPPER MEMORY PAGE 08000h-$FFFF OR LIKELY
+    14                          ;									  LOSS OF CPU MEMORY CONTEXT
+    15                          ; for Nhyodyne:
+    16                          ; RAM BANK $0C is RAM area for Drivers
+    17                          ; RAM BANK $0E is operating bank for DOS/65 $8000-$FFFF
+    18                          ; RAM BANK $0F is fixed bank $0000-$7FFF
+    19                          ; ROM BANKS $00 and $0C-$0F are reserved for ROMWBW code
+    20                          ;
+    21                          ;
+    22                          section addr0100
+    23                          ORG	0100H
+    24                          ;
+    25                          		; Check for cpu unit
+    26  0000  3a0000            		LD	A,(DEFFCB+1)				; Get first char of filename
+    27                          ;
+    28  0003  fe00              		CP	'9' + 1						; > '9'
+    29  0005  3000              		JR	NC,CopyLoader				; YES, NOT 0-9, Invalid argument
+    30                          ;
+    31  0007  d600              		SUB	'0'							; < '0'?
+    32  0009  3800              		JR	C,CopyLoader				; YES, NOT 0-9, Invalid argument
+    33                          ;
+    34                          ;		SUB	'0'							; Convert CPU unit '0' - '9'
+    35  000b  2f                		CPL								; to port and save
+    36  000c  320000            		LD	(CPUunit),A					; Unit 0 = FFH, 1 = FEH etc
+    37                          ;
+    38                          CopyLoader:
+    39                          
+    40  000f  f3                	DI              		        	; DISABLE INTERRUPTS
+    41                          					        	        ; copy LOADER code to $8100
+    42  0010  010000            		LD	BC,LoaderCodeEnd-LoaderCode1	; BYTES TO MOVE
+    43  0013  110000            		LD	DE,8100H					; DESTINATION ADDRESS
+    44  0016  210000            		LD	HL,LoaderCode				; SOURCE ADDRESS
+    45  0019  edb0              		LDIR							; COPY RAM
+    46  001b  c30000                    JP     8100H
+    47                          ;
+    48                          BootDOS65:
+    49  001e  0e00                      LD	C,9
+    50  0020  110000            	    LD	DE,SMSGFIL
+    51  0023  cd0000                   	CALL	BDOS		; Do it
+    52  0026  f3                		DI					; DISABLE INTERRUPTS
+    53  0027  010000            		LD	BC,3000H		; BYTES TO MOVE
+    54  002a  110000            		LD	DE,5000H		; DESTINATION ADDRESS (6502 IS !A15)
+    55  002d  210000            		LD	HL,LoaderCodeEnd-LoaderCode1+loaderEnd   ; SOURCE ADDRESS
+    56  0030  edb0              		LDIR				; COPY RAM
+    57  0032  3a0000            		LD	A,(CPUunit)		; GET CPU PORT
+    58  0035  4f                		LD	C,A
+    59  0036  ed78              		IN 	A,(C)			; ENABLE 6502
+    60                                          ; should never get here
+    61  0038  00                                nop
+    62  0039  00                                nop
+    63  003a  00                                nop
+    64  003b  00                                nop
+    65  003c  00                                nop
+    66  003d  00                                nop
+    67  003e  76                		HALT
+    68                          ;
+    69  003f  00                CPUunit:	DB	0FFh			; Default CPU unit port
+    70                          ;
+    71                          loaderEnd:
+    72                          LoaderCode:
+    73                          section addr8000
+    74                          ORG    8100H
+    75                          LoaderCode1:
+    76                                          ; load .SYS file
+    77  0000  0e0f              _LD0:	        LD	C,15			; CPM Open File function
+    78  0002  00b700            	        LD	DE,FCB			; FCB
+    79  0005  cd0500            	        CALL	BDOS			; Do it
+    80  0008  30                	        INC	A			; Test for error $FF
+    81  0009  ca5600            	        JP	Z,ERRFIL		; Handle file error
+    82                          
+    83  000c  210008            	        LD	HL,0800H		; load address
+    84  000f  22b500            	        LD	(DMA),HL		;
+    85                          
+    86  0012  00f700            _LD:            LD	DE,BUFFER		;
+    87  0015  811a              	        LD	C,26			; CPM Set DMA function
+    88  0017  400500            	        CALL	BDOS			; Read next 128 bytes
+    89                          ;
+    90  001a  0e14              	        LD	C,20			; CPM Read Sequential function
+    91  001c  00b700            	        LD	DE,FCB			; FCB
+    92  001f  090500            	        CALL	BDOS			; Read next 128 bytes
+    93  0022  00                	        OR	A			; Set flags to check EOF
+    94  0023  2026              	        JR	NZ,_LDX			; Non-zero is EOF
+    95                          
+    96                          
+    97                                          ; flip BANKS
+    98  0025  008c                             	LD	A,8CH		; LOAD VALUE TO SWITCH OUT BANK TO DRIVERS
+    99  0027  d378                             	OUT	(MPCL_RAM),A	;
+   100  0029  30                                nop
+   101  002a  00                                nop
+   102  002b  00                                nop
+   103  002c  508000            		LD	BC,128          ; BYTES TO MOVE
+   104  002f  015bb500          		LD	DE,(DMA)        ; DESTINATION ADDRESS
+   105  0033  3ff700            		LD	HL,BUFFER       ; SOURCE ADDRESS
+   106  0036  edb0              		LDIR  	                ; COPY RAM
+   107                                          ; flip BANKS
+   108  0038  3e8e                            	LD	A,8EH		; LOAD VALUE TO SWITCH BANK BACK TO PRIMARY
+   109  003a  d378                      	OUT	(MPCL_RAM),A	;
+   110  003c  00                                nop
+   111  003d  00                                nop
+   112  003e  00                                nop
+   113                          ;
+   114  003f  ffb500            	        LD	HL,(DMA)		; Save for next loop
+   115  0042  118000            	        LD	DE,128			; Bump by size of
+   116  0045  19                	        ADD	HL,DE			; ... one record
+   117  0046  22b500            	        LD	(DMA),HL		; Save for next loop
+   118  0049  18c7              	        JR	_LD			; Load loop
+   119                          ;
+   120  004b  0e10              _LDX:	        LD	C,16			; CPM Close File function
+   121  004d  11b700            	        LD	DE,FCB			; FCB
+   122  0050  cd0500            	        CALL	BDOS			; Do it
+   123  0053  c31e00                            JP	BootDOS65
+   124                          
+   125                          ERRFIL:	; Error opening driver file
+   126  0056  0e09                              LD	C,9
+   127  0058  116700            	        LD	DE,MSGFIL
+   128  005b  cd0500                    	CALL	BDOS		; Do it
+   129  005e  3e8e                              LD	A,8EH		; LOAD VALUE TO SWITCH BANK BACK TO PRIMARY
+   130  0060  d378                      	OUT	(MPCL_RAM),A	;
+   131  0062  0e00                              LD	C,0
+   132  0064  c30500                    	jp	BDOS		; Do it
+   133                          ;
+   134  0067  0a0d              MSGFIL:         DB      0AH,0DH
+   135  0069  444f533635445256                  DM     "DOS65DRV.SYS NOT FOUND, EXITING."
+              2e535953204e4f54  
+              20464f554e442c20  
+              45584954494e472e  
+   136  0089  0a0d                              DB      0AH,0DH
+   137  008b  24                                DM      "$"
+   138                          
+   139  008c  0a0d              SMSGFIL:        DB      0AH,0DH
+   140  008e  444f533635445256                  DM     "DOS65DRV.SYS LOADED, STARTING DOS/65"
+              2e535953204c4f41  
+              4445442c20535441  
+              5254494e4720444f  
+              532f3635          
+   141  00b2  0a0d                              DB      0AH,0DH
+   142  00b4  24                                DM      "$"
+   143                          
+   144                          
+   145  00b5  0000              DMA:            DB      00,00
+   146                          FCB:
+   147  00b7  00                DRIVE:          DB     00d
+   148  00b8  444f533635445256                  DM     "DOS65DRV"
+   149  00c0  535953                            DM     "SYS"
+   150  00c3  00                                DB     00
+   151  00c4  00                                DB     00
+   152  00c5  00                                DB     00
+   153  00c6  00                                DB     00
+   154  00c7  0000000000000000                  DB     00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00
+              0000000000000000  
+   155  00d7  0000000000000000                  DB     00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00
+              0000000000000000  
+   156  00e7  0000000000000000                  DB     00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00
+              0000000000000000  
+   157                          BUFFER:
+   158                          LoaderCodeEnd:
+   159                          
+   160                          	.end
+   161                          

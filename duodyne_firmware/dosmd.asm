@@ -84,6 +84,8 @@ MD_READ_SECTOR:
         CPX     #512
         BNE     :-
         ACCUMULATORINDEX8
+        LDA     sekdsk
+        STA     CacUnit
         LDA     #$00
         RTS
 

@@ -316,6 +316,8 @@ IDE_READ_SECTOR:
         LDA     debcyll         ;
         CMP     Cdebcyll        ;
         BNE     IDE_READ_SECTOR_DIRTY
+        LDA     sekdsk
+        CMP     CacUnit         ;
         LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
         RTS
 
@@ -337,6 +339,8 @@ IDE_READ_SECTOR_DIRTY1:
         STA     Cdebcyll        ;
         LDA     debcylm         ;
         STA     Cdebcylm        ;
+        LDA     sekdsk
+        STA     CacUnit         ;
         LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
         RTS
 IDE_READ_SECTOR_DIRTY_ERROR:
@@ -367,6 +371,7 @@ IDE_WRITE_SECTOR_RAW:
         STA     Cdebsehd        ;
         STA     Cdebcyll        ;
         STA     Cdebcylm        ;
+        STA     CacUnit         ;
         LDA     #$00            ; ZERO ON RETURN = OPERATION OK
         RTS
 IDE_WRITE_SECTOR_ERROR:
@@ -388,6 +393,7 @@ PPIDE_RESET:
         STA     Cdebsehd        ;
         STA     Cdebcyll        ;
         STA     Cdebcylm        ;
+        STA     CacUnit         ;
         LDA     #PPIDE_RST_LINE
         STA     f:PPIDECNTRL    ; ASSERT RST LINE ON IDE INTERFACE
         PRTDBG  "IDE Reset Delay$"
@@ -498,17 +504,6 @@ IDEBUFRD:
         STA     f:LHSTBUF+1,X   ;
         INX
         INX                     ;
-
-;;       PHA
-;;       phx
-;;       phy
-;;       txa
-;;   JSR     PRTHEXBYTE
-;;      ply
-;;      PLX
-;;      pla
-
-
         CPX     #$00            ;
         BNE     IDEBUFRD        ;
 IDEBUFRD1:
@@ -522,15 +517,6 @@ IDEBUFRD1:
         STA     f:LHSTBUF+257,X ;
         INX                     ;
         INX                     ;
-;;           PHA
-;;         phx
-;;       phy
-;;     txa
-;;     JSR     PRTHEXBYTE
-;;       ply
-;;     PLX
-;;      pla
-
         CPX     #$00            ;
         BNE     IDEBUFRD1       ;
         RTS                     ;
@@ -578,7 +564,7 @@ IDEBUFWT1:
 ;*____________________________________________________________________________________________________
 IDE_SETUP_LBA:
         PRTDBG  "PPIDE SETUP LBA$"
-        LDA     CURRENT_IDE_DRIVE
+        LDA     currentDrive
         AND     #$01            ; only want drive cfg
         ASL     a               ; SHIFT 4
         ASL     a               ;
@@ -635,23 +621,6 @@ IDE_READ:
         STA     f:PPIDECNTRL
         LDA     #$00
         STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
-
-;PHA
-;phx
-;phy
-;lda #'R'
-;JSR MACRO_OUTCH
-;txa
-;JSR     PRTHEXBYTE
-;tya
-;JSR     PRTHEXBYTE
-;lda #'<'
-;JSR MACRO_OUTCH
-;ply
-;PLX
-;pla
-
-
         RTS
 
 
@@ -665,37 +634,38 @@ IDE_READ:
 
 
 IDE_WRITE:
-;;    PHA
-;;    phx
-;;    phy
-;;    lda #'W'
-;;     JSR MACRO_OUTCH
-;;    txa
-;;   JSR     PRTHEXBYTE
-;;    tya
-;;   JSR     PRTHEXBYTE
-;;   lda #'<'
-;;  JSR MACRO_OUTCH
-;;   ply
-;;   PLX
-;;   pla
-
         JSR     SET_PPI_WR      ; SETUP FOR A WRITE CYCLE
-
         PHA
         TXA
         STA     f:PPIDELO       ; WRITE LOWER BYTE
+        NOP
+        NOP
+        NOP
         TYA
         STA     f:PPIDEHI       ; WRITE UPPER BYTE
+        NOP
+        NOP
+        NOP
         PLA
-
         STA     f:PPIDECNTRL    ;DRIVE ADDRESS ONTO CONTROL LINES
+        NOP
+        NOP
+        NOP
         ORA     #PPIDE_WR_LINE  ; ASSERT WRITE PIN
         STA     f:PPIDECNTRL
+        NOP
+        NOP
+        NOP
         EOR     #PPIDE_WR_LINE  ; DE ASSERT WR PIN
         STA     f:PPIDECNTRL
+        NOP
+        NOP
+        NOP
         LDA     #$00
         STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
+        NOP
+        NOP
+        NOP
         RTS
 
 

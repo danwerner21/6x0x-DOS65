@@ -43,17 +43,16 @@ ST0             = $0639         ;
 FLERR           = $063A         ;
 FCMD            = $063B         ;
 PPIDEINDEX      = $063C
-CURRENT_IDE_DRIVE = $063D
-DSKY_X_STORAGE  = $063E
-DSKY_Y_STORAGE  = $063F
-DSKY_TEMP_VAL   = $0640
-DSKY_PPIX_VAL   = $0641
-FLOPPY_DETCT    = $0642
-DSKY_PRESENT    = $0643
-Cdebsehd        = $0644         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
-Cdebcyll        = $0645         ; DEBLOCKED CYLINDER LSB (IN CACHE)
-Cdebcylm        = $0646         ; DEBLOCKED CYLINDER MSB (IN CACHE)
-
+DSKY_X_STORAGE  = $063D
+DSKY_Y_STORAGE  = $063E
+DSKY_TEMP_VAL   = $063F
+DSKY_PPIX_VAL   = $0640
+FLOPPY_DETCT    = $0641
+DSKY_PRESENT    = $0642
+Cdebsehd        = $0643         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
+Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
+Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
+CacUnit         = $0646         ; UNIT (IN CACHE)
 
 tea             = $800          ;tea start
 
@@ -85,6 +84,7 @@ DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
 sektrk          = $44           ; seek track number
 seksec          = $46           ; seek sector number
 sekdsk          = $48           ; seek disk number
+currentDrive    = $49
 
 
 IO_AREA         = $00DF00

@@ -65,7 +65,7 @@ DSKYMSG:
 
 ;cold entry from loader
 boot:
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         CLD                     ; VERIFY DECIMAL MODE IS OFF
         CLC                     ;
         XCE                     ; SET NATIVE MODE
@@ -318,6 +318,9 @@ write:
         BNE     :+              ; not SD drive
 ;SD
         JSR     CONVERT_SECTOR_LBA
+        LDA     #64             ;PPP_READ_SECTOR
+        STA     farfunct
+        JSR     DO_FARCALL
         JSR     BLKSECR
         LDA     #65             ;PPP_WRITE_SECTOR
         STA     farfunct
@@ -329,6 +332,9 @@ write:
         BNE     :+              ; not floppy drive
 ;FD
         JSR     SETUP_FD_CHS
+        LDA     #67             ; floppy read sector
+        STA     farfunct
+        JSR     DO_FARCALL
         JSR     BLKSECR
         LDA     #68             ; floppy write sector
         STA     farfunct
@@ -339,6 +345,9 @@ write:
         BNE     :+              ; invalid drive
 ;PPIDE
         JSR     CONVERT_SECTOR_LBA
+        LDA     #61             ; IDE read sector
+        STA     farfunct
+        JSR     DO_FARCALL
         JSR     BLKSECR
         LDA     #62             ; IDE_WRITE_SECTOR
         STA     farfunct
@@ -653,7 +662,7 @@ GET_DRIVE_DEVICE:
         TAX                     ; MOVE TO X REGISTER
         LDA     dskcfg, X       ; GET device
         AND     #$0F
-        STA     CURRENT_IDE_DRIVE
+        STA     currentDrive
         LDA     dskcfg, X       ; GET device
 ; SETUP FLOPPY CONTROL WHILE WE ARE HERE
         AND     #$01
@@ -757,176 +766,176 @@ dftdskcfg:
         .ENDIF
 
 ;__________________________________________________________________________________________________________________________________
-        .IFDEF NHYODYNE
+        .IFDEF  NHYODYNE
 dcba:
-            .WORD   127             ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   0               ;number system tracks
-            .BYTE   1               ;block size = 2048
-            .WORD   255             ;max directory number
-            .WORD   almpa           ;address of map for a
-            .BYTE   00              ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   127             ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   0               ;number system tracks
+        .BYTE   1               ;block size = 2048
+        .WORD   255             ;max directory number
+        .WORD   almpa           ;address of map for a
+        .BYTE   00              ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbb:
-            .WORD   191             ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   0               ;number system tracks
-            .BYTE   1               ;block size = 2048
-            .WORD   155             ;max directory number
-            .WORD   almpb           ;address of map for b
-            .BYTE   00              ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   191             ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   0               ;number system tracks
+        .BYTE   1               ;block size = 2048
+        .WORD   155             ;max directory number
+        .WORD   almpb           ;address of map for b
+        .BYTE   00              ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbc:
-            .WORD   2047            ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   16              ;number system tracks
-            .BYTE   2               ;block size = 4096
-            .WORD   511             ;max directory number
-            .WORD   almpc           ;address of map for C
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpc           ;address of map for C
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbd:
-            .WORD   350             ;max block number
-            .WORD   36              ;sectors per track
-            .WORD   4               ;number system tracks
-            .BYTE   1               ;block size = 2048
-            .WORD   127             ;max directory number
-            .WORD   almpd           ;address of map for d
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   350             ;max block number
+        .WORD   36              ;sectors per track
+        .WORD   4               ;number system tracks
+        .BYTE   1               ;block size = 2048
+        .WORD   127             ;max directory number
+        .WORD   almpd           ;address of map for d
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbe:
-            .WORD   350             ;max block number
-            .WORD   36              ;sectors per track
-            .WORD   4               ;number system tracks
-            .BYTE   1               ;block size = 2048
-            .WORD   127             ;max directory number
-            .WORD   almpe           ;address of map for e
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   350             ;max block number
+        .WORD   36              ;sectors per track
+        .WORD   4               ;number system tracks
+        .BYTE   1               ;block size = 2048
+        .WORD   127             ;max directory number
+        .WORD   almpe           ;address of map for e
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbf:
-            .WORD   2047            ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   16              ;number system tracks
-            .BYTE   2               ;block size = 4096
-            .WORD   511             ;max directory number
-            .WORD   almpf           ;address of map for f
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpf           ;address of map for f
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbg:
-            .WORD   2047            ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   16              ;number system tracks
-            .BYTE   2               ;block size = 4096
-            .WORD   511             ;max directory number
-            .WORD   almpg           ;address of map for g
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpg           ;address of map for g
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbh:
-            .WORD   2047            ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   16              ;number system tracks
-            .BYTE   2               ;block size = 4096
-            .WORD   511             ;max directory number
-            .WORD   almph           ;address of map for h
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almph           ;address of map for h
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 
 dftdskcfg:
-            .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
-            .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
-            .BYTE   $30, $06        ; disk C: unit, slice IDE
-            .BYTE   $20, $00        ; disk D: unit, slice FLOPPY A
-            .BYTE   $21, $00        ; disk E: unit, slice FLOPPY B
-            .BYTE   $30, $03        ; disk F: unit, slice IDE
-            .BYTE   $30, $04        ; disk G: unit, slice IDE
-            .BYTE   $30, $00        ; disk H: unit, slice IDE
+        .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
+        .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
+        .BYTE   $30, $06        ; disk C: unit, slice IDE
+        .BYTE   $20, $00        ; disk D: unit, slice FLOPPY A
+        .BYTE   $21, $00        ; disk E: unit, slice FLOPPY B
+        .BYTE   $30, $03        ; disk F: unit, slice IDE
+        .BYTE   $30, $04        ; disk G: unit, slice IDE
+        .BYTE   $30, $00        ; disk H: unit, slice IDE
 
         .ENDIF
 
 ;__________________________________________________________________________________________________________________________________
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
 dcba:
-            .WORD   127             ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   0               ;number system tracks
-            .BYTE   1               ;block size = 2048
-            .WORD   255             ;max directory number
-            .WORD   almpa           ;address of map for a
-            .BYTE   00              ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   127             ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   0               ;number system tracks
+        .BYTE   1               ;block size = 2048
+        .WORD   255             ;max directory number
+        .WORD   almpa           ;address of map for a
+        .BYTE   00              ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbb:
-            .WORD   191             ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   0               ;number system tracks
-            .BYTE   1               ;block size = 2048
-            .WORD   155             ;max directory number
-            .WORD   almpb           ;address of map for b
-            .BYTE   00              ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   191             ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   0               ;number system tracks
+        .BYTE   1               ;block size = 2048
+        .WORD   155             ;max directory number
+        .WORD   almpb           ;address of map for b
+        .BYTE   00              ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbc:
-            .WORD   2047            ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   16              ;number system tracks
-            .BYTE   2               ;block size = 4096
-            .WORD   511             ;max directory number
-            .WORD   almpc           ;address of map for C
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpc           ;address of map for C
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbd:
-            .WORD   350             ;max block number
-            .WORD   36              ;sectors per track
-            .WORD   4               ;number system tracks
-            .BYTE   1               ;block size = 2048
-            .WORD   127             ;max directory number
-            .WORD   almpd           ;address of map for d
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   350             ;max block number
+        .WORD   36              ;sectors per track
+        .WORD   4               ;number system tracks
+        .BYTE   1               ;block size = 2048
+        .WORD   127             ;max directory number
+        .WORD   almpd           ;address of map for d
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbe:
-            .WORD   350             ;max block number
-            .WORD   36              ;sectors per track
-            .WORD   4               ;number system tracks
-            .BYTE   1               ;block size = 2048
-            .WORD   127             ;max directory number
-            .WORD   almpe           ;address of map for e
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   350             ;max block number
+        .WORD   36              ;sectors per track
+        .WORD   4               ;number system tracks
+        .BYTE   1               ;block size = 2048
+        .WORD   127             ;max directory number
+        .WORD   almpe           ;address of map for e
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbf:
-            .WORD   2047            ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   16              ;number system tracks
-            .BYTE   2               ;block size = 4096
-            .WORD   511             ;max directory number
-            .WORD   almpf           ;address of map for f
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpf           ;address of map for f
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbg:
-            .WORD   2047            ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   16              ;number system tracks
-            .BYTE   2               ;block size = 4096
-            .WORD   511             ;max directory number
-            .WORD   almpg           ;address of map for g
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpg           ;address of map for g
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 dcbh:
-            .WORD   2047            ;max block number
-            .WORD   64              ;sectors per track
-            .WORD   16              ;number system tracks
-            .BYTE   2               ;block size = 4096
-            .WORD   511             ;max directory number
-            .WORD   almph           ;address of map for h
-            .BYTE   0               ;do checksums
-            .WORD   ckmp            ;checksum map
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almph           ;address of map for h
+        .BYTE   0               ;do checksums
+        .WORD   ckmp            ;checksum map
 
 dftdskcfg:
-            .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
-            .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
-            .BYTE   $30, $06        ; disk C: unit, slice
-            .BYTE   $30, $00        ; disk D: unit, slice
-            .BYTE   $30, $01        ; disk E: unit, slice
-            .BYTE   $30, $02        ; disk F: unit, slice
-            .BYTE   $30, $03        ; disk G: unit, slice
-            .BYTE   $30, $04        ; disk H: unit, slice
+        .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
+        .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
+        .BYTE   $30, $06        ; disk C: unit, slice
+        .BYTE   $30, $00        ; disk D: unit, slice
+        .BYTE   $30, $01        ; disk E: unit, slice
+        .BYTE   $30, $02        ; disk F: unit, slice
+        .BYTE   $30, $03        ; disk G: unit, slice
+        .BYTE   $30, $04        ; disk H: unit, slice
         .ENDIF
 
 

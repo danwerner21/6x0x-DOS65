@@ -180,6 +180,9 @@ FL_READ_SECTOR:
         LDA     debsehd         ;
         CMP     Cdebsehd        ;
         BNE     READFL_DIRTY
+        LDA     sekdsk
+        CMP     currentDrive    ;
+        BNE     READFL_DIRTY
 ; SECTOR ALREADY IN CACHE, DEBLOCK
         LDA     #$00
         RTS
@@ -190,6 +193,9 @@ READFL_DIRTY:
         STA     Cdebcyll        ;
         LDA     debsehd         ;
         STA     Cdebsehd        ;
+        LDA     sekdsk
+        STA     currentDrive    ;
+
 
 READFL1:
         LDA     #CFD_READ|CFD_MFM; BIT 6 SETS MFM, 06H IS READ COMMAND
@@ -215,6 +221,7 @@ READFL1:
         STA     Cdebcylm        ;
         STA     Cdebcyll        ;
         STA     Cdebsehd        ;
+        STA     currentDrive    ;
         RTS                     ; A = $FF ON RETURN = OPERATION ERROR
 READFLDONE:
         LDA     #$00            ; A = 0 ON RETURN = OPERATION OK

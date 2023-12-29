@@ -315,6 +315,9 @@ IDE_READ_SECTOR:
         LDA     debcyll         ;
         CMP     Cdebcyll        ;
         BNE     IDE_READ_SECTOR_DIRTY
+        LDA     sekdsk          ;
+        CMP     currentDrive    ;
+        BNE     IDE_READ_SECTOR_DIRTY
         LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
         RTS
 
@@ -336,6 +339,8 @@ IDE_READ_SECTOR_DIRTY1:
         STA     Cdebcyll        ;
         LDA     debcylm         ;
         STA     Cdebcylm        ;
+        LDA     sekdsk          ;
+        STA     currentDrive    ;
 
         LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
         RTS
@@ -366,6 +371,7 @@ IDE_WRITE_SECTOR_RAW:
         STA     Cdebsehd        ;
         STA     Cdebcyll        ;
         STA     Cdebcylm        ;
+        STA     currentDrive    ;
 
         LDA     #$00            ; ZERO ON RETURN = OPERATION OK
         RTS
@@ -388,6 +394,7 @@ PPIDE_RESET:
         STA     Cdebsehd        ;
         STA     Cdebcyll        ;
         STA     Cdebcylm        ;
+        STA     currentDrive    ;
 
         LDA     #PPIDE_RST_LINE
         STA     PPIDECNTRL      ; ASSERT RST LINE ON IDE INTERFACE
@@ -564,7 +571,7 @@ IDEBUFWT1:
 ;*____________________________________________________________________________________________________
 IDE_SETUP_LBA:
         PRTDBG  "PPIDE SETUP LBA$"
-        LDA     CURRENT_IDE_DRIVE
+        LDA     currentDrive
         AND     #$01            ; only want drive cfg
         ASL     a               ; SHIFT 4
         ASL     a               ;

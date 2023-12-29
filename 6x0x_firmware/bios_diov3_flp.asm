@@ -144,7 +144,9 @@ FL_READ_SECTOR:
         LDA     debsehd         ;
         CMP     Cdebsehd        ;
         BNE     READFL_DIRTY
-
+        LDA     sekdsk          ;
+        CMP     currentDrive
+        BNE     READFL_DIRTY
         LDA     #$00
         RTS
 
