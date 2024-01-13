@@ -13,6 +13,7 @@ DOS65BANK       = $1D           ; Bank for DOS65
 DOS65DRIVERSBNK = $1E           ; Bank for DOS65 Drivers
 DOSSIZE         = OSEND-DOSBEGIN
 DRIVERSIZE      = DRIVEREND-DRIVERBEGIN
+
         .INCLUDE "MACROS.ASM"
         .INCLUDE "DOSDEFN.ASM"  ; base addresses and definitions
 
@@ -34,7 +35,6 @@ DRIVERSIZE      = DRIVEREND-DRIVERBEGIN
         LDY     #DRIVERBEGIN
         LDA     #DRIVERSIZE-1
         MVN     #00, #DOS65DRIVERSBNK
-
 
 ; Set Default Console
         ACCUMULATORINDEX8

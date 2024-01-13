@@ -50,7 +50,6 @@ PPIDE_CMD_SPINUP = $E1
 PPRD_IDE_8255   = %10010010     ;IDE_8255_CTL OUT, IDE_8255_LSB/MSB INPUT
 PPWR_IDE_8255   = %10000000     ;ALL THREE PORTS OUTPUT
 
-
 ;__PPIDE_INIT_________________________________________________________________________________________
 ;
 ;  INIT AND DISPLAY IDE INFO
@@ -108,8 +107,10 @@ PPIDE_PROBE:
         STA     f:PPIDELO       ; PPI PORT A, DATALO
         JSR     IDE_WAIT_NOT_BUSY; WAIT FOR BUSY TO CLEAR
         BCS     PPIDE_PROBE_FAIL; IF TIMEOUT, REPORT NO IDE PRESENT
+
         LDA     #PPIDE_STATUS   ; GET STATUS
         JSR     IDE_READ
+
         TXA
         AND     #%01000000
         CMP     #$00
@@ -118,26 +119,33 @@ PPIDE_PROBE:
 ; CHECK SIGNATURE
         LDA     #PPIDE_SEC_CNT
         JSR     IDE_READ
+
         CPX     #$01
         BNE     PPIDE_PROBE_FAIL; IF not '01' THEN REPORT NO IDE PRESENT
+
         LDA     #PPIDE_LBALOW
         JSR     IDE_READ
+
         CPX     #$01
         BNE     PPIDE_PROBE_FAIL; IF not '01' THEN REPORT NO IDE PRESENT
+
         LDA     #PPIDE_LBAMID
         JSR     IDE_READ
+
         CPX     #$00
         BNE     PPIDE_PROBE_FAIL; IF not '00' THEN REPORT NO IDE PRESENT
+
         LDA     #PPIDE_LBAHI
         JSR     IDE_READ
+
         CPX     #$00
         BNE     PPIDE_PROBE_FAIL; IF not '00' THEN REPORT NO IDE PRESENT
+
         CLC
-        JMP     PPIDE_PROBE_SUCCESS
+        RTS
 PPIDE_PROBE_FAIL:
         SEC
-PPIDE_PROBE_SUCCESS:
-        RTS                     ; DONE, NOTE THAT A=0 AND Z IS SET
+        RTS
 
 
 ;___IDE_IDENTIFY_TYPE____________________________________________________________________________________
@@ -206,14 +214,15 @@ IDE_READ_INFO:
         LDA     #PPIDE_DEVICE
         JSR     IDE_WRITE
 
-
         JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
         BCS     IDE_READ_INFO_ABORT
+
         LDA     #PPIDE_COMMAND  ;SELECT IDE REGISTER
         LDX     #PPIDE_CMD_ID
         JSR     IDE_WRITE       ;ASK THE DRIVE TO READ IT
         JSR     IDE_WAIT_DRQ    ;WAIT UNTIL IT'S GOT THE DATA
         BCS     IDE_READ_INFO_ABORT
+
         JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
         PRTS    "0x$"
         LDA     f:LHSTBUF+123
@@ -293,6 +302,12 @@ IDE_PPIDETECT:
 ;
         LDA     #$00            ; VALUE ZERO
         STA     f:PPIDELO       ; PUSH VALUE TO PORT
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
         LDA     f:PPIDELO       ; GET PORT VALUE
         CMP     #$00
         RTS                     ; AND RETURN
@@ -398,7 +413,8 @@ PPIDE_RESET:
         STA     f:PPIDECNTRL    ; ASSERT RST LINE ON IDE INTERFACE
         PRTDBG  "IDE Reset Delay$"
 
-        INDEX16
+
+        INDEX16                 ; A bit of waiting
         LDX     #$0000
 :
         INX
@@ -407,7 +423,6 @@ PPIDE_RESET:
         INDEX8
         LDA     #$00
         STA     f:PPIDECNTRL    ; DEASSERT RST LINE ON IDE INTERFACE
-
 ; IF A DSKYNG IS ACTIVE AND IS ON THE SAME PPI PORT AS THE PPISD BEING
 ; RESET, THEN THE DSKYNG WILL ALSO BE RESET.  SO, THE DSKY IS ALSO INITIALIZED.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  JSR     DSKY_REINIT
@@ -432,19 +447,26 @@ IDE_WAIT_NOT_BUSY1:
         JSR     IDE_READ
         TXA
         AND     #$80
+        CMP     #$00            ; !@#$ PROBABLY NOT NECESSARY
         BEQ     IDE_WAIT_NOT_BUSY2
         INC     FLRETRY
+        LDA     FLRETRY         ; !@#$ PROBABLY NOT NECESSARY
+        CMP     #$00            ; !@#$ PROBABLY NOT NECESSARY
         BNE     IDE_WAIT_NOT_BUSY1
         INC     FLRETRY+1
+        LDA     FLRETRY+1       ; !@#$ PROBABLY NOT NECESSARY
+        CMP     #$00            ; !@#$ PROBABLY NOT NECESSARY
         BNE     IDE_WAIT_NOT_BUSY1
-        SEC
-        JMP     IDE_WAIT_NOT_BUSY3
-IDE_WAIT_NOT_BUSY2:
-        CLC
-IDE_WAIT_NOT_BUSY3:
         PLY
         PLX
         PLA
+        SEC
+        RTS
+IDE_WAIT_NOT_BUSY2:
+        PLY
+        PLX
+        PLA
+        CLC
         RTS
 
 ;*__IDE_WAIT_DRQ______________________________________________________________________________________
@@ -470,18 +492,24 @@ IDE_WAIT_DRQ1:
         CMP     #%00000001      ;
         BEQ     IDE_WAIT_DRQE
         INC     FLRETRY
+        LDA     FLRETRY         ; !@#$ PROBABLY NOT NECESSARY
+        CMP     #$00            ; !@#$ PROBABLY NOT NECESSARY
         BNE     IDE_WAIT_DRQ1
         INC     FLRETRY+1
+        LDA     FLRETRY+1       ; !@#$ PROBABLY NOT NECESSARY
+        CMP     #$00            ; !@#$ PROBABLY NOT NECESSARY
         BNE     IDE_WAIT_DRQ1
 IDE_WAIT_DRQE:
-        SEC
-        JMP     IDE_WAIT_DRQ3
-IDE_WAIT_DRQ2:
-        CLC
-IDE_WAIT_DRQ3:
         PLY
         PLX
         PLA
+        SEC
+        RTS
+IDE_WAIT_DRQ2:
+        PLY
+        PLX
+        PLA
+        CLC
         RTS
 
 
@@ -531,9 +559,10 @@ IDE_WRITE_BUFFER:
 IDEBUFWT:
         STX     PPIDEINDEX
         LDA     f:LHSTBUF,X     ; SECTORS ARE BIG ENDIAN
-        TAX                     ;
+        STA     WRTMP
         LDA     f:LHSTBUF+1,X   ; SECTORS ARE BIG ENDIAN
         TAY
+        LDX     WRTMP
         LDA     #PPIDE_DATA
         JSR     IDE_WRITE
         LDX     PPIDEINDEX
@@ -545,9 +574,10 @@ IDEBUFWT:
 IDEBUFWT1:
         STX     PPIDEINDEX
         LDA     f:LHSTBUF+256,X ; SECTORS ARE BIG ENDIAN
-        TAX
+        STA     WRTMP
         LDA     f:LHSTBUF+257,X ; SECTORS ARE BIG ENDIAN
         TAY
+        LDX     WRTMP
         LDA     #PPIDE_DATA
         JSR     IDE_WRITE
         LDX     PPIDEINDEX
@@ -556,7 +586,8 @@ IDEBUFWT1:
         CPX     #$00            ;
         BNE     IDEBUFWT1       ;
         RTS                     ;
-
+WRTMP:
+        .BYTE   00
 ;*__IDE_SETUP_LBA_____________________________________________________________________________________
 ;*
 ;*  SETUP LBA DATA
@@ -623,49 +654,28 @@ IDE_READ:
         STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
         RTS
 
-
-
-
 ;DO A WRITE BUS CYCLE TO THE DRIVE, VIA THE 8255
 ;INPUT A = IDE REGISTER ADDRESS
 ;INPUT REGISTER X = LSB TO WRITE
 ;INPUT REGISTER Y = MSB TO WRITE
 ;
 
-
 IDE_WRITE:
         JSR     SET_PPI_WR      ; SETUP FOR A WRITE CYCLE
         PHA
-        TXA
-        STA     f:PPIDELO       ; WRITE LOWER BYTE
-        NOP
-        NOP
-        NOP
         TYA
         STA     f:PPIDEHI       ; WRITE UPPER BYTE
-        NOP
-        NOP
-        NOP
+        TXA
+        STA     f:PPIDELO       ; WRITE LOWER BYTE
         PLA
         STA     f:PPIDECNTRL    ;DRIVE ADDRESS ONTO CONTROL LINES
-        NOP
-        NOP
-        NOP
         ORA     #PPIDE_WR_LINE  ; ASSERT WRITE PIN
         STA     f:PPIDECNTRL
-        NOP
-        NOP
-        NOP
         EOR     #PPIDE_WR_LINE  ; DE ASSERT WR PIN
         STA     f:PPIDECNTRL
-        NOP
-        NOP
-        NOP
         LDA     #$00
         STA     f:PPIDECNTRL    ;DEASSERT ALL CONTROL PINS
-        NOP
-        NOP
-        NOP
+        JSR     SET_PPI_RD
         RTS
 
 
@@ -687,6 +697,7 @@ SET_PPI_WR:
         STA     f:PPIDEPPIC     ;CONFIG 8255 CHIP, WRITE MODE
         PLA
         RTS
+
 
 
 ;___IDE_CONVERT_SECTOR_LBA_______________________________________________________________________________

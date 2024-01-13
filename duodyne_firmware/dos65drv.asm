@@ -111,13 +111,13 @@ DISPATCHTABLE:
         .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
         .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
 ;
-        .WORD   drv_noop        ; FUNCTION 50 -
-        .WORD   drv_noop        ; FUNCTION 51 -
-        .WORD   drv_noop        ; FUNCTION 52 -
+        .WORD   RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
+        .WORD   RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
+        .WORD   RTC_INIT        ; FUNCTION 52 - INIT RTC
+        .WORD   RTC_LED         ; FUNCTION 53 - CONTROL LEDS
+        .WORD   RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
+        .WORD   RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
 
-        .WORD   drv_noop        ; FUNCTION 53
-        .WORD   drv_noop        ; FUNCTION 54
-        .WORD   drv_noop        ; FUNCTION 55
         .WORD   drv_noop        ; FUNCTION 56
         .WORD   drv_noop        ; FUNCTION 57
         .WORD   drv_noop        ; FUNCTION 58
@@ -143,9 +143,10 @@ DISPATCHTABLE:
 ;
         .INCLUDE "drvmacros.asm"
         .INCLUDE "dosser.asm"
-        .INCLUDE "doside.asm"
-;        .INCLUDE "dosdskyn.asm"
         .INCLUDE "dosmd.asm"
+        .INCLUDE "doside.asm"
+        .INCLUDE "dosrtc.asm"
+;        .INCLUDE "dosdskyn.asm"
 ;        .INCLUDE "dosflp.asm"
 
 

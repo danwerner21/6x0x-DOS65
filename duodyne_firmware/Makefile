@@ -1,7 +1,7 @@
 
 all:  	 scrm816.hex rom816.hex dos65_d000.s19
 
-dos65_d000.out: dos65.asm ../dos65_os/ccm215.asm ../dos65_os/pemrbc.asm ../dos65_os/simrbc.asm dosdefn.asm ../dos65_os/macro.asm dos65drv.asm dosser.asm dosmd.asm doside.asm
+dos65_d000.out: dos65.asm ../dos65_os/ccm215.asm ../dos65_os/pemrbc.asm ../dos65_os/simrbc.asm dosdefn.asm ../dos65_os/macro.asm dos65drv.asm dosser.asm dosmd.asm doside.asm dosrtc.asm
 	ca65 -D DOSBEGIN=53248 -D DUODYNE  dos65.asm -l dos65_d000.lst -o dos65_d000.o
 	ld65 dos65_d000.o -m dos65_d000.map -C dos65_d000.cfg -o dos65_d000.out
 
@@ -48,6 +48,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dosser.asm dosser.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dosmd.asm dosmd.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/doside.asm doside.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/dosrtc.asm dosrtc.asm
 
 clean:
 	@rm -f *.o
