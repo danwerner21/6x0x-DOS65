@@ -85,7 +85,9 @@ sektrk          = $44           ; seek track number
 seksec          = $46           ; seek sector number
 sekdsk          = $48           ; seek disk number
 currentDrive    = $49
-
+pcf_buffer      = $4A           ; only used in PCF driver, free for use outside as temp (word)
+pcf_address     = $4C           ; only used in PCF driver, free for use outside as temp (byte)
+        .BYTE   $00
 
 IO_AREA         = $00DF00
 OPTIONREGISTER  = IO_AREA+$51   ;   OPTION REG.

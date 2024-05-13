@@ -135,6 +135,13 @@ NEWLINE:
                 Jsr MACRO_OUTCH
                 pla
                 rts
+SPACE:
+                pha
+                LDA #' '
+                JSR MACRO_OUTCH
+                pla
+                rts
+
 
 PRTDEC:
                 PHA

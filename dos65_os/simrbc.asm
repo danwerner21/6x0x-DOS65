@@ -105,6 +105,10 @@ boot:
         STA     farfunct
         JSR     DO_FARCALL
 
+        LDA     #56             ; I2C INITIALIZE
+        STA     farfunct
+        JSR     DO_FARCALL
+
         LDA     #60             ; IDE INITIALIZE
         STA     farfunct
         JSR     DO_FARCALL
@@ -173,13 +177,23 @@ inttbl:
 
 
 wboot:
-        .IFNDEF DUODYNE
+        .IFDEF  DUODYNE
+        CLD                     ; VERIFY DECIMAL MODE IS OFF
+        CLC                     ;
+        XCE                     ; SET NATIVE MODE
+        ACCUMULATORINDEX16
+        LDA     #STACK          ; get the stack address
+        TCS                     ; and set the stack to it
+        ACCUMULATORINDEX8
+        LDA     #DOS65BANK
+        PHA
+        PLB
+        .ELSE
         SEI
         LDX     #$ff            ;set stack
         TXS                     ;pointer
-        .ENDIF
-
         CLD                     ;set binary mode
+        .ENDIF
 
         JMP     setup           ;go setup
 

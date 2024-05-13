@@ -1,5 +1,5 @@
 
-all:  	 scrm816.hex rom816.hex dos65_d000.s19
+all:  	 scrm816.hex rom816.hex dos65_d000.s19 duodos65.com
 
 dos65_d000.out: dos65.asm ../dos65_os/ccm215.asm ../dos65_os/pemrbc.asm ../dos65_os/simrbc.asm dosdefn.asm ../dos65_os/macro.asm dos65drv.asm dosser.asm dosmd.asm doside.asm dosrtc.asm
 	ca65 -D DOSBEGIN=53248 -D DUODYNE  dos65.asm -l dos65_d000.lst -o dos65_d000.o
@@ -32,9 +32,21 @@ scrm816.hex: scrm816.out
 	sed -i -e '$$aS8' scrm816.s19
 
 dos65_d000.s19: dos65_d000.out
+	@rm -f allocA.s
 	srec_cat  dos65_d000.out -binary -offset 0x0800  -o  dos65_d000.s19  -data-only -address-length=3
+	srec_cat  dos65_d000.out -binary -offset 0x0800  -o  dos65_d000.s19a  -data-only -address-length=3
 	sed -i -e '$$aS8' dos65_d000.s19
 	cp dos65_d000.s19 ../bin/duodyne/
+
+duodos65.com: loader.asm dos65_d000.s19a
+	z80asm -b -l -m loader.asm  2> loader.err
+	srec_cat  loader_addr0100.bin -binary  -o  dos65_loader.1  -Data_Only
+	srec_cat  dos65_d000.s19a -offset -0x0100 -o  dos65_loader.2  -Data_Only
+	srec_cat  dos65_loader.1 dos65_loader.2 -o duodos65.com  -binary
+	@rm	dos65_loader.1
+	@rm	dos65_loader.2
+	@rm	loader_addr0100.bin
+	@cp duodos65.com ../bin/duodyne
 
 pretty:
 	cp *.asm ./backup
@@ -49,6 +61,8 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dosmd.asm dosmd.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/doside.asm doside.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dosrtc.asm dosrtc.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/dosi2c.asm dosi2c.asm
+	pretty6502 -p2 -a0 -du -mu -c50 -l ./backup/loader.asm loader.asm
 
 clean:
 	@rm -f *.o
@@ -62,6 +76,7 @@ clean:
 	@rm -f *.lst
 	@rm -f *.hex
 	@rm -f *.s19
+	@rm -f *.s19a
 	@rm -f *.sys
 	@rm -f *.s
 

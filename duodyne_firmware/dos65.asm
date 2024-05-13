@@ -18,7 +18,7 @@ DRIVERSIZE      = DRIVEREND-DRIVERBEGIN
         .INCLUDE "DOSDEFN.ASM"  ; base addresses and definitions
 
         .SEGMENT "LOWCODE"
-        .ORG    $0800
+        .ORG    $8800
         CLD                     ; VERIFY DECIMAL MODE IS OFF
         CLC                     ;
         XCE                     ; SET NATIVE MODE
@@ -44,7 +44,7 @@ DRIVERSIZE      = DRIVEREND-DRIVERBEGIN
         LDA     #DOS65BANK
         PHA
         PLB
-        JML     $1DD002
+        JML     $1DD000
 
 OSBEGIN:
         .ORG    DOSBEGIN
