@@ -33,7 +33,7 @@ scrm816.hex: scrm816.out
 
 dos65_d000.s19: dos65_d000.out
 	@rm -f allocA.s
-	srec_cat  dos65_d000.out -binary -offset 0x0800  -o  dos65_d000.s19  -data-only -address-length=3
+	srec_cat  dos65_d000.out -binary -offset 0x8800  -o  dos65_d000.s19  -data-only -address-length=3
 	srec_cat  dos65_d000.out -binary -offset 0x0800  -o  dos65_d000.s19a  -data-only -address-length=3
 	sed -i -e '$$aS8' dos65_d000.s19
 	cp dos65_d000.s19 ../bin/duodyne/
