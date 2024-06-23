@@ -118,9 +118,9 @@ DISPATCHTABLE:
         .WORD   RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
         .WORD   RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
 ;
-        .WORD   PCF_INIT        ; FUNCTION 56 - INIT I2C INTERFACE
-        .WORD   PCF_READBYTES   ; FUNCTION 57 - READ BYTES FROM I2C
-        .WORD   PCF_SENDBYTES   ; FUNCTION 58 - WRITE BYTES TO I2C
+        .WORD   drv_noop        ; FUNCTION 56
+        .WORD   drv_noop        ; FUNCTION 57
+        .WORD   drv_noop        ; FUNCTION 58
         .WORD   drv_noop        ; FUNCTION 59
 
         .WORD   PPIDE_INIT      ; FUNCTION 60 - called during OS init
@@ -146,7 +146,6 @@ DISPATCHTABLE:
         .INCLUDE "dosmd.asm"
         .INCLUDE "doside.asm"
         .INCLUDE "dosrtc.asm"
-        .INCLUDE "dosi2c.asm"
 ;        .INCLUDE "dosdskyn.asm"
 ;        .INCLUDE "dosflp.asm"
 

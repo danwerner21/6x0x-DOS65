@@ -63,6 +63,8 @@ FALSE           = 0
 ;
 ;_______________________________________________________________
 COLD_START:
+        STA     $DF56
+        STA     $DF57
         CLD                     ; VERIFY DECIMAL MODE IS OFF
         LDA     #$00            ; ensure interrupts are off
         STA     OPTIONREGISTER
@@ -82,7 +84,7 @@ COLD_START:
         ACCUMULATOR16
         LDA     #INTRETURN      ;
         STA     ICOPVECTOR
-        STA     IBRKVECTOR
+;        STA     IBRKVECTOR
         STA     IABTVECTOR
         STA     INMIVECTOR
         STA     IIRQVECTOR

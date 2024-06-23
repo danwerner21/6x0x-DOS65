@@ -61,7 +61,6 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dosmd.asm dosmd.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/doside.asm doside.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dosrtc.asm dosrtc.asm
-	pretty6502 -p1 -a0 -du -mu -l ./backup/dosi2c.asm dosi2c.asm
 	pretty6502 -p2 -a0 -du -mu -c50 -l ./backup/loader.asm loader.asm
 
 clean:
