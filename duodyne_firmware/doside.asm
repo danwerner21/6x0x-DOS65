@@ -8,7 +8,7 @@
 ;		IDE_WRITE_SECTOR- write a sector to drive
 ;________________________________________________________________________________________________________________________________
 ;
-PPIDE_PPI       = IO_AREA+$88   ; PORT A
+PPIDE_PPI       = IO+$88        ; PORT A
 ;
 PPIDELO         = PPIDE_PPI+0   ; LSB
 PPIDEHI         = PPIDE_PPI+1   ; MSB

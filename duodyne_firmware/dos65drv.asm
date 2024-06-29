@@ -127,9 +127,9 @@ DISPATCHTABLE:
         .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
         .WORD   IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
 ;
-        .WORD   MD_SHOW         ; FUNCTION 63 - init the mem device
-        .WORD   MD_READ_SECTOR  ; FUNCTION 64 - read a sector from the memory device
-        .WORD   MD_WRITE_SECTOR ; FUNCTION 65 - write a sector to the memory device
+        .WORD   drv_noop        ; FUNCTION 63 - init the mem device
+        .WORD   drv_noop        ; FUNCTION 64 - read a sector from the memory device
+        .WORD   drv_noop        ; FUNCTION 65 - write a sector to the memory device
 ;
         .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
         .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
@@ -143,7 +143,6 @@ DISPATCHTABLE:
 ;
         .INCLUDE "drvmacros.asm"
         .INCLUDE "dosser.asm"
-        .INCLUDE "dosmd.asm"
         .INCLUDE "doside.asm"
         .INCLUDE "dosrtc.asm"
 ;        .INCLUDE "dosdskyn.asm"

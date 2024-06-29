@@ -21,7 +21,7 @@
 ;
 ;
 ;
-RTCIO           = IO_AREA+$94   ; PORT A
+RTCIO           = IO+$94        ; PORT A
 ;
 ; Write Bits
 ; Latch IO   MSB   7 6 5 4 3 2 1 0  LSB

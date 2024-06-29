@@ -258,7 +258,7 @@ putcha          = $FF71
 ;	------------------------------------------------------------------------
 ;
 ;	------------------------------------------------------------------------
-vecbrki         = $0302         ;BRK handler indirect vector...
+vecbrki         = $0702         ;BRK handler indirect vector...
 ;
 ;	Supermon 816 will modify this vector so that execution of a BRK instruc-
 ;	tion is intercepted & the registers  are  captured.   Your BRK front end
@@ -1163,9 +1163,9 @@ ENDOUTSTR:
 
         SLONGA
         LDA     vecbrki         ;BRK vector
-        CMPW    monbrk          ;pointing at monitor?
-        BNE     moncontinue
-        JMP     monreg          ;yes, ignore cold start
+;        CMPW    monbrk          ;pointing at monitor?
+;        BNE     moncontinue
+;        JMP     monreg          ;yes, ignore cold start
 ;
 moncontinue:
         STA     vecbrkia        ;save vector for exit

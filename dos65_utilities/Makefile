@@ -1,7 +1,8 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com cpm.co6 \
-	dbasic.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com clrdir.s19
+	dbasic.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com clrdir.s19 \
+	brk.com
 
 assign.com: assign.c
 	cc65  -t none -O --cpu 6502  assign.c
@@ -19,6 +20,10 @@ alloc.out: alloc203.asm
 bcompile.out: compl203.asm
 	ca65 --cpu 6502 compl203.asm -l bcompile.lst
 	ld65 compl203.o  -m bcompile.map -C dos65.cfg -o bcompile.out
+
+brk.out: brk.asm
+	ca65 --cpu 6502 brk.asm -l brk.lst
+	ld65 brk.o  -m brk.map -C dos65.cfg -o brk.out
 
 asm.out: asm211.asm
 	ca65 --cpu 6502 asm211.asm -l asm.lst
@@ -102,6 +107,15 @@ bcompile.com: bcompile.out
 	sed -i -e '$$aS9' bcompile.s19
 	cp bcompile.com ../bin/common/
 	cp bcompile.s19 ../bin/common/
+
+brk.com: brk.out
+	srec_cat  brk.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  brk.s19  -data-only
+	srec_cat  brk.s19  -offset -0x0800  -o  brkA.s  -data-only
+	srec_cat  brkA.s -o brk.com  -BINARY
+	@rm -f brkA.s
+	sed -i -e '$$aS9' brk.s19
+	cp brk.com ../bin/common/
+	cp brk.s19 ../bin/common/
 
 asm.com: asm.out
 	srec_cat  asm.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  asm.s19  -data-only
@@ -259,6 +273,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/s19.asm s19.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/writeos.asm writeos.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/rtc.asm rtc.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/brk.asm brk.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/clrdir.asm clrdir.asm
 
 clean:

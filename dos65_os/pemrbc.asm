@@ -1,3 +1,4 @@
+.P816
 ;________________________________________________________________________________________________________________________________
 ;
 ;	DOS/65 primitive execution module (pem)
@@ -479,10 +480,12 @@ drserr:
         JMP     xwboot          ;and abort
 
 vlddrv:
+; meep meep meep -- SELF MODIFYING CODE ALERT!
         JSR     sim+27          ;go to sim to set
         STA     cptdcb+1        ;save
         STY     cptdcb+2
         ORA     cptdcb+2        ;see if invalid
+
         BEQ     drserr          ;error if is
 ;capture dcb
         LDY     #14-1           ;do 14 bytes
@@ -604,6 +607,7 @@ fildal:
 ;at this point directory space is mapped
         JSR     intdrv          ;initialize drive
         JSR     cldrnm          ;clear directory number
+
 fillpe:
         LDX     #1              ;parameter for fill
         JSR     nxtdir          ;execute for next directory
@@ -623,7 +627,6 @@ extfil:
 ; alters:all
 intdrv:
         JSR     sim+24          ;home then
-
         LDA     nsystr          ;get number of system tracks
         LDY     nsystr+1
         JMP     sim+30          ;and set in sim

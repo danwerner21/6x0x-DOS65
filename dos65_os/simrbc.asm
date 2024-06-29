@@ -105,10 +105,6 @@ boot:
         STA     farfunct
         JSR     DO_FARCALL
 
-        LDA     #56             ; I2C INITIALIZE
-        STA     farfunct
-        JSR     DO_FARCALL
-
         LDA     #60             ; IDE INITIALIZE
         STA     farfunct
         JSR     DO_FARCALL
@@ -266,7 +262,7 @@ read:
         JSR     GET_DRIVE_DEVICE;
         AND     #$F0            ; only want first nybble
         CMP     #$00
-        BNE     :+              ; not SD drive
+        BNE     :+              ; not MD drive
 ;MD
         LDA     #64             ; md read sector
         STA     farfunct
@@ -869,22 +865,22 @@ dftdskcfg:
 ;__________________________________________________________________________________________________________________________________
         .IFDEF  DUODYNE
 dcba:
-        .WORD   127             ;max block number
+        .WORD   2047            ;max block number
         .WORD   64              ;sectors per track
-        .WORD   0               ;number system tracks
-        .BYTE   1               ;block size = 2048
-        .WORD   255             ;max directory number
-        .WORD   almpa           ;address of map for a
-        .BYTE   00              ;do checksums
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpc           ;address of map for C
+        .BYTE   0               ;do checksums
         .WORD   ckmp            ;checksum map
 dcbb:
-        .WORD   191             ;max block number
+        .WORD   2047            ;max block number
         .WORD   64              ;sectors per track
-        .WORD   0               ;number system tracks
-        .BYTE   1               ;block size = 2048
-        .WORD   155             ;max directory number
-        .WORD   almpb           ;address of map for b
-        .BYTE   00              ;do checksums
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpc           ;address of map for C
+        .BYTE   0               ;do checksums
         .WORD   ckmp            ;checksum map
 dcbc:
         .WORD   2047            ;max block number
@@ -896,21 +892,21 @@ dcbc:
         .BYTE   0               ;do checksums
         .WORD   ckmp            ;checksum map
 dcbd:
-        .WORD   350             ;max block number
-        .WORD   36              ;sectors per track
-        .WORD   4               ;number system tracks
-        .BYTE   1               ;block size = 2048
-        .WORD   127             ;max directory number
-        .WORD   almpd           ;address of map for d
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpd           ;address of map for C
         .BYTE   0               ;do checksums
         .WORD   ckmp            ;checksum map
 dcbe:
-        .WORD   350             ;max block number
-        .WORD   36              ;sectors per track
-        .WORD   4               ;number system tracks
-        .BYTE   1               ;block size = 2048
-        .WORD   127             ;max directory number
-        .WORD   almpe           ;address of map for e
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpe           ;address of map for C
         .BYTE   0               ;do checksums
         .WORD   ckmp            ;checksum map
 dcbf:
@@ -942,8 +938,8 @@ dcbh:
         .WORD   ckmp            ;checksum map
 
 dftdskcfg:
-        .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
-        .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
+        .BYTE   $30, $06        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
+        .BYTE   $30, $01        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
         .BYTE   $30, $06        ; disk C: unit, slice
         .BYTE   $30, $00        ; disk D: unit, slice
         .BYTE   $30, $01        ; disk E: unit, slice

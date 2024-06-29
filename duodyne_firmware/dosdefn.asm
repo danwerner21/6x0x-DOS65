@@ -14,8 +14,6 @@ dflbuf          = $0128         ; default buffer
 memmovr         = $0200         ; 0200-02ff subr to move data from ram/rom disks
 MD_PAGERA       = $0200         ; PAGE DRIVER ADDRESS
 IO              = $0300         ; 0300-03FF Memory mapped IO
-MPCL_ROM        = $037C         ; ROM MAPPER
-MPCL_RAM        = $0378         ; RAM MAPPER
 hstbuf          = $0400         ; 0400-05ff host buffer
 LHSTBUF         = (DOS65BANK*$10000)+$0400         ; 0400-05ff host buffer
 ;
@@ -75,7 +73,7 @@ farfunct        = $32           ; function to call in driver area
 farpointer      = $33           ;
 IRQVECTOR       = $35           ; VECTOR FOR USER IRQ RTN
 NMIVECTOR       = $37           ; VECTOR FOR USER NMI RTN
-CONSOLE         = $3A
+CONSOLE         = $0712
 TEMPWORD        = $3B           ;
 TEMPWORD1       = $3D           ;
 TEMPWORD2       = $3F           ;
@@ -89,8 +87,7 @@ pcf_buffer      = $4A           ; only used in PCF driver, free for use outside 
 pcf_address     = $4C           ; only used in PCF driver, free for use outside as temp (byte)
         .BYTE   $00
 
-IO_AREA         = $00DF00
-OPTIONREGISTER  = IO_AREA+$51   ;   OPTION REG.
+OPTIONREGISTER  = IO+$51   ;   OPTION REG.
 STACK           = $5FFF         ;   POINTER TO TOP OF STACK
 DO_FARCALL      = $F200
 

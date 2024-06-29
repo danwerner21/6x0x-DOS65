@@ -20,14 +20,14 @@
 ;__________________________________________________________________________________________________
 ; $8000-$8007 UART 16C550
 ;__________________________________________________________________________________________________
-UART0           = IO_AREA+$58   ;   DATA IN/OUT
-UART1           = IO_AREA+$59   ;   CHECK RX
-UART2           = IO_AREA+$5A   ;   INTERRUPTS
-UART3           = IO_AREA+$5B   ;   LINE CONTROL
-UART4           = IO_AREA+$5C   ;   MODEM CONTROL
-UART5           = IO_AREA+$5D   ;   LINE STATUS
-UART6           = IO_AREA+$5E   ;   MODEM STATUS
-UART7           = IO_AREA+$5F   ;   SCRATCH REG.
+UART0           = IO+$58        ;   DATA IN/OUT
+UART1           = IO+$59        ;   CHECK RX
+UART2           = IO+$5A        ;   INTERRUPTS
+UART3           = IO+$5B        ;   LINE CONTROL
+UART4           = IO+$5C        ;   MODEM CONTROL
+UART5           = IO+$5D        ;   LINE STATUS
+UART6           = IO+$5E        ;   MODEM STATUS
+UART7           = IO+$5F        ;   SCRATCH REG.
 
 
 ;__SERIALINIT____________________________________________________________________________________________________________________

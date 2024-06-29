@@ -28,7 +28,7 @@ loader.asm:
     27  000d  323d00                    LD      (CPUunit),A                       ; Unit 0 = FFH, 1 = FEH etc
     28                          ;
     29                          go:
-    30  0010  f3                	    DI              		        	; DISABLE INTERRUPTS
+    30  0010  f3                        DI                                        ; DISABLE INTERRUPTS
     31  0011  06f3                      LD      B,0F3H
     32  0013  cf                        RST     08
     33  0014  06f4                      LD      B,0F4H

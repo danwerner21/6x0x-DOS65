@@ -166,6 +166,7 @@ fnddir:
         LDA     sixten          ;set across
         STA     across          ;to four
         JSR     ccrlf           ;do a crlf
+
 dirl:
         JSR     hdr             ;do header
         LDA     #':'            ;then a

@@ -27,7 +27,7 @@ DEFFCB:         EQU $5C                           ; Location of default FCB
         LD      (CPUunit),A                       ; Unit 0 = FFH, 1 = FEH etc
 ;
 go:
-	    DI              		        	; DISABLE INTERRUPTS
+        DI                                        ; DISABLE INTERRUPTS
         LD      B,0F3H
         RST     08
         LD      B,0F4H
