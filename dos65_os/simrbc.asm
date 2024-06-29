@@ -135,6 +135,22 @@ boot:
 
 setup:
         LDX     #0              ;clear index
+;
+        LDA     #<cnstxt        ; STORE POINTER TO COMMAND LINE
+        STA     cmdlnp
+        LDA     #>cnstxt
+        STA     cmdlnp + 1
+
+        LDA     #<dskcfg        ; STORE POINTER TO DISK CONFIG TABLE FOR APPS
+        STA     dskcfpc
+        LDA     #>dskcfg
+        STA     dskcfpc + 1
+
+        LDA     #<dcba          ; STORE POINTER TO DCB TABLES FOR APPS
+        STA     dcbpc
+        LDA     #>dcba
+        STA     dcbpc + 1
+;
 ;first clear key dba variables
 ;        STX     hstact          ;host buffer inactive
 ;        STX     unacnt          ;clear unalloc count
