@@ -288,7 +288,7 @@ BRKLPE
         JSR     CRLF            ;AND A CR&LF
 BEGIN
         LDX     #$FF            ;RESET STACK
-        TXS                     ;IN CASE ALTERED
+    ;    TXS                     ;IN CASE ALTERED
         STX     NOMORE          ;BUFFER EMPTY
         INX                     ;CLEAR
         STX     MACFLG          ;MACRO FLAG
