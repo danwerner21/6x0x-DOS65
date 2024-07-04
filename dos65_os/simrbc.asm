@@ -197,8 +197,7 @@ wboot:
         LDA     #STACK          ; get the stack address
         TCS                     ; and set the stack to it
         ACCUMULATORINDEX8
-        LDA     #DOS65BANK
-        PHA
+        PHK
         PLB
         .ELSE
         SEI

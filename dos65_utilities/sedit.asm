@@ -224,7 +224,6 @@ INSERTCR2:
         JSR     INSERTLINE      ; INSERT A LINE
 
 
-        TSX                     ;
         PLA                     ;
         STA     EDTPOS+1        ;
         PLA                     ;
@@ -233,7 +232,16 @@ INSERTCR2:
         STA     CSRPOSY         ;
         PLA                     ;
         STA     CSRPOSX         ;
-        TXS                     ;
+
+        LDA     CSRPOSX         ; Store current cursor and edit position into stack
+        PHA                     ;
+        LDA     CSRPOSY         ;
+        PHA                     ;
+        LDA     EDTPOS          ;
+        PHA                     ;
+        LDA     EDTPOS+1        ;
+        PHA                     ;
+
 
         LDX     INSERTCHTEMP    ;
 

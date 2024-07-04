@@ -296,7 +296,7 @@ Current file: edit203.asm
 0009AA  1  20 AF 0D             JSR     CRLF            ;AND A CR&LF
 0009AD  1               BEGIN
 0009AD  1  A2 FF                LDX     #$FF            ;RESET STACK
-0009AF  1                   ;    TXS                     ;IN CASE ALTERED
+0009AF  1               ;    TXS                     ;IN CASE ALTERED
 0009AF  1  86 0D                STX     NOMORE          ;BUFFER EMPTY
 0009B1  1  E8                   INX                     ;CLEAR
 0009B2  1  86 0A                STX     MACFLG          ;MACRO FLAG

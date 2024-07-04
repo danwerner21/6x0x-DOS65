@@ -1,7 +1,7 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com cpm.co6 \
-	dbasic.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com clrdir.s19
+	dbasic.com dbasic816.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com clrdir.s19
 
 
 assign.com: assign.c
@@ -44,6 +44,10 @@ cpm.out: cpm.asm
 dbasic.out: dbasic.asm
 	ca65 --cpu 6502 dbasic.asm -l dbasic.lst
 	ld65 dbasic.o  -m dbasic.map -C dos65.cfg -o dbasic.out
+
+dbasic816.out: dbasic.asm
+	ca65 --cpu 65816 -D DUODYNE dbasic.asm -l dbasic816.lst -o dbasic816.o
+	ld65 dbasic816.o  -m dbasic816.map -C dos65.cfg -o dbasic816.out
 
 debug.out: debug202.asm
 	ca65 --cpu 6502 debug202.asm -l debug.lst
@@ -162,8 +166,19 @@ dbasic.com: dbasic.out
 	srec_cat  dbasicA.s -o dbasic.com  -BINARY
 	@rm -f dbasicA.s
 	sed -i -e '$$aS9' dbasic.s19
-	cp dbasic.com ../bin/common/
-	cp dbasic.s19 ../bin/common/
+	cp dbasic.com ../bin/6x0x/
+	cp dbasic.s19 ../bin/6x0x/
+	cp dbasic.com ../bin/nhyodyne/
+	cp dbasic.s19 ../bin/nhyodyne/
+
+dbasic816.com: dbasic816.out
+	srec_cat  dbasic816.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  dbasic816.s19  -data-only
+	srec_cat  dbasic816.s19  -offset -0x0800  -o  dbasic816A.s  -data-only
+	srec_cat  dbasic816A.s -o dbasic816.com  -BINARY
+	@rm -f dbasic816A.s
+	sed -i -e '$$aS9' dbasic816.s19
+	cp dbasic816.com ../bin/duodyne/
+	cp dbasic816.s19 ../bin/duodyne/
 
 edit.com: edit.out
 	srec_cat  edit.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  edit.s19  -data-only

@@ -3441,8 +3441,7 @@ Current file: dos65.asm
 00E5DF  2                       LDA     #STACK          ; get the stack address
 00E5DF  2                       TCS                     ; and set the stack to it
 00E5DF  2                       ACCUMULATORINDEX8
-00E5DF  2                       LDA     #DOS65BANK
-00E5DF  2                       PHA
+00E5DF  2                       PHK
 00E5DF  2                       PLB
 00E5DF  2                       .ELSE
 00E5DF  2  78                   SEI
