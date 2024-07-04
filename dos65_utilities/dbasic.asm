@@ -757,7 +757,7 @@ LAB_2DB6:
 
 ;	LDY	#$00			; clear Y
         TYA                     ; clear A
-        STAINDIRECTY Smeml      ; clear first byte
+        STA   (Smeml),Y      ; clear first byte
         INC     Smeml           ; increment start of mem low byte
 
 ; these two lines are only needed if Ram_base is $xxFF
@@ -1048,8 +1048,8 @@ LAB_12D0:
 
 ; close up memory to delete old line
 LAB_12D8:
-        LDAINDIRECTY ut1_pl     ; get byte from source
-        STAINDIRECTY ut2_pl     ; copy to destination
+        LDA (ut1_pl),Y     ; get byte from source
+        STA (ut2_pl),Y     ; copy to destination
         INY                     ; increment index
         BNE     LAB_12D8        ; while <> 0 do this block
 
@@ -1089,21 +1089,21 @@ LAB_1301:
         DEY                     ; adjust for loop type
 LAB_1311:
         LDA     Ibuffs-4,Y      ; get byte from crunched line
-        STAINDIRECTY Baslnl     ; save it to program memory
+        STA  (Baslnl),Y     ; save it to program memory
         DEY                     ; decrement count
         CPY     #$03            ; compare with first byte-1
         BNE     LAB_1311        ; continue while count <> 3
 
         LDA     Itemph          ; get line # high byte
-        STAINDIRECTY Baslnl     ; save it to program memory
+        STA (Baslnl),Y     ; save it to program memory
         DEY                     ; decrement count
         LDA     Itempl          ; get line # low byte
-        STAINDIRECTY Baslnl     ; save it to program memory
+        STA  (Baslnl),Y     ; save it to program memory
         DEY                     ; decrement count
         LDA     #$FF            ; set byte to allow chain rebuild. if you didn't set this
 ; byte then a zero already here would stop the chain rebuild
 ; as it would think it was the [EOT] marker.
-        STAINDIRECTY Baslnl     ; save it to program memory
+        STA  (Baslnl),Y     ; save it to program memory
 
 LAB_1319:
         JSR     LAB_1477        ; reset execution to start, clear vars and flush stack
@@ -1113,7 +1113,7 @@ LAB_1319:
 LAB_1325:
         STX     ut1_pl          ; set line start pointer low byte
         STA     ut1_ph          ; set line start pointer high byte
-        LDAINDIRECTY ut1_pl     ; get it
+        LDA (ut1_pl),Y     ; get it
         BEQ     LAB_133E        ; exit if end of program
 
 ; rebuild chaining of Basic lines
@@ -1122,7 +1122,7 @@ LAB_1325:
 ; there is always 1 byte + [EOL] as null entries are deleted
 LAB_1330:
         INY                     ; next code byte
-        LDAINDIRECTY ut1_pl     ; get byte
+        LDA (ut1_pl),Y     ; get byte
         BNE     LAB_1330        ; loop if not [EOL]
 
         SEC                     ; set carry for add + 1
@@ -1130,11 +1130,11 @@ LAB_1330:
         ADC     ut1_pl          ; add to line start pointer low byte
         TAX                     ; copy to X
         LDY     #$00            ; clear index, point to this line's next line pointer
-        STAINDIRECTY ut1_pl     ; set next line pointer low byte
+        STA (ut1_pl),Y     ; set next line pointer low byte
         TYA                     ; clear A
         ADC     ut1_ph          ; add line start pointer high byte + carry
         INY                     ; increment index to high byte
-        STAINDIRECTY ut1_pl     ; save next line pointer low byte
+        STA (ut1_pl),Y     ; save next line pointer low byte
         BCC     LAB_1325        ; go do next line, branch always, carry clear
 
 
@@ -1252,7 +1252,7 @@ LAB_13CC:
         LDY     #$00            ; clear table pointer
 
 LAB_13D0:
-        CMPINDIRECTY ut2_pl     ; compare with keyword first character table byte
+        CMP (ut2_pl),Y     ; compare with keyword first character table byte
         BEQ     LAB_13D1        ; go do word_table_chr if match
 
         BCC     LAB_13EA        ; if < keyword first character table byte go restore
@@ -1278,7 +1278,7 @@ LAB_13D1:
 
 LAB_13D6:
         INY                     ; next table byte
-        LDAINDIRECTY ut2_pl     ; get byte from table
+        LDA  (ut2_pl),Y     ; get byte from table
 LAB_13D8:
         BMI     LAB_13EA        ; all bytes matched so go save token
 
@@ -1337,13 +1337,13 @@ LAB_1417:
 
 ; now find the end of this word in the table
 LAB_141B:
-        LDAINDIRECTY ut2_pl     ; get table byte
+        LDA (ut2_pl),Y     ; get table byte
         PHP                     ; save status
         INY                     ; increment table index
         PLP                     ; restore byte status
         BPL     LAB_141B        ; if not end of keyword go do next
 
-        LDAINDIRECTY ut2_pl     ; get byte from keyword table
+        LDA (ut2_pl),Y     ; get byte from keyword table
         BNE     LAB_13D8        ; go test next word if not zero byte (end of table)
 
 ; reached end of table with no match
@@ -1378,26 +1378,26 @@ LAB_SHLN:
         LDY     #$01            ; set index
         STA     Baslnl          ; save low byte as current
         STX     Baslnh          ; save high byte as current
-        LDAINDIRECTY Baslnl     ; get pointer high byte from addr
+        LDA (Baslnl),Y     ; get pointer high byte from addr
         BEQ     LAB_145F        ; pointer was zero so we're done, do 'not found' exit
 
         LDY     #$03            ; set index to line # high byte
-        LDAINDIRECTY Baslnl     ; get line # high byte
+        LDA  (Baslnl),Y     ; get line # high byte
         DEY                     ; decrement index (point to low byte)
         CMP     Itemph          ; compare with temporary integer high byte
         BNE     LAB_1455        ; if <> skip low byte check
 
-        LDAINDIRECTY Baslnl     ; get line # low byte
+        LDA (Baslnl),Y     ; get line # low byte
         CMP     Itempl          ; compare with temporary integer low byte
 LAB_1455:
         BCS     LAB_145E        ; else if temp < this line, exit (passed line#)
 
 LAB_1456:
         DEY                     ; decrement index to next line ptr high byte
-        LDAINDIRECTY Baslnl     ; get next line pointer high byte
+        LDA  (Baslnl),Y     ; get next line pointer high byte
         TAX                     ; copy to X
         DEY                     ; decrement index to next line ptr low byte
-        LDAINDIRECTY Baslnl     ; get next line pointer low byte
+        LDA  (Baslnl),Y     ; get next line pointer low byte
         LBCC    LAB_SHLN        ; go search for line # in temp (Itempl/Itemph) from AX
 ; (carry always clear)
 
@@ -1417,9 +1417,9 @@ LAB_NEW:
 LAB_1463:
         LDA     #$00            ; clear A
         TAY                     ; clear Y
-        STAINDIRECTY Smeml      ; clear first line, next line pointer, low byte
+        STA  (Smeml),Y      ; clear first line, next line pointer, low byte
         INY                     ; increment index
-        STAINDIRECTY Smeml      ; clear first line, next line pointer, high byte
+        STA  (Smeml),Y      ; clear first line, next line pointer, high byte
         CLC                     ; clear carry
         LDA     Smeml           ; get start of mem low byte
         ADC     #$02            ; calculate end of BASIC low byte
@@ -1516,7 +1516,7 @@ LAB_14BD:
 
 ; this bit checks the - is present
         CMP     #TK_MINUS       ; compare with token for -
-        LBNE    LAB_1460        ; return if not "-" (will be Syntax error)
+        BNE     LAB_152B        ; return if not "-" (will be Syntax error)
 
 ; LIST [n]-m
 ; the - was there so set m as the end value
@@ -1526,7 +1526,7 @@ LAB_14BD:
         JSR     LAB_IGBY        ; increment and scan memory
         .ENDIF
         JSR     LAB_GFPN        ; get fixed-point number into temp integer
-        LBNE    LAB_1460        ; exit if not ok
+        BNE     LAB_152B        ; exit if not ok
 
 LAB_14D4:
         LDA     Itempl          ; get temporary integer low byte
@@ -1540,16 +1540,16 @@ LAB_14E2:
         LDY     #$01            ; set index for line
         STY     Oquote          ; clear open quote flag
         JSR     LAB_CRLF        ; print CR/LF
-        LDAINDIRECTY Baslnl     ; get next line pointer high byte
+        LDA     (<Baslnl),Y     ; get next line pointer high byte
 ; pointer initially set by search at LAB_14BD
         LBEQ    LAB_152B        ; if null all done so exit
         JSR     LAB_1629        ; do CRTL-C check vector
 
         INY                     ; increment index for line
-        LDAINDIRECTY Baslnl     ; get line # low byte
+        LDA     (<Baslnl),Y     ; get line # low byte
         TAX                     ; copy to X
         INY                     ; increment index
-        LDAINDIRECTY Baslnl     ; get line # high byte
+        LDA     (<Baslnl),Y     ; get line # high byte
         CMP     Itemph          ; compare with temporary integer high byte
         BNE     LAB_14FF        ; branch if no high byte match
 
@@ -1577,13 +1577,13 @@ LAB_150C:
         STA     Oquote          ; save it back
 LAB_1519:
         INY                     ; increment index
-        LDAINDIRECTY Baslnl     ; get next byte
+        LDA     (<Baslnl),Y     ; get next byte
         BNE     LAB_152E        ; branch if not [EOL] (go print character)
         TAY                     ; else clear index
-        LDAINDIRECTY Baslnl     ; get next line pointer low byte
+        LDA     (<Baslnl),Y     ; get next line pointer low byte
         TAX                     ; copy to X
         INY                     ; increment index
-        LDAINDIRECTY Baslnl     ; get next line pointer high byte
+        LDA     (<Baslnl),Y     ; get next line pointer high byte
         STX     Baslnl          ; set pointer to line low byte
         STA     Baslnh          ; set pointer to line high byte
         LBNE    LAB_14E2        ; go do next line if not [EOT]
@@ -1615,25 +1615,25 @@ LAB_1530:
         STX     ut2_ph          ; save table pointer high byte
         STY     Tidx1           ; save index for line
         LDY     #$00            ; clear index
-        LDAINDIRECTY ut2_pl     ; get length
+        LDA     (<ut2_pl),Y     ; get length
         TAX                     ; copy length
         INY                     ; increment index
-        LDAINDIRECTY ut2_pl     ; get 1st character
+        LDA     (<ut2_pl),Y     ; get 1st character
         DEX                     ; decrement length
         LBEQ    LAB_1508        ; if no more characters exit and print
 
         JSR     LAB_PRNA        ; go print the character
         INY                     ; increment index
-        LDAINDIRECTY ut2_pl     ; get keyword address low byte
+        LDA     (<ut2_pl),Y     ; get keyword address low byte
         PHA                     ; save it for now
         INY                     ; increment index
-        LDAINDIRECTY ut2_pl     ; get keyword address high byte
+        LDA     (<ut2_pl),Y     ; get keyword address high byte
         LDY     #$00
         STA     ut2_ph          ; save keyword pointer high byte
         PLA                     ; pull low byte
         STA     ut2_pl          ; save keyword pointer low byte
 LAB_1540:
-        LDAINDIRECTY ut2_pl     ; get character
+        LDA     (<ut2_pl),Y     ; get character
         DEX                     ; decrement character count
         LBEQ    LAB_1508        ; if last character exit and print
 
@@ -7236,7 +7236,7 @@ LAB_2A3B
 ; now remove trailing zeroes
         LDY     Sendl           ; get output string index
 LAB_2A4B
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         PHX
         TYX
         LDA     Decss,X         ; save to output string
@@ -7268,7 +7268,7 @@ LAB_2A58
         LDA     #'-'            ; character "-"
 LAB_2A68
 
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         PHX
         TYX
         STA     Decss+2,X       ; save to output string
@@ -9930,7 +9930,12 @@ Ibuffs          = (ENDOFBASIC & $FF00)+$181
 Ibuffe          = Ibuffs+$47    ; end of input buffer
 
 Ram_base        = (Ibuffe & $FF00)+$100; start of user RAM (set as needed, should be page aligned)
+        .IFDEF  DUODYNE
+Ram_top         = $D000         ; end of user RAM+1 (set as needed, should be page aligned)
+        .ELSE
 Ram_top         = $B800         ; end of user RAM+1 (set as needed, should be page aligned)
+        .ENDIF
+
 
 
         .END

@@ -1520,7 +1520,7 @@ Current file: dbasic.asm
 000B9F  1               
 000B9F  1               ; this bit checks the - is present
 000B9F  1  C9 B8                CMP     #TK_MINUS       ; compare with token for -
-000BA1  1  D0 93                LBNE    LAB_1460        ; return if not "-" (will be Syntax error)
+000BA1  1  D0 5D                BNE     LAB_152B        ; return if not "-" (will be Syntax error)
 000BA3  1               
 000BA3  1               ; LIST [n]-m
 000BA3  1               ; the - was there so set m as the end value
@@ -1530,7 +1530,7 @@ Current file: dbasic.asm
 000BA3  1  20 BC 00             JSR     LAB_IGBY        ; increment and scan memory
 000BA6  1                       .ENDIF
 000BA6  1  20 3F 0F             JSR     LAB_GFPN        ; get fixed-point number into temp integer
-000BA9  1  D0 8B                LBNE    LAB_1460        ; exit if not ok
+000BA9  1  D0 55                BNE     LAB_152B        ; exit if not ok
 000BAB  1               
 000BAB  1               LAB_14D4:
 000BAB  1  A5 11                LDA     Itempl          ; get temporary integer low byte
@@ -1544,16 +1544,16 @@ Current file: dbasic.asm
 000BB7  1  A0 01                LDY     #$01            ; set index for line
 000BB9  1  84 60                STY     Oquote          ; clear open quote flag
 000BBB  1  20 7C 10             JSR     LAB_CRLF        ; print CR/LF
-000BBE  1  B1 AA                LDAINDIRECTY Baslnl     ; get next line pointer high byte
+000BBE  1  B1 AA                LDA     (<Baslnl),Y     ; get next line pointer high byte
 000BC0  1               ; pointer initially set by search at LAB_14BD
 000BC0  1  F0 3E                LBEQ    LAB_152B        ; if null all done so exit
 000BC2  1  20 FE 0C             JSR     LAB_1629        ; do CRTL-C check vector
 000BC5  1               
 000BC5  1  C8                   INY                     ; increment index for line
-000BC6  1  B1 AA                LDAINDIRECTY Baslnl     ; get line # low byte
+000BC6  1  B1 AA                LDA     (<Baslnl),Y     ; get line # low byte
 000BC8  1  AA                   TAX                     ; copy to X
 000BC9  1  C8                   INY                     ; increment index
-000BCA  1  B1 AA                LDAINDIRECTY Baslnl     ; get line # high byte
+000BCA  1  B1 AA                LDA     (<Baslnl),Y     ; get line # high byte
 000BCC  1  C5 12                CMP     Itemph          ; compare with temporary integer high byte
 000BCE  1  D0 04                BNE     LAB_14FF        ; branch if no high byte match
 000BD0  1               
@@ -1581,13 +1581,13 @@ Current file: dbasic.asm
 000BEC  1  85 60                STA     Oquote          ; save it back
 000BEE  1               LAB_1519:
 000BEE  1  C8                   INY                     ; increment index
-000BEF  1  B1 AA                LDAINDIRECTY Baslnl     ; get next byte
+000BEF  1  B1 AA                LDA     (<Baslnl),Y     ; get next byte
 000BF1  1  D0 0E                BNE     LAB_152E        ; branch if not [EOL] (go print character)
 000BF3  1  A8                   TAY                     ; else clear index
-000BF4  1  B1 AA                LDAINDIRECTY Baslnl     ; get next line pointer low byte
+000BF4  1  B1 AA                LDA     (<Baslnl),Y     ; get next line pointer low byte
 000BF6  1  AA                   TAX                     ; copy to X
 000BF7  1  C8                   INY                     ; increment index
-000BF8  1  B1 AA                LDAINDIRECTY Baslnl     ; get next line pointer high byte
+000BF8  1  B1 AA                LDA     (<Baslnl),Y     ; get next line pointer high byte
 000BFA  1  86 AA                STX     Baslnl          ; set pointer to line low byte
 000BFC  1  85 AB                STA     Baslnh          ; set pointer to line high byte
 000BFE  1  D0 B7                LBNE    LAB_14E2        ; go do next line if not [EOT]
@@ -1619,25 +1619,25 @@ Current file: dbasic.asm
 000C16  1  86 74                STX     ut2_ph          ; save table pointer high byte
 000C18  1  84 97                STY     Tidx1           ; save index for line
 000C1A  1  A0 00                LDY     #$00            ; clear index
-000C1C  1  B1 73                LDAINDIRECTY ut2_pl     ; get length
+000C1C  1  B1 73                LDA     (<ut2_pl),Y     ; get length
 000C1E  1  AA                   TAX                     ; copy length
 000C1F  1  C8                   INY                     ; increment index
-000C20  1  B1 73                LDAINDIRECTY ut2_pl     ; get 1st character
+000C20  1  B1 73                LDA     (<ut2_pl),Y     ; get 1st character
 000C22  1  CA                   DEX                     ; decrement length
 000C23  1  F0 B8                LBEQ    LAB_1508        ; if no more characters exit and print
 000C25  1               
 000C25  1  20 D7 10             JSR     LAB_PRNA        ; go print the character
 000C28  1  C8                   INY                     ; increment index
-000C29  1  B1 73                LDAINDIRECTY ut2_pl     ; get keyword address low byte
+000C29  1  B1 73                LDA     (<ut2_pl),Y     ; get keyword address low byte
 000C2B  1  48                   PHA                     ; save it for now
 000C2C  1  C8                   INY                     ; increment index
-000C2D  1  B1 73                LDAINDIRECTY ut2_pl     ; get keyword address high byte
+000C2D  1  B1 73                LDA     (<ut2_pl),Y     ; get keyword address high byte
 000C2F  1  A0 00                LDY     #$00
 000C31  1  85 74                STA     ut2_ph          ; save keyword pointer high byte
 000C33  1  68                   PLA                     ; pull low byte
 000C34  1  85 73                STA     ut2_pl          ; save keyword pointer low byte
 000C36  1               LAB_1540:
-000C36  1  B1 73                LDAINDIRECTY ut2_pl     ; get character
+000C36  1  B1 73                LDA     (<ut2_pl),Y     ; get character
 000C38  1  CA                   DEX                     ; decrement character count
 000C39  1  F0 A2                LBEQ    LAB_1508        ; if last character exit and print
 000C3B  1               
@@ -7240,7 +7240,7 @@ Current file: dbasic.asm
 002360  1               ; now remove trailing zeroes
 002360  1  A4 BA                LDY     Sendl           ; get output string index
 002362  1               LAB_2A4B
-002362  1                       .IFDEF DUODYNE
+002362  1                       .IFDEF  DUODYNE
 002362  1                       PHX
 002362  1                       TYX
 002362  1                       LDA     Decss,X         ; save to output string
@@ -7272,7 +7272,7 @@ Current file: dbasic.asm
 00237D  1  A9 2D                LDA     #'-'            ; character "-"
 00237F  1               LAB_2A68
 00237F  1               
-00237F  1                       .IFDEF DUODYNE
+00237F  1                       .IFDEF  DUODYNE
 00237F  1                       PHX
 00237F  1                       TYX
 00237F  1                       STA     Decss+2,X       ; save to output string
@@ -10022,7 +10022,12 @@ Current file: dbasic.asm
 0032BF  1               Ibuffe          = Ibuffs+$47    ; end of input buffer
 0032BF  1               
 0032BF  1               Ram_base        = (Ibuffe & $FF00)+$100; start of user RAM (set as needed, should be page aligned)
+0032BF  1                       .IFDEF  DUODYNE
+0032BF  1               Ram_top         = $D000         ; end of user RAM+1 (set as needed, should be page aligned)
+0032BF  1                       .ELSE
 0032BF  1               Ram_top         = $B800         ; end of user RAM+1 (set as needed, should be page aligned)
+0032BF  1                       .ENDIF
+0032BF  1               
 0032BF  1               
 0032BF  1               
 0032BF  1                       .END
