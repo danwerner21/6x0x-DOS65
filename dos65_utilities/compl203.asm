@@ -1,3 +1,4 @@
+        .INCLUDE "macro816.asm"
 ;COMPILE
 ;BASIC-E/65 Compiler
 ;Version 2.03-A
@@ -269,6 +270,7 @@ WHERE           = $82+$40       ;TEMP IN GENILS
 STRPTR          = $84+$40       ;TEMP IN GINILS
 IGEN            = $85+$40       ;TEMP IN GENCON
 LZ              = $86+$40       ;
+TMPFLG          = $87+$40       ;
 
 ;entry point
         .FEATURE labels_without_colons
@@ -1029,10 +1031,17 @@ COMPAR
         STA     IC
 COMPA0
         LDY     IC
-        LDA     (PTR),Y         ;a=field(i)
+        LDAINDIRECTY PTR        ;a=field(i)
         INC     IC
         LDY     IC              ;i=i+1
+        .IFDEF DUODYNE
+        PHX
+        TYX
+        CMP     ACCUM,X         ;compare field(i) to accum(i=i+1)
+        PLX
+        .ELSE
         CMP     ACCUM,Y         ;compare field(i) to accum(i=i+1)
+        .ENDIF
         BNE     COMPAX          ;exit if different
         LDA     ACCLEN
         CMP     IC              ;if i<=acclen
@@ -1309,7 +1318,7 @@ SCAN30
 ;adjust base for next entry
 NXTENT
         LDY     #0              ;clear index
-        LDA     (BASE),Y        ;get name length
+        LDAINDIRECTY BASE       ;get name length
         CLC                     ;now
         ADC     BASE            ;add to current
         STA     BASE            ;and update
@@ -1325,7 +1334,7 @@ NXTENT
 ;get length of printname
 GETLEN
         LDY     #0              ;clear index
-        LDA     (BASE),Y        ;get length
+        LDAINDIRECTY BASE       ;get length
         RTS
 ;write numeric constant during pass 1
 EMITCN
@@ -1394,12 +1403,12 @@ INSYM1
         STY     NXSTPT+1        ;and set
         LDA     #0              ;clear A
         LDY     #1              ;set index to 1
-        STA     (NXSTPT),Y      ;put in memory
+        STAINDIRECTY NXSTPT     ;put in memory
         RTS
 ;
 GETHSH
         LDY     #0              ;get
-        LDA     (BASE),Y        ;PTR
+        LDAINDIRECTY BASE       ;PTR
         STA     TMPPTR          ;and save
         STY     TMPHSH          ;clear internal hash
         LDA     BASE            ;get
@@ -1418,7 +1427,7 @@ GETHS0
         LDA     TMPHSH          ;else get HASH
         RTS                     ;and quit
 GETHS1
-        LDA     (APTADD),Y      ;get value
+        LDAINDIRECTY APTADD     ;get value
         CLC                     ;now add
         ADC     TMPHSH          ;in old hash
         AND     #HSHMSK         ;and mask
@@ -1447,7 +1456,7 @@ SETLNK
 SETADP
         LDY     #0              ;clear index
         CLC                     ;and carry
-        ADC     (BASE),Y        ;add PTR
+        ADCINDIRECTY BASE       ;add PTR
         BCC     *+3             ;branch if no carry
         INY                     ;else set Y to 1
         CLC                     ;clear carry
@@ -1484,24 +1493,24 @@ SETRSV
         JSR     SETADP          ;of four
         LDY     #1              ;set index to 1
         PLA                     ;get high
-        STA     (APTADD),Y      ;and save
+        STAINDIRECTY APTADD     ;and save
         DEY                     ;drop Y to 0
         PLA                     ;get low
-        STA     (APTADD),Y      ;save it
+        STAINDIRECTY APTADD     ;save it
         LDA     APTADD          ;now
         BNE     *+4             ;drop
         DEC     APTADD+1        ;pointer
         DEC     APTADD          ;by one
-        LDA     (APTADD),Y      ;now set
+        LDAINDIRECTY APTADD     ;now set
         ORA     #$80            ;resolved
-        STA     (APTADD),Y      ;bit
+        STAINDIRECTY APTADD     ;bit
         RTS
 ;return type of variable
 GETTYP
         LDA     #3              ;build
         JSR     SETADP          ;new indirect
         LDY     #0              ;clear index
-        LDA     (APTADD),Y      ;get
+        LDAINDIRECTY APTADD     ;get
         AND     #$7F            ;mask out set bit
         RTS
 ;set type of variable to A and preserve resolved bit
@@ -1511,15 +1520,15 @@ SETTYP
         JSR     SETADP          ;new pointer
         LDY     #0              ;clear index
         PLA                     ;get type
-        ORA     (APTADD),Y      ;or with contents
-        STA     (APTADD),Y      ;save it
+        ORAINDIRECTY APTADD     ;or with contents
+        STAINDIRECTY APTADD     ;save it
         RTS
 ;get resolved bit A:=TRUE iff bit=1 else A:=FALSE
 GETRES
         LDA     #3              ;build
         JSR     SETADP          ;pointer
         LDY     #0              ;clear index
-        LDA     (APTADD),Y      ;get byte
+        LDAINDIRECTY APTADD     ;get byte
         BMI     *+5             ;branch if set
         LDA     #FALSE          ;else set
         RTS                     ;false
@@ -1530,10 +1539,10 @@ GETADR
         LDA     #4              ;build
         JSR     SETADP          ;pointer
         LDY     #0              ;clear index
-        LDA     (APTADD),Y      ;now get low
+        LDAINDIRECTY APTADD     ;now get low
         PHA                     ;save
         INY                     ;set Y to 1
-        LDA     (APTADD),Y      ;get high
+        LDAINDIRECTY APTADD     ;get high
         TAY                     ;move to Y
         PLA                     ;get low
         RTS
@@ -1547,18 +1556,18 @@ SLOOKX
 SLOOK0
         LDA     BASE            ;see if
         ORA     BASE+1          ;base = 0
-        BEQ     SLOOFL          ;false if is
+        LBEQ     SLOOFL         ;false if is
         LDY     #0              ;clear index
-        LDA     (BASE),Y        ;get PTR
+        LDAINDIRECTY BASE       ;get PTR
         STA     LEN             ;save as length
-        CMP     (PRNTNM),Y      ;compare
+        CMPINDIRECTY PRNTNM     ;compare
         BNE     SLOOK2          ;branch if different
 SLOOK1
         LDY     LEN             ;get length
-        LDA     (PRNTNM),Y      ;get name
+        LDAINDIRECTY PRNTNM     ;get name
         INY                     ;bump index
         INY                     ;by two
-        CMP     (BASE),Y        ;compare to entry
+        CMPINDIRECTY BASE       ;compare to entry
         BNE     SLOOK2          ;branch if different
         DEC     LEN             ;drop length
         BNE     SLOOK1          ;loop for more
@@ -1567,10 +1576,10 @@ SLOOK1
 SLOOK2
         JSR     SETLNK          ;set link
         LDY     #0              ;clear index
-        LDA     (APTADD),Y      ;get low
+        LDAINDIRECTY APTADD     ;get low
         PHA                     ;save it
         INY                     ;set y to 1
-        LDA     (APTADD),Y      ;get high
+        LDAINDIRECTY APTADD     ;get high
         TAY                     ;move to Y
         PLA                     ;get low
         JMP     SLOOKX          ;and loop
@@ -1582,7 +1591,7 @@ SLOOFL
 ;for symbol table full
 ENTER
         LDY     #0              ;clear index
-        LDA     (PRNTNM),Y      ;get length
+        LDAINDIRECTY PRNTNM     ;get length
         CLC                     ;now
         ADC     #7              ;add seven
         PHA                     ;save on stack
@@ -1592,16 +1601,16 @@ ENTER
         STA     BASE
         STY     BASE+1
         LDY     #0              ;get
-        LDA     (PRNTNM),Y      ;length
-        STA     (BASE),Y        ;move to table
+        LDAINDIRECTY PRNTNM     ;length
+        STAINDIRECTY BASE       ;move to table
         TAX                     ;make a counter
         BEQ     ENTER1          ;done if zero
         INY                     ;start with Y=1
 ENTER0
-        LDA     (PRNTNM),Y      ;get name
+        LDAINDIRECTY PRNTNM     ;get name
         INY                     ;bump index
         INY                     ;by two
-        STA     (SBTBL),Y       ;insert
+        STAINDIRECTY SBTBL      ;insert
         DEY                     ;drop y by one
         DEX                     ;drop count
         BNE     ENTER0          ;loop if more
@@ -1610,16 +1619,16 @@ ENTER1
         JSR     SETADP          ;by getting pointer
         LDY     #0              ;clear index
         TYA                     ;and A
-        STA     (APTADD),Y      ;insert
+        STAINDIRECTY APTADD     ;insert
         JSR     SETLNK          ;set link
         JSR     HSOSYM          ;find address
         PHA                     ;save low on stack
         TYA                     ;high to A
         LDY     #1              ;do high
-        STA     (APTADD),Y      ;first
+        STAINDIRECTY APTADD     ;first
         DEY                     ;drop Y
         PLA                     ;get low
-        STA     (APTADD),Y      ;and set
+        STAINDIRECTY APTADD     ;and set
         LDA     SYMHSH          ;get hash
         ASL     A               ;mult by two
         TAX                     ;make index
@@ -1641,14 +1650,14 @@ SETSUB
         JSR     SETADP          ;get pointer
         LDY     #0              ;clear index
         PLA                     ;get code
-        STA     (APTADD),Y      ;save
+        STAINDIRECTY APTADD     ;save
         RTS
 ;return the subtype
 GETSUB
         LDA     #6              ;build
         JSR     SETADP          ;pointer
         LDY     #0              ;clear pointer
-        LDA     (APTADD),Y      ;get subtype
+        LDAINDIRECTY APTADD     ;get subtype
         RTS
 ;
 UNLINK
@@ -1674,18 +1683,18 @@ UNLNK0
 UNLNK1
         LDY     #0              ;clear index
         LDA     BASE            ;compare base low
-        CMP     (TMPADR),Y      ;to byte
+        CMPINDIRECTY TMPADR     ;to byte
         BNE     UNLNK2          ;branch if different
         INY                     ;set y to 1
         LDA     BASE+1          ;do same
-        CMP     (TMPADR),Y      ;for high
+        CMPINDIRECTY TMPADR     ;for high
         BEQ     UNLNK3          ;branch if all same
 UNLNK2
         LDY     #0              ;y back to zero
-        LDA     (TMPADR),Y      ;get low
+        LDAINDIRECTY TMPADR     ;get low
         PHA                     ;save it
         INY                     ;bump index
-        LDA     (TMPADR),Y      ;get high
+        LDAINDIRECTY TMPADR     ;get high
         STA     TMPADR+1        ;change address
         PLA                     ;get low
         STA     TMPADR          ;save it
@@ -1696,11 +1705,11 @@ UNLNK2
 UNLNK3
         JSR     SETLNK          ;set link
         LDY     #0              ;clear index
-        LDA     (APTADD),Y      ;get low
-        STA     (TMPADR),Y      ;and move
+        LDAINDIRECTY APTADD     ;get low
+        STAINDIRECTY TMPADR     ;and move
         INY                     ;now
-        LDA     (APTADD),Y      ;same
-        STA     (TMPADR),Y      ;for high
+        LDAINDIRECTY APTADD     ;same
+        STAINDIRECTY TMPADR     ;for high
         INC     LINKI           ;bump loop index
         JMP     UNLNK0          ;and loop
 ;
@@ -1727,10 +1736,10 @@ RELNK0
         TAX                     ;make index
         LDY     #0              ;clear Y
         LDA     HSHTBL,X        ;get low
-        STA     (TMPADR),Y      ;save it
+        STAINDIRECTY TMPADR     ;save it
         INY                     ;now high
         LDA     HSHTBL+1,X      ;get it
-        STA     (TMPADR),Y      ;save it
+        STAINDIRECTY TMPADR     ;save it
         JSR     GETHSH          ;gethash
         ASL     A
         TAX
@@ -2017,23 +2026,23 @@ GENNXT
         LDA     #BRS
         JSR     GENERT          ;call generate(brs)
         LDY     #2*2            ;word addressing
-        LDA     (NXSTPT),Y      ;get low
+        LDAINDIRECTY NXSTPT     ;get low
         PHA                     ;save
         INY
-        LDA     (NXSTPT),Y      ;get high
+        LDAINDIRECTY NXSTPT     ;get high
         TAY                     ;move to Y
         PLA                     ;get low
         JSR     GENTWO          ;call gen$two(nextaddress(2))
         LDY     #0*2            ;still word addressing
         LDA     CODESI
-        STA     (NXSTPT),Y      ;put
+        STAINDIRECTY NXSTPT     ;put
         INY
         LDA     CODESI+1        ;do high
         ORA     #$80            ;set msb
-        STA     (NXSTPT),Y      ;insert
+        STAINDIRECTY NXSTPT     ;insert
 GENNX0
         LDY     #1              ;set index to 1
-        LDA     (NXSTPT),Y      ;get nextbytev(1)
+        LDAINDIRECTY NXSTPT     ;get nextbytev(1)
         BMI     *+3             ;continue if > 127
         RTS
         CLC                     ;now add 8 to nextstmtptr
@@ -2049,11 +2058,11 @@ GENWID
         JSR     LKONLY
         BEQ     GENWIE          ;branch if false
         LDY     #3*2            ;word addressing
-        LDA     (NXSTPT),Y      ;get low
+        LDAINDIRECTY NXSTPT     ;get low
         CMP     BASE            ;compare to low base
         BNE     GENWIE          ;error if different
         INY
-        LDA     (NXSTPT),Y      ;same for high
+        LDAINDIRECTY NXSTPT     ;same for high
         CMP     BASE+1
         BNE     GENWIE
         JMP     GENNXT          ;else ok
@@ -2123,10 +2132,10 @@ PSIMP1
         STA     FORSTM          ;forstmt=false
         LDY     #3*2            ;word addressing
         LDA     BASE
-        STA     (SBTTOP),Y
+        STAINDIRECTY SBTTOP
         INY
         LDA     BASE+1
-        STA     (SBTTOP),Y      ;foraddress(3)=base
+        STAINDIRECTY SBTTOP     ;foraddress(3)=base
         RTS
 ;gen$ils
 GENILS
@@ -2141,11 +2150,11 @@ GENIL0
         STA     STRPTR          ;strptr=1
 GENIL1
         LDY     #0
-        LDA     (WHERE),Y       ;if stringtospool(0)
+        LDAINDIRECTY WHERE      ;if stringtospool(0)
         CMP     STRPTR          ;< strptr
         BCC     GENIL2          ;then
         LDY     STRPTR
-        LDA     (WHERE),Y       ;stringtospool(strptr)
+        LDAINDIRECTY WHERE      ;stringtospool(strptr)
         JSR     GENERT          ;generate
         INC     STRPTR          ;strptr=strptr+1
         JMP     GENIL1
@@ -2641,10 +2650,10 @@ PR75
 ;77	<for statement>::=<for head> to <expression> <step clause>
 PR77
         LDY     #3*2            ;word addressing
-        LDA     (SBTTOP),Y
+        LDAINDIRECTY SBTTOP
         STA     BASE
         INY
-        LDA     (SBTTOP),Y
+        LDAINDIRECTY SBTTOP
         STA     BASE+1          ;base=foraddress(3)
         LDA     TYPESP          ;if not typesp
         LSR     A
@@ -2693,38 +2702,38 @@ PR77B
         LDA     #BRC
         JSR     GENERT          ;generate(brc)
         LDY     #0*2            ;word address
-        LDA     (SBTTOP),Y
+        LDAINDIRECTY SBTTOP
         PHA
         INY
-        LDA     (SBTTOP),Y
+        LDAINDIRECTY SBTTOP
         TAY
         PLA
         JSR     GENTWO          ;gen$two(foraddress(0))
         LDY     #1*2            ;word addressing
         LDA     CODESI
-        STA     (SBTTOP),Y
+        STAINDIRECTY SBTTOP
         INY
         LDA     CODESI+1
-        STA     (SBTTOP),Y      ;foraddress(1)=codesize
+        STAINDIRECTY SBTTOP     ;foraddress(1)=codesize
         RTS
 ;78	<for head>::=<for><assignment>
 PR78
         LDA     #BRS
         JSR     GENERT          ;generate(brs)
         LDY     #1*2            ;word addressing
-        LDA     (SBTTOP),Y
+        LDAINDIRECTY SBTTOP
         PHA
         INY
-        LDA     (SBTTOP),Y
+        LDAINDIRECTY SBTTOP
         TAY
         PLA
         JSR     GENTWO          ;gen$two(foraddress(1))
         LDY     #2*2            ;word addressing
         LDA     CODESI
-        STA     (SBTTOP),Y
+        STAINDIRECTY SBTTOP
         INY
         LDA     CODESI+1
-        STA     (SBTTOP),Y      ;foraddress(2)=codesize
+        STAINDIRECTY SBTTOP     ;foraddress(2)=codesize
         RTS
 ;79	<for>::= for
 PR79
@@ -2741,9 +2750,9 @@ PR79
         STY     SBTTOP+1
         STY     NXSTPT+1        ;sbtbltop,nextstmtptr=sbtbltop-8
         LDY     #1
-        LDA     (NXSTPT),Y
+        LDAINDIRECTY NXSTPT
         AND     #$7F
-        STA     (NXSTPT),Y      ;nextbytev(1)=nextbytev(1) and $7f
+        STAINDIRECTY NXSTPT     ;nextbytev(1)=nextbytev(1) and $7f
         LDA     #0
         JSR     LIMITS          ;limits(0)
         INC     FORCNT          ;forcount=forcount+1
@@ -2755,10 +2764,10 @@ PR80
 ;81	|
 PR81
         LDY     #3*2            ;word addressing
-        LDA     (SBTTOP),Y
+        LDAINDIRECTY SBTTOP
         STA     BASE
         INY
-        LDA     (SBTTOP),Y
+        LDAINDIRECTY SBTTOP
         STA     BASE+1          ;base=foraddress(3)
         JSR     GETADR
         JSR     LITERL          ;literal(getaddr)
@@ -3246,7 +3255,7 @@ M20
         ADC     #>READ1
         STA     I2+1
         LDY     #0
-        LDA     (I2),Y          ;a=read(i)
+        LDAINDIRECTY I2         ;a=read(i)
         CMP     TOKEN           ;if not token
         BNE     M23             ;then
         LDA     VARIND          ;get varindex
@@ -3281,10 +3290,10 @@ M22
         ADC     #>READ2
         STA     I2+1            ;read2(i)
         LDY     #0
-        LDA     (I2),Y          ;low
+        LDAINDIRECTY I2         ;low
         STA     STATE
         INY
-        LDA     (I2),Y
+        LDAINDIRECTY I2
         STA     STATE+1         ;state=read2(i)
         LDA     #TRUE
         STA     NOLOOK          ;nolook=true
@@ -3376,10 +3385,10 @@ M33
         ADC     #>APPLY2
         STA     I2+1
         LDY     #0
-        LDA     (I2),Y
+        LDAINDIRECTY I2
         STA     STATE
         INY
-        LDA     (I2),Y
+        LDAINDIRECTY I2
         STA     STATE+1         ;state=apply2(i)
         ORA     STATE
         BNE     *+7             ;if not zero then
@@ -3391,7 +3400,7 @@ M40
         CMP     STATE
         LDA     #>MAXLNO
         SBC     STATE+1         ;> maxlno
-        BCC     M50             ;then go to next
+        LBCC     M50            ;then go to next
         JSR     GETIN1
         STA     I
         STY     I+1             ;i=getin1
@@ -3407,7 +3416,7 @@ M41
         ADC     #>LOOK1
         STA     I2+1
         LDY     #0
-        LDA     (I2),Y          ;a=look1(i)
+        LDAINDIRECTY I2         ;a=look1(i)
         STA     K
         BEQ     M42             ;exit if k=0
         CMP     TOKEN
@@ -3431,10 +3440,10 @@ M42
         ADC     #>LOOK2
         STA     I2+1
         LDY     #0
-        LDA     (I2),Y          ;low
+        LDAINDIRECTY I2         ;low
         STA     STATE
         INY
-        LDA     (I2),Y
+        LDAINDIRECTY I2
         STA     STATE+1
         JMP     M14
 M50

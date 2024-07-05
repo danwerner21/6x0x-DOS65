@@ -1,6 +1,6 @@
 
 all:  	assign.com alloc.com asm.com \
-	bcompile.com compare.com copy.com debug.com edit.com run.com sedit.com cpm.co6 \
+	bcompile.com bcomp816.com compare.com copy.com debug.com edit.com run.com sedit.com cpm.co6 \
 	dbasic.com dbasic816.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com clrdir.s19
 
 
@@ -20,6 +20,10 @@ alloc.out: alloc203.asm
 bcompile.out: compl203.asm
 	ca65 --cpu 6502 compl203.asm -l bcompile.lst
 	ld65 compl203.o  -m bcompile.map -C dos65.cfg -o bcompile.out
+
+bcomp816.out: compl203.asm
+	ca65 --cpu 65816 -D DUODYNE compl203.asm -l bcomp816.lst -o bcomp816.o
+	ld65 bcomp816.o  -m bcomp816.map -C dos65.cfg -o bcomp816.out
 
 asm.out: asm211.asm
 	ca65 --cpu 6502 asm211.asm -l asm.lst
@@ -105,8 +109,19 @@ bcompile.com: bcompile.out
 	srec_cat  bcompileA.s -o bcompile.com  -BINARY
 	@rm -f bcompileA.s
 	sed -i -e '$$aS9' bcompile.s19
-	cp bcompile.com ../bin/common/
-	cp bcompile.s19 ../bin/common/
+	cp bcompile.com ../bin/6x0x/
+	cp bcompile.s19 ../bin/6x0x/
+	cp bcompile.com ../bin/nhyodyne/
+	cp bcompile.s19 ../bin/nhyodyne/
+
+bcomp816.com: bcomp816.out
+	srec_cat  bcomp816.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  bcomp816.s19  -data-only
+	srec_cat  bcomp816.s19  -offset -0x0800  -o  bcomp816A.s  -data-only
+	srec_cat  bcomp816A.s -o bcomp816.com  -BINARY
+	@rm -f bcomp816A.s
+	sed -i -e '$$aS9' bcomp816.s19
+	cp bcomp816.s19 ../bin/duodyne/
+	cp bcomp816.com ../bin/duodyne/
 
 asm.com: asm.out
 	srec_cat  asm.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  asm.s19  -data-only
