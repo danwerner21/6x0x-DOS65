@@ -1,5 +1,5 @@
 
-all:  	 scrm816.hex rom816.hex dos65_d000.s19 duodos65.com
+all:  	 scrm816.hex rom816.hex dos65_d000.s19 duodos65.com emudos.bin
 
 dos65_d000.out: dos65.asm ../dos65_os/ccm215.asm ../dos65_os/pemrbc.asm ../dos65_os/simrbc.asm dosdefn.asm ../dos65_os/macro.asm dos65drv.asm dosser.asm doside.asm dosrtc.asm
 	ca65 -D DOSBEGIN=53248 -D DUODYNE  dos65.asm -l dos65_d000.lst -o dos65_d000.o
@@ -24,6 +24,8 @@ testbus.out: testbus.asm
 rom816.hex: rom816.out
 	srec_cat  rom816.out -binary -offset 0x0200 -exclude 0x0000 0xE000 -o  rom816.s19  -data-only -address-length=3
 	srec_cat  rom816.out -binary -offset 0x0200 -exclude 0x0000 0xE000 -o  rom816.hex  -intel -address-length=2
+	srec_cat  rom816.s19  -o rom816.bin  -BINARY
+	srec_cat  dos65_d000.s19 rom816.s19  -o emudos.bin  -BINARY
 	sed -i -e '$$aS8' rom816.s19
 
 scrm816.hex: scrm816.out
@@ -47,6 +49,16 @@ duodos65.com: loader.asm dos65_d000.s19a
 	@rm	dos65_loader.2
 	@rm	loader_addr0100.bin
 	@cp duodos65.com ../bin/duodyne
+
+
+emudos.bin: rom816.out dos65_d000.out
+	srec_cat  dos65_d000.out -binary -offset 0x8800  -o  dos65_d000.s19  -data-only -address-length=3
+	srec_cat  rom816.out -binary -offset 0x0200 -exclude 0x0000 0xE000 -o  rom816.s19  -data-only -address-length=3
+	srec_cat  rom816.out -binary -offset 0x0200 -exclude 0x0000 0xE000 -o  rom816.hex  -intel -address-length=2
+	srec_cat  rom816.s19  -o rom816.bin  -BINARY
+	srec_cat  dos65_d000.s19 rom816.s19  -o emudos.bin  -BINARY
+	sed -i -e '$$aS8' rom816.s19
+
 
 pretty:
 	cp *.asm ./backup

@@ -39,7 +39,7 @@ DRIVERSIZE      = DRIVEREND-DRIVERBEGIN
 ; Set Default Console
         ACCUMULATORINDEX8
         LDA     #$04
-        STA     CONSOLE
+        STA     f:DOS65DRIVERSBNK*$10000+CONSOLE
 ; Set Data Bank
         LDA     #DOS65BANK
         PHA
