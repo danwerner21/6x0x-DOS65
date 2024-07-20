@@ -3220,10 +3220,8 @@ Current file: dos65.asm
 00CBD4  2               ;zero page save block
 00CBD4  2               varblk:
 00CBD4  2               lowin:
-00CBD4  2  00 00                .WORD   0
-00CBD6  2  00 00                .WORD   0               ;save bufadd
-00CBD8  2  00 00                .WORD   0               ;save alcpnt
-00CBDA  2  00 00                .WORD   0               ;save chkpnt
+00CBD4  2  xx xx xx xx          .RES    numvar
+00CBD8  2  xx xx xx xx  
 00CBDC  2               
 00CBDC  1                       .INCLUDE "simrbc.asm"
 00CBDC  2               ;--------------------------------
@@ -3532,7 +3530,10 @@ Current file: dos65.asm
 00CE2B  2  C9 10                CMP     #$10
 00CE2D  2  D0 0E                BNE     :+              ; not SD drive
 00CE2F  2               ;SD
+00CE2F  2                       .IFDEF DUODYNE
+00CE2F  2                       .ELSE
 00CE2F  2  20 04 CF             JSR     CONVERT_SECTOR_LBA
+00CE32  2                       .ENDIF
 00CE32  2  A9 40                LDA     #64             ; sd read sector
 00CE34  2  85 32                STA     farfunct
 00CE36  2  20 F0 FF             JSR     DO_FARCALL
@@ -3542,7 +3543,10 @@ Current file: dos65.asm
 00CE3D  2  C9 20                CMP     #$20
 00CE3F  2  D0 0E                BNE     :+              ; not floppy drive
 00CE41  2               ;FD
+00CE41  2                       .IFDEF DUODYNE
+00CE41  2                       .ELSE
 00CE41  2  20 CF CF             JSR     SETUP_FD_CHS
+00CE44  2                       .ENDIF
 00CE44  2  A9 43                LDA     #67             ; floppy read sector
 00CE46  2  85 32                STA     farfunct
 00CE48  2  20 F0 FF             JSR     DO_FARCALL
@@ -3552,7 +3556,10 @@ Current file: dos65.asm
 00CE4F  2  C9 30                CMP     #$30
 00CE51  2  D0 0E                BNE     :+              ; invalid drive
 00CE53  2               ;PPIDE
+00CE53  2                       .IFDEF DUODYNE
+00CE53  2                       .ELSE
 00CE53  2  20 04 CF             JSR     CONVERT_SECTOR_LBA
+00CE56  2                       .ENDIF
 00CE56  2  A9 3D                LDA     #61             ; IDE_READ_SECTOR
 00CE58  2  85 32                STA     farfunct
 00CE5A  2  20 F0 FF             JSR     DO_FARCALL
@@ -3586,7 +3593,11 @@ Current file: dos65.asm
 00CE7F  2  C9 10                CMP     #$10
 00CE81  2  D0 15                BNE     :+              ; not SD drive
 00CE83  2               ;SD
+00CE83  2                       .IFDEF DUODYNE
+00CE83  2                       .ELSE
 00CE83  2  20 04 CF             JSR     CONVERT_SECTOR_LBA
+00CE86  2                       .ENDIF
+00CE86  2               
 00CE86  2  A9 40                LDA     #64             ;PPP_READ_SECTOR
 00CE88  2  85 32                STA     farfunct
 00CE8A  2  20 F0 FF             JSR     DO_FARCALL
@@ -3600,7 +3611,10 @@ Current file: dos65.asm
 00CE98  2  C9 20                CMP     #$20
 00CE9A  2  D0 15                BNE     :+              ; not floppy drive
 00CE9C  2               ;FD
+00CE9C  2                       .IFDEF DUODYNE
+00CE9C  2                       .ELSE
 00CE9C  2  20 CF CF             JSR     SETUP_FD_CHS
+00CE9F  2                       .ENDIF
 00CE9F  2  A9 43                LDA     #67             ; floppy read sector
 00CEA1  2  85 32                STA     farfunct
 00CEA3  2  20 F0 FF             JSR     DO_FARCALL
@@ -3613,7 +3627,11 @@ Current file: dos65.asm
 00CEB1  2  C9 30                CMP     #$30
 00CEB3  2  D0 15                BNE     :+              ; invalid drive
 00CEB5  2               ;PPIDE
+00CEB5  2                       .IFDEF DUODYNE
+00CEB5  2                       .ELSE
 00CEB5  2  20 04 CF             JSR     CONVERT_SECTOR_LBA
+00CEB8  2                       .ENDIF
+00CEB8  2               
 00CEB8  2  A9 3D                LDA     #61             ; IDE read sector
 00CEBA  2  85 32                STA     farfunct
 00CEBC  2  20 F0 FF             JSR     DO_FARCALL
@@ -3703,6 +3721,8 @@ Current file: dos65.asm
 00CF03  2               ENDOUTSTR:
 00CF03  2  60                   RTS                     ; RETURN
 00CF04  2               
+00CF04  2                       .IFDEF DUODYNE
+00CF04  2                       .ELSE
 00CF04  2               
 00CF04  2               ;___CONVERT_SECTOR_LBA___________________________________________________________________________________
 00CF04  2               ;
@@ -3840,6 +3860,8 @@ Current file: dos65.asm
 00D007  2  85 32                STA     farfunct
 00D009  2  20 F0 FF             JSR     DO_FARCALL
 00D00C  2  60                   RTS
+00D00D  2               
+00D00D  2                       .ENDIF
 00D00D  2               
 00D00D  2               
 00D00D  2               ;___DEBSECR______________________________________________________________________________________________

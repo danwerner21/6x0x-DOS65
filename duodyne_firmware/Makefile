@@ -21,11 +21,12 @@ testbus.out: testbus.asm
 	ca65   testbus.asm -l testbus.lst -o testbus.o
 	ld65 testbus.o -m testbus.map -C rom816.cfg -o testbus.out
 
-rom816.hex: rom816.out
+rom816.hex: rom816.out dos65_d000.out
+	srec_cat  dos65_d000.out -binary -offset 0x8800  -o  dos65_d000b.s19  -data-only -address-length=3
 	srec_cat  rom816.out -binary -offset 0x0200 -exclude 0x0000 0xE000 -o  rom816.s19  -data-only -address-length=3
 	srec_cat  rom816.out -binary -offset 0x0200 -exclude 0x0000 0xE000 -o  rom816.hex  -intel -address-length=2
 	srec_cat  rom816.s19  -o rom816.bin  -BINARY
-	srec_cat  dos65_d000.s19 rom816.s19  -o emudos.bin  -BINARY
+	srec_cat  dos65_d000b.s19 rom816.s19  -o emudos.bin  -BINARY
 	sed -i -e '$$aS8' rom816.s19
 
 scrm816.hex: scrm816.out
@@ -49,6 +50,8 @@ duodos65.com: loader.asm dos65_d000.s19a
 	@rm	dos65_loader.2
 	@rm	loader_addr0100.bin
 	@cp duodos65.com ../bin/duodyne
+	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img duodos65.com
+	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  duodos65.com 0:duodos65.com
 
 
 emudos.bin: rom816.out dos65_d000.out

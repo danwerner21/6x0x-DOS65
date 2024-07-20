@@ -1885,7 +1885,4 @@ cexm1f:
 ;zero page save block
 varblk:
 lowin:
-        .WORD   0
-        .WORD   0               ;save bufadd
-        .WORD   0               ;save alcpnt
-        .WORD   0               ;save chkpnt
+        .RES    numvar

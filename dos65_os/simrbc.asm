@@ -288,7 +288,10 @@ read:
         CMP     #$10
         BNE     :+              ; not SD drive
 ;SD
+        .IFDEF DUODYNE
+        .ELSE
         JSR     CONVERT_SECTOR_LBA
+        .ENDIF
         LDA     #64             ; sd read sector
         STA     farfunct
         JSR     DO_FARCALL
@@ -298,7 +301,10 @@ read:
         CMP     #$20
         BNE     :+              ; not floppy drive
 ;FD
+        .IFDEF DUODYNE
+        .ELSE
         JSR     SETUP_FD_CHS
+        .ENDIF
         LDA     #67             ; floppy read sector
         STA     farfunct
         JSR     DO_FARCALL
@@ -308,7 +314,10 @@ read:
         CMP     #$30
         BNE     :+              ; invalid drive
 ;PPIDE
+        .IFDEF DUODYNE
+        .ELSE
         JSR     CONVERT_SECTOR_LBA
+        .ENDIF
         LDA     #61             ; IDE_READ_SECTOR
         STA     farfunct
         JSR     DO_FARCALL
@@ -342,7 +351,11 @@ write:
         CMP     #$10
         BNE     :+              ; not SD drive
 ;SD
+        .IFDEF DUODYNE
+        .ELSE
         JSR     CONVERT_SECTOR_LBA
+        .ENDIF
+
         LDA     #64             ;PPP_READ_SECTOR
         STA     farfunct
         JSR     DO_FARCALL
@@ -356,7 +369,10 @@ write:
         CMP     #$20
         BNE     :+              ; not floppy drive
 ;FD
+        .IFDEF DUODYNE
+        .ELSE
         JSR     SETUP_FD_CHS
+        .ENDIF
         LDA     #67             ; floppy read sector
         STA     farfunct
         JSR     DO_FARCALL
@@ -369,7 +385,11 @@ write:
         CMP     #$30
         BNE     :+              ; invalid drive
 ;PPIDE
+        .IFDEF DUODYNE
+        .ELSE
         JSR     CONVERT_SECTOR_LBA
+        .ENDIF
+
         LDA     #61             ; IDE read sector
         STA     farfunct
         JSR     DO_FARCALL
@@ -459,6 +479,8 @@ OUTSTRLP:
 ENDOUTSTR:
         RTS                     ; RETURN
 
+        .IFDEF DUODYNE
+        .ELSE
 
 ;___CONVERT_SECTOR_LBA___________________________________________________________________________________
 ;
@@ -596,6 +618,8 @@ SETUP_FD_CHS:
         STA     farfunct
         JSR     DO_FARCALL
         RTS
+
+        .ENDIF
 
 
 ;___DEBSECR______________________________________________________________________________________________

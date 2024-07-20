@@ -18,6 +18,7 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 * Add ROM support for NHYODYNE
 * re-test entire system for both targets
 
+
 1. add dbasic docs
 1. add xmr & xms docs
 1. add FORMAT.COM docs
@@ -41,6 +42,9 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. sedit does not paint properly on console (colors)
 1. DSKY GETKEY DISPLAY BUG
 1. POSSIBLE? FD0 Software bug (fd1 works fine . . )
+1. Duodyne basic compiler issues (problem with string literals)
+1. duodyne basic run time fails
+1. sedit needs to be terminal independent and has bugs
 
 ---
 

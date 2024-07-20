@@ -59,7 +59,7 @@ addinp          = $02           ;initialized to a,y
 bufadd          = $04           ;buffer address
 alcpnt          = $06           ;allocation map pointer
 chkpnt          = $08           ;checksum map pointer
-numvar          = 8             ;eight bytes
+numvar          = $50           ;RESERVED ZERO PAGE SPACE
 
 
 msgptr          = chkpnt+2      ;message pointer

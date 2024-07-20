@@ -792,7 +792,11 @@ PUTACC
         INC     ACCLEN          ;bump length
         LDX     ACCLEN          ;get it as index
         LDA     NXTCHR          ;get next
+        .IFDEF  DUODYNE
+        STA     F:ACCUM,X         ;store it
+        .ELSE
         STA     ACCUM,X         ;store it
+        .ENDIF
         CLC                     ;clear carry
         ADC     HSHCDE          ;add hashcde
         AND     #HSHMSK         ;mask it
@@ -1037,8 +1041,10 @@ COMPA0
         .IFDEF DUODYNE
         PHX
         TYX
-        CMP     ACCUM,X         ;compare field(i) to accum(i=i+1)
+        STA     TMPFLG
+        LDA     F:ACCUM,X         ;compare field(i) to accum(i=i+1)
         PLX
+        CMP     TMPFLG
         .ELSE
         CMP     ACCUM,Y         ;compare field(i) to accum(i=i+1)
         .ENDIF
@@ -2189,7 +2195,11 @@ GENCO1
         CMP     IGEN            ;if igen>acclen
         BCC     GENCO2          ;then
         LDX     IGEN
-        LDA     ACCUM,X
+        .IFDEF  DUODYNE
+        STA     F:ACCUM,X         ;store it
+        .ELSE
+        STA     ACCUM,X         ;store it
+        .ENDIF
         JSR     EMITCN          ;emitcon(accum(i))
         INC     IGEN            ;i=i+1
         JMP     GENCO1
@@ -3171,7 +3181,11 @@ MAIN
         LDX     #2              ;clear page zero
         LDA     #0
 PZC
+        .IFDEF   DUODYNE
+        STA     f:0,X
+        .ELSE
         STA     0,X
+        .ENDIF
         INX
         CPX     #LZ
         BNE     PZC
@@ -3257,14 +3271,18 @@ M20
         LDY     #0
         LDAINDIRECTY I2         ;a=read(i)
         CMP     TOKEN           ;if not token
-        BNE     M23             ;then
+        LBNE    M23             ;then
         LDA     VARIND          ;get varindex
         LDX     SP
         STA     VAR,X           ;set var(sp)
         LDX     #0
         STX     INDEX           ;index=0
 M22
-        LDA     ACCUM,X         ;accum(index)
+        .IFDEF  DUODYNE
+        STA     F:ACCUM,X         ;store it
+        .ELSE
+        STA     ACCUM,X         ;store it
+        .ENDIF
         JSR     STVRCI
         INC     INDEX           ;index=index+1
         LDX     INDEX
