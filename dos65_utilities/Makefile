@@ -12,6 +12,7 @@ assign.com: assign.c
 	cp assign.com ../bin/common/
 	sed -i -e '$$aS9' assign.s19
 	cp assign.s19 ../bin/common/
+	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  assign.com 0:assign.co6
 
 alloc.out: alloc203.asm
 	ca65 --cpu 6502 alloc203.asm -l alloc.lst
