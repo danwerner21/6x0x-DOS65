@@ -10,7 +10,7 @@ YSIZE           = 24            ; Y-SIZE OF SCREEN
 
 EOL             = $0D           ; EOL CHAR
 SPACE           = $20           ; SPACE CHAR
-BACKSP          = $14           ; BACKSPACE
+BACKSP          = $08           ; BACKSPACE
 
 DFLFCB          = $107          ;DEFAULT FCB
 PEM             = $103          ;PEM ENTRY

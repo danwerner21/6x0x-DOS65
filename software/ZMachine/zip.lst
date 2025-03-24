@@ -207,7 +207,7 @@ Current file: zip.asm
 000803  2               
 000803  2               EOL             = $0D           ; EOL CHAR
 000803  2               SPACE           = $20           ; SPACE CHAR
-000803  2               BACKSP          = $14           ; BACKSPACE
+000803  2               BACKSP          = $08           ; BACKSPACE
 000803  2               
 000803  2               DFLFCB          = $107          ;DEFAULT FCB
 000803  2               PEM             = $103          ;PEM ENTRY
@@ -238,7 +238,7 @@ Current file: zip.asm
 000E00  2               
 000E00  2               COLD:
 000E00  2  A9 00                LDA     #0
-000E02  2  8D 4A 21             STA     SFLAG           ; NO PREVIOUS SCRIPTING (BM 5/14/85)
+000E02  2  8D 52 21             STA     SFLAG           ; NO PREVIOUS SCRIPTING (BM 5/14/85)
 000E05  2  4C 21 0E             JMP     WARM1
 000E08  2               
 000E08  2               ; ---------------
@@ -257,18 +257,18 @@ Current file: zip.asm
 000E22  2               ;  LDX     #$FF  (Dont do this for Duodyne . . . . .)
 000E22  2               ;  TXS                     ; RESET MACHINE STACK
 000E22  2               
-000E22  2  20 CC 21             JSR     CLS             ; CLEAR SCREEN, ETC.
+000E22  2  20 D4 21             JSR     CLS             ; CLEAR SCREEN, ETC.
 000E25  2               
 000E25  2  A0 08                LDY     #8              ; POSITION "STORY LOADING" MESSAGE
 000E27  2  A2 0B                LDX     #11             ; AT (8,11)
 000E29  2  18                   CLC
-000E2A  2  20 86 21             JSR     PLOT
+000E2A  2  20 8E 21             JSR     PLOT
 000E2D  2               
 000E2D  2  A2 08                LDX     #<SLOAD
 000E2F  2  A9 0E                LDA     #>SLOAD
 000E31  2  A0 19                LDY     #SLOADL
-000E33  2  20 37 21             JSR     DLINE           ; "THE STORY IS LOADING ..."
-000E36  2  20 FA 26             JSR     DOPEN           ; AND OPEN THE STORY
+000E33  2  20 3F 21             JSR     DLINE           ; "THE STORY IS LOADING ..."
+000E36  2  20 03 26             JSR     DOPEN           ; AND OPEN THE STORY
 000E39  2               
 000E39  2               
 000E39  2               ; FALL THROUGH TO ZIP WARMSTART AT "WARM2"
@@ -347,7 +347,7 @@ Current file: zip.asm
 000E95  2  A9 2B                LDA     #>ZBEGIN        ; MSB OF PRELOAD START ADDRESS
 000E97  2  85 83                STA     ZCODE           ; FREEZE IT HERE
 000E99  2  85 D0                STA     DBUFF+HI        ; LSB IS ALWAYS ZERO
-000E9B  2  20 13 22             JSR     GETDSK          ; [DBLOCK] SET TO Z-BLOCK 0
+000E9B  2  20 1B 22             JSR     GETDSK          ; [DBLOCK] SET TO Z-BLOCK 0
 000E9E  2               
 000E9E  2               ; EXTRACT GAME DATA FROM Z-CODE HEADER
 000E9E  2               
@@ -420,7 +420,7 @@ Current file: zip.asm
 000F01  2  A5 CD                LDA     DBLOCK+LO       ; CHECK CURRENT BLOCK #
 000F03  2  C5 84                CMP     ZPURE           ; LOADED LAST PRELOAD PAGE YET?
 000F05  2  B0 06                BCS     WARMEX          ; YES, TIME TO PLAY!
-000F07  2  20 13 22             JSR     GETDSK          ; ELSE GRAB NEXT Z-BLOCK
+000F07  2  20 1B 22             JSR     GETDSK          ; ELSE GRAB NEXT Z-BLOCK
 000F0A  2  4C 01 0F             JMP     LDPRE
 000F0D  2               
 000F0D  2               WARMEX:
@@ -431,10 +431,10 @@ Current file: zip.asm
 000F17  2               
 000F17  2  E6 BF                INC     SCRIPT          ; ENABLE SCRIPTING
 000F19  2  AD 11 2B             LDA     ZBEGIN+ZSCRIP+1 ; STUFF IN THE
-000F1C  2  0D 4A 21             ORA     SFLAG           ; PREVIOUS SCRIPT MODE
+000F1C  2  0D 52 21             ORA     SFLAG           ; PREVIOUS SCRIPT MODE
 000F1F  2  8D 11 2B             STA     ZBEGIN+ZSCRIP+1 ; (BM 5/14/85)
 000F22  2               
-000F22  2  20 CC 21             JSR     CLS             ; CLEAR SCREEN, DISABLE SPLIT
+000F22  2  20 D4 21             JSR     CLS             ; CLEAR SCREEN, DISABLE SPLIT
 000F25  2               
 000F25  2               ; ... AND FALL INTO MAIN LOOP
 000F25  2               
@@ -1071,8 +1071,8 @@ Current file: zip.asm
 00118F  2  20 12                .WORD   ZPRI            ; 2
 001191  2  3D 12                .WORD   ZPRR            ; 3
 001193  2  6E 11                .WORD   ZNOOP           ; 4
-001195  2  81 24                .WORD   ZSAVE           ; 5
-001197  2  1C 25                .WORD   ZREST           ; 6
+001195  2  14 23                .WORD   ZSAVE           ; 5
+001197  2  30 24                .WORD   ZREST           ; 6
 001199  2  F0 1D                .WORD   ZSTART          ; 7
 00119B  2  46 12                .WORD   ZRSTAK          ; 8
 00119D  2  75 10                .WORD   POPVAL          ; 9
@@ -1149,8 +1149,8 @@ Current file: zip.asm
 001207  2  FB 17                .WORD   ZRAND           ; 7
 001209  2  1D 18                .WORD   ZPUSH           ; 8
 00120B  2  24 18                .WORD   ZPOP            ; 9
-00120D  2  7C 21                .WORD   ZSPLIT          ; 10
-00120F  2  7D 21                .WORD   ZSCRN           ; 11
+00120D  2  84 21                .WORD   ZSPLIT          ; 10
+00120F  2  85 21                .WORD   ZSCRN           ; 11
 001211  2               
 001211  2               NOPSX           = 12            ; NUMBER OF X-OPS
 001211  2               
@@ -2724,7 +2724,7 @@ Current file: zip.asm
 001839  2  65 83                ADC     ZCODE
 00183B  2  85 65                STA     ARG2+HI
 00183D  2               
-00183D  2  20 E1 20             JSR     INPUT           ; READ LINE; RETURN LENGTH IN [A]
+00183D  2  20 E9 20             JSR     INPUT           ; READ LINE; RETURN LENGTH IN [A]
 001840  2  85 A2                STA     LINLEN          ; SAVE # CHARS IN LINE
 001842  2               
 001842  2  A9 00                LDA     #0
@@ -3196,7 +3196,7 @@ Current file: zip.asm
 001A4A  2  65 85                ADC     PAGE0           ; CALC ABS ADDR OF BUFFER
 001A4C  2  85 D0                STA     DBUFF+HI        ; GIVE IT TO ZDOS
 001A4E  2               
-001A4E  2  20 13 22             JSR     GETDSK          ; SWAP IN THE NEW PAGE
+001A4E  2  20 1B 22             JSR     GETDSK          ; SWAP IN THE NEW PAGE
 001A51  2  B0 36                BCS     DSKERR          ; ERROR IF CARRY SET
 001A53  2               
 001A53  2               ; UPDATE THE TIMESTAMP
@@ -4007,7 +4007,7 @@ Current file: zip.asm
 001DB1  2               ZERROR:
 001DB1  2  A0 01                LDY     #1              ; CONVERT ERROR BYTE IN [A]
 001DB3  2               ECON:
-001DB3  2  20 0C 27             JSR     DIV10           ; TO ASCII DECIMAL IN [ENUMB]
+001DB3  2  20 15 26             JSR     DIV10           ; TO ASCII DECIMAL IN [ENUMB]
 001DB6  2  09 30                ORA     #'0'
 001DB8  2  99 AE 1D             STA     ENUMB,Y
 001DBB  2  8A                   TXA
@@ -4021,7 +4021,7 @@ Current file: zip.asm
 001DC6  2  A2 9F                LDX     #<ERRM
 001DC8  2  A9 1D                LDA     #>ERRM
 001DCA  2  A0 12                LDY     #ERRML
-001DCC  2  20 37 21             JSR     DLINE
+001DCC  2  20 3F 21             JSR     DLINE
 001DCF  2               
 001DCF  2               ; FALL THROUGH ...
 001DCF  2               
@@ -4035,7 +4035,7 @@ Current file: zip.asm
 001DD2  2  A2 E0                LDX     #<TOQ
 001DD4  2  A9 1D                LDA     #>TOQ
 001DD6  2  A0 10                LDY     #TOQL
-001DD8  2  20 37 21             JSR     DLINE           ; "END OF STORY"
+001DD8  2  20 3F 21             JSR     DLINE           ; "END OF STORY"
 001DDB  2  A2 00                LDX     #0
 001DDD  2  4C 03 01             JMP     PEM
 001DE0  2               
@@ -4055,7 +4055,7 @@ Current file: zip.asm
 001DF3  2               
 001DF3  2  AD 11 2B             LDA     ZBEGIN+ZSCRIP+1 ; SAVE SCRIPT STATE
 001DF6  2  29 01                AND     #%00000001      ; FOR LATER
-001DF8  2  8D 4A 21             STA     SFLAG           ; (BM 5/14/85)
+001DF8  2  8D 52 21             STA     SFLAG           ; (BM 5/14/85)
 001DFB  2               
 001DFB  2  4C 21 0E             JMP     WARM1           ; AND DO A WARMSTART
 001DFE  2               
@@ -4076,7 +4076,7 @@ Current file: zip.asm
 001E12  2  A2 FE                LDX     #<VERS
 001E14  2  A9 1D                LDA     #>VERS
 001E16  2  A0 11                LDY     #VERSL
-001E18  2  4C 37 21             JMP     DLINE
+001E18  2  4C 3F 21             JMP     DLINE
 001E1B  2               
 001E1B  2               ; --------------------------
 001E1B  2               ; RETURN TOP RAM PAGE IN [A]
@@ -4218,18 +4218,18 @@ Current file: zip.asm
 001EDB  2               
 001EDB  2  A9 00                LDA     #0
 001EDD  2  85 C2                STA     LINCNT          ; RESET LINE COUNTER
-001EDF  2  20 E9 21             JSR     BOLD
+001EDF  2  20 F1 21             JSR     BOLD
 001EE2  2  A2 1D                LDX     #<MORE
 001EE4  2  A9 1F                LDA     #>MORE
 001EE6  2  A0 06                LDY     #MOREL
-001EE8  2  20 37 21             JSR     DLINE           ; PRINT "MORE" DIRECTLY
-001EEB  2  20 F7 21             JSR     UNBOLD
+001EE8  2  20 3F 21             JSR     DLINE           ; PRINT "MORE" DIRECTLY
+001EEB  2  20 FF 21             JSR     UNBOLD
 001EEE  2               ZCR0:
 001EEE  2  20 88 20             JSR     GETKEY          ; GET KEYPRESS
 001EF1  2  A2 23                LDX     #<MCLR
 001EF3  2  A9 1F                LDA     #>MCLR
 001EF5  2  A0 12                LDY     #MCLRL
-001EF7  2  20 37 21             JSR     DLINE           ; RUB OUT "MORE"
+001EF7  2  20 3F 21             JSR     DLINE           ; RUB OUT "MORE"
 001EFA  2               
 001EFA  2               CR1:
 001EFA  2  A6 BD                LDX     LENGTH
@@ -4245,12 +4245,12 @@ Current file: zip.asm
 001F09  2  A2 00                LDX     #0              ; SEND CONTENTS OF [LBUFF]
 001F0B  2               LOUT:
 001F0B  2  BD 00 07             LDA     LBUFF,X         ; TO SCREEN
-001F0E  2  20 BE 20             JSR     CHAR
+001F0E  2  20 C6 20             JSR     CHAR
 001F11  2  E8                   INX
 001F12  2  88                   DEY
 001F13  2  D0 F6                BNE     LOUT
 001F15  2               
-001F15  2  20 4B 21             JSR     PPRINT          ; PRINT [LBUFF] IF ENABLED
+001F15  2  20 53 21             JSR     PPRINT          ; PRINT [LBUFF] IF ENABLED
 001F18  2               
 001F18  2               LINEX:
 001F18  2  A9 00                LDA     #0              ; RESET LINE LENGTH
@@ -4317,10 +4317,10 @@ Current file: zip.asm
 001F70  2  A9 00                LDA     #0
 001F72  2  85 BD                STA     LENGTH          ; RESET LINE LENGTH
 001F74  2  85 BF                STA     SCRIPT          ; DISABLE SCRIPTING
-001F76  2  20 05 22             JSR     REVERSE
+001F76  2  20 0D 22             JSR     REVERSE
 001F79  2  A2 00                LDX     #0
-001F7B  2  A0 00                LDy     #0
-001F7D  2  20 86 21             JSR     PLOT
+001F7B  2  A0 00                LDY     #0
+001F7D  2  20 8E 21             JSR     PLOT
 001F80  2               ;
 001F80  2               ; PRINT ROOM DESCRIPTION
 001F80  2               ;
@@ -4480,17 +4480,17 @@ Current file: zip.asm
 002071  2  68                   PLA
 002072  2  85 BD                STA     LENGTH
 002074  2               
-002074  2  A2 00                LDX     #0            ; RESTORE CURSOR
+002074  2  A2 00                LDX     #0              ; RESTORE CURSOR
 002076  2  A0 18                LDY     #YSIZE
 002078  2  18                   CLC
-002079  2  20 86 21             JSR     PLOT
+002079  2  20 8E 21             JSR     PLOT
 00207C  2               ;
 00207C  2  A2 FF                LDX     #$FF
 00207E  2  86 BF                STX     SCRIPT          ; RE-ENABLE SCRIPTING
 002080  2  E8                   INX                     ; = 0
 002081  2  86 7F                STX     MPCFLG          ; INVALIDATE [MPC]
 002083  2  E8                   INX                     ; = 1
-002084  2  20 F7 21             JSR     UNBOLD
+002084  2  20 FF 21             JSR     UNBOLD
 002087  2  60                   RTS
 002088  2               
 002088  1                       .INCLUDE "machine.asm"
@@ -4515,1223 +4515,959 @@ Current file: zip.asm
 002093  2  F0 F7                BEQ     GKEY1           ; NOT IF CODE WAS ZERO
 002095  2               
 002095  2  C9 0D                CMP     #EOL            ; EOL?
-002097  2  F0 1C                BEQ     GOODKEY
-002099  2  C9 14                CMP     #BACKSP         ; BACKSPACE?
-00209B  2  F0 18                BEQ     GOODKEY
+002097  2  F0 24                BEQ     GOODKEY
+002099  2  C9 08                CMP     #BACKSP         ; BACKSPACE?
+00209B  2  F0 20                BEQ     GOODKEY
 00209D  2  C9 20                CMP     #SPACE          ; ANYTHING ELSE < "SPACE"
-00209F  2  90 0E                BCC     BADKEY          ; IS BAD
+00209F  2  90 16                BCC     BADKEY          ; IS BAD
 0020A1  2               
 0020A1  2  C9 7B                CMP     #'z'+1
-0020A3  2  B0 0A                BCS     BADKEY
-0020A5  2  C9 61                CMP     #'a'            ; TO ASCII LOWER CASE
-0020A7  2  90 0C                BCC     GOODKEY
-0020A9  2  38                   SEC
-0020AA  2  E9 20                SBC     #$20
-0020AC  2  4C B5 20             JMP     GOODKEY
-0020AF  2               
-0020AF  2               BADKEY:
-0020AF  2  20 7E 21             JSR     BOOP            ; REJECT BAD KEYPRESS
-0020B2  2  4C 8C 20             JMP     GKEY1           ; AND TRY AGAIN
-0020B5  2               
-0020B5  2               GOODKEY:
-0020B5  2  85 C4                STA     IOCHAR          ; SAVE KEYCODE HERE
-0020B7  2  68                   PLA                     ; RESTORE [X] & [Y]
-0020B8  2  A8                   TAY
-0020B9  2  68                   PLA
-0020BA  2  AA                   TAX
-0020BB  2  A5 C4                LDA     IOCHAR          ; GET KEYCODE HERE
+0020A3  2  B0 12                BCS     BADKEY
+0020A5  2  C9 61                CMP     #'a'
+0020A7  2  B0 14                BCS     GOODKEY
+0020A9  2               
+0020A9  2  C9 41                CMP     #'A'            ; TO ASCII LOWER CASE
+0020AB  2  90 10                BCC     GOODKEY
+0020AD  2  C9 5B                CMP     #'Z'+1
+0020AF  2  B0 06                BCS     BADKEY
+0020B1  2  18                   CLC
+0020B2  2  69 20                ADC     #$20
+0020B4  2  4C BD 20             JMP     GOODKEY
+0020B7  2               
+0020B7  2               BADKEY:
+0020B7  2  20 86 21             JSR     BOOP            ; REJECT BAD KEYPRESS
+0020BA  2  4C 8C 20             JMP     GKEY1           ; AND TRY AGAIN
 0020BD  2               
-0020BD  2  60                   RTS
-0020BE  2               
-0020BE  2               ; -------------------------
-0020BE  2               ; OUTPUT AN ASCII CHARACTER
-0020BE  2               ; -------------------------
-0020BE  2               CHAR:
-0020BE  2               LETTER:
-0020BE  2  85 C4                STA     IOCHAR          ; SAVE HERE
-0020C0  2  48                   PHA                     ; SAVE [A]
-0020C1  2  8A                   TXA                     ; SAVE [X] & [Y]
-0020C2  2  48                   PHA
-0020C3  2  98                   TYA
-0020C4  2  48                   PHA
-0020C5  2  A5 C4                LDA     IOCHAR
-0020C7  2  C9 0D                CMP     #13
-0020C9  2  D0 0B                BNE     :+
-0020CB  2  E6 C2                INC     LINCNT
-0020CD  2  A9 0A                LDA     #10             ;  IS A CR, SO ADD A LF
-0020CF  2  A2 02                LDX     #2              ;
-0020D1  2  20 03 01             JSR     PEM             ;
-0020D4  2  A9 0D                LDA     #13
-0020D6  2               :
-0020D6  2  A2 02                LDX     #2              ;  OUTPUT CHAR FROM [A]
-0020D8  2  20 03 01             JSR     PEM             ;
-0020DB  2               
-0020DB  2  68                   PLA                     ; RESTORE [X] & [Y]
-0020DC  2  A8                   TAY
-0020DD  2  68                   PLA
-0020DE  2  AA                   TAX
-0020DF  2  68                   PLA
-0020E0  2  60                   RTS
-0020E1  2               
-0020E1  2               
-0020E1  2               
-0020E1  2               ; ---------------------
-0020E1  2               ; FETCH A LINE OF INPUT
-0020E1  2               ; ---------------------
-0020E1  2               
-0020E1  2               ; ENTRY: ABS ADDR OF READ BUFFER IN [ARG1]
-0020E1  2               ; EXIT: # CHARS READ IN [A]
-0020E1  2               
-0020E1  2               INPUT:
-0020E1  2  20 03 1F             JSR     LINOUT          ; FLUSH [LBUFF]
-0020E4  2               
-0020E4  2  20 CC 22             JSR     CURSON          ; ACTIVATE CURSOR, CLEAR KEY QUEUE
-0020E7  2               
-0020E7  2  A0 00                LDY     #0
-0020E9  2  84 C2                STY     LINCNT          ; RESET LINE COUNT
-0020EB  2               
-0020EB  2               INLOOP:
-0020EB  2  20 88 20             JSR     GETKEY          ; GET ASCII INTO [A] AND [IOCHAR]
-0020EE  2               
-0020EE  2  C9 0D                CMP     #EOL            ; EOL?
-0020F0  2  F0 2A                BEQ     ENDLIN          ; LINE DONE IF SO
-0020F2  2  C9 14                CMP     #BACKSP         ; BACKSPACE?
-0020F4  2  F0 1C                BEQ     BACKUP          ; SPECIAL HANDLING
+0020BD  2               GOODKEY:
+0020BD  2  85 C4                STA     IOCHAR          ; SAVE KEYCODE HERE
+0020BF  2  68                   PLA                     ; RESTORE [X] & [Y]
+0020C0  2  A8                   TAY
+0020C1  2  68                   PLA
+0020C2  2  AA                   TAX
+0020C3  2  A5 C4                LDA     IOCHAR          ; GET KEYCODE HERE
+0020C5  2               
+0020C5  2  60                   RTS
+0020C6  2               
+0020C6  2               ; -------------------------
+0020C6  2               ; OUTPUT AN ASCII CHARACTER
+0020C6  2               ; -------------------------
+0020C6  2               CHAR:
+0020C6  2               LETTER:
+0020C6  2  85 C4                STA     IOCHAR          ; SAVE HERE
+0020C8  2  48                   PHA                     ; SAVE [A]
+0020C9  2  8A                   TXA                     ; SAVE [X] & [Y]
+0020CA  2  48                   PHA
+0020CB  2  98                   TYA
+0020CC  2  48                   PHA
+0020CD  2  A5 C4                LDA     IOCHAR
+0020CF  2  C9 0D                CMP     #13
+0020D1  2  D0 0B                BNE     :+
+0020D3  2  E6 C2                INC     LINCNT
+0020D5  2  A9 0A                LDA     #10             ;  IS A CR, SO ADD A LF
+0020D7  2  A2 02                LDX     #2              ;
+0020D9  2  20 03 01             JSR     PEM             ;
+0020DC  2  A9 0D                LDA     #13
+0020DE  2               :
+0020DE  2  A2 02                LDX     #2              ;  OUTPUT CHAR FROM [A]
+0020E0  2  20 03 01             JSR     PEM             ;
+0020E3  2               
+0020E3  2  68                   PLA                     ; RESTORE [X] & [Y]
+0020E4  2  A8                   TAY
+0020E5  2  68                   PLA
+0020E6  2  AA                   TAX
+0020E7  2  68                   PLA
+0020E8  2  60                   RTS
+0020E9  2               
+0020E9  2               
+0020E9  2               
+0020E9  2               ; ---------------------
+0020E9  2               ; FETCH A LINE OF INPUT
+0020E9  2               ; ---------------------
+0020E9  2               
+0020E9  2               ; ENTRY: ABS ADDR OF READ BUFFER IN [ARG1]
+0020E9  2               ; EXIT: # CHARS READ IN [A]
+0020E9  2               
+0020E9  2               INPUT:
+0020E9  2  20 03 1F             JSR     LINOUT          ; FLUSH [LBUFF]
+0020EC  2               
+0020EC  2  20 C1 22             JSR     CURSON          ; ACTIVATE CURSOR, CLEAR KEY QUEUE
+0020EF  2               
+0020EF  2  A0 00                LDY     #0
+0020F1  2  84 C2                STY     LINCNT          ; RESET LINE COUNT
+0020F3  2               
+0020F3  2               INLOOP:
+0020F3  2  20 88 20             JSR     GETKEY          ; GET ASCII INTO [A] AND [IOCHAR]
 0020F6  2               
-0020F6  2  99 00 07             STA     LBUFF,Y         ; ELSE ADD CHAR TO INPUT BUFFER
-0020F9  2  C8                   INY                     ; NEXT POSITION IN LINE
-0020FA  2               
-0020FA  2               SHOWIT:
-0020FA  2  20 BE 20             JSR     CHAR            ; SEND TO SCREEN
-0020FD  2               
-0020FD  2  C0 4D                CPY     #77             ; 2 SCREEN LINES FULL?
-0020FF  2  90 EA                BCC     INLOOP          ; NO, GET ANOTHER CHAR
-002101  2               
-002101  2               ; HANDLE LINE OVERFLOW
-002101  2               
-002101  2               NOMORE:
-002101  2  20 88 20             JSR     GETKEY
-002104  2  C9 0D                CMP     #EOL            ; IF EOL,
-002106  2  F0 14                BEQ     ENDLIN          ; WRAP UP THE LINE
-002108  2  C9 14                CMP     #BACKSP         ; BACKSPACE
-00210A  2  F0 06                BEQ     BACKUP          ; IS OKAY TOO
-00210C  2  20 7E 21             JSR     BOOP            ; ELSE COMPLAIN
-00210F  2  4C 01 21             JMP     NOMORE          ; AND INSIST
-002112  2               
-002112  2               ; HANDLE BACKSPACE
-002112  2               
-002112  2               BACKUP:
-002112  2  88                   DEY                     ; BACK UP THE POINTER
-002113  2  10 E5                BPL     SHOWIT          ; SEND BS IF NOT START OF LINE
-002115  2  20 7E 21             JSR     BOOP            ; ELSE SCREAM WITH PAIN
-002118  2  A0 00                LDY     #0              ; RESET POINTER
-00211A  2  F0 CF                BEQ     INLOOP          ; AND WAIT FOR SOMETHING BETTER
-00211C  2               
-00211C  2               ; HANDLE END OF LINE
-00211C  2               
-00211C  2               ENDLIN:
-00211C  2  99 00 07             STA     LBUFF,Y         ; SHIP EOL TO BUFFER
-00211F  2  C8                   INY                     ; UPDATE INDEX
-002120  2  84 A2                STY     LINLEN          ; SAVE HERE FOR "READ"
-002122  2  84 CC                STY     PRLEN           ; AND HERE FOR "PPRINT"
-002124  2  A2 00                LDX     #0
-002126  2  20 BE 20             JSR     CHAR            ; AND SEND EOL TO SCREEN
-002129  2               
-002129  2               ; MOVE [LBUFF] TO [ARG1] W/LC CONVERSION
-002129  2               
-002129  2               LEX1:
-002129  2  B9 FF 06             LDA     LBUFF-1,Y       ; GET A CHAR FROM [LBUFF]
-00212C  2  91 62                STA     (ARG1),Y        ; MOVE CHAR TO INPUT BUFFER AT [ARG1]
-00212E  2  88                   DEY                     ; LOOP TILL
-00212F  2  D0 F8                BNE     LEX1            ; ALL CHARS MOVED ("BNE" 8/14/85 BM)
+0020F6  2  C9 0D                CMP     #EOL            ; EOL?
+0020F8  2  F0 2A                BEQ     ENDLIN          ; LINE DONE IF SO
+0020FA  2  C9 08                CMP     #BACKSP         ; BACKSPACE?
+0020FC  2  F0 1C                BEQ     BACKUP          ; SPECIAL HANDLING
+0020FE  2               
+0020FE  2  99 00 07             STA     LBUFF,Y         ; ELSE ADD CHAR TO INPUT BUFFER
+002101  2  C8                   INY                     ; NEXT POSITION IN LINE
+002102  2               
+002102  2               SHOWIT:
+002102  2  20 C6 20             JSR     CHAR            ; SEND TO SCREEN
+002105  2               
+002105  2  C0 4D                CPY     #77             ; 2 SCREEN LINES FULL?
+002107  2  90 EA                BCC     INLOOP          ; NO, GET ANOTHER CHAR
+002109  2               
+002109  2               ; HANDLE LINE OVERFLOW
+002109  2               
+002109  2               NOMORE:
+002109  2  20 88 20             JSR     GETKEY
+00210C  2  C9 0D                CMP     #EOL            ; IF EOL,
+00210E  2  F0 14                BEQ     ENDLIN          ; WRAP UP THE LINE
+002110  2  C9 08                CMP     #BACKSP         ; BACKSPACE
+002112  2  F0 06                BEQ     BACKUP          ; IS OKAY TOO
+002114  2  20 86 21             JSR     BOOP            ; ELSE COMPLAIN
+002117  2  4C 09 21             JMP     NOMORE          ; AND INSIST
+00211A  2               
+00211A  2               ; HANDLE BACKSPACE
+00211A  2               
+00211A  2               BACKUP:
+00211A  2  88                   DEY                     ; BACK UP THE POINTER
+00211B  2  10 E5                BPL     SHOWIT          ; SEND BS IF NOT START OF LINE
+00211D  2  20 86 21             JSR     BOOP            ; ELSE SCREAM WITH PAIN
+002120  2  A0 00                LDY     #0              ; RESET POINTER
+002122  2  F0 CF                BEQ     INLOOP          ; AND WAIT FOR SOMETHING BETTER
+002124  2               
+002124  2               ; HANDLE END OF LINE
+002124  2               
+002124  2               ENDLIN:
+002124  2  99 00 07             STA     LBUFF,Y         ; SHIP EOL TO BUFFER
+002127  2  C8                   INY                     ; UPDATE INDEX
+002128  2  84 A2                STY     LINLEN          ; SAVE HERE FOR "READ"
+00212A  2  84 CC                STY     PRLEN           ; AND HERE FOR "PPRINT"
+00212C  2  A2 00                LDX     #0
+00212E  2  20 C6 20             JSR     CHAR            ; AND SEND EOL TO SCREEN
 002131  2               
-002131  2  20 4B 21             JSR     PPRINT          ; SCRIPT [LBUFF] IF ENABLED
-002134  2               
-002134  2  A5 A2                LDA     LINLEN          ; RESTORE # CHARS
-002136  2  60                   RTS                     ; INTO [A]
-002137  2               
-002137  2               ; -----------------------
-002137  2               ; DIRECT PRINT LINE [X/A]
-002137  2               ; -----------------------
-002137  2               
-002137  2               ; ENTRY: STRING ADDRESS IN [X/A] (LSB/MSB)
-002137  2               ;        STRING LENGTH IN [Y]
-002137  2               
-002137  2               DLINE:
-002137  2  8E 40 21             STX     STRING+LO       ; DROP STRING ADDRESS
-00213A  2  8D 41 21             STA     STRING+HI       ; INTO DUMMY BYTES
-00213D  2               
-00213D  2  A2 00                LDX     #0              ; INIT CHAR-FETCH INDEX
+002131  2               ; MOVE [LBUFF] TO [ARG1] W/LC CONVERSION
+002131  2               
+002131  2               LEX1:
+002131  2  B9 FF 06             LDA     LBUFF-1,Y       ; GET A CHAR FROM [LBUFF]
+002134  2  91 62                STA     (ARG1),Y        ; MOVE CHAR TO INPUT BUFFER AT [ARG1]
+002136  2  88                   DEY                     ; LOOP TILL
+002137  2  D0 F8                BNE     LEX1            ; ALL CHARS MOVED ("BNE" 8/14/85 BM)
+002139  2               
+002139  2  20 53 21             JSR     PPRINT          ; SCRIPT [LBUFF] IF ENABLED
+00213C  2               
+00213C  2  A5 A2                LDA     LINLEN          ; RESTORE # CHARS
+00213E  2  60                   RTS                     ; INTO [A]
 00213F  2               
-00213F  2               DOUT:
-00213F  2  BD                   .BYTE   $BD             ; 6502 "LDA nnnn,X" OPCODE
-002140  2               STRING:
-002140  2  00 00                .WORD   $0000           ; DUMMY OPERAND BYTES
-002142  2  20 BE 20             JSR     CHAR
-002145  2  E8                   INX
-002146  2  88                   DEY                     ; LOOP TILL
-002147  2  D0 F6                BNE     DOUT            ; OUT OF CHARS
-002149  2  60                   RTS
-00214A  2               
-00214A  2               ; -----------------------
-00214A  2               ; SEND [LBUFF] TO PRINTER
-00214A  2               ; -----------------------
-00214A  2               
-00214A  2               ; ENTRY: LENTH OF LINE IN [PRLEN]
-00214A  2               ; NOW WITH IMPROVED ERROR PROTECTION! (BM 11/24/84)
-00214A  2               
-00214A  2               SFLAG:
-00214A  2  00                   .BYTE   0               ; PREVIOUS SCRIPT MODE (BM 5/14/85)
-00214B  2               
-00214B  2               PPRINT:
-00214B  2  A5 BF                LDA     SCRIPT          ; SCRIPTING INTERNALLY ENABLED?
-00214D  2  F0 2C                BEQ     PEX             ; NO, SCRAM IMMEDIATELY
-00214F  2               
-00214F  2  AD 11 2B             LDA     ZBEGIN+ZSCRIP+1 ; CHECK SCRIPT FLAG
-002152  2  29 01                AND     #%00000001      ; SCRIPTING ON?
-002154  2  F0 1B                BEQ     PP3             ; NO, CHECK FOR "UNSCRIPT"
-002156  2               
-002156  2  A5 CB                LDA     PSTAT           ; CHECK PRINTER STATUS
-002158  2  30 21                BMI     PEX             ; CAN'T OPEN IF NEGATIVE
-00215A  2  D0 04                BNE     PP1             ; ALREADY OPEN, SCRIPT THE LINE
-00215C  2               
-00215C  2               ; OPEN THE PRINTER FOR OUTPUT
-00215C  2  A2 01                LDX     #1
-00215E  2  86 CB                STX     PSTAT           ; SET STATUS TO "PRINTER OPENED" (1)
-002160  2               
-002160  2               PP1:
-002160  2  A0 00                LDY     #0              ; INIT INDEX
-002162  2               PP2:
-002162  2               
-002162  2  B9 00 07             LDA     LBUFF,Y
-002165  2  A2 05                LDX     #5              ;  OUTPUT CHAR FROM [A] TO PRINTER (LST)
-002167  2  20 03 01             JSR     PEM             ;
-00216A  2  C8                   INY
-00216B  2  C6 CC                DEC     PRLEN
-00216D  2  D0 F3                BNE     PP2
-00216F  2  F0 0A                BEQ     PEX             ; RESET & RETURN
-002171  2               
-002171  2               ; CHECK FOR "UNSCRIPT"
-002171  2               
-002171  2               PP3:
-002171  2  A5 CB                LDA     PSTAT           ; CHECK PRINTER STATUS
-002173  2  F0 06                BEQ     PEX             ; EXIT IF PRINTER WAS OFF
-002175  2  30 04                BMI     PEX             ; OR UNOPENABLE
-002177  2               
-002177  2               PCLOSE:
-002177  2  A9 00                LDA     #0              ; RESET PRINTER STATUS FLAG
-002179  2  85 CB                STA     PSTAT           ; TO "CLOSED"
-00217B  2               
-00217B  2               PEX:
-00217B  2  60                   RTS
-00217C  2               
-00217C  2               ; ------------
-00217C  2               ; SPLIT SCREEN
-00217C  2               ; ------------
-00217C  2               ; NO SPLIT SCREEN IN DOS/65
-00217C  2               ZSPLIT:
-00217C  2               OFFSPL:
-00217C  2  60                   RTS
-00217D  2               
-00217D  2               ; ------
-00217D  2               ; SCREEN
-00217D  2               ; ------
-00217D  2               
-00217D  2               ; GO TO TOP WINDOW IF [A] = 0
-00217D  2               ; GO TO BOTTOM IF [A] = 1
-00217D  2               ; IGNORE IF SPLIT NOT ENABLED OR [A] <> 0 OR 1
-00217D  2               ZSCRN:
-00217D  2               ; SET TO TOP WINDOW
-00217D  2               TOTOP:
-00217D  2               ; SET TO BOTTOM WINDOW
-00217D  2               TOBOT:
-00217D  2               DOSCRN:
-00217D  2  60                   RTS
-00217E  2               
-00217E  2               ; ---------
-00217E  2               ; RAZZ USER
-00217E  2               ; ---------
-00217E  2               
-00217E  2               BOOP:
-00217E  2  A9 08                LDA     #$8
-002180  2  A2 02                LDX     #2
-002182  2  20 03 01             JSR     PEM
+00213F  2               ; -----------------------
+00213F  2               ; DIRECT PRINT LINE [X/A]
+00213F  2               ; -----------------------
+00213F  2               
+00213F  2               ; ENTRY: STRING ADDRESS IN [X/A] (LSB/MSB)
+00213F  2               ;        STRING LENGTH IN [Y]
+00213F  2               
+00213F  2               DLINE:
+00213F  2  8E 48 21             STX     STRING+LO       ; DROP STRING ADDRESS
+002142  2  8D 49 21             STA     STRING+HI       ; INTO DUMMY BYTES
+002145  2               
+002145  2  A2 00                LDX     #0              ; INIT CHAR-FETCH INDEX
+002147  2               
+002147  2               DOUT:
+002147  2  BD                   .BYTE   $BD             ; 6502 "LDA nnnn,X" OPCODE
+002148  2               STRING:
+002148  2  00 00                .WORD   $0000           ; DUMMY OPERAND BYTES
+00214A  2  20 C6 20             JSR     CHAR
+00214D  2  E8                   INX
+00214E  2  88                   DEY                     ; LOOP TILL
+00214F  2  D0 F6                BNE     DOUT            ; OUT OF CHARS
+002151  2  60                   RTS
+002152  2               
+002152  2               ; -----------------------
+002152  2               ; SEND [LBUFF] TO PRINTER
+002152  2               ; -----------------------
+002152  2               
+002152  2               ; ENTRY: LENTH OF LINE IN [PRLEN]
+002152  2               ; NOW WITH IMPROVED ERROR PROTECTION! (BM 11/24/84)
+002152  2               
+002152  2               SFLAG:
+002152  2  00                   .BYTE   0               ; PREVIOUS SCRIPT MODE (BM 5/14/85)
+002153  2               
+002153  2               PPRINT:
+002153  2  A5 BF                LDA     SCRIPT          ; SCRIPTING INTERNALLY ENABLED?
+002155  2  F0 2C                BEQ     PEX             ; NO, SCRAM IMMEDIATELY
+002157  2               
+002157  2  AD 11 2B             LDA     ZBEGIN+ZSCRIP+1 ; CHECK SCRIPT FLAG
+00215A  2  29 01                AND     #%00000001      ; SCRIPTING ON?
+00215C  2  F0 1B                BEQ     PP3             ; NO, CHECK FOR "UNSCRIPT"
+00215E  2               
+00215E  2  A5 CB                LDA     PSTAT           ; CHECK PRINTER STATUS
+002160  2  30 21                BMI     PEX             ; CAN'T OPEN IF NEGATIVE
+002162  2  D0 04                BNE     PP1             ; ALREADY OPEN, SCRIPT THE LINE
+002164  2               
+002164  2               ; OPEN THE PRINTER FOR OUTPUT
+002164  2  A2 01                LDX     #1
+002166  2  86 CB                STX     PSTAT           ; SET STATUS TO "PRINTER OPENED" (1)
+002168  2               
+002168  2               PP1:
+002168  2  A0 00                LDY     #0              ; INIT INDEX
+00216A  2               PP2:
+00216A  2               
+00216A  2  B9 00 07             LDA     LBUFF,Y
+00216D  2  A2 05                LDX     #5              ;  OUTPUT CHAR FROM [A] TO PRINTER (LST)
+00216F  2  20 03 01             JSR     PEM             ;
+002172  2  C8                   INY
+002173  2  C6 CC                DEC     PRLEN
+002175  2  D0 F3                BNE     PP2
+002177  2  F0 0A                BEQ     PEX             ; RESET & RETURN
+002179  2               
+002179  2               ; CHECK FOR "UNSCRIPT"
+002179  2               
+002179  2               PP3:
+002179  2  A5 CB                LDA     PSTAT           ; CHECK PRINTER STATUS
+00217B  2  F0 06                BEQ     PEX             ; EXIT IF PRINTER WAS OFF
+00217D  2  30 04                BMI     PEX             ; OR UNOPENABLE
+00217F  2               
+00217F  2               PCLOSE:
+00217F  2  A9 00                LDA     #0              ; RESET PRINTER STATUS FLAG
+002181  2  85 CB                STA     PSTAT           ; TO "CLOSED"
+002183  2               
+002183  2               PEX:
+002183  2  60                   RTS
+002184  2               
+002184  2               ; ------------
+002184  2               ; SPLIT SCREEN
+002184  2               ; ------------
+002184  2               ; NO SPLIT SCREEN IN DOS/65
+002184  2               ZSPLIT:
+002184  2               OFFSPL:
+002184  2  60                   RTS
+002185  2               
+002185  2               ; ------
+002185  2               ; SCREEN
+002185  2               ; ------
+002185  2               
+002185  2               ; GO TO TOP WINDOW IF [A] = 0
+002185  2               ; GO TO BOTTOM IF [A] = 1
+002185  2               ; IGNORE IF SPLIT NOT ENABLED OR [A] <> 0 OR 1
+002185  2               ZSCRN:
+002185  2               ; SET TO TOP WINDOW
+002185  2               TOTOP:
+002185  2               ; SET TO BOTTOM WINDOW
+002185  2               TOBOT:
+002185  2               DOSCRN:
 002185  2  60                   RTS
 002186  2               
+002186  2               ; ---------
+002186  2               ; RAZZ USER
+002186  2               ; ---------
 002186  2               
-002186  2               PLOT:
-002186  2               ; ENTRY: [X] = X COORD
-002186  2               ;        [Y] = Y COORD
-002186  2               ; Convert X coordinate to 2 ASCII digits in PLOTCOLVAL
-002186  2  8A                   TXA                     ; Get X value
-002187  2  A2 01                LDX     #1              ; Start with ones digit
-002189  2               ; Divide by 10 repeatedly to get digits
-002189  2               :
-002189  2  C9 0A                CMP     #10
-00218B  2  90 06                BCC     :+              ; Branch if < 10
-00218D  2  E9 0A                SBC     #10
-00218F  2  E8                   INX                     ; Count number of 10s
-002190  2  4C 89 21             JMP     :-
-002193  2               :
-002193  2  18                   CLC
-002194  2  69 30                ADC     #'0'            ; Convert remainder to ASCII
-002196  2  8D CA 21             STA     PLOTCOLVAL+1    ; Store ones digit
-002199  2               
-002199  2  8A                   TXA                     ; Get tens digit count
-00219A  2  18                   CLC
-00219B  2  69 2F                ADC     #'0'-1          ; Convert to ASCII (-1 since we started at 1)
-00219D  2  8D C9 21             STA     PLOTCOLVAL      ; Store tens digit
-0021A0  2               ; Convert Y coordinate to 2 ASCII digits in PLOTROWVAL
-0021A0  2  98                   TYA                     ; Get Y value
-0021A1  2  A2 01                LDX     #1              ; Start with ones digit
-0021A3  2               ; Divide by 10 repeatedly to get digits
-0021A3  2               :
-0021A3  2  C9 0A                CMP     #10
-0021A5  2  90 06                BCC     :+              ; Branch if < 10
-0021A7  2  E9 0A                SBC     #10
-0021A9  2  E8                   INX                     ; Count number of 10s
-0021AA  2  4C A3 21             JMP     :-
-0021AD  2               :
-0021AD  2  18                   CLC
-0021AE  2  69 30                ADC     #'0'            ; Convert remainder to ASCII
-0021B0  2  8D C7 21             STA     PLOTROWVAL+1    ; Store ones digit
-0021B3  2               
-0021B3  2  8A                   TXA                     ; Get tens digit count
-0021B4  2  18                   CLC
-0021B5  2  69 2F                ADC     #'0'-1          ; Convert to ASCII (-1 since we started at 1)
-0021B7  2  8D C6 21             STA     PLOTROWVAL      ; Store tens digit
-0021BA  2               ;
-0021BA  2  A2 C4                LDX     #<PLOTSTRING
-0021BC  2  A9 21                LDA     #>PLOTSTRING
-0021BE  2  A0 08                LDY     #8
-0021C0  2  20 37 21             JSR     DLINE
-0021C3  2  60                   RTS
-0021C4  2               PLOTSTRING:
-0021C4  2  1B 5B                .BYTE   27,"["
-0021C6  2               PLOTROWVAL:
-0021C6  2  30 30                .BYTE   "00"
-0021C8  2  3B                   .BYTE   ";"
-0021C9  2               PLOTCOLVAL:
-0021C9  2  30 30                .BYTE   "00"
-0021CB  2  48                   .BYTE   "H"
-0021CC  2               
-0021CC  2               ; ------------------------
-0021CC  2               ; CLEAR SCREEN
-0021CC  2               ; ------------------------
-0021CC  2               
-0021CC  2               CLS:
-0021CC  2  A9 14                LDA     #20
-0021CE  2  85 C3                STA     LMAX
-0021D0  2  A2 E5                LDX     #<CLSSTRING
-0021D2  2  A9 21                LDA     #>CLSSTRING
-0021D4  2  A0 04                LDY     #4
-0021D6  2  20 37 21             JSR     DLINE
-0021D9  2  A9 00                LDA     #0
-0021DB  2  85 C2                STA     LINCNT          ; RESET LINE COUNTER
-0021DD  2  A2 00                LDX     #0
-0021DF  2  A0 18                LDY     #YSIZE
-0021E1  2  20 86 21             JSR     PLOT
-0021E4  2  60                   RTS
-0021E5  2               CLSSTRING:
-0021E5  2  1B 5B 32 4A          .BYTE   27,"[2J"
-0021E9  2               
-0021E9  2               BOLD:
-0021E9  2  A2 F3                LDX     #<BOLDSTRING
-0021EB  2  A9 21                LDA     #>BOLDSTRING
-0021ED  2  A0 04                LDY     #4
-0021EF  2  20 37 21             JSR     DLINE
-0021F2  2  60                   RTS
-0021F3  2               BOLDSTRING:
-0021F3  2  1B 5B 31 6D          .BYTE   27,"[1m"
-0021F7  2               
-0021F7  2               UNBOLD:
-0021F7  2  A2 01                LDX     #<UNBOLDSTRING
-0021F9  2  A9 22                LDA     #>UNBOLDSTRING
-0021FB  2  A0 04                LDY     #4
-0021FD  2  20 37 21             JSR     DLINE
-002200  2  60                   RTS
-002201  2               UNBOLDSTRING:
-002201  2  1B 5B 30 6D          .BYTE   27,"[0m"
-002205  2               
-002205  2               REVERSE:
-002205  2  A2 0F                LDX     #<REVERSESTRING
-002207  2  A9 22                LDA     #>REVERSESTRING
-002209  2  A0 04                LDY     #4
-00220B  2  20 37 21             JSR     DLINE
-00220E  2  60                   RTS
-00220F  2               REVERSESTRING:
-00220F  2  1B 5B 37 6D          .BYTE   27,"[7m"
-002213  2               
-002213  1                       .INCLUDE "zdos.asm"
-002213  2               ;        PAGE
-002213  2               ;        SBTTL   "--- Z-DOS: DOS/65 ---"
-002213  2               
-002213  2               ; ---------------------
-002213  2               ; GET Z-BLOCK FROM DISK
-002213  2               ; ---------------------
-002213  2               
-002213  2               ; ENTRY: Z-BLOCK # IN [BLOCK]
-002213  2               ;        TARGET PAGE IN [DBUFF+HI]
-002213  2               GETDSK:
-002213  2  D8                   CLD
-002214  2  18                   CLC
-002215  2               
-002215  2  A5 CD                LDA     DBLOCK+LO       ; Load low byte of DBLOCK
-002217  2  0A                   ASL     A               ; Multiply by 2
-002218  2  8D FA 25             STA     D65BLOCK+LO     ; Store low byte
-00221B  2  A5 CE                LDA     DBLOCK+HI       ; Load high byte of DBLOCK
-00221D  2  2A                   ROL     A               ; Rotate left (gets carry from previous ASL)
-00221E  2  8D FB 25             STA     D65BLOCK+HI     ; Store high byte
-002221  2               
-002221  2               ; read 256 byte block (zblock should be file block*2)
-002221  2               ; EXTENT = INTEGER.PART.OF(n/128)
-002221  2               ; 16 bit shift x6
-002221  2  AD FA 25             LDA     D65BLOCK+LO     ; CALCULATE EXTENT
-002224  2  0A                   ASL     A
-002225  2  85 DE                STA     DTEMP+LO
-002227  2  A5 CE                LDA     DBLOCK+HI
-002229  2  2A                   ROL     A
-00222A  2  85 DF                STA     DTEMP+HI
-00222C  2  18                   CLC
-00222D  2  A5 DE                LDA     DTEMP+LO
-00222F  2  0A                   ASL     A
-002230  2  85 DE                STA     DTEMP+LO
-002232  2  A5 DF                LDA     DTEMP+HI
-002234  2  2A                   ROL     A
-002235  2  8D C4 25             STA     GAMEFCB+12      ; = EXTENT (MAGIC!)
-002238  2  AD FA 25             LDA     D65BLOCK+LO     ; CALCULATE RECORD = n-(EXTENT*128)
-00223B  2  29 3F                AND     #$3F
-00223D  2  8D D8 25             STA     GAMEFCB+32      ; Store Record Number into FCB (Also Magic!)
-002240  2               
-002240  2  A9 B8                LDA     #<GAMEFCB       ; Open Extent
-002242  2  A0 25                LDY     #>GAMEFCB
-002244  2  A2 0F                LDX     #15
-002246  2  20 03 01             JSR     PEM
-002249  2  C9 FF                CMP     #$FF
-00224B  2  F0 48                BEQ     GETDSKERR
-00224D  2               
-00224D  2  A9 00                LDA     #0              ; Set Buffer Address
-00224F  2  A4 D0                LDY     DBUFF+HI
-002251  2  A2 1A                LDX     #26
-002253  2  20 03 01             JSR     PEM
-002256  2               
-002256  2  A9 B8                LDA     #<GAMEFCB       ; Read First sector (128 bytes)
-002258  2  A0 25                LDY     #>GAMEFCB
-00225A  2  A2 14                LDX     #20
-00225C  2  20 03 01             JSR     PEM
-00225F  2  C9 FF                CMP     #$FF
-002261  2  F0 32                BEQ     GETDSKERR
-002263  2               
-002263  2  A9 80                LDA     #$80            ; Set Buffer Address
-002265  2  A4 D0                LDY     DBUFF+HI
-002267  2  A2 1A                LDX     #26
-002269  2  20 03 01             JSR     PEM
-00226C  2               
-00226C  2  A9 B8                LDA     #<GAMEFCB       ; Read Second sector (128 bytes)
-00226E  2  A0 25                LDY     #>GAMEFCB
-002270  2  A2 14                LDX     #20
-002272  2  20 03 01             JSR     PEM
-002275  2  C9 FF                CMP     #$FF
-002277  2  F0 1C                BEQ     GETDSKERR
-002279  2               
-002279  2  A9 FA                LDA     #<SPAREBYTES    ; Set Buffer Address to safe spot
-00227B  2  A0 25                LDY     #>SPAREBYTES
-00227D  2  A2 1A                LDX     #26
-00227F  2  20 03 01             JSR     PEM
-002282  2               
-002282  2  A9 B8                LDA     #<GAMEFCB       ; Close Extent
-002284  2  A0 25                LDY     #>GAMEFCB
-002286  2  A2 10                LDX     #16
-002288  2  20 03 01             JSR     PEM
-00228B  2               
-00228B  2  E6 D0                INC     DBUFF+HI        ; POINT TO NEXT RAM PAGE
-00228D  2  E6 CD                INC     DBLOCK+LO       ; POINT TO NEXT
-00228F  2  D0 02                BNE     :+              ; Z-BLOCK
-002291  2  E6 CE                INC     DBLOCK+HI
-002293  2               :
-002293  2  18                   CLC
-002294  2  60                   RTS
-002295  2               GETDSKERR:
-002295  2  A9 0E                LDA     #14
-002297  2  4C B1 1D             JMP     ZERROR
-00229A  2               
-00229A  2               
-00229A  2               ;        LDA     DBLOCK+LO       ; Z-BLOCK ID IS DIVIDEND
-00229A  2               ;        STA     DVD+LO
-00229A  2               ;        LDA     DBLOCK+HI
-00229A  2               ;        AND     #%00000001      ; MASK ALL BUT BIT 0
-00229A  2               ;        STA     DVD+HI          ; FOR 128K VIRTUAL LIMIT
-00229A  2               ;
-00229A  2               ;        LDA     #0
-00229A  2               ;        STA     DSOR+HI         ; CLEAR MSB DIVISOR
-00229A  2               ;        STA     DTEMP+LO        ; AND TEMP VARIABLE
-00229A  2               ;        STA     DTEMP+HI
-00229A  2               
-00229A  2               ;        LDX     #17             ; USE 17 SECTORS/TRACK
-00229A  2               ;        STX     DSOR+LO         ; LSB OF DIVISOR
-00229A  2               ;        DEX                     ; (= 16) INIT DIVIDE INDEX
-00229A  2               ;        CLC
-00229A  2               ;
-00229A  2               ;DVLP:
-00229A  2               ;        ROL     DVD+LO
-00229A  2               ;        ROL     DVD+HI
-00229A  2               ;        ROL     DTEMP+LO
-00229A  2               ;        ROL     DTEMP+HI
-00229A  2               ;
-00229A  2               ;       LDA     DTEMP+LO
-00229A  2               ;        SEC
-00229A  2               ;        SBC     DSOR+LO
-00229A  2               ;        TAY
-00229A  2               ;        LDA     DTEMP+HI
-00229A  2               ;        SBC     DSOR+HI
-00229A  2               ;        BCC     DVLP1
-00229A  2               ;        STY     DTEMP+LO
-00229A  2               ;        STA     DTEMP+HI
-00229A  2               ;
-00229A  2               ;DVLP1:
-00229A  2               ;        DEX
-00229A  2               ;        BNE     DVLP
-00229A  2               
-00229A  2               ;        ROL     DVD+LO          ; SHIFT LAST CARRY
-00229A  2               ;        ROL     DVD+HI          ; INTO QUOTIENT
-00229A  2               
-00229A  2               ;        LDA     DTEMP+LO        ; REMAINDER IN [DTEMP]
-00229A  2               ;        STA     SECTOR          ; IS SECTOR ID (0-16)
-00229A  2               
-00229A  2               ;        LDA     DVD+LO          ; QUOTIENT IN [DVD] IS TRACK ID
-00229A  2               ;        CLC
-00229A  2               ;        ADC     #5              ; Z-CODE STARTS ON TRACK 5
-00229A  2               
-00229A  2               ;        CMP     #17             ; BELOW TRACK 17?
-00229A  2               ;        BCC     DVLP2           ; YES, WE'RE DONE
-00229A  2               ;        CLC                     ; ELSE SKIP OVER
-00229A  2               ;        ADC     #1              ; TRACK 17
-00229A  2               ;        CMP     #36             ; OUT OF RANGE?
-00229A  2               ;        BCS     TRKERR          ; IF > 35, TRACK ERROR
-00229A  2               ;        CMP     #18             ; IS THIS TRACK 18?
-00229A  2               ;        BNE     DVLP2           ; NO, EXIT
-00229A  2               ;        INC     SECTOR          ; ELSE SKIP OVER
-00229A  2               ;        INC     SECTOR          ; 1ST 2 SECTORS
-00229A  2               ;DVLP2:
-00229A  2               ;        STA     TRACK
-00229A  2               
-00229A  2               ;	LDA	DBLOCK+LO	; GET LSB OF BLOCK ID
-00229A  2               ;	AND	#%00001111	; MASK TO GET
-00229A  2               ;	STA	SECTOR		; SECTOR # (0-15)
-00229A  2               
-00229A  2               ;	LDA	DBLOCK+HI	; GET MSB OF BLOCK ID
-00229A  2               ;	AND	#%00001111	; MASK OUT GARBAGE IN BITS 7-4
-00229A  2               ;	ASL	A		; SHIFT THE LOW NIBBLE
-00229A  2               ;	ASL	A		; INTO THE HIGH NIBBLE
-00229A  2               ;	ASL	A
-00229A  2               ;	ASL	A
-00229A  2               ;	STA	TRACK		; AND SAVE IT HERE FOR A MOMENT
-00229A  2               
-00229A  2               ;	LDA	DBLOCK+LO	; GET LSB OF BLOCK ID AGAIN
-00229A  2               ;	AND	#%11110000	; MASK OUT SECTOR #
-00229A  2               ;	LSR	A		; SHIFT THE HIGH NIBBLE
-00229A  2               ;	LSR	A		; INTO THE LOW NIBBLE
-00229A  2               ;	LSR	A
-00229A  2               ;	LSR	A
-00229A  2               ;	ORA	TRACK		; SUPERIMPOSE NEW HIGH NIBBLE
-00229A  2               
-00229A  2               ;	CLC
-00229A  2               ;	ADC	#5		; Z-CODE STARTS ON TRACK 5
-00229A  2               
-00229A  2               ;	CMP	#17		; BELOW TRACK 17?
-00229A  2               ;	BCC	TKOK		; USE AS-IS IF SO
-00229A  2               ;	CLC			; ELSE SKIP OVER
-00229A  2               ;	ADC	#1		; TRACK 17
-00229A  2               ;	CMP	#36		; ANYTHING HIGHER THAN TRACK 35
-00229A  2               ;	BCS	TRKERR		; IS AN ERROR
-00229A  2               ;	CMP	#18		; IS THIS TRACK 18?
-00229A  2               ;	BNE	TKOK		; NO, WE'RE DONE
-00229A  2               ;	INC	SECTOR		; ELSE ADD 2 TO
-00229A  2               ;	INC	SECTOR		; [SECTOR] TO AVOID DIRECTORY
-00229A  2               ;TKOK:	STA	TRACK
-00229A  2               
-00229A  2               ; ENTRY FOR "RESTORE" ([TRACK], [SECTOR] & [DRIVE] PRE-ASSIGNED)
-00229A  2               
-00229A  2               GETRES:
-00229A  2               ;        CLC                     ; CARRY CLEAR = "READ BLOCK"
-00229A  2               ;        JSR     DISK            ; GO DO IT!
-00229A  2               ;        BCS     DSXERR          ; ERROR IF CARRY SET
-00229A  2               ;
-00229A  2               ;        LDY     #0              ; MOVE CONTENTS OF [IOBUFF]
-00229A  2               ;GDKL:
-00229A  2               ;        LDA     IOBUFF,Y        ; TO THE
-00229A  2               ;        STA     (DBUFF),Y       ; TARGET PAGE IN [DBUFF]
-00229A  2               ;        INY
-00229A  2               ;        BNE     GDKL
-00229A  2               ;
-00229A  2               ;        INC     DBLOCK+LO       ; POINT TO NEXT
-00229A  2               ;        BNE     GDEX            ; Z-BLOCK
-00229A  2               ;        INC     DBLOCK+HI
-00229A  2               ;
-00229A  2               ;GDEX:
-00229A  2               ;        JMP     NXTSEC          ; POINT TO NEXT SECTOR & PAGE
-00229A  2               
-00229A  2               ; --------------------
-00229A  2               ; PUT [DBLOCK] TO DISK
-00229A  2               ; --------------------
-00229A  2               
-00229A  2               ; ENTRY: [TRACK], [SECTOR] & [DRIVE] ASSIGNED
-00229A  2               ;        PAGE TO WRITE IN [DBUFF]
-00229A  2               
-00229A  2               PUTDSK:
-00229A  2               ;        LDY     #0              ; MOVE PAGE AT [DBUFF]
-00229A  2               ;PTKL:
-00229A  2               ;        LDA     (DBUFF),Y       ; INTO
-00229A  2               ;        STA     IOBUFF,Y        ; [IOBUFF] FOR I/O
-00229A  2               ;        INY
-00229A  2               ;        BNE     PTKL
-00229A  2               ;
-00229A  2               ;        SEC                     ; CARRY SET = "WRITE BLOCK"
-00229A  2               ;        JSR     DISK
-00229A  2               ;        BCS     WRTERR          ; CARRY SET IF ERROR
-00229A  2               ;
-00229A  2               ;NXTSEC:
-00229A  2               ;        INC     SECTOR          ; POINT TO NEXT SECTOR
-00229A  2               ;        LDA     SECTOR
-00229A  2               ;        AND     #%00001111      ; OVEFLOWED?
-00229A  2               ;        BNE     SECTOK          ; CONTINUE IF NOT
-00229A  2               ;        INC     TRACK           ; ELSE UPDATE TRACK #
-00229A  2               ;SECTOK:
-00229A  2               ;       STA     SECTOR          ; AND SECTOR #
-00229A  2               ;
-00229A  2               ;        INC     DBUFF+HI        ; POINT TO NEXT RAM PAGE
-00229A  2               ;WRTERR:
-00229A  2  60                   RTS
-00229B  2               
-00229B  2               ; *** ERROR #12: DISK ADDRESS OUT OF RANGE ***
-00229B  2               
-00229B  2               ;TRKERR:
-00229B  2               ;        LDA     #12
-00229B  2               ;        BNE     QERR
-00229B  2               
-00229B  2               ; *** ERROR #14: DRIVE ACCESS ***
-00229B  2               
-00229B  2               DSXERR:
-00229B  2  A9 0E                LDA     #14
-00229D  2               
-00229D  2               QERR:
-00229D  2  4C B1 1D             JMP     ZERROR
-0022A0  2               
-0022A0  2               ; -----------------------------
-0022A0  2               ; SET UP SAVE & RESTORE SCREENS
-0022A0  2               ; -----------------------------
-0022A0  2               
-0022A0  2               SAVRES:
-0022A0  2  20 D0 1E             JSR     ZCRLF           ; CLEAR THE BUFFER
-0022A3  2  20 CC 21             JSR     CLS
-0022A6  2               
-0022A6  2  A2 00                LDX     #0
-0022A8  2  86 BF                STX     SCRIPT          ; DISABLE SCRIPTING
-0022AA  2  A0 00                LDY     #0
-0022AC  2  18                   CLC
-0022AD  2               ;        JMP     PLOT            ; HOME CURSOR & RETURN
-0022AD  2               
-0022AD  2               ; -----------------
-0022AD  2               ; DISPLAY A DEFAULT
-0022AD  2               ; -----------------
-0022AD  2               
-0022AD  2               ; ENTRY: DEFAULT (0-8) IN [A]
-0022AD  2               
-0022AD  2               DEFAL:
-0022AD  2  20 28 44 65          .BYTE   " (Default = "
-0022B1  2  66 61 75 6C  
-0022B5  2  74 20 3D 20  
-0022B9  2               DEFNUM:
-0022B9  2  2A 29 20 3E          .BYTE   "*) >"
-0022BD  2               DEFALL          = *-DEFAL
-0022BD  2               
-0022BD  2               DODEF:
-0022BD  2  18                   CLC
-0022BE  2  69 31                ADC     #'1'            ; CONVERT TO ASCII 1-9
-0022C0  2  8D B9 22             STA     DEFNUM          ; INSERT IN STRING
-0022C3  2               
-0022C3  2  A2 AD                LDX     #<DEFAL
-0022C5  2  A9 22                LDA     #>DEFAL
-0022C7  2  A0 10                LDY     #DEFALL
-0022C9  2  20 37 21             JSR     DLINE           ; PRINT THE STRING
-0022CC  2               
-0022CC  2               ; FALL THROUGH ...
-0022CC  2               
-0022CC  2               ; --------------------------------
-0022CC  2               ; ACTIVATE CURSOR, CLEAR KEY QUEUE
-0022CC  2               ; --------------------------------
-0022CC  2               
-0022CC  2               CURSON:
-0022CC  2  60                   RTS
+002186  2               BOOP:
+002186  2  A9 07                LDA     #7
+002188  2  A2 02                LDX     #2
+00218A  2  20 03 01             JSR     PEM
+00218D  2  60                   RTS
+00218E  2               
+00218E  2               
+00218E  2               PLOT:
+00218E  2               ; ENTRY: [X] = X COORD
+00218E  2               ;        [Y] = Y COORD
+00218E  2               ; Convert X coordinate to 2 ASCII digits in PLOTCOLVAL
+00218E  2  8A                   TXA                     ; Get X value
+00218F  2  A2 01                LDX     #1              ; Start with ones digit
+002191  2               ; Divide by 10 repeatedly to get digits
+002191  2               :
+002191  2  C9 0A                CMP     #10
+002193  2  90 06                BCC     :+              ; Branch if < 10
+002195  2  E9 0A                SBC     #10
+002197  2  E8                   INX                     ; Count number of 10s
+002198  2  4C 91 21             JMP     :-
+00219B  2               :
+00219B  2  18                   CLC
+00219C  2  69 30                ADC     #'0'            ; Convert remainder to ASCII
+00219E  2  8D D2 21             STA     PLOTCOLVAL+1    ; Store ones digit
+0021A1  2               
+0021A1  2  8A                   TXA                     ; Get tens digit count
+0021A2  2  18                   CLC
+0021A3  2  69 2F                ADC     #'0'-1          ; Convert to ASCII (-1 since we started at 1)
+0021A5  2  8D D1 21             STA     PLOTCOLVAL      ; Store tens digit
+0021A8  2               ; Convert Y coordinate to 2 ASCII digits in PLOTROWVAL
+0021A8  2  98                   TYA                     ; Get Y value
+0021A9  2  A2 01                LDX     #1              ; Start with ones digit
+0021AB  2               ; Divide by 10 repeatedly to get digits
+0021AB  2               :
+0021AB  2  C9 0A                CMP     #10
+0021AD  2  90 06                BCC     :+              ; Branch if < 10
+0021AF  2  E9 0A                SBC     #10
+0021B1  2  E8                   INX                     ; Count number of 10s
+0021B2  2  4C AB 21             JMP     :-
+0021B5  2               :
+0021B5  2  18                   CLC
+0021B6  2  69 30                ADC     #'0'            ; Convert remainder to ASCII
+0021B8  2  8D CF 21             STA     PLOTROWVAL+1    ; Store ones digit
+0021BB  2               
+0021BB  2  8A                   TXA                     ; Get tens digit count
+0021BC  2  18                   CLC
+0021BD  2  69 2F                ADC     #'0'-1          ; Convert to ASCII (-1 since we started at 1)
+0021BF  2  8D CE 21             STA     PLOTROWVAL      ; Store tens digit
+0021C2  2               ;
+0021C2  2  A2 CC                LDX     #<PLOTSTRING
+0021C4  2  A9 21                LDA     #>PLOTSTRING
+0021C6  2  A0 08                LDY     #8
+0021C8  2  20 3F 21             JSR     DLINE
+0021CB  2  60                   RTS
+0021CC  2               PLOTSTRING:
+0021CC  2  1B 5B                .BYTE   27,"["
+0021CE  2               PLOTROWVAL:
+0021CE  2  30 30                .BYTE   "00"
+0021D0  2  3B                   .BYTE   ";"
+0021D1  2               PLOTCOLVAL:
+0021D1  2  30 30                .BYTE   "00"
+0021D3  2  48                   .BYTE   "H"
+0021D4  2               
+0021D4  2               ; ------------------------
+0021D4  2               ; CLEAR SCREEN
+0021D4  2               ; ------------------------
+0021D4  2               
+0021D4  2               CLS:
+0021D4  2  A9 14                LDA     #20
+0021D6  2  85 C3                STA     LMAX
+0021D8  2  A2 ED                LDX     #<CLSSTRING
+0021DA  2  A9 21                LDA     #>CLSSTRING
+0021DC  2  A0 04                LDY     #4
+0021DE  2  20 3F 21             JSR     DLINE
+0021E1  2  A9 00                LDA     #0
+0021E3  2  85 C2                STA     LINCNT          ; RESET LINE COUNTER
+0021E5  2  A2 00                LDX     #0
+0021E7  2  A0 18                LDY     #YSIZE
+0021E9  2  20 8E 21             JSR     PLOT
+0021EC  2  60                   RTS
+0021ED  2               CLSSTRING:
+0021ED  2  1B 5B 32 4A          .BYTE   27,"[2J"
+0021F1  2               
+0021F1  2               BOLD:
+0021F1  2  A2 FB                LDX     #<BOLDSTRING
+0021F3  2  A9 21                LDA     #>BOLDSTRING
+0021F5  2  A0 04                LDY     #4
+0021F7  2  20 3F 21             JSR     DLINE
+0021FA  2  60                   RTS
+0021FB  2               BOLDSTRING:
+0021FB  2  1B 5B 31 6D          .BYTE   27,"[1m"
+0021FF  2               
+0021FF  2               UNBOLD:
+0021FF  2  A2 09                LDX     #<UNBOLDSTRING
+002201  2  A9 22                LDA     #>UNBOLDSTRING
+002203  2  A0 04                LDY     #4
+002205  2  20 3F 21             JSR     DLINE
+002208  2  60                   RTS
+002209  2               UNBOLDSTRING:
+002209  2  1B 5B 30 6D          .BYTE   27,"[0m"
+00220D  2               
+00220D  2               REVERSE:
+00220D  2  A2 17                LDX     #<REVERSESTRING
+00220F  2  A9 22                LDA     #>REVERSESTRING
+002211  2  A0 04                LDY     #4
+002213  2  20 3F 21             JSR     DLINE
+002216  2  60                   RTS
+002217  2               REVERSESTRING:
+002217  2  1B 5B 37 6D          .BYTE   27,"[7m"
+00221B  2               
+00221B  1                       .INCLUDE "zdos.asm"
+00221B  2               ;        PAGE
+00221B  2               ;        SBTTL   "--- Z-DOS: DOS/65 ---"
+00221B  2               
+00221B  2               ; ---------------------
+00221B  2               ; GET Z-BLOCK FROM DISK
+00221B  2               ; ---------------------
+00221B  2               
+00221B  2               ; ENTRY: Z-BLOCK # IN [BLOCK]
+00221B  2               ;        TARGET PAGE IN [DBUFF+HI]
+00221B  2               GETDSK:
+00221B  2  D8                   CLD
+00221C  2  18                   CLC
+00221D  2               
+00221D  2  A5 CD                LDA     DBLOCK+LO       ; Load low byte of DBLOCK
+00221F  2  0A                   ASL     A               ; Multiply by 2
+002220  2  8D 03 25             STA     D65BLOCK+LO     ; Store low byte
+002223  2  A5 CE                LDA     DBLOCK+HI       ; Load high byte of DBLOCK
+002225  2  2A                   ROL     A               ; Rotate left (gets carry from previous ASL)
+002226  2  8D 04 25             STA     D65BLOCK+HI     ; Store high byte
+002229  2               
+002229  2               ; read 256 byte block (zblock should be file block*2)
+002229  2               ; EXTENT = INTEGER.PART.OF(n/128)
+002229  2               ; 16 bit shift x6
+002229  2  AD 03 25             LDA     D65BLOCK+LO     ; CALCULATE EXTENT
+00222C  2  0A                   ASL     A
+00222D  2  85 DE                STA     DTEMP+LO
+00222F  2  AD 04 25             LDA     D65BLOCK+HI
+002232  2  2A                   ROL     A
+002233  2  8D CD 24             STA     GAMEFCB+12      ; = EXTENT (MAGIC!)
+002236  2               
+002236  2  AD 03 25             LDA     D65BLOCK+LO     ; CALCULATE RECORD = n-(EXTENT*128)
+002239  2  29 7F                AND     #$7F
+00223B  2  8D E1 24             STA     GAMEFCB+32      ; Store Record Number into FCB (Also Magic!)
+00223E  2               
+00223E  2  A9 C1                LDA     #<GAMEFCB       ; Open Extent
+002240  2  A0 24                LDY     #>GAMEFCB
+002242  2  A2 0F                LDX     #15
+002244  2  20 03 01             JSR     PEM
+002247  2  C9 FF                CMP     #$FF
+002249  2  F0 48                BEQ     GETDSKERR
+00224B  2               
+00224B  2  A9 00                LDA     #0              ; Set Buffer Address
+00224D  2  A4 D0                LDY     DBUFF+HI
+00224F  2  A2 1A                LDX     #26
+002251  2  20 03 01             JSR     PEM
+002254  2               
+002254  2  A9 C1                LDA     #<GAMEFCB       ; Read First sector (128 bytes)
+002256  2  A0 24                LDY     #>GAMEFCB
+002258  2  A2 14                LDX     #20
+00225A  2  20 03 01             JSR     PEM
+00225D  2  C9 FF                CMP     #$FF
+00225F  2  F0 32                BEQ     GETDSKERR
+002261  2               
+002261  2  A9 80                LDA     #$80            ; Set Buffer Address
+002263  2  A4 D0                LDY     DBUFF+HI
+002265  2  A2 1A                LDX     #26
+002267  2  20 03 01             JSR     PEM
+00226A  2               
+00226A  2  A9 C1                LDA     #<GAMEFCB       ; Read Second sector (128 bytes)
+00226C  2  A0 24                LDY     #>GAMEFCB
+00226E  2  A2 14                LDX     #20
+002270  2  20 03 01             JSR     PEM
+002273  2  C9 FF                CMP     #$FF
+002275  2  F0 1C                BEQ     GETDSKERR
+002277  2               
+002277  2  A9 03                LDA     #<SPAREBYTES    ; Set Buffer Address to safe spot
+002279  2  A0 25                LDY     #>SPAREBYTES
+00227B  2  A2 1A                LDX     #26
+00227D  2  20 03 01             JSR     PEM
+002280  2               
+002280  2  A9 C1                LDA     #<GAMEFCB       ; Close Extent
+002282  2  A0 24                LDY     #>GAMEFCB
+002284  2  A2 10                LDX     #16
+002286  2  20 03 01             JSR     PEM
+002289  2               
+002289  2  E6 D0                INC     DBUFF+HI        ; POINT TO NEXT RAM PAGE
+00228B  2  E6 CD                INC     DBLOCK+LO       ; POINT TO NEXT
+00228D  2  D0 02                BNE     :+              ; Z-BLOCK
+00228F  2  E6 CE                INC     DBLOCK+HI
+002291  2               :
+002291  2  18                   CLC
+002292  2  60                   RTS
+002293  2               GETDSKERR:
+002293  2  A9 0E                LDA     #14
+002295  2  4C B1 1D             JMP     ZERROR
+002298  2               
+002298  2               
+002298  2               ; ENTRY FOR "RESTORE" ([TRACK], [SECTOR] & [DRIVE] PRE-ASSIGNED)
+002298  2               
+002298  2               GETRES:
+002298  2               ;        CLC                     ; CARRY CLEAR = "READ BLOCK"
+002298  2               ;        JSR     DISK            ; GO DO IT!
+002298  2               ;        BCS     DSXERR          ; ERROR IF CARRY SET
+002298  2               ;
+002298  2               ;        LDY     #0              ; MOVE CONTENTS OF [IOBUFF]
+002298  2               ;GDKL:
+002298  2               ;        LDA     IOBUFF,Y        ; TO THE
+002298  2               ;        STA     (DBUFF),Y       ; TARGET PAGE IN [DBUFF]
+002298  2               ;        INY
+002298  2               ;        BNE     GDKL
+002298  2               ;
+002298  2               ;        INC     DBLOCK+LO       ; POINT TO NEXT
+002298  2               ;        BNE     GDEX            ; Z-BLOCK
+002298  2               ;        INC     DBLOCK+HI
+002298  2               ;
+002298  2               ;GDEX:
+002298  2               ;        JMP     NXTSEC          ; POINT TO NEXT SECTOR & PAGE
+002298  2               
+002298  2               ; --------------------
+002298  2               ; PUT [DBLOCK] TO DISK
+002298  2               ; --------------------
+002298  2               
+002298  2               ;        PAGE TO WRITE IN [DBUFF]
+002298  2               
+002298  2               PUTDSK:
+002298  2               
+002298  2  A9 00                LDA     #0              ; Set Buffer Address
+00229A  2  A4 D0                LDY     DBUFF+HI
+00229C  2  A2 1A                LDX     #26
+00229E  2  20 03 01             JSR     PEM
+0022A1  2               
+0022A1  2  A9 E2                LDA     #<SAVEFCB       ; Write Record
+0022A3  2  A0 24                LDY     #>SAVEFCB
+0022A5  2  A2 15                LDX     #21
+0022A7  2  20 03 01             JSR     PEM
+0022AA  2               
+0022AA  2  C9 FF                CMP     #$FF
+0022AC  2  F0 03                BEQ     WRTERR
+0022AE  2               
+0022AE  2  E6 D0                INC     DBUFF+HI        ; POINT TO NEXT RAM PAGE
+0022B0  2  60                   RTS
+0022B1  2               WRTERR:
+0022B1  2  38                   SEC
+0022B2  2  60                   RTS
+0022B3  2               
+0022B3  2               
+0022B3  2               DSXERR:
+0022B3  2  A9 0E                LDA     #14
+0022B5  2               
+0022B5  2               QERR:
+0022B5  2  4C B1 1D             JMP     ZERROR
+0022B8  2               
+0022B8  2               ; -----------------------------
+0022B8  2               ; SET UP SAVE & RESTORE SCREENS
+0022B8  2               ; -----------------------------
+0022B8  2               
+0022B8  2               SAVRES:
+0022B8  2  20 D0 1E             JSR     ZCRLF           ; CLEAR THE BUFFER
+0022BB  2  A2 00                LDX     #0
+0022BD  2  86 BF                STX     SCRIPT          ; DISABLE SCRIPTING
+0022BF  2  18                   CLC
+0022C0  2  60                   RTS
+0022C1  2               
+0022C1  2               
+0022C1  2               
+0022C1  2               ; FALL THROUGH ...
+0022C1  2               
+0022C1  2               ; --------------------------------
+0022C1  2               ; ACTIVATE CURSOR, CLEAR KEY QUEUE
+0022C1  2               ; --------------------------------
+0022C1  2               
+0022C1  2               CURSON:
+0022C1  2  60                   RTS
+0022C2  2               
+0022C2  2               ; -----------------------------
+0022C2  2               ; GET SAVE & RESTORE PARAMETERS
+0022C2  2               ; -----------------------------
+0022C2  2               
+0022C2  2               FILENAME:
+0022C2  2  0D                   .BYTE   EOL
+0022C3  2  46 69 6C 65          .BYTE   "File Name:"
+0022C7  2  20 4E 61 6D  
+0022CB  2  65 3A        
+0022CD  2               FILENAMEL       = *-FILENAME
 0022CD  2               
-0022CD  2               ; -----------------------------
-0022CD  2               ; GET SAVE & RESTORE PARAMETERS
-0022CD  2               ; -----------------------------
-0022CD  2               
-0022CD  2               POSIT:
-0022CD  2  0D                   .BYTE   EOL
-0022CE  2  50 6F 73 69          .BYTE   "Position 1-5"
-0022D2  2  74 69 6F 6E  
-0022D6  2  20 31 2D 35  
-0022DA  2               POSITL          = *-POSIT
-0022DA  2               
-0022DA  2               WDRIV:
-0022DA  2  0D                   .BYTE   EOL
-0022DB  2  44 72 69 76          .BYTE   "Drive 8 or 9"
-0022DF  2  65 20 38 20  
-0022E3  2  6F 72 20 39  
-0022E7  2               WDRIVL          = *-WDRIV
+0022CD  2               NO:
+0022CD  2  4E 6F                .BYTE   "No"
+0022CF  2               NOL             = *-NO
+0022CF  2               
+0022CF  2               YES:
+0022CF  2  59 65 73             .BYTE   "Yes"
+0022D2  2               YESL            = *-YES
+0022D2  2               
+0022D2  2               
+0022D2  2               
+0022D2  2               
+0022D2  2               ALLSET:
+0022D2  2  A2 CF                LDX     #<YES           ; PRINT "YES"
+0022D4  2  A9 22                LDA     #>YES
+0022D6  2  A0 03                LDY     #YESL
+0022D8  2  20 3F 21             JSR     DLINE
+0022DB  2               
+0022DB  2               
+0022DB  2               ; ---------------------
+0022DB  2               ; "PRESS RETURN" PROMPT
+0022DB  2               ; ---------------------
+0022DB  2               
+0022DB  2               RETURN:
+0022DB  2  A2 F5                LDX     #<RTN
+0022DD  2  A9 22                LDA     #>RTN
+0022DF  2  A0 1E                LDY     #RTNL
+0022E1  2  20 3F 21             JSR     DLINE           ; SHOW PROMPT
+0022E4  2               
+0022E4  2               ; ENTRY FOR QUIT/RESTART
+0022E4  2               
+0022E4  2               GETRET:
+0022E4  2  20 C1 22             JSR     CURSON          ; ENABLE CURSOR
 0022E7  2               
-0022E7  2               MIND:
-0022E7  2  0D                   .BYTE   EOL
-0022E8  2  0D                   .BYTE   EOL
-0022E9  2  50 6F 73 69          .BYTE   "Position "
-0022ED  2  74 69 6F 6E  
-0022F1  2  20           
-0022F2  2               MPOS:
-0022F2  2  2A 2C 20 44          .BYTE   "*, Drive "
-0022F6  2  72 69 76 65  
-0022FA  2  20           
-0022FB  2               MDRI:
-0022FB  2  2A 2E                .BYTE   "*."
-0022FD  2  0D                   .BYTE   EOL
-0022FE  2  41 72 65 20          .BYTE   "Are you sure? (Y/N) >"
-002302  2  79 6F 75 20  
-002306  2  73 75 72 65  
-002313  2               MINDL           = *-MIND
+0022E7  2               GTRT:
+0022E7  2  20 88 20             JSR     GETKEY          ; WAIT FOR [RETURN]
+0022EA  2  C9 0D                CMP     #EOL
+0022EC  2  F0 06                BEQ     RETEX
+0022EE  2  20 86 21             JSR     BOOP            ; ACCEPT NO
+0022F1  2  4C E7 22             JMP     GTRT            ; SUBSTITUTES!
+0022F4  2               
+0022F4  2               RETEX:
+0022F4  2  60                   RTS
+0022F5  2               
+0022F5  2               RTN:
+0022F5  2  0D                   .BYTE   EOL
+0022F6  2  50 72 65 73          .BYTE   "Press [RETURN] to continue."
+0022FA  2  73 20 5B 52  
+0022FE  2  45 54 55 52  
+002311  2  0D                   .BYTE   EOL
+002312  2  3E                   .BYTE   ">"
+002313  2               RTNL            = *-RTN
 002313  2               
-002313  2               INSM:
-002313  2  0D                   .BYTE   EOL
-002314  2  49 6E 73 65          .BYTE   "Insert SAVE disk into Drive "
-002318  2  72 74 20 53  
-00231C  2  41 56 45 20  
-002330  2               SAVDRI:
-002330  2  2A 2E                .BYTE   "*."
-002332  2               INSML           = *-INSM
-002332  2               
-002332  2               YES:
-002332  2  59 45 53             .BYTE   "YES"
-002335  2  0D                   .BYTE   EOL
-002336  2               YESL            = *-YES
-002336  2               
-002336  2               NO:
-002336  2  4E 4F                .BYTE   "NO"
-002338  2  0D                   .BYTE   EOL
-002339  2               NOL             = *-NO
-002339  2               
-002339  2               PARAMS:
-002339  2  A2 CD                LDX     #<POSIT
-00233B  2  A9 22                LDA     #>POSIT
-00233D  2  A0 0D                LDY     #POSITL
-00233F  2  20 37 21             JSR     DLINE           ; "POSITION (1-5)"
-002342  2               
-002342  2               ; GET GAME POSITION
-002342  2               
-002342  2               CHANGE:
-002342  2  A5 D3                LDA     GPOSIT          ; SHOW THE CURRENT
-002344  2  20 BD 22             JSR     DODEF           ; DEFAULT POSITION
-002347  2               
-002347  2               GETPOS:
-002347  2  20 88 20             JSR     GETKEY          ; WAIT FOR A KEY
-00234A  2  C9 0D                CMP     #EOL            ; IF [RETURN],
-00234C  2  F0 0D                BEQ     POSSET          ; USE DEFAULT
-00234E  2  38                   SEC
-00234F  2  E9 31                SBC     #'1'            ; ELSE CONVERT ASCII TO BINARY
-002351  2  C9 05                CMP     #5              ; IF BELOW "6"
-002353  2  90 08                BCC     SETPOS          ; MAKE IT THE NEW DEFAULT
-002355  2  20 7E 21             JSR     BOOP            ; ELSE RAZZ
-002358  2  4C 47 23             JMP     GETPOS          ; AND TRY AGAIN
-00235B  2               
-00235B  2               POSSET:
-00235B  2  A5 D3                LDA     GPOSIT          ; USE DEFAULT
-00235D  2               
-00235D  2               SETPOS:
-00235D  2  85 D5                STA     TPOSIT          ; USE KEYPRESS
-00235F  2  18                   CLC
-002360  2  69 31                ADC     #'1'            ; CONVERT TO ASCII "1"-"5"
-002362  2  8D F2 22             STA     MPOS            ; STORE IN TEMP STRING
-002365  2  8D 7B 24             STA     SVPOS
-002368  2  8D 16 25             STA     RSPOS
-00236B  2  20 BE 20             JSR     LETTER          ; AND DISPLAY IT
-00236E  2               
-00236E  2               ; GET DRIVE ID
-00236E  2               
-00236E  2  A2 DA                LDX     #<WDRIV
-002370  2  A9 22                LDA     #>WDRIV
-002372  2  A0 0D                LDY     #WDRIVL
-002374  2  20 37 21             JSR     DLINE           ; "DRIVE 8 OR 9"
-002377  2               
-002377  2  A5 D4                LDA     GDRIVE          ; SHOW DEFAULT
-002379  2  18                   CLC                     ; CONVERT 0 OR 1
-00237A  2  69 07                ADC     #7              ; TO 7 OR 8
-00237C  2  20 BD 22             JSR     DODEF           ; SO DEFAULT WILL BE CORRECT
-00237F  2               
-00237F  2               GETDRV:
-00237F  2  20 88 20             JSR     GETKEY          ; GET A KEYPRESS
-002382  2  C9 0D                CMP     #EOL            ; IF [RETURN],
-002384  2  F0 0D                BEQ     DRVSET          ; USE DEFAULT
-002386  2  38                   SEC
-002387  2  E9 38                SBC     #'8'            ; CONVERT TO BINARY 0 OR 1
-002389  2  C9 02                CMP     #2              ; IF WITHIN RANGE,
-00238B  2  90 08                BCC     SETDRV          ; SET NEW DEFAULT
-00238D  2  20 7E 21             JSR     BOOP
-002390  2  4C 7F 23             JMP     GETDRV          ; ELSE TRY AGAIN
-002393  2               
-002393  2               DRVSET:
-002393  2  A5 D4                LDA     GDRIVE          ; USE DEFAULT
-002395  2               
-002395  2               SETDRV:
-002395  2  85 D6                STA     TDRIVE          ; USE [A]
-002397  2  18                   CLC
-002398  2  69 38                ADC     #'8'            ; CONVERT TO ASCII 8 OR 9
-00239A  2  8D 30 23             STA     SAVDRI          ; STORE IN DRIVE STRING
-00239D  2  8D FB 22             STA     MDRI            ; AND IN TEMP STRING
-0023A0  2  20 BE 20             JSR     LETTER          ; AND SHOW NEW SETTING
-0023A3  2               
-0023A3  2  A2 E7                LDX     #<MIND          ; SHOW TEMPORARY SETTINGS
-0023A5  2  A9 22                LDA     #>MIND
-0023A7  2  A0 2C                LDY     #MINDL
-0023A9  2  20 37 21             JSR     DLINE
+002313  2               
+002313  2               ; -------------------------
+002313  2               ; SET UP PHONEY STATUS LINE
+002313  2               ; -------------------------
+002313  2               
+002313  2               ; ENTRY: TEXT SET UP FOR "DLINE"
+002313  2               
+002313  2               SROOM:
+002313  2  60                   RTS
+002314  2               
+002314  2               ; ---------
+002314  2               ; SAVE GAME
+002314  2               ; ---------
+002314  2               
+002314  2               
+002314  2               
+002314  2               ZSAVE:
+002314  2  20 B8 22             JSR     SAVRES          ; SET UP SCREEN
+002317  2               
+002317  2               ; get filename and place in FCB
+002317  2               ; then open file for write/create
+002317  2               
+002317  2  A2 C2                LDX     #<FILENAME
+002319  2  A9 22                LDA     #>FILENAME
+00231B  2  A0 0B                LDY     #FILENAMEL
+00231D  2  20 3F 21             JSR     DLINE           ; "FILENAME ..."
+002320  2               
+002320  2  A9 20                LDA     #' '
+002322  2  8D E3 24             STA     SAVEFCB+1
+002325  2  8D E4 24             STA     SAVEFCB+2
+002328  2  8D E5 24             STA     SAVEFCB+3
+00232B  2  8D E6 24             STA     SAVEFCB+4
+00232E  2  8D E7 24             STA     SAVEFCB+5
+002331  2  8D E8 24             STA     SAVEFCB+6
+002334  2  8D E9 24             STA     SAVEFCB+7
+002337  2  8D EA 24             STA     SAVEFCB+8
+00233A  2               
+00233A  2  A9 03                LDA     #<SPAREBYTES
+00233C  2  85 62                STA     ARG1
+00233E  2  A9 25                LDA     #>SPAREBYTES
+002340  2  85 63                STA     ARG1+1
+002342  2  20 E9 20             JSR     INPUT
+002345  2  C9 0A                CMP     #10
+002347  2  90 02                BCC     :+
+002349  2  A9 09                LDA     #9
+00234B  2               :
+00234B  2  AA                   TAX
+00234C  2  CA                   DEX
+00234D  2               SFNLOOP:
+00234D  2  BD 03 25             LDA     SPAREBYTES,X
+002350  2               
+002350  2  C9 30                CMP     #'0'
+002352  2  B0 05                BCS     :+
+002354  2  A9 5F                LDA     #'_'
+002356  2  4C 7F 23             JMP     SFNOK
+002359  2               :
+002359  2  C9 3A                CMP     #':'
+00235B  2  90 22                BCC     SFNOK
+00235D  2  C9 41                CMP     #'A'
+00235F  2  B0 05                BCS     :+
+002361  2  A9 5F                LDA     #'_'
+002363  2  4C 7F 23             JMP     SFNOK
+002366  2               :
+002366  2  C9 5B                CMP     #'Z'+1
+002368  2  90 15                BCC     SFNOK
+00236A  2  C9 61                CMP     #'a'
+00236C  2  B0 05                BCS     :+
+00236E  2  A9 5F                LDA     #'_'
+002370  2  4C 7F 23             JMP     SFNOK
+002373  2               :
+002373  2  C9 7B                CMP     #'z'+1
+002375  2  90 05                BCC     :+
+002377  2  A9 5F                LDA     #'_'
+002379  2  4C 7F 23             JMP     SFNOK
+00237C  2               :
+00237C  2  38                   SEC
+00237D  2  E9 20                SBC     #$20
+00237F  2               SFNOK:
+00237F  2  9D E2 24             STA     SAVEFCB,X
+002382  2  CA                   DEX
+002383  2  10 C8                BPL     SFNLOOP
+002385  2               
+002385  2  A9 00                LDA     #0
+002387  2  8D E2 24             STA     SAVEFCB+0
+00238A  2  8D EE 24             STA     SAVEFCB+12
+00238D  2  A9 53                LDA     #'S'
+00238F  2  8D EB 24             STA     SAVEFCB+9
+002392  2  A9 41                LDA     #'A'
+002394  2  8D EC 24             STA     SAVEFCB+10
+002397  2  A9 56                LDA     #'V'
+002399  2  8D ED 24             STA     SAVEFCB+11
+00239C  2               
+00239C  2  A9 E2                LDA     #<SAVEFCB       ; Open Extent
+00239E  2  A0 24                LDY     #>SAVEFCB
+0023A0  2  A2 16                LDX     #22
+0023A2  2  20 03 01             JSR     PEM
+0023A5  2  C9 FF                CMP     #$FF
+0023A7  2  F0 03                BEQ     BADSAV
+0023A9  2               
+0023A9  2  4C AF 23             JMP     DOSAVE          ; ERROR IF CARRY SET
 0023AC  2               
-0023AC  2  20 CC 22             JSR     CURSON
+0023AC  2               BADSAV:
+0023AC  2  4C EF 10             JMP     PREDF           ; PREDICATE FAILS
 0023AF  2               
-0023AF  2               GETYES:
-0023AF  2  20 88 20             JSR     GETKEY
-0023B2  2  C9 59                CMP     #'Y'            ; IF REPLY IS "Y"
-0023B4  2  F0 1E                BEQ     ALLSET          ; ACCEPT RESPONSES
-0023B6  2  C9 79                CMP     #'y'
-0023B8  2  F0 1A                BEQ     ALLSET
-0023BA  2               
-0023BA  2  C9 4E                CMP     #'N'            ; IF REPLY IS N,
-0023BC  2  F0 0A                BEQ     RETRY           ; DO A RETRY
-0023BE  2  C9 6E                CMP     #'n'
-0023C0  2  F0 06                BEQ     RETRY
-0023C2  2               
-0023C2  2  20 7E 21             JSR     BOOP            ; INSIST ON Y/RETURN
-0023C5  2  4C AF 23             JMP     GETYES          ; OR N
-0023C8  2               
-0023C8  2               RETRY:
-0023C8  2  A2 36                LDX     #<NO            ; ELSE PRINT "NO"
-0023CA  2  A9 23                LDA     #>NO
-0023CC  2  A0 03                LDY     #NOL
-0023CE  2  20 37 21             JSR     DLINE
-0023D1  2  4C 39 23             JMP     PARAMS          ; AND TRY AGAIN
-0023D4  2               
-0023D4  2               ALLSET:
-0023D4  2  A2 32                LDX     #<YES           ; PRINT "YES"
-0023D6  2  A9 23                LDA     #>YES
-0023D8  2  A0 04                LDY     #YESL
-0023DA  2  20 37 21             JSR     DLINE
-0023DD  2               
-0023DD  2               ;        LDA     TDRIVE          ; MAKE THE TEMPORARY DRIVE
-0023DD  2               ;        STA     GDRIVE          ; THE DEFAULT DRIVE
-0023DD  2               ;        LDA     TPOSIT          ; AND THE TEMP POSITION
-0023DD  2               ;        STA     GPOSIT          ; THE DEFAULT POSITION
-0023DD  2               
-0023DD  2               ; CALC TRACK & SECTOR OF GAME POSITION
-0023DD  2               
-0023DD  2               ;        ASL     A               ; * 2
-0023DD  2               ;        STA     TRACK           ; SAVE HERE FOR A MOMENT
-0023DD  2               ;        ASL     A               ; * 4
-0023DD  2               ;        CLC
-0023DD  2               ;        ADC     TRACK           ; * 6 (6 TRACKS PER POSITION)
-0023DD  2               ;        STA     TRACK
-0023DD  2               ;        INC     TRACK           ; 1ST TRACK IS 1!
-0023DD  2               ;        LDA     #0
-0023DD  2               ;        STA     SECTOR          ; ALWAYS START ON SECTOR #0
-0023DD  2               ;        LDA     GDRIVE          ; TRY TO OPEN SPECIFIED DRIVE
-0023DD  2               ;        CLC
-0023DD  2               ;        ADC     #8
-0023DD  2               ;        JSR     DOPEN           ; THE DEFAULT DRIVE
-0023DD  2               ;        BCS     PARERR          ; CARRY SET IF ERROR
-0023DD  2               
-0023DD  2               SREADY:
-0023DD  2  A2 13                LDX     #<INSM
-0023DF  2  A9 23                LDA     #>INSM
-0023E1  2  A0 1F                LDY     #INSML
-0023E3  2  20 37 21             JSR     DLINE           ; "INSERT SAVE DISK IN DRIVE X."
-0023E6  2  20 EB 23             JSR     RETURN          ; "PRESS [RETURN] TO CONTINUE."
-0023E9  2  18                   CLC                     ; FOR SUCCESS
-0023EA  2               PARERR:
-0023EA  2  60                   RTS
-0023EB  2               
-0023EB  2               ; ---------------------
-0023EB  2               ; "PRESS RETURN" PROMPT
-0023EB  2               ; ---------------------
-0023EB  2               
-0023EB  2               RETURN:
-0023EB  2  A2 05                LDX     #<RTN
-0023ED  2  A9 24                LDA     #>RTN
-0023EF  2  A0 1E                LDY     #RTNL
-0023F1  2  20 37 21             JSR     DLINE           ; SHOW PROMPT
-0023F4  2               
-0023F4  2               ; ENTRY FOR QUIT/RESTART
-0023F4  2               
-0023F4  2               GETRET:
-0023F4  2  20 CC 22             JSR     CURSON          ; ENABLE CURSOR
-0023F7  2               
-0023F7  2               GTRT:
-0023F7  2  20 88 20             JSR     GETKEY          ; WAIT FOR [RETURN]
-0023FA  2  C9 0D                CMP     #EOL
-0023FC  2  F0 06                BEQ     RETEX
-0023FE  2  20 7E 21             JSR     BOOP            ; ACCEPT NO
-002401  2  4C F7 23             JMP     GTRT            ; SUBSTITUTES!
-002404  2               
-002404  2               RETEX:
-002404  2  60                   RTS
+0023AF  2               DOSAVE:
+0023AF  2               
+0023AF  2               ; SAVE GAME PARAMETERS IN [BUFSAV]
+0023AF  2               
+0023AF  2  AD 02 2B             LDA     ZBEGIN+ZID      ; MOVE GAME ID
+0023B2  2  8D 20 0D             STA     BUFSAV+0        ; INTO 1ST 2 BYTES
+0023B5  2  AD 03 2B             LDA     ZBEGIN+ZID+1    ; OF THE AUX LINE BUFFER
+0023B8  2  8D 21 0D             STA     BUFSAV+1
+0023BB  2               
+0023BB  2  A5 74                LDA     ZSP             ; MOVE [ZSP]
+0023BD  2  8D 22 0D             STA     BUFSAV+2        ; TO 3RD BYTE
+0023C0  2  A5 75                LDA     OLDZSP          ; MOVE [OLDZSP]
+0023C2  2  8D 23 0D             STA     BUFSAV+3        ; TO 4TH
+0023C5  2               
+0023C5  2  A2 02                LDX     #2              ; MOVE CONTENTS OF [ZPC]
+0023C7  2               ZPCSAV:
+0023C7  2  B5 76                LDA     ZPC,X           ; TO BYTES 5-7
+0023C9  2  9D 24 0D             STA     BUFSAV+4,X      ; OF [BUFSAV]
+0023CC  2  CA                   DEX
+0023CD  2  10 F8                BPL     ZPCSAV
+0023CF  2               
+0023CF  2               ; WRITE [LOCALS]/[BUFSAV] PAGE TO DISK
+0023CF  2               
+0023CF  2  A9 0D                LDA     #>LOCALS
+0023D1  2  85 D0                STA     DBUFF+HI        ; POINT TO THE PAGE
+0023D3  2  20 98 22             JSR     PUTDSK          ; AND WRITE IT OUT
+0023D6  2  B0 D4                BCS     BADSAV          ; CATCH WRITE ERROR HERE
+0023D8  2               
+0023D8  2               ; WRITE CONTENTS OF Z-STACK TO DISK
+0023D8  2               
+0023D8  2  A9 09                LDA     #>ZSTAKL        ; POINT TO 1ST PAGE
+0023DA  2  85 D0                STA     DBUFF+HI
+0023DC  2  20 98 22             JSR     PUTDSK          ; WRITE 1ST AND
+0023DF  2  B0 CB                BCS     BADSAV
+0023E1  2  20 98 22             JSR     PUTDSK          ; 2ND PAGE OF Z-STACK
+0023E4  2  B0 C6                BCS     BADSAV
+0023E6  2               
+0023E6  2               ; WRITE ENTIRE GAME PRELOAD TO DISK
+0023E6  2               
+0023E6  2  A5 83                LDA     ZCODE           ; POINT TO 1ST PAGE
+0023E8  2  85 D0                STA     DBUFF+HI        ; OF PRELOAD
+0023EA  2               
+0023EA  2  AE 0E 2B             LDX     ZBEGIN+ZPURBT   ; GET # IMPURE PAGES
+0023ED  2  E8                   INX                     ; USE FOR INDEXING
+0023EE  2  86 6E                STX     I+LO
+0023F0  2               
+0023F0  2               LSAVE:
+0023F0  2  20 98 22             JSR     PUTDSK
+0023F3  2  B0 B7                BCS     BADSAV
+0023F5  2  C6 6E                DEC     I+LO
+0023F7  2  D0 F7                BNE     LSAVE
+0023F9  2               
+0023F9  2  A9 E2                LDA     #<SAVEFCB       ; Open Extent
+0023FB  2  A0 24                LDY     #>SAVEFCB
+0023FD  2  A2 10                LDX     #16
+0023FF  2  20 03 01             JSR     PEM
+002402  2               
+002402  2  4C FB 10             JMP     PREDS           ; ELSE PREDICATE SUCCEEDS
 002405  2               
-002405  2               RTN:
-002405  2  0D                   .BYTE   EOL
-002406  2  50 72 65 73          .BYTE   "Press [RETURN] to continue."
-00240A  2  73 20 5B 52  
-00240E  2  45 54 55 52  
-002421  2  0D                   .BYTE   EOL
-002422  2  3E                   .BYTE   ">"
-002423  2               RTNL            = *-RTN
-002423  2               
-002423  2               ; --------------------
-002423  2               ; PROMPT FOR GAME DISK
-002423  2               ; --------------------
-002423  2               
-002423  2               GAME:
-002423  2  0D                   .BYTE   EOL
-002424  2  49 6E 73 65          .BYTE   "Insert STORY disk into Drive 8."
-002428  2  72 74 20 53  
-00242C  2  54 4F 52 59  
-002443  2               GAMEL           = *-GAME
-002443  2               
-002443  2               TOBOOT:
-002443  2  A9 08                LDA     #8
-002445  2  20 FA 26             JSR     DOPEN           ; CLOSE OLD, OPEN BOOT DRIVE
-002448  2               
-002448  2  A2 23                LDX     #<GAME
-00244A  2  A9 24                LDA     #>GAME
-00244C  2  A0 20                LDY     #GAMEL
-00244E  2  20 37 21             JSR     DLINE           ; "INSERT STORY DISK IN DRIVE #8."
-002451  2               
-002451  2  20 EB 23             JSR     RETURN          ; "PRESS [RETURN] TO CONTINUE:"
-002454  2               TBT0:
-002454  2  A9 FF                LDA     #$FF            ; RE-ENABLE
-002456  2  85 BF                STA     SCRIPT          ; SCRIPTING
-002458  2  4C CC 21             JMP     CLS             ; CLEAR SCREEN & RETURN
-00245B  2               
-00245B  2               ; -------------------------
-00245B  2               ; SET UP PHONEY STATUS LINE
-00245B  2               ; -------------------------
-00245B  2               
-00245B  2               ; ENTRY: TEXT SET UP FOR "DLINE"
-00245B  2               
-00245B  2               SROOM:
-00245B  2  60                   RTS
-00245C  2               
-00245C  2               ; ---------
-00245C  2               ; SAVE GAME
-00245C  2               ; ---------
-00245C  2               
-00245C  2               SAV:
-00245C  2  53 61 76 65          .BYTE   "Save Position"
-002460  2  20 50 6F 73  
-002464  2  69 74 69 6F  
-002469  2  0D                   .BYTE   EOL
-00246A  2               SAVL            = *-SAV
-00246A  2               
-00246A  2               SVING:
-00246A  2  0D                   .BYTE   EOL
-00246B  2  53 61 76 69          .BYTE   "Saving position "
-00246F  2  6E 67 20 70  
-002473  2  6F 73 69 74  
-00247B  2               SVPOS:
-00247B  2  2A 20 2E 2E          .BYTE   "* ..."
-00247F  2  2E           
-002480  2  0D                   .BYTE   EOL
-002481  2               SVINGL          = *-SVING
-002481  2               
-002481  2               ZSAVE:
-002481  2  20 A0 22             JSR     SAVRES          ; SET UP SCREEN
-002484  2               
-002484  2  A2 5C                LDX     #<SAV
-002486  2  A9 24                LDA     #>SAV
-002488  2  A0 0E                LDY     #SAVL
-00248A  2  20 5B 24             JSR     SROOM           ; "SAVE POSITION"
-00248D  2               
-00248D  2  20 39 23             JSR     PARAMS          ; GET PARAMETERS
-002490  2  90 06                BCC     DOSAVE          ; ERROR IF CARRY SET
-002492  2               
-002492  2               BADSAV:
-002492  2  20 43 24             JSR     TOBOOT          ; GET BOOT DISK
-002495  2  4C EF 10             JMP     PREDF           ; PREDICATE FAILS
-002498  2               
-002498  2               DOSAVE:
-002498  2  A2 6A                LDX     #<SVING
-00249A  2  A9 24                LDA     #>SVING
-00249C  2  A0 17                LDY     #SVINGL
-00249E  2  20 37 21             JSR     DLINE           ; "SAVING POSITION X ..."
-0024A1  2               
-0024A1  2               ; SAVE GAME PARAMETERS IN [BUFSAV]
-0024A1  2               
-0024A1  2  AD 02 2B             LDA     ZBEGIN+ZID      ; MOVE GAME ID
-0024A4  2  8D 20 0D             STA     BUFSAV+0        ; INTO 1ST 2 BYTES
-0024A7  2  AD 03 2B             LDA     ZBEGIN+ZID+1    ; OF THE AUX LINE BUFFER
-0024AA  2  8D 21 0D             STA     BUFSAV+1
-0024AD  2               
-0024AD  2  A5 74                LDA     ZSP             ; MOVE [ZSP]
-0024AF  2  8D 22 0D             STA     BUFSAV+2        ; TO 3RD BYTE
-0024B2  2  A5 75                LDA     OLDZSP          ; MOVE [OLDZSP]
-0024B4  2  8D 23 0D             STA     BUFSAV+3        ; TO 4TH
-0024B7  2               
-0024B7  2  A2 02                LDX     #2              ; MOVE CONTENTS OF [ZPC]
-0024B9  2               ZPCSAV:
-0024B9  2  B5 76                LDA     ZPC,X           ; TO BYTES 5-7
-0024BB  2  9D 24 0D             STA     BUFSAV+4,X      ; OF [BUFSAV]
-0024BE  2  CA                   DEX
-0024BF  2  10 F8                BPL     ZPCSAV
+002405  2               ; ------------
+002405  2               ; RESTORE GAME
+002405  2               ; ------------
+002405  2               
+002405  2               RES:
+002405  2  52 65 73 74          .BYTE   "Restore Position"
+002409  2  6F 72 65 20  
+00240D  2  50 6F 73 69  
+002415  2  0D                   .BYTE   EOL
+002416  2               RESL            = *-RES
+002416  2               
+002416  2               RSING:
+002416  2  0D                   .BYTE   EOL
+002417  2  52 65 73 74          .BYTE   "Restoring position "
+00241B  2  6F 72 69 6E  
+00241F  2  67 20 70 6F  
+00242A  2               RSPOS:
+00242A  2  2A 20 2E 2E          .BYTE   "* ..."
+00242E  2  2E           
+00242F  2  0D                   .BYTE   EOL
+002430  2               RSINGL          = *-RSING
+002430  2               
+002430  2               ZREST:
+002430  2  20 B8 22             JSR     SAVRES
+002433  2               
+002433  2  A2 05                LDX     #<RES
+002435  2  A9 24                LDA     #>RES
+002437  2  A0 11                LDY     #RESL
+002439  2  20 13 23             JSR     SROOM           ; "RESTORE POSITION"
+00243C  2               
+00243C  2               ;        JSR     PARAMS          ; GET PARAMETERS
+00243C  2               ;       BCS     BADRES          ; ERROR IF CARRY SET
+00243C  2               
+00243C  2  A2 16                LDX     #<RSING
+00243E  2  A9 24                LDA     #>RSING
+002440  2  A0 1A                LDY     #RSINGL
+002442  2  20 3F 21             JSR     DLINE           ; "RESTORING POSITION X ..."
+002445  2               
+002445  2               ; SAVE LOCALS IN CASE OF ERROR
+002445  2               
+002445  2  A2 1F                LDX     #31
+002447  2               LOCSAV:
+002447  2  BD 00 0D             LDA     LOCALS,X        ; COPY ALL LOCALS
+00244A  2  9D 00 01             STA     $0100,X         ; TO BOTTOM OF MACHINE STACK
+00244D  2  CA                   DEX
+00244E  2  10 F7                BPL     LOCSAV
+002450  2               
+002450  2  A9 0D                LDA     #>LOCALS
+002452  2  85 D0                STA     DBUFF+HI
+002454  2  20 98 22             JSR     GETRES          ; RETRIEVE 1ST BLOCK OF PRELOAD
+002457  2               
+002457  2  AD 20 0D             LDA     BUFSAV+0        ; DOES 1ST BYTE OF SAVED GAME ID
+00245A  2  CD 02 2B             CMP     ZBEGIN+ZID      ; MATCH THE CURRENT ID?
+00245D  2  D0 08                BNE     WRONG           ; WRONG DISK IF NOT
+00245F  2               
+00245F  2  AD 21 0D             LDA     BUFSAV+1        ; WHAT ABOUT THE 2ND BYTE?
+002462  2  CD 03 2B             CMP     ZBEGIN+ZID+1
+002465  2  F0 0E                BEQ     RIGHT           ; CONTINUE IF BOTH BYTES MATCH
+002467  2               
+002467  2               ; HANDLE INCORRECT SAVE DISK
+002467  2               
+002467  2               WRONG:
+002467  2  A2 1F                LDX     #31             ; RESTORE ALL SAVED LOCALS
+002469  2               WR0:
+002469  2  BD 00 01             LDA     $0100,X
+00246C  2  9D 00 0D             STA     LOCALS,X
+00246F  2  CA                   DEX
+002470  2  10 F7                BPL     WR0
+002472  2               
+002472  2               BADRES:
+002472  2  4C EF 10             JMP     PREDF           ; PREDICATE FAILS
+002475  2               
+002475  2               ; CONTINUE RESTORE
+002475  2               
+002475  2               RIGHT:
+002475  2  AD 10 2B             LDA     ZBEGIN+ZSCRIP   ; SAVE BOTH FLAG BYTES
+002478  2  85 6E                STA     I+LO
+00247A  2  AD 11 2B             LDA     ZBEGIN+ZSCRIP+1
+00247D  2  85 6F                STA     I+HI
+00247F  2               
+00247F  2  A9 09                LDA     #>ZSTAKL        ; RETRIEVE OLD CONTENTS OF
+002481  2  85 D0                STA     DBUFF+HI        ; Z-STACK
+002483  2  20 98 22             JSR     GETRES          ; GET 1ST BLOCK OF Z-STACK
+002486  2  20 98 22             JSR     GETRES          ; AND 2ND BLOCK
+002489  2               
+002489  2  A5 83                LDA     ZCODE
+00248B  2  85 D0                STA     DBUFF+HI
+00248D  2  20 98 22             JSR     GETRES          ; GET 1ST BLOCK OF PRELOAD
+002490  2               
+002490  2  A5 6E                LDA     I+LO            ; RESTORE THE STATE
+002492  2  8D 10 2B             STA     ZBEGIN+ZSCRIP   ; OF THE FLAG WORD
+002495  2  A5 6F                LDA     I+HI
+002497  2  8D 11 2B             STA     ZBEGIN+ZSCRIP+1
+00249A  2               
+00249A  2  AD 0E 2B             LDA     ZBEGIN+ZPURBT   ; GET # PAGES TO LOAD
+00249D  2  85 6E                STA     I+LO
+00249F  2               
+00249F  2               LREST:
+00249F  2  20 98 22             JSR     GETRES          ; FETCH THE REMAINDER
+0024A2  2  C6 6E                DEC     I+LO            ; OF THE PRELOAD
+0024A4  2  D0 F9                BNE     LREST
+0024A6  2               
+0024A6  2               ; RESTORE THE STATE OF THE SAVED GAME
+0024A6  2               
+0024A6  2  AD 22 0D             LDA     BUFSAV+2        ; RESTORE THE [ZSP]
+0024A9  2  85 74                STA     ZSP
+0024AB  2  AD 23 0D             LDA     BUFSAV+3        ; AND THE [OLDZSP]
+0024AE  2  85 75                STA     OLDZSP
+0024B0  2               
+0024B0  2  A2 02                LDX     #2              ; RESTORE THE [ZPC]
+0024B2  2               RESZPC:
+0024B2  2  BD 24 0D             LDA     BUFSAV+4,X
+0024B5  2  95 76                STA     ZPC,X
+0024B7  2  CA                   DEX
+0024B8  2  10 F8                BPL     RESZPC
+0024BA  2               
+0024BA  2  A9 00                LDA     #FALSE
+0024BC  2  85 79                STA     ZPCFLG          ; INVALIDATE [ZPC]
+0024BE  2               
+0024BE  2  4C FB 10             JMP     PREDS           ; PREDICATE SUCCEEDS
 0024C1  2               
-0024C1  2               ; WRITE [LOCALS]/[BUFSAV] PAGE TO DISK
-0024C1  2               
-0024C1  2  A9 0D                LDA     #>LOCALS
-0024C3  2  85 D0                STA     DBUFF+HI        ; POINT TO THE PAGE
-0024C5  2  20 9A 22             JSR     PUTDSK          ; AND WRITE IT OUT
-0024C8  2  B0 C8                BCS     BADSAV          ; CATCH WRITE ERROR HERE
-0024CA  2               
-0024CA  2               ; WRITE CONTENTS OF Z-STACK TO DISK
-0024CA  2               
-0024CA  2  A9 09                LDA     #>ZSTAKL        ; POINT TO 1ST PAGE
-0024CC  2  85 D0                STA     DBUFF+HI
-0024CE  2  20 9A 22             JSR     PUTDSK          ; WRITE 1ST AND
-0024D1  2  B0 BF                BCS     BADSAV
-0024D3  2  20 9A 22             JSR     PUTDSK          ; 2ND PAGE OF Z-STACK
-0024D6  2  B0 BA                BCS     BADSAV
-0024D8  2               
-0024D8  2               ; WRITE ENTIRE GAME PRELOAD TO DISK
-0024D8  2               
-0024D8  2  A5 83                LDA     ZCODE           ; POINT TO 1ST PAGE
-0024DA  2  85 D0                STA     DBUFF+HI        ; OF PRELOAD
-0024DC  2               
-0024DC  2  AE 0E 2B             LDX     ZBEGIN+ZPURBT   ; GET # IMPURE PAGES
-0024DF  2  E8                   INX                     ; USE FOR INDEXING
-0024E0  2  86 6E                STX     I+LO
+0024C1  2               GAMEFCB:
+0024C1  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
+0024C5  2  00 00 00 00  
+0024C9  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
+0024CD  2  00 00 00 00  
+0024D1  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
+0024D5  2  00 00 00 00  
+0024D9  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
+0024DD  2  00 00 00 00  
+0024E1  2  00                   .BYTE   00
 0024E2  2               
-0024E2  2               LSAVE:
-0024E2  2  20 9A 22             JSR     PUTDSK
-0024E5  2  B0 AB                BCS     BADSAV
-0024E7  2  C6 6E                DEC     I+LO
-0024E9  2  D0 F7                BNE     LSAVE
-0024EB  2               
-0024EB  2  20 43 24             JSR     TOBOOT          ; PROMPT FOR GAME DISK
-0024EE  2  4C FB 10             JMP     PREDS           ; ELSE PREDICATE SUCCEEDS
-0024F1  2               
-0024F1  2               ; ------------
-0024F1  2               ; RESTORE GAME
-0024F1  2               ; ------------
-0024F1  2               
-0024F1  2               RES:
-0024F1  2  52 65 73 74          .BYTE   "Restore Position"
-0024F5  2  6F 72 65 20  
-0024F9  2  50 6F 73 69  
-002501  2  0D                   .BYTE   EOL
-002502  2               RESL            = *-RES
-002502  2               
-002502  2               RSING:
-002502  2  0D                   .BYTE   EOL
-002503  2  52 65 73 74          .BYTE   "Restoring position "
-002507  2  6F 72 69 6E  
-00250B  2  67 20 70 6F  
-002516  2               RSPOS:
-002516  2  2A 20 2E 2E          .BYTE   "* ..."
-00251A  2  2E           
-00251B  2  0D                   .BYTE   EOL
-00251C  2               RSINGL          = *-RSING
-00251C  2               
-00251C  2               ZREST:
-00251C  2  20 A0 22             JSR     SAVRES
-00251F  2               
-00251F  2  A2 F1                LDX     #<RES
-002521  2  A9 24                LDA     #>RES
-002523  2  A0 11                LDY     #RESL
-002525  2  20 5B 24             JSR     SROOM           ; "RESTORE POSITION"
-002528  2               
-002528  2  20 39 23             JSR     PARAMS          ; GET PARAMETERS
-00252B  2  B0 36                BCS     BADRES          ; ERROR IF CARRY SET
-00252D  2               
-00252D  2  A2 02                LDX     #<RSING
-00252F  2  A9 25                LDA     #>RSING
-002531  2  A0 1A                LDY     #RSINGL
-002533  2  20 37 21             JSR     DLINE           ; "RESTORING POSITION X ..."
-002536  2               
-002536  2               ; SAVE LOCALS IN CASE OF ERROR
-002536  2               
-002536  2  A2 1F                LDX     #31
-002538  2               LOCSAV:
-002538  2  BD 00 0D             LDA     LOCALS,X        ; COPY ALL LOCALS
-00253B  2  9D 00 01             STA     $0100,X         ; TO BOTTOM OF MACHINE STACK
-00253E  2  CA                   DEX
-00253F  2  10 F7                BPL     LOCSAV
-002541  2               
-002541  2  A9 0D                LDA     #>LOCALS
-002543  2  85 D0                STA     DBUFF+HI
-002545  2  20 9A 22             JSR     GETRES          ; RETRIEVE 1ST BLOCK OF PRELOAD
-002548  2               
-002548  2  AD 20 0D             LDA     BUFSAV+0        ; DOES 1ST BYTE OF SAVED GAME ID
-00254B  2  CD 02 2B             CMP     ZBEGIN+ZID      ; MATCH THE CURRENT ID?
-00254E  2  D0 08                BNE     WRONG           ; WRONG DISK IF NOT
-002550  2               
-002550  2  AD 21 0D             LDA     BUFSAV+1        ; WHAT ABOUT THE 2ND BYTE?
-002553  2  CD 03 2B             CMP     ZBEGIN+ZID+1
-002556  2  F0 11                BEQ     RIGHT           ; CONTINUE IF BOTH BYTES MATCH
-002558  2               
-002558  2               ; HANDLE INCORRECT SAVE DISK
-002558  2               
-002558  2               WRONG:
-002558  2  A2 1F                LDX     #31             ; RESTORE ALL SAVED LOCALS
-00255A  2               WR0:
-00255A  2  BD 00 01             LDA     $0100,X
-00255D  2  9D 00 0D             STA     LOCALS,X
-002560  2  CA                   DEX
-002561  2  10 F7                BPL     WR0
-002563  2               
-002563  2               BADRES:
-002563  2  20 43 24             JSR     TOBOOT          ; PROMPT FOR GAME DISK
-002566  2  4C EF 10             JMP     PREDF           ; PREDICATE FAILS
-002569  2               
-002569  2               ; CONTINUE RESTORE
-002569  2               
-002569  2               RIGHT:
-002569  2  AD 10 2B             LDA     ZBEGIN+ZSCRIP   ; SAVE BOTH FLAG BYTES
-00256C  2  85 6E                STA     I+LO
-00256E  2  AD 11 2B             LDA     ZBEGIN+ZSCRIP+1
-002571  2  85 6F                STA     I+HI
-002573  2               
-002573  2  A9 09                LDA     #>ZSTAKL        ; RETRIEVE OLD CONTENTS OF
-002575  2  85 D0                STA     DBUFF+HI        ; Z-STACK
-002577  2  20 9A 22             JSR     GETRES          ; GET 1ST BLOCK OF Z-STACK
-00257A  2  20 9A 22             JSR     GETRES          ; AND 2ND BLOCK
-00257D  2               
-00257D  2  A5 83                LDA     ZCODE
-00257F  2  85 D0                STA     DBUFF+HI
-002581  2  20 9A 22             JSR     GETRES          ; GET 1ST BLOCK OF PRELOAD
-002584  2               
-002584  2  A5 6E                LDA     I+LO            ; RESTORE THE STATE
-002586  2  8D 10 2B             STA     ZBEGIN+ZSCRIP   ; OF THE FLAG WORD
-002589  2  A5 6F                LDA     I+HI
-00258B  2  8D 11 2B             STA     ZBEGIN+ZSCRIP+1
-00258E  2               
-00258E  2  AD 0E 2B             LDA     ZBEGIN+ZPURBT   ; GET # PAGES TO LOAD
-002591  2  85 6E                STA     I+LO
-002593  2               
-002593  2               LREST:
-002593  2  20 9A 22             JSR     GETRES          ; FETCH THE REMAINDER
-002596  2  C6 6E                DEC     I+LO            ; OF THE PRELOAD
-002598  2  D0 F9                BNE     LREST
-00259A  2               
-00259A  2               ; RESTORE THE STATE OF THE SAVED GAME
-00259A  2               
-00259A  2  AD 22 0D             LDA     BUFSAV+2        ; RESTORE THE [ZSP]
-00259D  2  85 74                STA     ZSP
-00259F  2  AD 23 0D             LDA     BUFSAV+3        ; AND THE [OLDZSP]
-0025A2  2  85 75                STA     OLDZSP
-0025A4  2               
-0025A4  2  A2 02                LDX     #2              ; RESTORE THE [ZPC]
-0025A6  2               RESZPC:
-0025A6  2  BD 24 0D             LDA     BUFSAV+4,X
-0025A9  2  95 76                STA     ZPC,X
-0025AB  2  CA                   DEX
-0025AC  2  10 F8                BPL     RESZPC
-0025AE  2               
-0025AE  2  A9 00                LDA     #FALSE
-0025B0  2  85 79                STA     ZPCFLG          ; INVALIDATE [ZPC]
-0025B2  2               
-0025B2  2  20 43 24             JSR     TOBOOT          ; PROMPT FOR GAME DISK
-0025B5  2  4C FB 10             JMP     PREDS           ; PREDICATE SUCCEEDS
-0025B8  2               
-0025B8  2               GAMEFCB:
-0025B8  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
-0025BC  2  00 00 00 00  
-0025C0  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
-0025C4  2  00 00 00 00  
-0025C8  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
-0025CC  2  00 00 00 00  
-0025D0  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
-0025D4  2  00 00 00 00  
-0025D8  2  00                   .BYTE   00
-0025D9  2               
-0025D9  2               SAVEFCB:
-0025D9  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
-0025DD  2  00 00 00 00  
-0025E1  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
-0025E5  2  00 00 00 00  
-0025E9  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
-0025ED  2  00 00 00 00  
-0025F1  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
-0025F5  2  00 00 00 00  
-0025F9  2  00                   .BYTE   00
-0025FA  2               
-0025FA  2               SPAREBYTES:
-0025FA  2               D65BLOCK:
-0025FA  2  xx xx xx xx          .RES    256
-0025FE  2  xx xx xx xx  
-002602  2  xx xx xx xx  
-0026FA  2               
-0026FA  1                       .INCLUDE "disk.asm"
-0026FA  2               ;        PAGE
-0026FA  2               ;        SBTTL   "--- DISK ACCESS: DOS/65 ---"
-0026FA  2               
-0026FA  2               ; --------------
-0026FA  2               ; OPEN DRIVE [A]
-0026FA  2               ; WILL OPEN FILE SPECIFIED IN COMMAND LINE
-0026FA  2               ; --------------
-0026FA  2               DOPEN:
-0026FA  2  A2 0C                LDX     #12
-0026FC  2               :
-0026FC  2  CA                   DEX
-0026FD  2  BD 07 01             LDA     DFLFCB,X
-002700  2  9D B8 25             STA     GAMEFCB,X
-002703  2  E0 00                CPX     #00
-002705  2  D0 F5                BNE     :-
-002707  2  18                   CLC
-002708  2  60                   RTS
-002709  2               DOPEN_ERR:
-002709  2  38                   SEC
-00270A  2  60                   RTS
-00270B  2               
-00270B  2               
-00270B  2               ; -------------------
-00270B  2               ; CLOSE CURRENT DRIVE
-00270B  2               ; -------------------
-00270B  2               
-00270B  2               DCLOSE:
-00270B  2  60                   RTS
-00270C  2               
-00270C  2               ;        LDA     #<DFLFCB
-00270C  2               ;        LDY     #>DFLFCB
-00270C  2               ;        LDX     #16
-00270C  2               ;        JSR     PEM
-00270C  2               
-00270C  2               ; FALL THROUGH ...
-00270C  2               
-00270C  2               
-00270C  2               ; ----------------
-00270C  2               ; DIVIDE [A] BY 10
-00270C  2               ; ----------------
-00270C  2               
-00270C  2               ; EXIT: QUOTIENT IN [X], REMAINDER IN [A]
-00270C  2               
-00270C  2               DIV10:
-00270C  2  A2 00                LDX     #0              ; START WITH ZERO QUOTIENT
-00270E  2               
-00270E  2               D10L:
-00270E  2  C9 0A                CMP     #10             ; IF DIVISOR < 10,
-002710  2  90 05                BCC     D10EX           ; WE'RE DONE
-002712  2  E9 0A                SBC     #10             ; ELSE SUBTRACT ANOTHER 10
-002714  2  E8                   INX                     ; UPDATE QUOTIENT
-002715  2  D0 F7                BNE     D10L            ; BRANCH ALWAYS
-002717  2               
-002717  2               D10EX:
-002717  2  60                   RTS
-002718  2               
-002718  1               
-002718  1                       .IFDEF  DEBUG
-002718  1                       .INCLUDE "bugger.asm"
-002718  1                       .ENDIF
-002718  1               
-002718  1               ;        TITLE   "ZIP/6502-C INFOCOM, INC."
-002718  1                       .END
+0024E2  2               SAVEFCB:
+0024E2  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
+0024E6  2  00 00 00 00  
+0024EA  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
+0024EE  2  00 00 00 00  
+0024F2  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
+0024F6  2  00 00 00 00  
+0024FA  2  00 00 00 00          .BYTE   00,00,00,00,00,00,00,00
+0024FE  2  00 00 00 00  
+002502  2  00                   .BYTE   00
+002503  2               
+002503  2               SPAREBYTES:
+002503  2               D65BLOCK:
+002503  2  xx xx xx xx          .RES    256
+002507  2  xx xx xx xx  
+00250B  2  xx xx xx xx  
+002603  2               
+002603  1                       .INCLUDE "disk.asm"
+002603  2               ;        PAGE
+002603  2               ;        SBTTL   "--- DISK ACCESS: DOS/65 ---"
+002603  2               
+002603  2               ; --------------
+002603  2               ; OPEN DRIVE [A]
+002603  2               ; WILL OPEN FILE SPECIFIED IN COMMAND LINE
+002603  2               ; --------------
+002603  2               DOPEN:
+002603  2  A2 0C                LDX     #12
+002605  2               :
+002605  2  CA                   DEX
+002606  2  BD 07 01             LDA     DFLFCB,X
+002609  2  9D C1 24             STA     GAMEFCB,X
+00260C  2  E0 00                CPX     #00
+00260E  2  D0 F5                BNE     :-
+002610  2  18                   CLC
+002611  2  60                   RTS
+002612  2               DOPEN_ERR:
+002612  2  38                   SEC
+002613  2  60                   RTS
+002614  2               
+002614  2               
+002614  2               ; -------------------
+002614  2               ; CLOSE CURRENT DRIVE
+002614  2               ; -------------------
+002614  2               
+002614  2               DCLOSE:
+002614  2  60                   RTS
+002615  2               
+002615  2               ;        LDA     #<DFLFCB
+002615  2               ;        LDY     #>DFLFCB
+002615  2               ;        LDX     #16
+002615  2               ;        JSR     PEM
+002615  2               
+002615  2               ; FALL THROUGH ...
+002615  2               
+002615  2               
+002615  2               ; ----------------
+002615  2               ; DIVIDE [A] BY 10
+002615  2               ; ----------------
+002615  2               
+002615  2               ; EXIT: QUOTIENT IN [X], REMAINDER IN [A]
+002615  2               
+002615  2               DIV10:
+002615  2  A2 00                LDX     #0              ; START WITH ZERO QUOTIENT
+002617  2               
+002617  2               D10L:
+002617  2  C9 0A                CMP     #10             ; IF DIVISOR < 10,
+002619  2  90 05                BCC     D10EX           ; WE'RE DONE
+00261B  2  E9 0A                SBC     #10             ; ELSE SUBTRACT ANOTHER 10
+00261D  2  E8                   INX                     ; UPDATE QUOTIENT
+00261E  2  D0 F7                BNE     D10L            ; BRANCH ALWAYS
+002620  2               
+002620  2               D10EX:
+002620  2  60                   RTS
+002621  2               
+002621  1               
+002621  1                       .IFDEF  DEBUG
+002621  1                       .INCLUDE "bugger.asm"
+002621  1                       .ENDIF
+002621  1               
+002621  1               ;        TITLE   "ZIP/6502-C INFOCOM, INC."
+002621  1                       .END

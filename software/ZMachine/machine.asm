@@ -27,10 +27,15 @@ GKEY1:
 
         CMP     #'z'+1
         BCS     BADKEY
-        CMP     #'a'            ; TO ASCII LOWER CASE
+        CMP     #'a'
+        BCS     GOODKEY
+
+        CMP     #'A'            ; TO ASCII LOWER CASE
         BCC     GOODKEY
-        SEC
-        SBC     #$20
+        CMP     #'Z'+1
+        BCS     BADKEY
+        CLC
+        ADC     #$20
         JMP     GOODKEY
 
 BADKEY:
@@ -257,7 +262,7 @@ DOSCRN:
 ; ---------
 
 BOOP:
-        LDA     #$8
+        LDA     #7
         LDX     #2
         JSR     PEM
         RTS

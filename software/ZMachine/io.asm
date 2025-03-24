@@ -317,7 +317,7 @@ USL0:
         STA     SCRIPT          ; DISABLE SCRIPTING
         JSR     REVERSE
         LDX     #0
-        LDy     #0
+        LDY     #0
         JSR     PLOT
 ;
 ; PRINT ROOM DESCRIPTION
@@ -478,7 +478,7 @@ USLX:
         PLA
         STA     LENGTH
 
-        LDX     #0            ; RESTORE CURSOR
+        LDX     #0              ; RESTORE CURSOR
         LDY     #YSIZE
         CLC
         JSR     PLOT
