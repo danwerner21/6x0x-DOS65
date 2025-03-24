@@ -25,7 +25,8 @@ zip.com: zip.out
 	cpmcp -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img  zork1.z1 0:zork1.z1
 	@cpmrm -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img zork1.z3
 	cpmcp -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img  zork1.z3 0:zork1.z3
-
+	@cpmrm -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img planet.z3
+	cpmcp -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img  planet.z3 0:planet.z3
 
 pretty:
 	cp *.asm ./backup
