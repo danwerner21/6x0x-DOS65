@@ -124,6 +124,16 @@ PUTDSK:
         LDX     #21
         JSR     PEM
 
+        LDA     #80              ; Set Buffer Address
+        LDY     DBUFF+HI
+        LDX     #26
+        JSR     PEM
+
+        LDA     #<SAVEFCB       ; Write Record
+        LDY     #>SAVEFCB
+        LDX     #21
+        JSR     PEM
+
         CMP     #$FF
         BEQ     WRTERR
 
@@ -377,7 +387,12 @@ LSAVE:
         DEC     I+LO
         BNE     LSAVE
 
-        LDA     #<SAVEFCB       ; Open Extent
+        LDA     #<SPAREBYTES              ; Set Buffer Address
+        LDY     #>SPAREBYTES
+        LDX     #26
+        JSR     PEM
+
+        LDA     #<SAVEFCB       ; Close
         LDY     #>SAVEFCB
         LDX     #16
         JSR     PEM
@@ -387,6 +402,10 @@ LSAVE:
 ; ------------
 ; RESTORE GAME
 ; ------------
+
+all that is left is to handle the restore game.
+then test the crap out of it.
+would be good to also test on the actual hardware.
 
 RES:
         .BYTE   "Restore Position"
