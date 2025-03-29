@@ -13,12 +13,42 @@ DOPEN:
         STA     GAMEFCB,X
         CPX     #00
         BNE     :-
-        CLC
-        RTS
-DOPEN_ERR:
-        SEC
+
+        LDA     #<GAMEFCB       ; Open Extent
+        LDY     #>GAMEFCB
+        LDX     #15
+        JSR     PEM
+        CMP     #$FF
+        BEQ     OPENDSKERR
+
+        LDA     #<SPAREBYTES    ; Set Buffer Address to safe spot
+        LDY     #>SPAREBYTES
+        LDX     #26
+        JSR     PEM
+
+        LDA     #<GAMEFCB       ; Close Extent
+        LDY     #>GAMEFCB
+        LDX     #16
+        JSR     PEM
         RTS
 
+OPENDSKERR:
+
+        LDX     #<OPENERR
+        LDA     #>OPENERR
+        LDY     #OPENERRL
+        JSR     DLINE
+
+        LDA     #14
+        JMP     ZERROR
+
+OPENERR:
+        .BYTE   EOL,EOL,EOL,EOL
+        .BYTE   "Unable to open game file."
+        .BYTE   EOL
+        .BYTE   "USAGE:  ZIP <GAMEFILE>"
+        .BYTE   EOL
+OPENERRL           = *-OPENERR
 
 ; -------------------
 ; CLOSE CURRENT DRIVE
@@ -26,11 +56,6 @@ DOPEN_ERR:
 
 DCLOSE:
         RTS
-
-;        LDA     #<DFLFCB
-;        LDY     #>DFLFCB
-;        LDX     #16
-;        JSR     PEM
 
 ; FALL THROUGH ...
 

@@ -88,23 +88,30 @@ GETDSKERR:
 ; ENTRY FOR "RESTORE" ([TRACK], [SECTOR] & [DRIVE] PRE-ASSIGNED)
 
 GETRES:
-;        CLC                     ; CARRY CLEAR = "READ BLOCK"
-;        JSR     DISK            ; GO DO IT!
-;        BCS     DSXERR          ; ERROR IF CARRY SET
-;
-;        LDY     #0              ; MOVE CONTENTS OF [IOBUFF]
-;GDKL:
-;        LDA     IOBUFF,Y        ; TO THE
-;        STA     (DBUFF),Y       ; TARGET PAGE IN [DBUFF]
-;        INY
-;        BNE     GDKL
-;
-;        INC     DBLOCK+LO       ; POINT TO NEXT
-;        BNE     GDEX            ; Z-BLOCK
-;        INC     DBLOCK+HI
-;
-;GDEX:
-;        JMP     NXTSEC          ; POINT TO NEXT SECTOR & PAGE
+
+        LDA     #0              ; Set Buffer Address
+        LDY     DBUFF+HI
+        LDX     #26
+        JSR     PEM
+
+        LDA     #<SAVEFCB       ; READ Record
+        LDY     #>SAVEFCB
+        LDX     #20
+        JSR     PEM
+
+        LDA     #$80            ; Set Buffer Address
+        LDY     DBUFF+HI
+        LDX     #26
+        JSR     PEM
+
+        LDA     #<SAVEFCB       ; READ Record
+        LDY     #>SAVEFCB
+        LDX     #20
+        JSR     PEM
+
+        CMP     #$FF
+        BEQ     WRTERR
+        JMP     NXTSEC          ; POINT TO NEXT SECTOR & PAGE
 
 ; --------------------
 ; PUT [DBLOCK] TO DISK
@@ -124,7 +131,7 @@ PUTDSK:
         LDX     #21
         JSR     PEM
 
-        LDA     #80              ; Set Buffer Address
+        LDA     #$80            ; Set Buffer Address
         LDY     DBUFF+HI
         LDX     #26
         JSR     PEM
@@ -136,7 +143,7 @@ PUTDSK:
 
         CMP     #$FF
         BEQ     WRTERR
-
+NXTSEC:
         INC     DBUFF+HI        ; POINT TO NEXT RAM PAGE
         RTS
 WRTERR:
@@ -248,81 +255,7 @@ SROOM:
 
 
 ZSAVE:
-        JSR     SAVRES          ; SET UP SCREEN
-
-; get filename and place in FCB
-; then open file for write/create
-
-        LDX     #<FILENAME
-        LDA     #>FILENAME
-        LDY     #FILENAMEL
-        JSR     DLINE           ; "FILENAME ..."
-
-        LDA     #' '
-        STA     SAVEFCB+1
-        STA     SAVEFCB+2
-        STA     SAVEFCB+3
-        STA     SAVEFCB+4
-        STA     SAVEFCB+5
-        STA     SAVEFCB+6
-        STA     SAVEFCB+7
-        STA     SAVEFCB+8
-
-        LDA     #<SPAREBYTES
-        STA     ARG1
-        LDA     #>SPAREBYTES
-        STA     ARG1+1
-        JSR     INPUT
-        CMP     #10
-        BCC     :+
-        LDA     #9
-:
-        TAX
-        DEX
-SFNLOOP:
-        LDA     SPAREBYTES,X
-
-        CMP     #'0'
-        BCS     :+
-        LDA     #'_'
-        JMP     SFNOK
-:
-        CMP     #':'
-        BCC     SFNOK
-        CMP     #'A'
-        BCS     :+
-        LDA     #'_'
-        JMP     SFNOK
-:
-        CMP     #'Z'+1
-        BCC     SFNOK
-        CMP     #'a'
-        BCS     :+
-        LDA     #'_'
-        JMP     SFNOK
-:
-        CMP     #'z'+1
-        BCC     :+
-        LDA     #'_'
-        JMP     SFNOK
-:
-        SEC
-        SBC     #$20
-SFNOK:
-        STA     SAVEFCB,X
-        DEX
-        BPL     SFNLOOP
-
-        LDA     #0
-        STA     SAVEFCB+0
-        STA     SAVEFCB+12
-        LDA     #'S'
-        STA     SAVEFCB+9
-        LDA     #'A'
-        STA     SAVEFCB+10
-        LDA     #'V'
-        STA     SAVEFCB+11
-
+        JSR     GETFILENAME
         LDA     #<SAVEFCB       ; Open Extent
         LDY     #>SAVEFCB
         LDX     #22
@@ -387,7 +320,7 @@ LSAVE:
         DEC     I+LO
         BNE     LSAVE
 
-        LDA     #<SPAREBYTES              ; Set Buffer Address
+        LDA     #<SPAREBYTES    ; Set Buffer Address
         LDY     #>SPAREBYTES
         LDX     #26
         JSR     PEM
@@ -396,52 +329,29 @@ LSAVE:
         LDY     #>SAVEFCB
         LDX     #16
         JSR     PEM
-
         JMP     PREDS           ; ELSE PREDICATE SUCCEEDS
 
 ; ------------
 ; RESTORE GAME
 ; ------------
 
-all that is left is to handle the restore game.
-then test the crap out of it.
-would be good to also test on the actual hardware.
-
-RES:
-        .BYTE   "Restore Position"
-        .BYTE   EOL
-RESL            = *-RES
-
-RSING:
-        .BYTE   EOL
-        .BYTE   "Restoring position "
-RSPOS:
-        .BYTE   "* ..."
-        .BYTE   EOL
-RSINGL          = *-RSING
-
 ZREST:
-        JSR     SAVRES
+        JSR     GETFILENAME
+        LDA     #<SAVEFCB       ; Open Extent
+        LDY     #>SAVEFCB
+        LDX     #15
+        JSR     PEM
+        CMP     #$FF
+        BEQ     BADRES
 
-        LDX     #<RES
-        LDA     #>RES
-        LDY     #RESL
-        JSR     SROOM           ; "RESTORE POSITION"
+        JMP     DOREST          ; ERROR IF CARRY SET
 
-;        JSR     PARAMS          ; GET PARAMETERS
-;       BCS     BADRES          ; ERROR IF CARRY SET
-
-        LDX     #<RSING
-        LDA     #>RSING
-        LDY     #RSINGL
-        JSR     DLINE           ; "RESTORING POSITION X ..."
-
+DOREST:
 ; SAVE LOCALS IN CASE OF ERROR
-
         LDX     #31
 LOCSAV:
         LDA     LOCALS,X        ; COPY ALL LOCALS
-        STA     $0100,X         ; TO BOTTOM OF MACHINE STACK
+        STA     SPAREBYTES,X    ; TO BOTTOM OF MACHINE STACK
         DEX
         BPL     LOCSAV
 
@@ -462,7 +372,7 @@ LOCSAV:
 WRONG:
         LDX     #31             ; RESTORE ALL SAVED LOCALS
 WR0:
-        LDA     $0100,X
+        LDA     SPAREBYTES,X
         STA     LOCALS,X
         DEX
         BPL     WR0
@@ -500,6 +410,17 @@ LREST:
         DEC     I+LO            ; OF THE PRELOAD
         BNE     LREST
 
+        LDA     #<SPAREBYTES    ; Set Buffer Address to safe spot
+        LDY     #>SPAREBYTES
+        LDX     #26
+        JSR     PEM
+
+        LDA     #<SAVEFCB       ; Close Extent
+        LDY     #>SAVEFCB
+        LDX     #16
+        JSR     PEM
+
+
 ; RESTORE THE STATE OF THE SAVED GAME
 
         LDA     BUFSAV+2        ; RESTORE THE [ZSP]
@@ -516,8 +437,85 @@ RESZPC:
 
         LDA     #FALSE
         STA     ZPCFLG          ; INVALIDATE [ZPC]
-
         JMP     PREDS           ; PREDICATE SUCCEEDS
+
+
+GETFILENAME:
+; get filename and place in FCB
+; then open file for write/create
+        JSR     SAVRES          ; SET UP SCREEN
+        LDX     #<FILENAME
+        LDA     #>FILENAME
+        LDY     #FILENAMEL
+        JSR     DLINE           ; "FILENAME ..."
+
+        LDA     #' '
+        STA     SAVEFCB+1
+        STA     SAVEFCB+2
+        STA     SAVEFCB+3
+        STA     SAVEFCB+4
+        STA     SAVEFCB+5
+        STA     SAVEFCB+6
+        STA     SAVEFCB+7
+        STA     SAVEFCB+8
+
+        LDA     #<SPAREBYTES
+        STA     ARG1
+        LDA     #>SPAREBYTES
+        STA     ARG1+1
+        JSR     INPUT
+        CMP     #10
+        BCC     :+
+        LDA     #9
+:
+        TAX
+        DEX
+GFNLOOP:
+        LDA     SPAREBYTES,X
+
+        CMP     #'0'
+        BCS     :+
+        LDA     #'_'
+        JMP     GFNOK
+:
+        CMP     #':'
+        BCC     GFNOK
+        CMP     #'A'
+        BCS     :+
+        LDA     #'_'
+        JMP     GFNOK
+:
+        CMP     #'Z'+1
+        BCC     GFNOK
+        CMP     #'a'
+        BCS     :+
+        LDA     #'_'
+        JMP     GFNOK
+:
+        CMP     #'z'+1
+        BCC     :+
+        LDA     #'_'
+        JMP     GFNOK
+:
+        SEC
+        SBC     #$20
+GFNOK:
+        STA     SAVEFCB,X
+        DEX
+        BPL     GFNLOOP
+
+        LDA     #0
+        STA     SAVEFCB+0
+        STA     SAVEFCB+12
+        LDA     #'S'
+        STA     SAVEFCB+9
+        LDA     #'A'
+        STA     SAVEFCB+10
+        LDA     #'V'
+        STA     SAVEFCB+11
+        RTS
+
+
 
 GAMEFCB:
         .BYTE   00,00,00,00,00,00,00,00

@@ -12,6 +12,7 @@ assign.com: assign.c
 	cp assign.com ../bin/common/
 	sed -i -e '$$aS9' assign.s19
 	cp assign.s19 ../bin/common/
+	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img 0:assign.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  assign.com 0:assign.co6
 
 alloc.out: alloc203.asm
@@ -294,24 +295,28 @@ xmr.com: xmr.c
 	cc65  -t none -O --cpu 6502  xmr.c
 	ca65 --cpu 6502  xmr.s
 	ld65 xmr.o  ./rbc/rbc.lib -m xmr.map -C dos65c.cfg -o xmr.com
+	ld65 xmr.o  ./rbc/rbc816.lib -m xmr816.map -C dos65c.cfg -o xmr816.com
 	srec_cat  xmr.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  xmr.s19  -data-only
 	cp xmr.com ../bin/common/
+	cp xmr816.com ../bin/common/
 	sed -i -e '$$aS9' xmr.s19
 	cp xmr.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img xmr.co6
-	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  xmr.com 0:xmr.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  xmr816.com 0:xmr.co6
 
 
 xms.com: xms.c
 	cc65  -t none -O --cpu 6502  xms.c
 	ca65 --cpu 6502  xms.s
 	ld65 xms.o  ./rbc/rbc.lib -m xms.map -C dos65c.cfg -o xms.com
+	ld65 xms.o  ./rbc/rbc816.lib -m xms816.map -C dos65c.cfg -o xms816.com
 	srec_cat  xms.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  xms.s19  -data-only
 	cp xms.com ../bin/common/
+	cp xms816.com ../bin/common/
 	sed -i -e '$$aS9' xms.s19
 	cp xms.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img xms.co6
-	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  xms.com 0:xms.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  xms816.com 0:xms.co6
 
 pretty:
 	cp *.asm ./backup

@@ -1,13 +1,18 @@
 
-all:  	zip.com
+all:  	zip816.com zip.com
 
+
+zip816.out: zip.asm bugger.asm cold.asm disk.asm dispatch.asm eq.asm hardeq.asm \
+         io.asm machine.asm main.asm objects.asm ops0.asm ops1.asm ops2.asm \
+	 opsx.asm paging.asm read.asm subs.asm warm.asm zdos.asm zstring.asm
+	ca65 --cpu 65816 -D DUODYNE zip.asm -l zip816.lst -o zip816.o
+	ld65 zip816.o  -m zip816.map -C dos65.cfg -o zip816.out
 
 zip.out: zip.asm bugger.asm cold.asm disk.asm dispatch.asm eq.asm hardeq.asm \
          io.asm machine.asm main.asm objects.asm ops0.asm ops1.asm ops2.asm \
 	 opsx.asm paging.asm read.asm subs.asm warm.asm zdos.asm zstring.asm
-	ca65 --cpu 6502 zip.asm -l zip.lst
+	ca65 --cpu 6502 zip.asm  -l zip.lst -o zip.o
 	ld65 zip.o  -m zip.map -C dos65.cfg -o zip.out
-
 
 zip.com: zip.out
 	srec_cat  zip.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  zip.s19  -data-only
@@ -17,8 +22,21 @@ zip.com: zip.out
 	sed -i -e '$$aS9' zip.s19
 	cp zip.com ../../bin/common/
 	cp zip.s19 ../../bin/common/
+	cp ziptest.z3 ../../bin/common/
+	cp zork1.z1 ../../bin/common/
+	cp zork1.z3 ../../bin/common/
+	cp planet.z3 ../../bin/common/
+
+zip816.com: zip816.out
+	srec_cat  zip816.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  zip816.s19  -data-only
+	srec_cat  zip816.s19  -offset -0x0800  -o  zipA.s  -data-only
+	srec_cat  zipA.s -o zip816.com  -BINARY
+	@rm -f zipA.s
+	sed -i -e '$$aS9' zip816.s19
+	cp zip816.com ../../bin/common/
+	cp zip816.s19 ../../bin/common/
 	@cpmrm -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img zip.co6
-	cpmcp -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img  zip.com 0:zip.co6
+	cpmcp -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img  zip816.com 0:zip.co6
 	@cpmrm -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img ziptest.z3
 	cpmcp -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img  ziptest.z3 0:ziptest.z3
 	@cpmrm -f wbw_hd512 ../../bin/duodyne/hd512_duodyne.img zork1.z1

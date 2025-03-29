@@ -18,14 +18,22 @@ COLD:
 ; ---------------
 
 SLOAD:
-        .BYTE   "The story is loading ..."
+        .BYTE   "Infocom ZMachine Intrepreter for DOS/65"
+        .BYTE   EOL
+        .BYTE   EOL
+        .BYTE   "                 The story is loading ..."
         .BYTE   EOL
 SLOADL          = *-SLOAD
 
 WARM1:
         CLD
-;  LDX     #$FF  (Dont do this for Duodyne . . . . .)
-;  TXS                     ; RESET MACHINE STACK
+        .IFDEF  DUODYNE
+        .ELSE
+        LDX     #$FF            ; (Dont do this for Duodyne . . . . .)
+        TXS                     ; RESET MACHINE STACK
+        .ENDIF
+
+
 
         JSR     CLS             ; CLEAR SCREEN, ETC.
 
