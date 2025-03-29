@@ -18,7 +18,7 @@ COLD:
 ; ---------------
 
 SLOAD:
-        .BYTE   "Infocom ZMachine Intrepreter for DOS/65"
+        .BYTE   "Infocom ZMachine Interpreter for DOS/65"
         .BYTE   EOL
         .BYTE   EOL
         .BYTE   "                 The story is loading ..."

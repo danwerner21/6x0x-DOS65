@@ -288,7 +288,7 @@ read:
         CMP     #$10
         BNE     :+              ; not SD drive
 ;SD
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         .ELSE
         JSR     CONVERT_SECTOR_LBA
         .ENDIF
@@ -301,7 +301,7 @@ read:
         CMP     #$20
         BNE     :+              ; not floppy drive
 ;FD
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         .ELSE
         JSR     SETUP_FD_CHS
         .ENDIF
@@ -314,7 +314,7 @@ read:
         CMP     #$30
         BNE     :+              ; invalid drive
 ;PPIDE
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         .ELSE
         JSR     CONVERT_SECTOR_LBA
         .ENDIF
@@ -351,7 +351,7 @@ write:
         CMP     #$10
         BNE     :+              ; not SD drive
 ;SD
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         .ELSE
         JSR     CONVERT_SECTOR_LBA
         .ENDIF
@@ -369,7 +369,7 @@ write:
         CMP     #$20
         BNE     :+              ; not floppy drive
 ;FD
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         .ELSE
         JSR     SETUP_FD_CHS
         .ENDIF
@@ -385,7 +385,7 @@ write:
         CMP     #$30
         BNE     :+              ; invalid drive
 ;PPIDE
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         .ELSE
         JSR     CONVERT_SECTOR_LBA
         .ENDIF
@@ -479,7 +479,7 @@ OUTSTRLP:
 ENDOUTSTR:
         RTS                     ; RETURN
 
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         .ELSE
 
 ;___CONVERT_SECTOR_LBA___________________________________________________________________________________

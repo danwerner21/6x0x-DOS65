@@ -246,7 +246,7 @@ Current file: zip.asm
 000E08  2               ; ---------------
 000E08  2               
 000E08  2               SLOAD:
-000E08  2  49 6E 66 6F          .BYTE   "Infocom ZMachine Intrepreter for DOS/65"
+000E08  2  49 6E 66 6F          .BYTE   "Infocom ZMachine Interpreter for DOS/65"
 000E0C  2  63 6F 6D 20  
 000E10  2  5A 4D 61 63  
 000E2F  2  0D                   .BYTE   EOL
@@ -5484,7 +5484,7 @@ Current file: zip.asm
 0026CC  2  45 3A 20 20  
 0026D0  2  5A 49 50 20  
 0026DE  2  0D                   .BYTE   EOL
-0026DF  2               OPENERRL           = *-OPENERR
+0026DF  2               OPENERRL        = *-OPENERR
 0026DF  2               
 0026DF  2               ; -------------------
 0026DF  2               ; CLOSE CURRENT DRIVE

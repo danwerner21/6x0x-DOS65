@@ -25,6 +25,7 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. add NVSET.COM docs
 1. add RTC.COM docs
 1. add SEDIT.COM docs
+1. add ZIP.COM (Infocom ZMachine interpreter) docs
 1. add memory map to readme
 1. add console redirection to readme
 1. add building a custom rom image to readme
@@ -280,6 +281,10 @@ then use your terminal software to upload the following utilities (one at a time
 * RTC.COM
 * SEDIT.COM
 * XMS.COM
+* ZIP.COM
+* PLANET.Z3
+* ZORK1.Z3
+* ZIPTEST.Z3
 
 
 ### Monitor Commands

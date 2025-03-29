@@ -793,7 +793,7 @@ PUTACC
         LDX     ACCLEN          ;get it as index
         LDA     NXTCHR          ;get next
         .IFDEF  DUODYNE
-        STA     F:ACCUM,X         ;store it
+        STA     F:ACCUM,X       ;store it
         .ELSE
         STA     ACCUM,X         ;store it
         .ENDIF
@@ -1038,11 +1038,11 @@ COMPA0
         LDAINDIRECTY PTR        ;a=field(i)
         INC     IC
         LDY     IC              ;i=i+1
-        .IFDEF DUODYNE
+        .IFDEF  DUODYNE
         PHX
         TYX
         STA     TMPFLG
-        LDA     F:ACCUM,X         ;compare field(i) to accum(i=i+1)
+        LDA     F:ACCUM,X       ;compare field(i) to accum(i=i+1)
         PLX
         CMP     TMPFLG
         .ELSE
@@ -1562,7 +1562,7 @@ SLOOKX
 SLOOK0
         LDA     BASE            ;see if
         ORA     BASE+1          ;base = 0
-        LBEQ     SLOOFL         ;false if is
+        LBEQ    SLOOFL          ;false if is
         LDY     #0              ;clear index
         LDAINDIRECTY BASE       ;get PTR
         STA     LEN             ;save as length
@@ -2196,7 +2196,7 @@ GENCO1
         BCC     GENCO2          ;then
         LDX     IGEN
         .IFDEF  DUODYNE
-        STA     F:ACCUM,X         ;store it
+        STA     F:ACCUM,X       ;store it
         .ELSE
         STA     ACCUM,X         ;store it
         .ENDIF
@@ -3181,7 +3181,7 @@ MAIN
         LDX     #2              ;clear page zero
         LDA     #0
 PZC
-        .IFDEF   DUODYNE
+        .IFDEF  DUODYNE
         STA     f:0,X
         .ELSE
         STA     0,X
@@ -3279,7 +3279,7 @@ M20
         STX     INDEX           ;index=0
 M22
         .IFDEF  DUODYNE
-        STA     F:ACCUM,X         ;store it
+        STA     F:ACCUM,X       ;store it
         .ELSE
         STA     ACCUM,X         ;store it
         .ENDIF
@@ -3418,7 +3418,7 @@ M40
         CMP     STATE
         LDA     #>MAXLNO
         SBC     STATE+1         ;> maxlno
-        LBCC     M50            ;then go to next
+        LBCC    M50             ;then go to next
         JSR     GETIN1
         STA     I
         STY     I+1             ;i=getin1

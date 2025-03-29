@@ -48,7 +48,7 @@ OPENERR:
         .BYTE   EOL
         .BYTE   "USAGE:  ZIP <GAMEFILE>"
         .BYTE   EOL
-OPENERRL           = *-OPENERR
+OPENERRL        = *-OPENERR
 
 ; -------------------
 ; CLOSE CURRENT DRIVE

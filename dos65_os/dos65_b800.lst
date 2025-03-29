@@ -3530,7 +3530,7 @@ Current file: dos65.asm
 00CE2B  2  C9 10                CMP     #$10
 00CE2D  2  D0 0E                BNE     :+              ; not SD drive
 00CE2F  2               ;SD
-00CE2F  2                       .IFDEF DUODYNE
+00CE2F  2                       .IFDEF  DUODYNE
 00CE2F  2                       .ELSE
 00CE2F  2  20 04 CF             JSR     CONVERT_SECTOR_LBA
 00CE32  2                       .ENDIF
@@ -3543,7 +3543,7 @@ Current file: dos65.asm
 00CE3D  2  C9 20                CMP     #$20
 00CE3F  2  D0 0E                BNE     :+              ; not floppy drive
 00CE41  2               ;FD
-00CE41  2                       .IFDEF DUODYNE
+00CE41  2                       .IFDEF  DUODYNE
 00CE41  2                       .ELSE
 00CE41  2  20 CF CF             JSR     SETUP_FD_CHS
 00CE44  2                       .ENDIF
@@ -3556,7 +3556,7 @@ Current file: dos65.asm
 00CE4F  2  C9 30                CMP     #$30
 00CE51  2  D0 0E                BNE     :+              ; invalid drive
 00CE53  2               ;PPIDE
-00CE53  2                       .IFDEF DUODYNE
+00CE53  2                       .IFDEF  DUODYNE
 00CE53  2                       .ELSE
 00CE53  2  20 04 CF             JSR     CONVERT_SECTOR_LBA
 00CE56  2                       .ENDIF
@@ -3593,7 +3593,7 @@ Current file: dos65.asm
 00CE7F  2  C9 10                CMP     #$10
 00CE81  2  D0 15                BNE     :+              ; not SD drive
 00CE83  2               ;SD
-00CE83  2                       .IFDEF DUODYNE
+00CE83  2                       .IFDEF  DUODYNE
 00CE83  2                       .ELSE
 00CE83  2  20 04 CF             JSR     CONVERT_SECTOR_LBA
 00CE86  2                       .ENDIF
@@ -3611,7 +3611,7 @@ Current file: dos65.asm
 00CE98  2  C9 20                CMP     #$20
 00CE9A  2  D0 15                BNE     :+              ; not floppy drive
 00CE9C  2               ;FD
-00CE9C  2                       .IFDEF DUODYNE
+00CE9C  2                       .IFDEF  DUODYNE
 00CE9C  2                       .ELSE
 00CE9C  2  20 CF CF             JSR     SETUP_FD_CHS
 00CE9F  2                       .ENDIF
@@ -3627,7 +3627,7 @@ Current file: dos65.asm
 00CEB1  2  C9 30                CMP     #$30
 00CEB3  2  D0 15                BNE     :+              ; invalid drive
 00CEB5  2               ;PPIDE
-00CEB5  2                       .IFDEF DUODYNE
+00CEB5  2                       .IFDEF  DUODYNE
 00CEB5  2                       .ELSE
 00CEB5  2  20 04 CF             JSR     CONVERT_SECTOR_LBA
 00CEB8  2                       .ENDIF
@@ -3721,7 +3721,7 @@ Current file: dos65.asm
 00CF03  2               ENDOUTSTR:
 00CF03  2  60                   RTS                     ; RETURN
 00CF04  2               
-00CF04  2                       .IFDEF DUODYNE
+00CF04  2                       .IFDEF  DUODYNE
 00CF04  2                       .ELSE
 00CF04  2               
 00CF04  2               ;___CONVERT_SECTOR_LBA___________________________________________________________________________________

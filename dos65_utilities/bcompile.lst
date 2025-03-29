@@ -1014,7 +1014,7 @@ Current file: compl203.asm
 000B9E  1  A6 4E                LDX     ACCLEN          ;get it as index
 000BA0  1  A5 4D                LDA     NXTCHR          ;get next
 000BA2  1                       .IFDEF  DUODYNE
-000BA2  1                       STA     F:ACCUM,X         ;store it
+000BA2  1                       STA     F:ACCUM,X       ;store it
 000BA2  1                       .ELSE
 000BA2  1  95 4E                STA     ACCUM,X         ;store it
 000BA4  1                       .ENDIF
@@ -1259,11 +1259,11 @@ Current file: compl203.asm
 000D18  1  B1 A2                LDAINDIRECTY PTR        ;a=field(i)
 000D1A  1  E6 A1                INC     IC
 000D1C  1  A4 A1                LDY     IC              ;i=i+1
-000D1E  1                       .IFDEF DUODYNE
+000D1E  1                       .IFDEF  DUODYNE
 000D1E  1                       PHX
 000D1E  1                       TYX
 000D1E  1                       STA     TMPFLG
-000D1E  1                       LDA     F:ACCUM,X         ;compare field(i) to accum(i=i+1)
+000D1E  1                       LDA     F:ACCUM,X       ;compare field(i) to accum(i=i+1)
 000D1E  1                       PLX
 000D1E  1                       CMP     TMPFLG
 000D1E  1                       .ELSE
@@ -1783,7 +1783,7 @@ Current file: compl203.asm
 001068  1               SLOOK0
 001068  1  A5 A7                LDA     BASE            ;see if
 00106A  1  05 A8                ORA     BASE+1          ;base = 0
-00106C  1  F0 2B                LBEQ     SLOOFL         ;false if is
+00106C  1  F0 2B                LBEQ    SLOOFL          ;false if is
 00106E  1  A0 00                LDY     #0              ;clear index
 001070  1  B1 A7                LDAINDIRECTY BASE       ;get PTR
 001072  1  85 BD                STA     LEN             ;save as length
@@ -2417,7 +2417,7 @@ Current file: compl203.asm
 0014C4  1  90 0C                BCC     GENCO2          ;then
 0014C6  1  A6 C5                LDX     IGEN
 0014C8  1                       .IFDEF  DUODYNE
-0014C8  1                       STA     F:ACCUM,X         ;store it
+0014C8  1                       STA     F:ACCUM,X       ;store it
 0014C8  1                       .ELSE
 0014C8  1  95 4E                STA     ACCUM,X         ;store it
 0014CA  1                       .ENDIF
@@ -3440,7 +3440,7 @@ Current file: compl203.asm
 001CBA  1  A2 02                LDX     #2              ;clear page zero
 001CBC  1  A9 00                LDA     #0
 001CBE  1               PZC
-001CBE  1                       .IFDEF   DUODYNE
+001CBE  1                       .IFDEF  DUODYNE
 001CBE  1                       STA     f:0,X
 001CBE  1                       .ELSE
 001CBE  1  95 00                STA     0,X
@@ -3538,7 +3538,7 @@ Current file: compl203.asm
 001D73  1  86 9E                STX     INDEX           ;index=0
 001D75  1               M22
 001D75  1                       .IFDEF  DUODYNE
-001D75  1                       STA     F:ACCUM,X         ;store it
+001D75  1                       STA     F:ACCUM,X       ;store it
 001D75  1                       .ELSE
 001D75  1  95 4E                STA     ACCUM,X         ;store it
 001D77  1                       .ENDIF
@@ -3677,7 +3677,7 @@ Current file: compl203.asm
 001E75  1  C5 79                CMP     STATE
 001E77  1  A9 00                LDA     #>MAXLNO
 001E79  1  E5 7A                SBC     STATE+1         ;> maxlno
-001E7B  1  90 55                LBCC     M50            ;then go to next
+001E7B  1  90 55                LBCC    M50             ;then go to next
 001E7D  1  20 48 1C             JSR     GETIN1
 001E80  1  85 98                STA     I
 001E82  1  84 99                STY     I+1             ;i=getin1
