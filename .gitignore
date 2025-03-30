@@ -3,4 +3,4 @@ gamefiles/
 *.map
 *.o
 *.out
-
+.vscode/
