@@ -1,4 +1,6 @@
 backup/
+gamefiles/
 *.map
 *.o
 *.out
+
