@@ -1,0 +1,1934 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : rom.asm
+Current file: rom.asm
+
+000000r 1               
+000000r 1               ;__MONITOR_______________________________________________________
+000000r 1               ; This is the SUPERMON based rom monitor program.
+000000r 1               ;
+000000r 1               ; It assumes that the 65C02 board is set for IOPage $DF.
+000000r 1               ;
+000000r 1               ;__________________________________________________________________________________________________
+000000r 1               ;
+000000r 1               ; DATA CONSTANTS
+000000r 1               ;__________________________________________________________________________________________________
+000000r 1               ;REGISTER       IO PORT                         ; FUNCTION
+000000r 1               ; UART 16C550 SERIAL
+000000r 1               UART0           = $0358         ; DATA IN/OUT
+000000r 1               UART1           = $0359         ; CHECK RX
+000000r 1               UART2           = $035A         ; INTERRUPTS
+000000r 1               UART3           = $035B         ; LINE CONTROL
+000000r 1               UART4           = $035C         ; MODEM CONTROL
+000000r 1               UART5           = $035D         ; LINE STATUS
+000000r 1               UART6           = $035E         ; MODEM STATUS
+000000r 1               UART7           = $035F         ; SCRATCH REG.
+000000r 1               
+000000r 1               BANK00          = $0350
+000000r 1               BANK40          = $0351
+000000r 1               BANK80          = $0352
+000000r 1               BANKC0          = $0353
+000000r 1               
+000000r 1               STRPTR          = $10
+000000r 1               
+000000r 1               
+000000r 1                       .SEGMENT "ROM"
+000000r 1               
+000000r 1               ;__COLD_START___________________________________________________
+000000r 1               ;
+000000r 1               ; PERFORM SYSTEM COLD INIT
+000000r 1               ;
+000000r 1               ;_______________________________________________________________
+000000r 1               COLD_START:
+000000r 1  78                   SEI                     ; DISABLE INTERRUPTS
+000001r 1  D8                   CLD                     ;  VERIFY DECIMAL MODE IS OFF
+000002r 1  A2 FF                LDX     #$FF            ;
+000004r 1  9A                   TXS                     ; CLEAR STACK
+000005r 1               
+000005r 1               ;* Setup Memory Banks (RAM 0000-C000, ROM C000-FFFF)
+000005r 1  A9 82                LDA     #$82
+000007r 1  8D 50 03             STA     BANK00
+00000Ar 1  A9 83                LDA     #$83
+00000Cr 1  8D 51 03             STA     BANK40
+00000Fr 1  A9 84                LDA     #$84
+000011r 1  8D 52 03             STA     BANK80
+000014r 1  A9 03                LDA     #$03
+000016r 1  8D 53 03             STA     BANKC0
+000019r 1  A9 0B                LDA     #$0B            ; ACTIVATE MAPPER
+00001Br 1  8D 5C 03             STA     UART4           ;
+00001Er 1               
+00001Er 1  20 rr rr             JSR     INIT_SERIAL
+000021r 1               
+000021r 1  A9 rr                LDA     #<STARTUP       ; OUTPUT STARTUP STRING
+000023r 1  85 10                STA     STRPTR          ;
+000025r 1  A9 rr                LDA     #>STARTUP       ;
+000027r 1  85 11                STA     STRPTR+1        ;
+000029r 1  20 rr rr             JSR     OUTSTR          ;
+00002Cr 1               ;
+00002Cr 1  00                   BRK                     ; PERFORM BRK (START MONITOR)
+00002Dr 1               
+00002Dr 1               ;__________________________________________________________________________________________________________
+00002Dr 1               INIT_SERIAL:
+00002Dr 1  A9 80                LDA     #$80            ;
+00002Fr 1  8D 5B 03             STA     UART3           ; SET DLAB FLAG
+000032r 1  A9 0C                LDA     #12             ; SET TO 12 = 9600 BAUD
+000034r 1  8D 58 03             STA     UART0           ; save baud rate
+000037r 1  A9 00                LDA     #00             ;
+000039r 1  8D 59 03             STA     UART1           ;
+00003Cr 1  A9 03                LDA     #03             ;
+00003Er 1  8D 5B 03             STA     UART3           ; SET 8 BIT DATA, 1 STOPBIT
+000041r 1  A9 0B                LDA     #$0B            ; ACTIVATE MAPPER
+000043r 1  8D 5C 03             STA     UART4           ;
+000046r 1  60                   RTS
+000047r 1               
+000047r 1               ;__OUTCH_________________________________________________________________________________________________
+000047r 1               ;
+000047r 1               ; PERFORM CONSOLE WRITE
+000047r 1               ;________________________________________________________________________________________________________
+000047r 1               OUTCH:
+000047r 1  48                   PHA
+000048r 1               TX_BUSYLP:
+000048r 1  AD 5D 03             LDA     UART5           ; READ LINE STATUS REGISTER
+00004Br 1  29 20                AND     #$20            ; TEST IF UART IS READY TO SEND (BIT 5)
+00004Dr 1  C9 00                CMP     #$00
+00004Fr 1  F0 F7                BEQ     TX_BUSYLP       ; IF NOT REPEAT
+000051r 1  68                   PLA
+000052r 1  8D 58 03             STA     UART0           ; THEN WRITE THE CHAR TO UART
+000055r 1  60                   RTS
+000056r 1               
+000056r 1               ;__IOF_CONIN_____________________________________________________________________________________________
+000056r 1               ;
+000056r 1               ; PERFORM CONSOLE READ
+000056r 1               ;________________________________________________________________________________________________________
+000056r 1               IOF_CONIN:
+000056r 1  AD 5D 03             LDA     UART5           ; READ LINE STATUS REGISTER
+000059r 1  29 01                AND     #$01            ; TEST IF DATA IN RECEIVE BUFFER
+00005Br 1  C9 00                CMP     #$00
+00005Dr 1  F0 04                BEQ     :+
+00005Fr 1  AD 58 03             LDA     UART0           ; THEN WRITE THE CHAR TO UART
+000062r 1  60                   RTS
+000063r 1               :
+000063r 1  A9 00                LDA     #$00
+000065r 1  60                   RTS
+000066r 1               
+000066r 1               IOF_CONINW:
+000066r 1  AD 5D 03             LDA     UART5           ; READ LINE STATUS REGISTER
+000069r 1  29 01                AND     #$01            ; TEST IF DATA IN RECEIVE BUFFER
+00006Br 1  C9 00                CMP     #$00
+00006Dr 1  F0 F7                BEQ     IOF_CONINW
+00006Fr 1  AD 58 03             LDA     UART0           ; THEN WRITE THE CHAR TO UART
+000072r 1  60                   RTS
+000073r 1               
+000073r 1               
+000073r 1               ;__OUTSTR______________________________________________________
+000073r 1               ;
+000073r 1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+000073r 1               ;
+000073r 1               ;______________________________________________________________
+000073r 1               OUTSTR:
+000073r 1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+000075r 1               OUTSTRLP:
+000075r 1  B1 10                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+000077r 1  C9 00                CMP     #$00            ; IS NULL?
+000079r 1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00007Br 1  20 rr rr             JSR     OUTCH           ; PRINT CHAR IN ACC
+00007Er 1  E6 10                INC     STRPTR
+000080r 1  D0 F3                BNE     OUTSTRLP
+000082r 1  E6 11                INC     STRPTR+1
+000084r 1  4C rr rr             JMP     OUTSTRLP        ; DO NEXT CHAR
+000087r 1               ENDOUTSTR:
+000087r 1  60                   RTS                     ; RETURN
+000088r 1               
+000088r 1                       .INCLUDE"SUPERMON.ASM"
+000088r 2               ; ********************************
+000088r 2               ; * SUPERMON+ 64 JIM BUTTERFIELD *
+000088r 2               ; * V1.2   AUGUST 20 1985        *
+000088r 2               ; ********************************
+000088r 2               
+000088r 2               ; Reformatted and annotated in late 2016/early 2017 by J.B. Langston.
+000088r 2               ; Modified for Nhyodyne 3/12/2023 D. Werner
+000088r 2               ;
+000088r 2               ; Mr. Butterfield . . you inspired many of us, thank you.
+000088r 2               ;
+000088r 2               ; -----------------------------------------------------------------------------
+000088r 2               ; temporary pointers
+000088r 2               TMP0            = $C1           ; used to return input, often holds end address
+000088r 2               TMP2            = $C3           ; usually holds start address
+000088r 2               
+000088r 2               ; these 7 locations are used to store the registers when
+000088r 2               ; entering the monitor and restore them when exiting.
+000088r 2               
+000088r 2               PCH             = $B0           ; program counter high byte
+000088r 2               PCL             = $B1           ; program counter low byte
+000088r 2               SR              = $B2           ; status register
+000088r 2               ACC             = $B3           ; accumulator
+000088r 2               XR              = $B4           ; X register
+000088r 2               YR              = $B5           ; Y register
+000088r 2               SP              = $B6           ; stack pointer
+000088r 2               STORE           = $B7           ; 2-byte temp storage
+000088r 2               CHRPNT          = $B9           ; current position in input buffer
+000088r 2               SAVY            = $BA           ; temp storage, often to save Y register
+000088r 2               U9F             = $BB           ; index into assembler work buffer
+000088r 2               CKSM            = $BC           ; S19 loader checksum store
+000088r 2               LOADADR         = $BD           ; S19 load address
+000088r 2               LOADWRK         = $BF           ; S19 load work
+000088r 2               
+000088r 2               ;-----------------------------------------------------------------------------
+000088r 2               ; variables
+000088r 2               ACMD            = $C5           ; addressing command
+000088r 2               LENGTH          = $C6           ; length of operand
+000088r 2               MNEMW           = $C7           ; 3 letter mnemonic buffer
+000088r 2               SAVX            = $CA           ; 1 byte temp storage, often to save X register
+000088r 2               OPCODE          = $CB           ; current opcode for assembler/disassembler
+000088r 2               UPFLG           = $CC           ; flag: count up (bit 7 clear) or down (bit 7 set)
+000088r 2               DIGCNT          = $CB           ; digit count
+000088r 2               INDIG           = $CC           ; numeric value of single digit
+000088r 2               NUMBIT          = $CD           ; numeric base of input
+000088r 2               STASH           = $CE           ; 2-byte temp storage
+000088r 2               U0AA0           = $D0           ; 10 byte work buffer
+000088r 2               U0AAE           = $D0+10        ; end of 10 byte work buffer
+000088r 2               STAGE           = $DA           ; 30 byte staging buffer for filename, search, etc.
+000088r 2               ESTAGE          = $DA+30        ; end of 30 byte staging buffer for filename, search, etc.
+000088r 2               INBUFF          = $0200
+000088r 2               CHROUT          = OUTCH
+000088r 2               
+000088r 2               
+000088r 2               ; -----------------------------------------------------------------------------
+000088r 2               ; BRK handler
+000088r 2               BRKROUTINE:
+000088r 2               BREAK:
+000088r 2  A2 05                LDX     #$05            ; pull registers off the stack
+00008Ar 2               BSTACK:
+00008Ar 2  68                   PLA                     ; order: Y,X,A,SR,PCL,PCH
+00008Br 2  95 B0                STA     PCH,X           ; store in memory
+00008Dr 2  CA                   DEX
+00008Er 2  10 FA                BPL     BSTACK
+000090r 2  D8                   CLD                     ; disable bcd mode
+000091r 2  BA                   TSX                     ; store stack pointer in memory
+000092r 2  86 B6                STX     SP
+000094r 2  58                   CLI                     ; enable interupts
+000095r 2               
+000095r 2               ; -----------------------------------------------------------------------------
+000095r 2               ; display registers [R]
+000095r 2               DSPLYR:
+000095r 2  A0 00                LDY     #MSG2-MSGBAS    ; display headers
+000097r 2  20 rr rr             JSR     SNDCLR
+00009Ar 2  A9 3B                LDA     #$3B            ; prefix registers with "; " to allow editing
+00009Cr 2  20 rr rr             JSR     CHROUT
+00009Fr 2  A9 20                LDA     #$20
+0000A1r 2  20 rr rr             JSR     CHROUT
+0000A4r 2  A5 B0                LDA     PCH             ; print 2-byte program counter
+0000A6r 2  20 rr rr             JSR     WRTWO
+0000A9r 2  A0 01                LDY     #1              ; start 1 byte after PC high byte
+0000ABr 2               DISJ:
+0000ABr 2  B9 B0 00             LDA     PCH,Y           ; loop through rest of the registers
+0000AEr 2  20 rr rr             JSR     WRBYTE          ; print 1-byte register value
+0000B1r 2  C8                   INY
+0000B2r 2  C0 07                CPY     #7              ; there are a total of 5 registers to print
+0000B4r 2  90 F5                BCC     DISJ
+0000B6r 2               
+0000B6r 2               ; -----------------------------------------------------------------------------
+0000B6r 2               ; main loop
+0000B6r 2               STRT:
+0000B6r 2  20 rr rr             JSR     CRLF            ; new line
+0000B9r 2  A2 00                LDX     #0              ; point at start of input buffer
+0000BBr 2  86 B9                STX     CHRPNT
+0000BDr 2               SMOVE:
+0000BDr 2  20 rr rr             JSR     IOF_CONINW      ; CHRIN kernal call to input a character
+0000C0r 2               
+0000C0r 2  C9 08                CMP     #$08            ; IS BACKSPACE?
+0000C2r 2  D0 1A                BNE     :+              ; NO, SKUP BACKSPACE RTN
+0000C4r 2  E0 00                CPX     #$00            ; IS INDEX =0 ?
+0000C6r 2  F0 F5                BEQ     SMOVE           ; YES, SKIP BACKSPACE
+0000C8r 2  20 rr rr             JSR     OUTCH           ; BACK UP CURSOR
+0000CBr 2  A9 20                LDA     #$20
+0000CDr 2  20 rr rr             JSR     OUTCH           ; SPACE ON SCREEN
+0000D0r 2  A9 08                LDA     #$08
+0000D2r 2  20 rr rr             JSR     OUTCH           ; BACK UP CURSOR
+0000D5r 2               
+0000D5r 2  A9 00                LDA     #0
+0000D7r 2  9D 00 02             STA     INBUFF,X        ; store in input buffer
+0000DAr 2  CA                   DEX
+0000DBr 2  4C rr rr             JMP     SMOVE
+0000DEr 2               :
+0000DEr 2  20 rr rr             JSR     OUTCH           ; OUTPUT CHAR TO SCREEN
+0000E1r 2               
+0000E1r 2  9D 00 02             STA     INBUFF,X        ; store in input buffer
+0000E4r 2  E8                   INX
+0000E5r 2  E0 00                CPX     #00             ; error if buffer is full
+0000E7r 2  F0 1C                BEQ     ERROR
+0000E9r 2  C9 0D                CMP     #$0D            ; keep reading until CR
+0000EBr 2  D0 D0                BNE     SMOVE
+0000EDr 2  A9 00                LDA     #0              ; null-terminate input buffer
+0000EFr 2  9D FF 01             STA     INBUFF-1,X      ; (replacing the CR)
+0000F2r 2               ST1:
+0000F2r 2  20 rr rr             JSR     GETCHR          ; get a character from the buffer
+0000F5r 2  F0 BF                BEQ     STRT            ; start over if buffer is empty
+0000F7r 2  C9 20                CMP     #$20            ; skip leading spaces
+0000F9r 2  F0 F7                BEQ     ST1
+0000FBr 2               S0:
+0000FBr 2  A2 15                LDX     #KEYTOP-KEYW    ; loop through valid command characters
+0000FDr 2               S1:
+0000FDr 2  DD rr rr             CMP     KEYW,X          ; see if input character matches
+000100r 2  F0 0B                BEQ     S2              ; command matched, dispatch it
+000102r 2  CA                   DEX                     ; no match, check next command
+000103r 2  10 F8                BPL     S1              ; keep trying until we've checked them all
+000105r 2                                               ; then fall through to error handler
+000105r 2               
+000105r 2               ; -----------------------------------------------------------------------------
+000105r 2               ; handle error
+000105r 2               ERROR:
+000105r 2  A0 1E                LDY     #MSG3-MSGBAS    ; display "?" to indicate error and go to new line
+000107r 2  20 rr rr             JSR     SNDMSG
+00010Ar 2  4C rr rr             JMP     STRT            ; back to main loop
+00010Dr 2               
+00010Dr 2               ; -----------------------------------------------------------------------------
+00010Dr 2               ; dispatch command
+00010Dr 2               S2:
+00010Dr 2  E0 10                CPX     #$10            ; next 4 commands are base conversions
+00010Fr 2  B0 0E                BCS     CNVLNK          ;   which are handled by the same subroutine
+000111r 2  8A                   TXA                     ; remaining commands dispatch through vector table
+000112r 2  0A                   ASL     A               ; multiply index of command by 2
+000113r 2  AA                   TAX                     ;   since table contains 2-byte addresses
+000114r 2  BD rr rr             LDA     KADDR+1,X       ; push address from vector table onto stack
+000117r 2  48                   PHA                     ;   so that the RTS from GETPAR will jump there
+000118r 2  BD rr rr             LDA     KADDR,X
+00011Br 2  48                   PHA
+00011Cr 2  4C rr rr             JMP     GETPAR          ; get the first parameter for the command
+00011Fr 2               CNVLNK:
+00011Fr 2  4C rr rr             JMP     CONVRT          ; handle base conversion
+000122r 2               
+000122r 2               
+000122r 2               ; -----------------------------------------------------------------------------
+000122r 2               ; display memory [M]
+000122r 2               DSPLYM:
+000122r 2  B0 08                BCS     DSPM11          ; start from previous end addr if no address given
+000124r 2  20 rr rr             JSR     COPY12          ; save start address in TMP2
+000127r 2  20 rr rr             JSR     GETPAR          ; get end address in TMP0
+00012Ar 2  90 06                BCC     DSMNEW          ; did user specify one?
+00012Cr 2               DSPM11:
+00012Cr 2  A9 0B                LDA     #$0B            ; if not, show 12 lines by default
+00012Er 2  85 C1                STA     TMP0
+000130r 2  D0 0E                BNE     DSPBYT          ; always true, but BNE uses 1 byte less than JMP
+000132r 2               DSMNEW:
+000132r 2  20 rr rr             JSR     SUB12           ; end addr given, calc bytes between start and end
+000135r 2  90 1E                BCC     MERROR          ; error if start is after end
+000137r 2  A2 03                LDX     #3              ; divide by 8 (shift right 3 times)
+000139r 2               DSPM01:
+000139r 2  46 C2                LSR     TMP0+1
+00013Br 2  66 C1                ROR     TMP0
+00013Dr 2  CA                   DEX
+00013Er 2  D0 F9                BNE     DSPM01
+000140r 2               DSPBYT:
+000140r 2  20 rr rr             JSR     STOP            ; check for stop key
+000143r 2  F0 0D                BEQ     DSPMX           ; exit early if pressed
+000145r 2  20 rr rr             JSR     DISPMEM         ; display 1 line containing 8 bytes
+000148r 2  A9 08                LDA     #8              ; increase start address by 8 bytes
+00014Ar 2  20 rr rr             JSR     BUMPAD2
+00014Dr 2  20 rr rr             JSR     SUBA1           ; decrement line counter
+000150r 2  B0 EE                BCS     DSPBYT          ; show another line until it's < 0
+000152r 2               DSPMX:
+000152r 2  4C rr rr             JMP     STRT            ; back to main loop
+000155r 2               MERROR:
+000155r 2  4C rr rr             JMP     ERROR           ; handle error
+000158r 2               
+000158r 2               ; -----------------------------------------------------------------------------
+000158r 2               ; alter registers [;]
+000158r 2               ALTR:
+000158r 2  20 rr rr             JSR     COPY1P          ; store first parameter in PC
+00015Br 2  A0 00                LDY     #0              ; init counter
+00015Dr 2               ALTR1:
+00015Dr 2  20 rr rr             JSR     GETPAR          ; get value for next register
+000160r 2  B0 0A                BCS     ALTRX           ; exit early if no more values given
+000162r 2  A5 C1                LDA     TMP0            ; store in memory, offset from SR
+000164r 2  99 B2 00             STA     SR,Y            ; these locations will be transferred to the
+000167r 2  C8                   INY                     ;   actual registers before exiting the monitor
+000168r 2  C0 05                CPY     #$05            ; have we updated all 5 yet?
+00016Ar 2  90 F1                BCC     ALTR1           ; if not, get next
+00016Cr 2               ALTRX:
+00016Cr 2  4C rr rr             JMP     STRT            ; back to main loop
+00016Fr 2               
+00016Fr 2               ; -----------------------------------------------------------------------------
+00016Fr 2               ; alter memory [>]
+00016Fr 2               ALTM:
+00016Fr 2  B0 13                BCS     ALTMX           ; exit if no parameter provided
+000171r 2  20 rr rr             JSR     COPY12          ; copy parameter to start address
+000174r 2  A0 00                LDY     #0
+000176r 2               ALTM1:
+000176r 2  20 rr rr             JSR     GETPAR          ; get value for next byte of memory
+000179r 2  B0 09                BCS     ALTMX           ; if none given, exit early
+00017Br 2  A5 C1                LDA     TMP0            ; poke value into memory at start address + Y
+00017Dr 2  91 C3                STA     (TMP2),Y
+00017Fr 2  C8                   INY                     ; next byte
+000180r 2  C0 08                CPY     #8              ; have we read 8 bytes yet?
+000182r 2  90 F2                BCC     ALTM1           ; if not, read the next one
+000184r 2               ALTMX:
+000184r 2  A9 91                LDA     #$91            ; move cursor up
+000186r 2  20 rr rr             JSR     CHROUT
+000189r 2  20 rr rr             JSR     DISPMEM         ; re-display line to make ascii match hex
+00018Cr 2  4C rr rr             JMP     STRT            ; back to main loop
+00018Fr 2               
+00018Fr 2               ; -----------------------------------------------------------------------------
+00018Fr 2               ; goto (run) [G]
+00018Fr 2               GOTO:
+00018Fr 2  A6 B6                LDX     SP              ; load stack pointer from memory
+000191r 2  9A                   TXS                     ; save in SP register
+000192r 2               GOTO2:
+000192r 2  20 rr rr             JSR     COPY1P          ; copy provided address to PC
+000195r 2  78                   SEI                     ; disable interrupts
+000196r 2  A5 B0                LDA     PCH             ; push PC high byte on stack
+000198r 2  48                   PHA
+000199r 2  A5 B1                LDA     PCL             ; push PC low byte on stack
+00019Br 2  48                   PHA
+00019Cr 2  A5 B2                LDA     SR              ; push status byte on stack
+00019Er 2  48                   PHA
+00019Fr 2  A5 B3                LDA     ACC             ; load accumulator from memory
+0001A1r 2  A6 B4                LDX     XR              ; load X from memory
+0001A3r 2  A4 B5                LDY     YR              ; load Y from memory
+0001A5r 2  40                   RTI                     ; return from interrupt (pops PC and SR)
+0001A6r 2               
+0001A6r 2               ; jump to subroutine [J]
+0001A6r 2               JSUB:
+0001A6r 2  A6 B6                LDX     SP              ; load stack pointer from memory
+0001A8r 2  9A                   TXS                     ; save value in SP register
+0001A9r 2  20 rr rr             JSR     GOTO2           ; same as goto command
+0001ACr 2  84 B5                STY     YR              ; save Y to memory
+0001AEr 2  86 B4                STX     XR              ; save X to memory
+0001B0r 2  85 B3                STA     ACC             ; save accumulator to memory
+0001B2r 2  08                   PHP                     ; push processor status on stack
+0001B3r 2  68                   PLA                     ; pull processor status into A
+0001B4r 2  85 B2                STA     SR              ; save processor status to memory
+0001B6r 2  4C rr rr             JMP     DSPLYR          ; display registers
+0001B9r 2               
+0001B9r 2               ; -----------------------------------------------------------------------------
+0001B9r 2               ; display 8 bytes of memory
+0001B9r 2               DISPMEM:
+0001B9r 2  20 rr rr             JSR     CRLF            ; new line
+0001BCr 2  A9 3E                LDA     #'>'            ; prefix > so memory can be edited in place
+0001BEr 2  20 rr rr             JSR     CHROUT
+0001C1r 2  20 rr rr             JSR     SHOWAD          ; show address of first byte on line
+0001C4r 2  A0 00                LDY     #0
+0001C6r 2  F0 03                BEQ     DMEMGO          ; SHOWAD already printed a space after the address
+0001C8r 2               DMEMLP:
+0001C8r 2  20 rr rr             JSR     SPACE           ; print space between bytes
+0001CBr 2               DMEMGO:
+0001CBr 2  B1 C3                LDA     (TMP2),Y        ; load byte from start address + Y
+0001CDr 2  20 rr rr             JSR     WRTWO           ; output hex digits for byte
+0001D0r 2  C8                   INY                     ; next byte
+0001D1r 2  C0 08                CPY     #8              ; have we output 8 bytes yet?
+0001D3r 2  90 F3                BCC     DMEMLP          ; if not, output next byte
+0001D5r 2  A0 26                LDY     #MSG5-MSGBAS    ; if so, output : and turn on reverse video
+0001D7r 2  20 rr rr             JSR     SNDMSG          ;   before displaying ascii representation
+0001DAr 2  A0 00                LDY     #0              ; back to first byte in line
+0001DCr 2               DCHAR:
+0001DCr 2  B1 C3                LDA     (TMP2),Y        ; load byte at start address + Y
+0001DEr 2  AA                   TAX                     ; stash in X
+0001DFr 2  29 BF                AND     #$BF            ; clear 6th bit
+0001E1r 2  C9 22                CMP     #$22            ; is it a quote (")?
+0001E3r 2  F0 0B                BEQ     DDOT            ; if so, print . instead
+0001E5r 2  8A                   TXA                     ; if not, restore character
+0001E6r 2  C9 7E                CMP     #$7E
+0001E8r 2  B0 06                BCS     DDOT
+0001EAr 2  8A                   TXA
+0001EBr 2  C9 20                CMP     #$20            ; is it a printable character (>= $20)?
+0001EDr 2  8A                   TXA                     ; restore character
+0001EEr 2  B0 02                BCS     DCHROK          ; if printable, output character
+0001F0r 2               DDOT:
+0001F0r 2  A9 2E                LDA     #$2E            ; if not, output '.' instaed
+0001F2r 2               DCHROK:
+0001F2r 2  20 rr rr             JSR     CHROUT
+0001F5r 2  C8                   INY                     ; next byte
+0001F6r 2  C0 08                CPY     #8              ; have we output 8 bytes yet?
+0001F8r 2  90 E2                BCC     DCHAR           ; if not, output next byte
+0001FAr 2  60                   RTS
+0001FBr 2               
+0001FBr 2               ; -----------------------------------------------------------------------------
+0001FBr 2               ; compare memory [C]
+0001FBr 2               COMPAR:
+0001FBr 2  A9 00                LDA     #0              ; bit 7 clear signals compare
+0001FDr 2  2C                   .BYTE   $2C             ; absolute BIT opcode consumes next word (LDA #$80)
+0001FEr 2               
+0001FEr 2               ; transfer memory [T]
+0001FEr 2               TRANS:
+0001FEr 2  A9 80                LDA     #$80            ; bit 7 set signals transfer
+000200r 2  85 BA                STA     SAVY            ; save compare/transfer flag in SAVY
+000202r 2  A9 00                LDA     #0              ; assume we're counting up (bit 7 clear)
+000204r 2  85 CC                STA     UPFLG           ; save direction flag
+000206r 2  20 rr rr             JSR     GETDIF          ; get two addresses and calculate difference
+000209r 2                                               ;   TMP2 = source start
+000209r 2                                               ;   STASH = source end
+000209r 2                                               ;   STORE = length
+000209r 2  B0 05                BCS     TERROR          ; carry set indicates error
+00020Br 2  20 rr rr             JSR     GETPAR          ; get destination address in TMP0
+00020Er 2  90 03                BCC     TOKAY           ; carry set indicates error
+000210r 2               TERROR:
+000210r 2  4C rr rr             JMP     ERROR           ; handle error
+000213r 2               TOKAY:
+000213r 2  24 BA                BIT     SAVY            ; transfer or compare?
+000215r 2  10 23                BPL     COMPAR1         ; high bit clear indicates compare
+000217r 2  A5 C3                LDA     TMP2            ; if it's a transfer, we must take steps
+000219r 2  C5 C1                CMP     TMP0            ;   to avoid overwriting the source bytes before
+00021Br 2  A5 C4                LDA     TMP2+1          ;   they have been transferred
+00021Dr 2  E5 C2                SBC     TMP0+1          ; compare source (TMP2) to destination (TMP0)
+00021Fr 2  B0 19                BCS     COMPAR1         ; and count up if source is before than desitnation
+000221r 2  A5 B7                LDA     STORE           ; otherwise, start at end and count down...
+000223r 2  65 C1                ADC     TMP0            ; add length (STORE) to desintation (TMP0)
+000225r 2  85 C1                STA     TMP0            ; to calculate end of destination
+000227r 2  A5 B8                LDA     STORE+1
+000229r 2  65 C2                ADC     TMP0+1
+00022Br 2  85 C2                STA     TMP0+1
+00022Dr 2  A2 01                LDX     #1              ; change source pointer from beginning to end
+00022Fr 2               TDOWN:
+00022Fr 2  B5 CE                LDA     STASH,X         ; TMP2 = source end (STASH)
+000231r 2  95 C3                STA     TMP2,X
+000233r 2  CA                   DEX
+000234r 2  10 F9                BPL     TDOWN
+000236r 2  A9 80                LDA     #$80            ; high bit set in UPFLG means count down
+000238r 2  85 CC                STA     UPFLG
+00023Ar 2               COMPAR1:
+00023Ar 2  20 rr rr             JSR     CRLF            ; new line
+00023Dr 2  A0 00                LDY     #0              ; no offset from pointer
+00023Fr 2               TCLOOP:
+00023Fr 2  20 rr rr             JSR     STOP            ; check for stop key
+000242r 2  F0 2F                BEQ     TEXIT           ; exit if pressed
+000244r 2  B1 C3                LDA     (TMP2),Y        ; load byte from source
+000246r 2  24 BA                BIT     SAVY            ; transfer or compare?
+000248r 2  10 02                BPL     COMPAR2         ; skip store if comparing
+00024Ar 2  91 C1                STA     (TMP0),Y        ; otherwise, store in destination
+00024Cr 2               COMPAR2:
+00024Cr 2  D1 C1                CMP     (TMP0),Y        ; compare to destination
+00024Er 2  F0 03                BEQ     TMVAD           ; don't show address if equal
+000250r 2  20 rr rr             JSR     SHOWAD          ; show address
+000253r 2               TMVAD:
+000253r 2  24 CC                BIT     UPFLG           ; counting up or down?
+000255r 2  30 0B                BMI     TDECAD          ; high bit set means we're counting down
+000257r 2  E6 C1                INC     TMP0            ; increment destination low byte
+000259r 2  D0 10                BNE     TINCOK
+00025Br 2  E6 C2                INC     TMP0+1          ; carry to high byte if necessary
+00025Dr 2  D0 0C                BNE     TINCOK
+00025Fr 2  4C rr rr             JMP     ERROR           ; error if high byte overflowed
+000262r 2               TDECAD:
+000262r 2  20 rr rr             JSR     SUBA1           ; decrement destination (TMP0)
+000265r 2  20 rr rr             JSR     SUB21           ; decrement source (TMP2)
+000268r 2  4C rr rr             JMP     TMOR
+00026Br 2               TINCOK:
+00026Br 2  20 rr rr             JSR     ADDA2           ; increment source (TMP2)
+00026Er 2               TMOR:
+00026Er 2  20 rr rr             JSR     SUB13           ; decrement length
+000271r 2  B0 CC                BCS     TCLOOP          ; loop until length is 0
+000273r 2               TEXIT:
+000273r 2  4C rr rr             JMP     STRT            ; back to main loop
+000276r 2               
+000276r 2               ; -----------------------------------------------------------------------------
+000276r 2               ; hunt memory [H]
+000276r 2               HUNT:
+000276r 2  20 rr rr             JSR     GETDIF          ; get start (TMP2) and end (TMP0) of haystack
+000279r 2  B0 57                BCS     HERROR          ; carry indicates error
+00027Br 2  A0 00                LDY     #0
+00027Dr 2  20 rr rr             JSR     GETCHR          ; get a single character
+000280r 2  C9 27                CMP     #39             ; is it a single quote?
+000282r 2  D0 16                BNE     NOSTRH          ; if not, input needle as hex bytes
+000284r 2  20 rr rr             JSR     GETCHR          ; if so, input needle as string
+000287r 2  C9 00                CMP     #0
+000289r 2  F0 47                BEQ     HERROR          ; error if needle isn't at least one byte
+00028Br 2               HPAR:
+00028Br 2  99 DA 00             STA     STAGE,Y         ; save char in staging area
+00028Er 2  C8                   INY
+00028Fr 2  20 rr rr             JSR     GETCHR          ; get another char
+000292r 2  F0 18                BEQ     HTGO            ; if it's null start searching
+000294r 2  C0 1E                CPY     #ESTAGE-STAGE   ; have we filled up the needle staging area?
+000296r 2  D0 F3                BNE     HPAR            ; if not, get another character
+000298r 2  F0 12                BEQ     HTGO            ; if so, start searching
+00029Ar 2               NOSTRH:
+00029Ar 2  20 rr rr             JSR     RDPAR           ; read hex bytes if string not indicated
+00029Dr 2               HLP:
+00029Dr 2  A5 C1                LDA     TMP0            ; save last read byte in staging area
+00029Fr 2  99 DA 00             STA     STAGE,Y
+0002A2r 2  C8                   INY                     ; get another hex byte
+0002A3r 2  20 rr rr             JSR     GETPAR
+0002A6r 2  B0 04                BCS     HTGO            ; if there is none, start searching
+0002A8r 2  C0 1E                CPY     #ESTAGE-STAGE   ; have we filled up the needle staging area?
+0002AAr 2  D0 F1                BNE     HLP             ; if not, get another byte
+0002ACr 2               HTGO:
+0002ACr 2  84 BA                STY     SAVY            ; save length of needle
+0002AEr 2  20 rr rr             JSR     CRLF            ; new line
+0002B1r 2               HSCAN:
+0002B1r 2  A0 00                LDY     #0
+0002B3r 2               HLP3:
+0002B3r 2  B1 C3                LDA     (TMP2),Y        ; get first byte in haystack
+0002B5r 2  D9 DA 00             CMP     STAGE,Y         ; compare it to first byte of needle
+0002B8r 2  D0 08                BNE     HNOFT           ; if it doesn't match, we haven't found anything
+0002BAr 2  C8                   INY                     ; if it does, check the next byte
+0002BBr 2  C4 BA                CPY     SAVY            ; have we reached the end of the needle?
+0002BDr 2  D0 F4                BNE     HLP3            ; if not, keep comparing bytes
+0002BFr 2  20 rr rr             JSR     SHOWAD          ; match found, show address
+0002C2r 2               HNOFT:
+0002C2r 2  20 rr rr             JSR     STOP            ; no match, check for stop key
+0002C5r 2  F0 08                BEQ     HEXIT           ; exit prematurely if pressed
+0002C7r 2  20 rr rr             JSR     ADDA2           ; increment haystack pointer
+0002CAr 2  20 rr rr             JSR     SUB13           ; decrement haystack length
+0002CDr 2  B0 E2                BCS     HSCAN           ; still more haystack? keep searching
+0002CFr 2               HEXIT:
+0002CFr 2  4C rr rr             JMP     STRT            ; back to main loop
+0002D2r 2               HERROR:
+0002D2r 2  4C rr rr             JMP     ERROR           ; handle error
+0002D5r 2               
+0002D5r 2               
+0002D5r 2               ; -----------------------------------------------------------------------------
+0002D5r 2               ; fill memory [F]
+0002D5r 2               FILL:
+0002D5r 2  20 rr rr             JSR     GETDIF          ; start in TMP2, end in STASH, length in STORE
+0002D8r 2  B0 20                BCS     FERROR          ; carry set indicates error
+0002DAr 2  20 rr rr             JSR     GETPAR          ; get value to fill in TMP0
+0002DDr 2  B0 1B                BCS     FERROR          ; carry set indicates error
+0002DFr 2  20 rr rr             JSR     GETCHR          ; any more characters triggers an error
+0002E2r 2  D0 16                BNE     FERROR
+0002E4r 2  A0 00                LDY     #0              ; no offset
+0002E6r 2               FILLP:
+0002E6r 2  A5 C1                LDA     TMP0            ; load value to fill in accumulator
+0002E8r 2  91 C3                STA     (TMP2),Y        ; store fill value in current address
+0002EAr 2  20 rr rr             JSR     STOP            ; check for stop key
+0002EDr 2  F0 08                BEQ     FSTART          ; if pressed, back to main loop
+0002EFr 2  20 rr rr             JSR     ADDA2           ; increment address
+0002F2r 2  20 rr rr             JSR     SUB13           ; decrement length
+0002F5r 2  B0 EF                BCS     FILLP           ; keep going until length reaches 0
+0002F7r 2               FSTART:
+0002F7r 2  4C rr rr             JMP     STRT            ; back to main loop
+0002FAr 2               FERROR:
+0002FAr 2  4C rr rr             JMP     ERROR           ; handle error
+0002FDr 2               ; -----------------------------------------------------------------------------
+0002FDr 2               ; Boot System [B]
+0002FDr 2               BOOT:
+0002FDr 2               ;        BCS     BOOTX           ; exit with error if no parameter given
+0002FDr 2               ;        LDA     TMP0
+0002FDr 2               ;        AND     #$0F
+0002FDr 2               ;        STA     $1800
+0002FDr 2               ;        LDA     #$8E
+0002FDr 2               ;        STA     $1801
+0002FDr 2               ;        LDA     #$00
+0002FDr 2               ;        STA     $1802
+0002FDr 2               ;        LDA     #$D0
+0002FDr 2               ;        STA     $1803
+0002FDr 2               ;        LDA     #$17
+0002FDr 2               ;        STA     $1804
+0002FDr 2               ;        LDA     TMP0
+0002FDr 2               ;        AND     #$F0            ; filter out unit
+0002FDr 2               ;        CMP     #$00            ; is IDE?
+0002FDr 2               ;        BEQ     BOOT_IDE
+0002FDr 2               ;        CMP     #$10            ; is Floppy?
+0002FDr 2               ;        BEQ     BOOT_FLOPPY
+0002FDr 2               ;        JMP     BOOTX
+0002FDr 2               ;BOOT_IDE:
+0002FDr 2               ;        LDA     #04             ;PPIDE_INIT
+0002FDr 2               ;        STA     farfunct
+0002FDr 2               ;        JSR     DO_FARCALL
+0002FDr 2               ;        LDA     #29
+0002FDr 2               ;        STA     farfunct
+0002FDr 2               ;        LDY     #$18
+0002FDr 2               ;        LDA     #00
+0002FDr 2               ;        JSR     DO_FARCALL
+0002FDr 2               ;        LDA     #$8E
+0002FDr 2               ;        STA     $00
+0002FDr 2               ;        LDA     #$00
+0002FDr 2               ;        STA     $01
+0002FDr 2               ;        LDA     #$D0
+0002FDr 2               ;        STA     $02
+0002FDr 2               ;        JMP     DO_FARRUN
+0002FDr 2               ;BOOT_FLOPPY:
+0002FDr 2               ;        LDA     #25             ;FD_INIT
+0002FDr 2               ;        STA     farfunct
+0002FDr 2               ;        JSR     DO_FARCALL
+0002FDr 2               ;        LDA     #32
+0002FDr 2               ;        STA     farfunct
+0002FDr 2               ;        LDY     #$18
+0002FDr 2               ;        LDA     #00
+0002FDr 2               ;        JSR     DO_FARCALL
+0002FDr 2               ;        LDA     #$8E
+0002FDr 2               ;        STA     $00
+0002FDr 2               ;        LDA     #$00
+0002FDr 2               ;        STA     $01
+0002FDr 2               ;        LDA     #$D0
+0002FDr 2               ;        STA     $02
+0002FDr 2               ;        JMP     DO_FARRUN
+0002FDr 2               ;BOOTX:
+0002FDr 2  4C rr rr             JMP     ERROR           ; back to main loop
+000300r 2               
+000300r 2               ; -----------------------------------------------------------------------------
+000300r 2               ; Write OS [W]
+000300r 2               WRITEOS:
+000300r 2               ;        BCS     WRITEOSX        ; exit with error if no parameter given
+000300r 2               ;        LDA     TMP0
+000300r 2               ;        AND     #$0F
+000300r 2               ;        STA     $0800
+000300r 2               ;        LDA     #$8E
+000300r 2               ;        STA     $0801
+000300r 2               ;        LDA     #$00
+000300r 2               ;        STA     $0802
+000300r 2               ;        LDA     #$D0
+000300r 2               ;        STA     $0803
+000300r 2               ;        LDA     #$17
+000300r 2               ;        STA     $0804
+000300r 2               ;        LDA     TMP0
+000300r 2               ;        AND     #$F0            ; filter out unit
+000300r 2               ;        CMP     #$00            ; is IDE?
+000300r 2               ;        BEQ     WRITEOS_IDE
+000300r 2               ;        CMP     #$10            ; is Floppy?
+000300r 2               ;        BEQ     WRITEOS_FLOPPY
+000300r 2               ;        JMP     WRITEOSX
+000300r 2               ;WRITEOS_IDE:
+000300r 2               ;        LDA     #04             ;PPIDE_INIT
+000300r 2               ;        STA     farfunct
+000300r 2               ;        JSR     DO_FARCALL
+000300r 2               ;        LDA     #28
+000300r 2               ;        STA     farfunct
+000300r 2               ;        LDY     #08
+000300r 2               ;        LDA     #00
+000300r 2               ;        JSR     DO_FARCALL
+000300r 2               ;        JMP     STRT
+000300r 2               ;WRITEOS_FLOPPY:
+000300r 2               ;        LDA     #25             ;FD_INIT
+000300r 2               ;        STA     farfunct
+000300r 2               ;        JSR     DO_FARCALL
+000300r 2               ;        LDA     #31
+000300r 2               ;        STA     farfunct
+000300r 2               ;        LDY     #08
+000300r 2               ;        LDA     #00
+000300r 2               ;        JSR     DO_FARCALL
+000300r 2               ;        JMP     STRT
+000300r 2               ;WRITEOSX:
+000300r 2  4C rr rr             JMP     ERROR           ; back to main loop
+000303r 2               
+000303r 2               ; -----------------------------------------------------------------------------
+000303r 2               ; CLEAR DIRECTORY SECTORS [Z]
+000303r 2               CLRDIR:
+000303r 2               ;        BCS     CLRDIRX         ; abort if no device specified
+000303r 2               ;        LDA     TMP0
+000303r 2               ;        STA     $0800           ; save specified disk unit here
+000303r 2               ;        JSR     GETPAR          ; get start track
+000303r 2               ;        BCS     CLRDIRX         ; abort if not specified
+000303r 2               ;        JSR     COPY12          ; save start track in TMP2
+000303r 2               ;        JSR     GETPAR          ; get number of tracks in TMP0
+000303r 2               ;        BCS     CLRDIRX         ; abort if not specified
+000303r 2               ;        LDA     TMP2
+000303r 2               ;        STA     $0801
+000303r 2               ;        LDA     TMP2+1
+000303r 2               ;        STA     $0802
+000303r 2               ;        LDA     TMP0
+000303r 2               ;        STA     $0803
+000303r 2               ;        LDA     #30
+000303r 2               ;        STA     farfunct
+000303r 2               ;        LDY     #08
+000303r 2               ;        LDA     #00
+000303r 2               ;        JSR     DO_FARCALL
+000303r 2               ;        JMP     STRT            ; back to main loop
+000303r 2               ;CLRDIRX:
+000303r 2  4C rr rr             JMP     ERROR           ; back to main loop
+000306r 2               
+000306r 2               ; -----------------------------------------------------------------------------
+000306r 2               ; assemble [A.]
+000306r 2               ; read in mnemonic
+000306r 2               ASTART:
+000306r 2  4C rr rr             JMP     STRT            ; back to main loop
+000309r 2               ASSEM:
+000309r 2  B0 31                BCS     AERROR          ; error if no address given
+00030Br 2  20 rr rr             JSR     COPY12          ; copy address to TMP2
+00030Er 2               AGET1:
+00030Er 2  A2 00                LDX     #0
+000310r 2  86 D1                STX     U0AA0+1         ; clear byte that mnemonic gets shifted into
+000312r 2  86 CB                STX     DIGCNT          ; clear digit count
+000314r 2               AGET2:
+000314r 2  20 rr rr             JSR     GETCHR          ; get a char
+000317r 2  D0 04                BNE     ALMOR           ; proceed if the character isn't null
+000319r 2  E0 00                CPX     #0              ; it's null, have read a mnemonic yet?
+00031Br 2  F0 E9                BEQ     ASTART          ; if not, silently go back to main loop
+00031Dr 2               ALMOR:
+00031Dr 2  C9 20                CMP     #$20            ; skip leading spaces
+00031Fr 2  F0 ED                BEQ     AGET1
+000321r 2  95 C7                STA     MNEMW,X         ; put character in mnemonic buffer
+000323r 2  E8                   INX
+000324r 2  E0 03                CPX     #3              ; have we read 3 characters yet?
+000326r 2  D0 EC                BNE     AGET2           ; if not, get next character
+000328r 2               
+000328r 2               ; compress mnemonic into two bytes
+000328r 2               ASQEEZ:
+000328r 2  CA                   DEX                     ; move to previous char
+000329r 2  30 14                BMI     AOPRND          ; if we're done with mnemonic, look for operand
+00032Br 2  B5 C7                LDA     MNEMW,X         ; get current character
+00032Dr 2  38                   SEC                     ; pack 3-letter mnemonic into 2 bytes (15 bits)
+00032Er 2  E9 3F                SBC     #$3F            ; subtract $3F from ascii code so A-Z = 2 to 27
+000330r 2  A0 05                LDY     #$05            ; letters now fit in 5 bits; shift them out
+000332r 2               ASHIFT:
+000332r 2  4A                   LSR     A               ;   into the first two bytes of the inst buffer
+000333r 2  66 D1                ROR     U0AA0+1         ; catch the low bit from accumulator in right byte
+000335r 2  66 D0                ROR     U0AA0           ; catch the low bit from right byte in left byte
+000337r 2  88                   DEY                     ; count down bits
+000338r 2  D0 F8                BNE     ASHIFT          ; keep looping until we reach zero
+00033Ar 2  F0 EC                BEQ     ASQEEZ          ; unconditional branch to handle next char
+00033Cr 2               AERROR:
+00033Cr 2  4C rr rr             JMP     ERROR           ; handle error
+00033Fr 2               
+00033Fr 2               ; parse operand
+00033Fr 2               AOPRND:
+00033Fr 2  A2 02                LDX     #2              ; mnemonic is in first two bytes so start at third
+000341r 2               ASCAN:
+000341r 2  A5 CB                LDA     DIGCNT          ; did we find address digits last time?
+000343r 2  D0 28                BNE     AFORM1          ; if so, look for mode chars
+000345r 2  20 rr rr             JSR     RDVAL           ; otherwise, look for an address
+000348r 2  F0 21                BEQ     AFORM0          ; we didn't find an address, look for characters
+00034Ar 2  B0 F0                BCS     AERROR          ; carry flag indicates error
+00034Cr 2  A9 24                LDA     #'$'
+00034Er 2  95 D0                STA     U0AA0,X         ; prefix addresses with $
+000350r 2  E8                   INX                     ; next position in buffer
+000351r 2  A0 04                LDY     #4              ; non-zero page addresses are 4 hex digits
+000353r 2  A5 CD                LDA     NUMBIT          ; check numeric base in which address was given
+000355r 2  C9 08                CMP     #8              ; for addresses given in octal or binary
+000357r 2  90 04                BCC     AADDR           ;   use only the high byte to determine page
+000359r 2  C4 CB                CPY     DIGCNT          ; for decimal or hex, force non-zero page addressing
+00035Br 2  F0 06                BEQ     AFILL0          ;   if address was given with four digits or more
+00035Dr 2               AADDR:
+00035Dr 2  A5 C2                LDA     TMP0+1          ; check whether high byte of address is zero
+00035Fr 2  D0 02                BNE     AFILL0          ; non-zero high byte means we're not in zero page
+000361r 2  A0 02                LDY     #2              ; if it's in zero page, addr is 2 hex digits
+000363r 2               AFILL0:
+000363r 2  A9 30                LDA     #$30            ; use 0 as placeholder for each hex digit in addr
+000365r 2               AFIL0L:
+000365r 2  95 D0                STA     U0AA0,X         ; put placeholder in assembly buffer
+000367r 2  E8                   INX                     ; move to next byte in buffer
+000368r 2  88                   DEY                     ; decrement number of remaining digits
+000369r 2  D0 FA                BNE     AFIL0L          ; loop until all digits have been placed
+00036Br 2               AFORM0:
+00036Br 2  C6 B9                DEC     CHRPNT          ; non-numeric input; back 1 char to see what it was
+00036Dr 2               AFORM1:
+00036Dr 2  20 rr rr             JSR     GETCHR          ; get next character
+000370r 2  F0 0D                BEQ     AESCAN          ; if there is none, we're finished scanning
+000372r 2  C9 20                CMP     #$20            ; skip spaces
+000374r 2  F0 CB                BEQ     ASCAN
+000376r 2  95 D0                STA     U0AA0,X         ; store character in assembly buffer
+000378r 2  E8                   INX                     ; move to next byte in buffer
+000379r 2  E0 0A                CPX     #U0AAE-U0AA0    ; is instruction buffer full?
+00037Br 2  90 C4                BCC     ASCAN           ; if not, keep scanning
+00037Dr 2  B0 BD                BCS     AERROR          ; error if buffer is full
+00037Fr 2               
+00037Fr 2               ; find matching opcode
+00037Fr 2               AESCAN:
+00037Fr 2  86 B7                STX     STORE           ; save number of bytes in assembly buffer
+000381r 2  A2 00                LDX     #0              ; start at opcode $00 and check every one until
+000383r 2  86 CB                STX     OPCODE          ;   we find one that matches our criteria
+000385r 2               ATRYOP:
+000385r 2  A2 00                LDX     #0
+000387r 2  86 BB                STX     U9F             ; reset index into work buffer
+000389r 2  A5 CB                LDA     OPCODE
+00038Br 2  20 rr rr             JSR     INSTXX          ; look up instruction format for current opcode
+00038Er 2  A6 C5                LDX     ACMD            ; save addressing command for later
+000390r 2  86 B8                STX     STORE+1
+000392r 2  AA                   TAX                     ; use current opcode as index
+000393r 2  BD rr rr             LDA     MNEMR,X         ; check right byte of compressed mnemonic
+000396r 2  20 rr rr             JSR     CHEKOP
+000399r 2  BD rr rr             LDA     MNEML,X         ; check left byte of compressed mnemonic
+00039Cr 2  20 rr rr             JSR     CHEKOP
+00039Fr 2  A2 06                LDX     #6              ; 6 possible characters to check against operand
+0003A1r 2               TRYIT:
+0003A1r 2  E0 03                CPX     #3              ; are we on character 3?
+0003A3r 2  D0 12                BNE     TRYMOD          ; if not, check operand characters
+0003A5r 2  A4 C6                LDY     LENGTH          ; otherwise, check number of bytes in operand
+0003A7r 2  F0 0E                BEQ     TRYMOD          ; if zero, check operand characters
+0003A9r 2               TRYAD:
+0003A9r 2  A5 C5                LDA     ACMD            ; otherwise, look for an address
+0003ABr 2  C9 E8                CMP     #$E8            ; special case for relative addressing mode
+0003ADr 2                                               ;   since it's specified with 4 digits in assembly
+0003ADr 2                                               ;   but encoded with only 1 byte in object code
+0003ADr 2  A9 30                LDA     #$30            ; '0' is the digit placeholder we're looking for
+0003AFr 2  B0 1D                BCS     TRY4B           ; ACMD >= $E8 indicates relative addressing
+0003B1r 2  20 rr rr             JSR     CHEK2B          ; ACMD < $E8 indicates normal addressing
+0003B4r 2  88                   DEY                     ; consume byte
+0003B5r 2  D0 F2                BNE     TRYAD           ; check for 2 more digits if not zero-page
+0003B7r 2               TRYMOD:
+0003B7r 2  06 C5                ASL     ACMD            ; shift a bit out of the addressing command
+0003B9r 2  90 0E                BCC     UB4DF           ; if it's zero, skip checking current character
+0003BBr 2  BD rr rr             LDA     CHAR1-1,X
+0003BEr 2  20 rr rr             JSR     CHEKOP          ; otherwise first character against operand
+0003C1r 2  BD rr rr             LDA     CHAR2-1,X       ; get second character to check
+0003C4r 2  F0 03                BEQ     UB4DF           ; if it's zero, skip checking it
+0003C6r 2  20 rr rr             JSR     CHEKOP          ; otherwise check it against hte operand
+0003C9r 2               UB4DF:
+0003C9r 2  CA                   DEX                     ; move to next character
+0003CAr 2  D0 D5                BNE     TRYIT           ; repeat tests
+0003CCr 2  F0 06                BEQ     TRYBRAN
+0003CEr 2               TRY4B:
+0003CEr 2  20 rr rr             JSR     CHEK2B          ; check for 4 digit address placeholder
+0003D1r 2  20 rr rr             JSR     CHEK2B          ;   by checking for 2 digits twice
+0003D4r 2               TRYBRAN:
+0003D4r 2  A5 B7                LDA     STORE           ; get number of bytes in assembly buffer
+0003D6r 2  C5 BB                CMP     U9F             ; more bytes left to check?
+0003D8r 2  F0 03                BEQ     ABRAN           ; if not, we've found a match; build instruction
+0003DAr 2  4C rr rr             JMP     BUMPOP          ; if so, this opcode doesn't match; try the next
+0003DDr 2               
+0003DDr 2               ; convert branches to relative address
+0003DDr 2               ABRAN:
+0003DDr 2  A4 C6                LDY     LENGTH          ; get number of bytes in operand
+0003DFr 2  F0 33                BEQ     A1BYTE          ; if none, just output the opcode
+0003E1r 2  A5 B8                LDA     STORE+1         ; otherwise check the address format
+0003E3r 2  C9 9D                CMP     #$9D            ; is it a relative branch?
+0003E5r 2  D0 25                BNE     OBJPUT          ; if not, skip relative branch calculation
+0003E7r 2  A5 C1                LDA     TMP0            ; calculate the difference between the current
+0003E9r 2  E5 C3                SBC     TMP2            ;   address and the branch target (low byte)
+0003EBr 2  AA                   TAX                     ; save it in X
+0003ECr 2  A5 C2                LDA     TMP0+1          ; borrow from the high byte if necessary
+0003EEr 2  E5 C4                SBC     TMP2+1
+0003F0r 2  90 0B                BCC     ABBACK          ; if result is negative, we're branching back
+0003F2r 2  F0 03                BEQ     :++             ; high bytes must be equal when branching forward
+0003F4r 2               :
+0003F4r 2  4C rr rr             JMP     SERROR
+0003F7r 2               :
+0003F7r 2  E0 82                CPX     #$82            ; difference between low bytes must be < 130
+0003F9r 2  B0 F9                BCS     :--             ; error if the address is too far away
+0003FBr 2  90 08                BCC     ABRANX
+0003FDr 2               ABBACK:
+0003FDr 2  A8                   TAY                     ; when branching backward high byte of target must
+0003FEr 2  C8                   INY                     ;   be 1 less than high byte of current address
+0003FFr 2  D0 7D                BNE     SERROR          ; if not, it's too far away
+000401r 2  E0 82                CPX     #$82            ; difference between low bytes must be < 130
+000403r 2  90 79                BCC     SERROR          ; if not, it's too far away
+000405r 2               ABRANX:
+000405r 2  CA                   DEX                     ; adjust branch target relative to the
+000406r 2  CA                   DEX                     ;   instruction following this one
+000407r 2  8A                   TXA
+000408r 2  A4 C6                LDY     LENGTH          ; load length of operand
+00040Ar 2  D0 03                BNE     OBJP2           ; don't use the absolute address
+00040Cr 2               
+00040Cr 2               ; assemble machine code
+00040Cr 2               OBJPUT:
+00040Cr 2  B9 C0 00             LDA     TMP0-1,Y        ; get the operand
+00040Fr 2               OBJP2:
+00040Fr 2  91 C3                STA     (TMP2),Y        ; store it after the opcode
+000411r 2  88                   DEY
+000412r 2  D0 F8                BNE     OBJPUT          ; copy the other byte of operand if there is one
+000414r 2               A1BYTE:
+000414r 2  A5 CB                LDA     OPCODE          ; put opcode into instruction
+000416r 2  91 C3                STA     (TMP2),Y
+000418r 2  A9 0D                LDA     #$0D            ; cr
+00041Ar 2  20 rr rr             JSR     CHROUT
+00041Dr 2  A0 2D                LDY     #MSG7-MSGBAS    ; "A " prefix
+00041Fr 2  20 rr rr             JSR     SNDCLR          ; clear line
+000422r 2  A9 41                LDA     #'A'
+000424r 2  20 rr rr             JSR     CHROUT
+000427r 2  A9 20                LDA     #' '
+000429r 2  20 rr rr             JSR     CHROUT
+00042Cr 2  20 rr rr             JSR     DISLIN          ; disassemble the instruction we just assembled
+00042Fr 2  E6 C6                INC     LENGTH          ; instruction length = operand length + 1 byte
+000431r 2  A5 C6                LDA     LENGTH          ;   for the opcode
+000433r 2  20 rr rr             JSR     BUMPAD2         ; increment address by length of instruction
+000436r 2                                               ; setup for the next assemble command
+000436r 2  20 rr rr             JSR     CRLF
+000439r 2  A9 41                LDA     #'A'            ; stuff keyboard buffer with next assemble command:
+00043Br 2  8D 00 02             STA     INBUFF
+00043Er 2  20 rr rr             JSR     OUTCH
+000441r 2  A9 20                LDA     #' '            ;   after the previously assembled instruction
+000443r 2  8D 01 02             STA     INBUFF+1
+000446r 2  20 rr rr             JSR     OUTCH
+000449r 2  A5 C4                LDA     TMP2+1          ; convert high byte of next address to hex
+00044Br 2  20 rr rr             JSR     ASCTWO
+00044Er 2  8D 02 02             STA     INBUFF+2        ; put it in the keyboard buffer
+000451r 2  20 rr rr             JSR     OUTCH
+000454r 2  8E 03 02             STX     INBUFF+3
+000457r 2  8A                   TXA
+000458r 2  20 rr rr             JSR     OUTCH
+00045Br 2  A5 C3                LDA     TMP2            ; convert low byte of next address to hex
+00045Dr 2  20 rr rr             JSR     ASCTWO
+000460r 2  8D 04 02             STA     INBUFF+4        ; put it in the keyboard buffer
+000463r 2  20 rr rr             JSR     OUTCH
+000466r 2  8E 05 02             STX     INBUFF+5
+000469r 2  8A                   TXA
+00046Ar 2  20 rr rr             JSR     OUTCH
+00046Dr 2  A9 20                LDA     #' '            ;   after the previously assembled instruction
+00046Fr 2  8D 06 02             STA     INBUFF+6
+000472r 2  20 rr rr             JSR     OUTCH
+000475r 2  A2 07                LDX     #7              ; set number of chars in keyboard buffer
+000477r 2  A9 00                LDA     #$00
+000479r 2  85 B9                STA     CHRPNT
+00047Br 2  4C rr rr             JMP     SMOVE           ; back to main loop
+00047Er 2               SERROR:
+00047Er 2  4C rr rr             JMP     ERROR           ; handle error
+000481r 2               
+000481r 2               ; check characters in operand
+000481r 2               CHEK2B:
+000481r 2  20 rr rr             JSR     CHEKOP          ; check two bytes against value in accumulator
+000484r 2               CHEKOP:
+000484r 2  86 CA                STX     SAVX            ; stash X
+000486r 2  A6 BB                LDX     U9F             ; get current index into work buffer
+000488r 2  D5 D0                CMP     U0AA0,X         ; check whether this opcode matches the buffer
+00048Ar 2  F0 09                BEQ     OPOK            ;   matching so far, check the next criteria
+00048Cr 2  68                   PLA                     ; didn't match, so throw away return address
+00048Dr 2  68                   PLA                     ;   on the stack because we're starting over
+00048Er 2               BUMPOP:
+00048Er 2  E6 CB                INC     OPCODE          ; check the next opcode
+000490r 2  F0 EC                BEQ     SERROR          ; error if we tried every opcode and none fit
+000492r 2  4C rr rr             JMP     ATRYOP          ; start over with new opcode
+000495r 2               OPOK:
+000495r 2  E6 BB                INC     U9F             ; opcode matches so far; check the next criteria
+000497r 2  A6 CA                LDX     SAVX            ; restore X
+000499r 2  60                   RTS
+00049Ar 2               
+00049Ar 2               ; -----------------------------------------------------------------------------
+00049Ar 2               ; disassemble [D]
+00049Ar 2               DISASS:
+00049Ar 2  B0 08                BCS     DIS0AD          ; if no address was given, start from last address
+00049Cr 2  20 rr rr             JSR     COPY12          ; copy start address to TMP2
+00049Fr 2  20 rr rr             JSR     GETPAR          ; get end address in TMP0
+0004A2r 2  90 06                BCC     DIS2AD          ; if one was given, skip default
+0004A4r 2               DIS0AD:
+0004A4r 2  A9 14                LDA     #$14            ; disassemble 14 bytes by default
+0004A6r 2  85 C1                STA     TMP0            ; store length in TMP0
+0004A8r 2  D0 05                BNE     DISGO           ; skip length calculation
+0004AAr 2               DIS2AD:
+0004AAr 2  20 rr rr             JSR     SUB12           ; calculate number of bytes between start and end
+0004ADr 2  90 1C                BCC     DERROR          ; error if end address is before start address
+0004AFr 2               DISGO:
+0004AFr 2  20 rr rr             JSR     CLINE           ; clear the current line
+0004B2r 2  20 rr rr             JSR     STOP            ; check for stop key
+0004B5r 2  F0 11                BEQ     DISEXIT         ; exit early if pressed
+0004B7r 2  20 rr rr             JSR     DSOUT1          ; output disassembly prefix ". "
+0004BAr 2  E6 C6                INC     LENGTH
+0004BCr 2  A5 C6                LDA     LENGTH          ; add length of last instruction to start address
+0004BEr 2  20 rr rr             JSR     BUMPAD2
+0004C1r 2  A5 C6                LDA     LENGTH          ; subtract length of last inst from end address
+0004C3r 2  20 rr rr             JSR     SUBA2
+0004C6r 2  B0 E7                BCS     DISGO
+0004C8r 2               DISEXIT:
+0004C8r 2  4C rr rr             JMP     STRT            ; back to mainloop
+0004CBr 2               DERROR:
+0004CBr 2  4C rr rr             JMP     ERROR
+0004CEr 2               
+0004CEr 2               DSOUT1:
+0004CEr 2  A9 2E                LDA     #'.'            ; output ". " prefix to allow edit and reassemble
+0004D0r 2  20 rr rr             JSR     CHROUT
+0004D3r 2  20 rr rr             JSR     SPACE
+0004D6r 2               
+0004D6r 2               DISLIN:
+0004D6r 2  20 rr rr             JSR     SHOWAD          ; show the address of the instruction
+0004D9r 2  20 rr rr             JSR     SPACE           ; insert a space
+0004DCr 2  A0 00                LDY     #0              ; no offset
+0004DEr 2  B1 C3                LDA     (TMP2),Y        ; load operand of current instruction
+0004E0r 2  20 rr rr             JSR     INSTXX          ; get mnemonic and addressing mode for opcode
+0004E3r 2  48                   PHA                     ; save index into mnemonic table
+0004E4r 2  A6 C6                LDX     LENGTH          ; get length of operand
+0004E6r 2  E8                   INX                     ; add 1 byte for opcode
+0004E7r 2               DSBYT:
+0004E7r 2  CA                   DEX                     ; decrement index
+0004E8r 2  10 0C                BPL     DSHEX           ; show hex for byte being disassembled
+0004EAr 2  84 BA                STY     SAVY            ; save index
+0004ECr 2  A0 2F                LDY     #MSG8-MSGBAS    ; skip 3 spaces
+0004EEr 2  20 rr rr             JSR     SNDMSG
+0004F1r 2  A4 BA                LDY     SAVY            ; restore index
+0004F3r 2  4C rr rr             JMP     NXBYT
+0004F6r 2               DSHEX:
+0004F6r 2  B1 C3                LDA     (TMP2),Y        ; show hex for byte
+0004F8r 2  20 rr rr             JSR     WRBYTE
+0004FBr 2               
+0004FBr 2               NXBYT:
+0004FBr 2  C8                   INY                     ; next byte
+0004FCr 2  C0 03                CPY     #3              ; have we output 3 bytes yet?
+0004FEr 2  90 E7                BCC     DSBYT           ; if not, loop
+000500r 2  68                   PLA                     ; restore index into mnemonic table
+000501r 2  A2 03                LDX     #3              ; 3 letters in mnemonic
+000503r 2  20 rr rr             JSR     PROPXX          ; print mnemonic
+000506r 2  A2 06                LDX     #6              ; 6 possible address mode character combos
+000508r 2               PRADR1:
+000508r 2  E0 03                CPX     #3              ; have we checked the third combo yet?
+00050Ar 2  D0 14                BNE     PRADR3          ; if so, output the leading characters
+00050Cr 2  A4 C6                LDY     LENGTH          ; get the length of the operand
+00050Er 2  F0 10                BEQ     PRADR3          ; if it's zero, there's no operand to print
+000510r 2               PRADR2:
+000510r 2  A5 C5                LDA     ACMD            ; otherwise, get the addressing mode
+000512r 2  C9 E8                CMP     #$E8            ; check for relative addressing
+000514r 2  08                   PHP                     ; save result of check
+000515r 2  B1 C3                LDA     (TMP2),Y        ; get the operand
+000517r 2  28                   PLP                     ; restore result of check
+000518r 2  B0 1C                BCS     RELAD           ; handle a relative address
+00051Ar 2  20 rr rr             JSR     WRTWO           ; output digits from address
+00051Dr 2  88                   DEY
+00051Er 2  D0 F0                BNE     PRADR2          ; repeat for next byte of operand, if there is one
+000520r 2               PRADR3:
+000520r 2  06 C5                ASL     ACMD            ; check whether addr mode uses the current char
+000522r 2  90 0E                BCC     PRADR4          ; if not, skip it
+000524r 2  BD rr rr             LDA     CHAR1-1,X       ; look up the first char in the table
+000527r 2  20 rr rr             JSR     CHROUT          ; print first char
+00052Ar 2  BD rr rr             LDA     CHAR2-1,X       ; look up the second char in the table
+00052Dr 2  F0 03                BEQ     PRADR4          ; if there's no second character, skip it
+00052Fr 2  20 rr rr             JSR     CHROUT          ; print second char
+000532r 2               PRADR4:
+000532r 2  CA                   DEX                     ; next potential address mode character
+000533r 2  D0 D3                BNE     PRADR1          ; loop if we haven't checked them all yet
+000535r 2  60                   RTS                     ; back to caller
+000536r 2               RELAD:
+000536r 2  20 rr rr             JSR     UB64D           ; calculate absolute address from relative
+000539r 2  18                   CLC
+00053Ar 2  69 01                ADC     #1              ; adjust address relative to next instruction
+00053Cr 2  D0 01                BNE     RELEND          ; don't increment high byte unless we overflowed
+00053Er 2  E8                   INX                     ; increment high byte
+00053Fr 2               RELEND:
+00053Fr 2  4C rr rr             JMP     WRADDR          ; print address
+000542r 2               
+000542r 2               UB64D:
+000542r 2  A6 C4                LDX     TMP2+1          ; get high byte of current address
+000544r 2  A8                   TAY                     ; is relative address positive or negative?
+000545r 2  10 01                BPL     RELC2           ; if positive, leave high byte alone
+000547r 2  CA                   DEX                     ; if negative, decrement high byte
+000548r 2               RELC2:
+000548r 2  65 C3                ADC     TMP2            ; add relative address to low byte
+00054Ar 2  90 01                BCC     RELC3           ; if there's no carry, we're done
+00054Cr 2  E8                   INX                     ; if there's a carry, increment the high byte
+00054Dr 2               RELC3:
+00054Dr 2  60                   RTS
+00054Er 2               
+00054Er 2               ; -----------------------------------------------------------------------------
+00054Er 2               ; get opcode mode and length
+00054Er 2               
+00054Er 2               ; Note: the labels are different, but the code of this subroutine is almost
+00054Er 2               ; identical to the INSDS2 subroutine of the Apple Mini-Assembler on page 78 of
+00054Er 2               ; the Apple II Red Book. I'm not sure exactly where this code originated
+00054Er 2               ; (MOS or Apple) but it's clear that this part of Supermon64 and the
+00054Er 2               ; Mini-Asssembler share a common heritage.  The comments showing the way the
+00054Er 2               ; opcodes are transformed into indexes for the mnemonic lookup table come
+00054Er 2               ; from the Mini-Assembler source.
+00054Er 2               
+00054Er 2               INSTXX:
+00054Er 2  A8                   TAY                     ; stash opcode in accumulator in Y for later
+00054Fr 2  4A                   LSR     A               ; is opcode even or odd?
+000550r 2  90 0B                BCC     IEVEN
+000552r 2  4A                   LSR     A
+000553r 2  B0 17                BCS     ERR             ; invalid opcodes XXXXXX11
+000555r 2  C9 22                CMP     #$22
+000557r 2  F0 13                BEQ     ERR             ; invalid opcode 10001001
+000559r 2  29 07                AND     #$07            ; mask bits to 10000XXX
+00055Br 2  09 80                ORA     #$80
+00055Dr 2               IEVEN:
+00055Dr 2  4A                   LSR     A               ; LSB determines whether to use left/right nybble
+00055Er 2  AA                   TAX                     ; get format index using remaining high bytes
+00055Fr 2  BD rr rr             LDA     MODE,X
+000562r 2  B0 04                BCS     RTMODE          ; look at left or right nybble based on carry bit
+000564r 2  4A                   LSR     A               ; if carry = 0, use left nybble
+000565r 2  4A                   LSR     A
+000566r 2  4A                   LSR     A
+000567r 2  4A                   LSR     A
+000568r 2               RTMODE:
+000568r 2  29 0F                AND     #$0F            ; if carry = 1, use right nybble
+00056Ar 2  D0 04                BNE     GETFMT
+00056Cr 2               ERR:
+00056Cr 2  A0 80                LDY     #$80            ; substitute 10000000 for invalid opcodes
+00056Er 2  A9 00                LDA     #0
+000570r 2               GETFMT:
+000570r 2  AA                   TAX
+000571r 2  BD rr rr             LDA     MODE2,X         ; lookup operand format using selected nybble
+000574r 2  85 C5                STA     ACMD            ; save for later use
+000576r 2  29 03                AND     #$03            ; lower 2 bits indicate number of bytes in operand
+000578r 2  85 C6                STA     LENGTH
+00057Ar 2  98                   TYA                     ; restore original opcode
+00057Br 2  29 8F                AND     #$8F            ; mask bits to X000XXXX
+00057Dr 2  AA                   TAX                     ; save it
+00057Er 2  98                   TYA                     ; restore original opcode
+00057Fr 2  A0 03                LDY     #3
+000581r 2  E0 8A                CPX     #$8A            ; check if opcode = 1XXX1010
+000583r 2  F0 0B                BEQ     GTFM4
+000585r 2               GTFM2:
+000585r 2  4A                   LSR     A               ; transform opcode into index for mnemonic table
+000586r 2  90 08                BCC     GTFM4
+000588r 2  4A                   LSR     A               ; opcodes transformed as follows:
+000589r 2               GTFM3:
+000589r 2  4A                   LSR     A               ; 1XXX1010->00101XXX
+00058Ar 2  09 20                ORA     #$20            ; XXXYYY01->00111XXX
+00058Cr 2  88                   DEY                     ; XXXYYY10->00111XXX
+00058Dr 2  D0 FA                BNE     GTFM3           ; XXXYY100->00110XXX
+00058Fr 2  C8                   INY                     ; XXXXX000->000XXXXX
+000590r 2               GTFM4:
+000590r 2  88                   DEY
+000591r 2  D0 F2                BNE     GTFM2
+000593r 2  60                   RTS
+000594r 2               
+000594r 2               ; -----------------------------------------------------------------------------
+000594r 2               ; extract and print packed mnemonics
+000594r 2               PROPXX:
+000594r 2  A8                   TAY                     ; use index in accumulator to look up mnemonic
+000595r 2  B9 rr rr             LDA     MNEML,Y         ;   and place a temporary copy in STORE
+000598r 2  85 B7                STA     STORE
+00059Ar 2  B9 rr rr             LDA     MNEMR,Y
+00059Dr 2  85 B8                STA     STORE+1
+00059Fr 2               PRMN1:
+00059Fr 2  A9 00                LDA     #0              ; clear accumulator
+0005A1r 2  A0 05                LDY     #$05            ; shift 5 times
+0005A3r 2               PRMN2:
+0005A3r 2  06 B8                ASL     STORE+1         ; shift right byte
+0005A5r 2  26 B7                ROL     STORE           ; rotate bits from right byte into left byte
+0005A7r 2  2A                   ROL     A               ; rotate bits from left byte into accumulator
+0005A8r 2  88                   DEY                     ; next bit
+0005A9r 2  D0 F8                BNE     PRMN2           ; loop until all bits shifted
+0005ABr 2  69 3F                ADC     #$3F            ; calculate ascii code for letter by adding to '?'
+0005ADr 2  20 rr rr             JSR     CHROUT          ; output letter
+0005B0r 2  CA                   DEX                     ; next letter
+0005B1r 2  D0 EC                BNE     PRMN1           ; loop until all 3 letters are output
+0005B3r 2  4C rr rr             JMP     SPACE           ; output space
+0005B6r 2               
+0005B6r 2               ; -----------------------------------------------------------------------------
+0005B6r 2               ; read parameters
+0005B6r 2               RDPAR:
+0005B6r 2  C6 B9                DEC     CHRPNT          ; back up one char
+0005B8r 2               GETPAR:
+0005B8r 2  20 rr rr             JSR     RDVAL           ; read the value
+0005BBr 2  B0 15                BCS     GTERR           ; carry set indicates error
+0005BDr 2  20 rr rr             JSR     GOTCHR          ; check previous character
+0005C0r 2  D0 08                BNE     CKTERM          ; if it's not null, check if it's a valid separator
+0005C2r 2  C6 B9                DEC     CHRPNT          ; back up one char
+0005C4r 2  A5 CB                LDA     DIGCNT          ; get number of digits read
+0005C6r 2  D0 11                BNE     GETGOT          ; found some digits
+0005C8r 2  F0 0D                BEQ     GTNIL           ; didn't find any digits
+0005CAr 2               CKTERM:
+0005CAr 2  C9 20                CMP     #$20            ; space or comma are valid separators
+0005CCr 2  F0 0B                BEQ     GETGOT          ; anything else is an error
+0005CEr 2  C9 2C                CMP     #','
+0005D0r 2  F0 07                BEQ     GETGOT
+0005D2r 2               GTERR:
+0005D2r 2  68                   PLA                     ; encountered error
+0005D3r 2  68                   PLA                     ; get rid of command vector pushed on stack
+0005D4r 2  4C rr rr             JMP     ERROR           ; handle error
+0005D7r 2               GTNIL:
+0005D7r 2  38                   SEC                     ; set carry to indicate no parameter found
+0005D8r 2  24                   .BYTE   $24             ; BIT ZP opcode consumes next byte (CLC)
+0005D9r 2               GETGOT:
+0005D9r 2  18                   CLC                     ; clear carry to indicate paremeter returned
+0005DAr 2  A5 CB                LDA     DIGCNT          ; return number of digits in A
+0005DCr 2  60                   RTS                     ; return to address pushed from vector table
+0005DDr 2               
+0005DDr 2               ; -----------------------------------------------------------------------------
+0005DDr 2               ; read a value in the specified base
+0005DDr 2               RDVAL:
+0005DDr 2  A9 00                LDA     #0              ; clear temp
+0005DFr 2  85 C1                STA     TMP0
+0005E1r 2  85 C2                STA     TMP0+1
+0005E3r 2  85 CB                STA     DIGCNT          ; clear digit counter
+0005E5r 2  8A                   TXA                     ; save X and Y
+0005E6r 2  48                   PHA
+0005E7r 2  98                   TYA
+0005E8r 2  48                   PHA
+0005E9r 2               RDVMOR:
+0005E9r 2  20 rr rr             JSR     GETCHR          ; get next character from input buffer
+0005ECr 2  F0 1C                BEQ     RDNILK          ; null at end of buffer
+0005EEr 2  C9 20                CMP     #$20            ; skip spaces
+0005F0r 2  F0 F7                BEQ     RDVMOR
+0005F2r 2  A2 03                LDX     #3              ; check numeric base [$+&%]
+0005F4r 2               GNMODE:
+0005F4r 2  DD rr rr             CMP     HIKEY,X
+0005F7r 2  F0 06                BEQ     GOTMOD          ; got a match, set up base
+0005F9r 2  CA                   DEX
+0005FAr 2  10 F8                BPL     GNMODE          ; check next base
+0005FCr 2  E8                   INX                     ; default to hex
+0005FDr 2  C6 B9                DEC     CHRPNT          ; back up one character
+0005FFr 2               GOTMOD:
+0005FFr 2  BC rr rr             LDY     MODTAB,X        ; get base value
+000602r 2  BD rr rr             LDA     LENTAB,X        ; get bits per digit
+000605r 2  85 CD                STA     NUMBIT          ; store bits per digit
+000607r 2               NUDIG:
+000607r 2  20 rr rr             JSR     GETCHR          ; get next char in A
+00060Ar 2               RDNILK:
+00060Ar 2  F0 59                BEQ     RDNIL           ; end of number if no more characters
+00060Cr 2  38                   SEC
+00060Dr 2  E9 30                SBC     #$30            ; subtract ascii value of 0 to get numeric value
+00060Fr 2  90 54                BCC     RDNIL           ; end of number if character was less than 0
+000611r 2  C9 0A                CMP     #$0A
+000613r 2  90 06                BCC     DIGMOR          ; not a hex digit if less than A
+000615r 2  E9 07                SBC     #$07            ; 7 chars between ascii 9 and A, so subtract 7
+000617r 2  C9 10                CMP     #$10            ; end of number if char is greater than F
+000619r 2  B0 4A                BCS     RDNIL
+00061Br 2               DIGMOR:
+00061Br 2  85 CC                STA     INDIG           ; store the digit
+00061Dr 2  C4 CC                CPY     INDIG           ; compare base with the digit
+00061Fr 2  90 42                BCC     RDERR           ; error if the digit >= the base
+000621r 2  F0 40                BEQ     RDERR
+000623r 2  E6 CB                INC     DIGCNT          ; increment the number of digits
+000625r 2  C0 0A                CPY     #10
+000627r 2  D0 09                BNE     NODECM          ; skip the next part if not using base 10
+000629r 2  A2 01                LDX     #1
+00062Br 2               DECLP1:
+00062Br 2  B5 C1                LDA     TMP0,X          ; stash the previous 16-bit value for later use
+00062Dr 2  95 CE                STA     STASH,X
+00062Fr 2  CA                   DEX
+000630r 2  10 F9                BPL     DECLP1
+000632r 2               NODECM:
+000632r 2  A6 CD                LDX     NUMBIT          ; number of bits to shift
+000634r 2               TIMES2:
+000634r 2  06 C1                ASL     TMP0            ; shift 16-bit value by specified number of bits
+000636r 2  26 C2                ROL     TMP0+1
+000638r 2  B0 29                BCS     RDERR           ; error if we overflowed 16 bits
+00063Ar 2  CA                   DEX
+00063Br 2  D0 F7                BNE     TIMES2          ; shift remaining bits
+00063Dr 2  C0 0A                CPY     #10
+00063Fr 2  D0 14                BNE     NODEC2          ; skip the next part if not using base 10
+000641r 2  06 CE                ASL     STASH           ; shift the previous 16-bit value one bit left
+000643r 2  26 CF                ROL     STASH+1
+000645r 2  B0 1C                BCS     RDERR           ; error if we overflowed 16 bits
+000647r 2  A5 CE                LDA     STASH           ; add shifted previous value to current value
+000649r 2  65 C1                ADC     TMP0
+00064Br 2  85 C1                STA     TMP0
+00064Dr 2  A5 CF                LDA     STASH+1
+00064Fr 2  65 C2                ADC     TMP0+1
+000651r 2  85 C2                STA     TMP0+1
+000653r 2  B0 0E                BCS     RDERR           ; error if we overflowed 16 bits
+000655r 2               NODEC2:
+000655r 2  18                   CLC
+000656r 2  A5 CC                LDA     INDIG           ; load current digit
+000658r 2  65 C1                ADC     TMP0            ; add current digit to low byte
+00065Ar 2  85 C1                STA     TMP0            ; and store result back in low byte
+00065Cr 2  8A                   TXA                     ; A=0
+00065Dr 2  65 C2                ADC     TMP0+1          ; add carry to high byte
+00065Fr 2  85 C2                STA     TMP0+1          ; and store result back in high byte
+000661r 2  90 A4                BCC     NUDIG           ; get next digit if we didn't overflow
+000663r 2               RDERR:
+000663r 2  38                   SEC                     ; set carry to indicate error
+000664r 2  24                   .BYTE   $24             ; BIT ZP opcode consumes next byte (CLC)
+000665r 2               RDNIL:
+000665r 2  18                   CLC                     ; clear carry to indicate success
+000666r 2  84 CD                STY     NUMBIT          ; save base of number
+000668r 2  68                   PLA                     ; restore X and Y
+000669r 2  A8                   TAY
+00066Ar 2  68                   PLA
+00066Br 2  AA                   TAX
+00066Cr 2  A5 CB                LDA     DIGCNT          ; return number of digits in A
+00066Er 2  60                   RTS
+00066Fr 2               
+00066Fr 2               ; -----------------------------------------------------------------------------
+00066Fr 2               ; print address
+00066Fr 2               SHOWAD:
+00066Fr 2  A5 C3                LDA     TMP2
+000671r 2  A6 C4                LDX     TMP2+1
+000673r 2               
+000673r 2               WRADDR:
+000673r 2  48                   PHA                     ; save low byte
+000674r 2  8A                   TXA                     ; put high byte in A
+000675r 2  20 rr rr             JSR     WRTWO           ; output high byte
+000678r 2  68                   PLA                     ; restore low byte
+000679r 2               
+000679r 2               WRBYTE:
+000679r 2  20 rr rr             JSR     WRTWO           ; output byte in A
+00067Cr 2               
+00067Cr 2               SPACE:
+00067Cr 2  A9 20                LDA     #$20            ; output space
+00067Er 2  D0 0F                BNE     FLIP
+000680r 2               
+000680r 2               CHOUT:
+000680r 2  C9 0D                CMP     #$0D            ; output char with special handling of CR
+000682r 2  D0 0B                BNE     FLIP
+000684r 2               CRLF:
+000684r 2  A9 0D                LDA     #$0D            ; load CR in A
+000686r 2  24 13                BIT     $13             ; check default channel
+000688r 2  10 05                BPL     FLIP            ; if high bit is clear output CR only
+00068Ar 2  20 rr rr             JSR     CHROUT          ; otherwise output CR+LF
+00068Dr 2  A9 0A                LDA     #$0A            ; output LF
+00068Fr 2               FLIP:
+00068Fr 2  4C rr rr             JMP     CHROUT
+000692r 2               
+000692r 2               FRESH:
+000692r 2  20 rr rr             JSR     CRLF            ; output CR
+000695r 2  A9 20                LDA     #$20            ; load space in A
+000697r 2  20 rr rr             JSR     CHROUT
+00069Ar 2  4C rr rr             JMP     SNCLR
+00069Dr 2               
+00069Dr 2               ; -----------------------------------------------------------------------------
+00069Dr 2               ; output two hex digits for byte
+00069Dr 2               WRTWO:
+00069Dr 2  86 CA                STX     SAVX            ; save X
+00069Fr 2  20 rr rr             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
+0006A2r 2  20 rr rr             JSR     CHROUT          ; output upper nybble
+0006A5r 2  8A                   TXA                     ; transfer lower to A
+0006A6r 2  A6 CA                LDX     SAVX            ; restore X
+0006A8r 2  4C rr rr             JMP     CHROUT          ; output lower nybble
+0006ABr 2               
+0006ABr 2               ; -----------------------------------------------------------------------------
+0006ABr 2               ; convert byte in A to hex digits
+0006ABr 2               ASCTWO:
+0006ABr 2  48                   PHA                     ; save byte
+0006ACr 2  20 rr rr             JSR     ASCII           ; do low nybble
+0006AFr 2  AA                   TAX                     ; save in X
+0006B0r 2  68                   PLA                     ; restore byte
+0006B1r 2  4A                   LSR     A               ; shift upper nybble down
+0006B2r 2  4A                   LSR     A
+0006B3r 2  4A                   LSR     A
+0006B4r 2  4A                   LSR     A
+0006B5r 2               
+0006B5r 2               ; convert low nybble in A to hex digit
+0006B5r 2               ASCII:
+0006B5r 2  29 0F                AND     #$0F            ; clear upper nibble
+0006B7r 2  C9 0A                CMP     #$0A            ; if less than A, skip next step
+0006B9r 2  90 02                BCC     ASC1
+0006BBr 2  69 06                ADC     #6              ; skip ascii chars between 9 and A
+0006BDr 2               ASC1:
+0006BDr 2  69 30                ADC     #$30            ; add ascii char 0 to value
+0006BFr 2  60                   RTS
+0006C0r 2               
+0006C0r 2               ; -----------------------------------------------------------------------------
+0006C0r 2               ; get prev char from input buffer
+0006C0r 2               GOTCHR:
+0006C0r 2  C6 B9                DEC     CHRPNT
+0006C2r 2               
+0006C2r 2               ; get next char from input buffer
+0006C2r 2               GETCHR:
+0006C2r 2  86 CA                STX     SAVX
+0006C4r 2  A6 B9                LDX     CHRPNT          ; get pointer to next char
+0006C6r 2  BD 00 02             LDA     INBUFF,X        ; load next char in A
+0006C9r 2  F0 06                BEQ     NOCHAR          ; null, :, or ? signal end of buffer
+0006CBr 2  C9 3A                CMP     #':'
+0006CDr 2  F0 02                BEQ     NOCHAR
+0006CFr 2  C9 3F                CMP     #'?'
+0006D1r 2               NOCHAR:
+0006D1r 2  08                   PHP
+0006D2r 2  E6 B9                INC     CHRPNT          ; next char
+0006D4r 2  A6 CA                LDX     SAVX
+0006D6r 2  28                   PLP                     ; Z flag will signal last character
+0006D7r 2  60                   RTS
+0006D8r 2               
+0006D8r 2               ; -----------------------------------------------------------------------------
+0006D8r 2               ; copy TMP0 to TMP2
+0006D8r 2               COPY12:
+0006D8r 2  A5 C1                LDA     TMP0            ; low byte
+0006DAr 2  85 C3                STA     TMP2
+0006DCr 2  A5 C2                LDA     TMP0+1          ; high byte
+0006DEr 2  85 C4                STA     TMP2+1
+0006E0r 2  60                   RTS
+0006E1r 2               
+0006E1r 2               ; -----------------------------------------------------------------------------
+0006E1r 2               ; subtract TMP2 from TMP0
+0006E1r 2               SUB12:
+0006E1r 2  38                   SEC
+0006E2r 2  A5 C1                LDA     TMP0            ; subtract low byte
+0006E4r 2  E5 C3                SBC     TMP2
+0006E6r 2  85 C1                STA     TMP0
+0006E8r 2  A5 C2                LDA     TMP0+1
+0006EAr 2  E5 C4                SBC     TMP2+1          ; subtract high byte
+0006ECr 2  85 C2                STA     TMP0+1
+0006EEr 2  60                   RTS
+0006EFr 2               
+0006EFr 2               ; -----------------------------------------------------------------------------
+0006EFr 2               ; subtract from TMP0
+0006EFr 2               SUBA1:
+0006EFr 2  A9 01                LDA     #1              ; shortcut to decrement by 1
+0006F1r 2               SUBA2:
+0006F1r 2  85 CA                STA     SAVX            ; subtrahend in accumulator
+0006F3r 2  38                   SEC
+0006F4r 2  A5 C1                LDA     TMP0            ; minuend in low byte
+0006F6r 2  E5 CA                SBC     SAVX
+0006F8r 2  85 C1                STA     TMP0
+0006FAr 2  A5 C2                LDA     TMP0+1          ; borrow from high byte
+0006FCr 2  E9 00                SBC     #0
+0006FEr 2  85 C2                STA     TMP0+1
+000700r 2  60                   RTS
+000701r 2               
+000701r 2               ; -----------------------------------------------------------------------------
+000701r 2               ; subtract 1 from STORE
+000701r 2               SUB13:
+000701r 2  38                   SEC
+000702r 2  A5 B7                LDA     STORE
+000704r 2  E9 01                SBC     #1              ; decrement low byte
+000706r 2  85 B7                STA     STORE
+000708r 2  A5 B8                LDA     STORE+1
+00070Ar 2  E9 00                SBC     #0              ; borrow from high byte
+00070Cr 2  85 B8                STA     STORE+1
+00070Er 2  60                   RTS
+00070Fr 2               
+00070Fr 2               ; -----------------------------------------------------------------------------
+00070Fr 2               ; add to TMP2
+00070Fr 2               ADDA2:
+00070Fr 2  A9 01                LDA     #1              ; shortcut to increment by 1
+000711r 2               BUMPAD2:
+000711r 2  18                   CLC
+000712r 2  65 C3                ADC     TMP2            ; add value in accumulator to low byte
+000714r 2  85 C3                STA     TMP2
+000716r 2  90 02                BCC     BUMPEX
+000718r 2  E6 C4                INC     TMP2+1          ; carry to high byte
+00071Ar 2               BUMPEX:
+00071Ar 2  60                   RTS
+00071Br 2               
+00071Br 2               ; -----------------------------------------------------------------------------
+00071Br 2               ; subtract 1 from TMP2
+00071Br 2               SUB21:
+00071Br 2  38                   SEC
+00071Cr 2  A5 C3                LDA     TMP2            ; decrement low byte
+00071Er 2  E9 01                SBC     #1
+000720r 2  85 C3                STA     TMP2
+000722r 2  A5 C4                LDA     TMP2+1          ; borrow from high byte
+000724r 2  E9 00                SBC     #0
+000726r 2  85 C4                STA     TMP2+1
+000728r 2  60                   RTS
+000729r 2               
+000729r 2               ; -----------------------------------------------------------------------------
+000729r 2               ; copy TMP0 to PC
+000729r 2               COPY1P:
+000729r 2  B0 08                BCS     CPY1PX          ; do nothing if parameter is empty
+00072Br 2  A5 C1                LDA     TMP0            ; copy low byte
+00072Dr 2  A4 C2                LDY     TMP0+1          ; copy high byte
+00072Fr 2  85 B1                STA     PCL
+000731r 2  84 B0                STY     PCH
+000733r 2               CPY1PX:
+000733r 2  60                   RTS
+000734r 2               
+000734r 2               ; -----------------------------------------------------------------------------
+000734r 2               ; get start/end addresses and calc difference
+000734r 2               GETDIF:
+000734r 2  B0 1F                BCS     GDIFX           ; exit with error if no parameter given
+000736r 2  20 rr rr             JSR     COPY12          ; save start address in TMP2
+000739r 2  20 rr rr             JSR     GETPAR          ; get end address in TMP0
+00073Cr 2  B0 17                BCS     GDIFX           ; exit with error if no parameter given
+00073Er 2  A5 C1                LDA     TMP0            ; save end address in STASH
+000740r 2  85 CE                STA     STASH
+000742r 2  A5 C2                LDA     TMP0+1
+000744r 2  85 CF                STA     STASH+1
+000746r 2  20 rr rr             JSR     SUB12           ; subtract start address from end address
+000749r 2  A5 C1                LDA     TMP0
+00074Br 2  85 B7                STA     STORE           ; save difference in STORE
+00074Dr 2  A5 C2                LDA     TMP0+1
+00074Fr 2  85 B8                STA     STORE+1
+000751r 2  90 02                BCC     GDIFX           ; error if start address is after end address
+000753r 2  18                   CLC                     ; clear carry to indicate success
+000754r 2  24                   .BYTE   $24             ; BIT ZP opcode consumes next byte (SEC)
+000755r 2               GDIFX:
+000755r 2  38                   SEC                     ; set carry to indicate error
+000756r 2  60                   RTS
+000757r 2               
+000757r 2               ; -----------------------------------------------------------------------------
+000757r 2               ; convert base [$+&%]
+000757r 2               CONVRT:
+000757r 2  20 rr rr             JSR     RDPAR           ; read a parameter
+00075Ar 2  20 rr rr             JSR     FRESH           ; next line and clear
+00075Dr 2  A9 24                LDA     #'$'            ; output $ sigil for hex
+00075Fr 2  20 rr rr             JSR     CHROUT
+000762r 2  A5 C1                LDA     TMP0            ; load the 16-bit value entered
+000764r 2  A6 C2                LDX     TMP0+1
+000766r 2  20 rr rr             JSR     WRADDR          ; print it in 4 hex digits
+000769r 2  20 rr rr             JSR     FRESH
+00076Cr 2  A9 2B                LDA     #'+'            ; output + sigil for decimal
+00076Er 2  20 rr rr             JSR     CHROUT
+000771r 2  20 rr rr             JSR     CVTDEC          ; convert to BCD using hardware mode
+000774r 2  A9 00                LDA     #0              ; clear digit counter
+000776r 2  A2 06                LDX     #6              ; max digits + 1
+000778r 2  A0 03                LDY     #3              ; bits per digit - 1
+00077Ar 2  20 rr rr             JSR     NMPRNT          ; print result without leading zeros
+00077Dr 2  20 rr rr             JSR     FRESH           ; next line and clear
+000780r 2  A9 26                LDA     #'&'            ; print & sigil for octal
+000782r 2  20 rr rr             JSR     CHROUT
+000785r 2  A9 00                LDA     #0              ; clear digit counter
+000787r 2  A2 08                LDX     #8              ; max digits + 1
+000789r 2  A0 02                LDY     #2              ; bits per digit - 1
+00078Br 2  20 rr rr             JSR     PRINUM          ; output number
+00078Er 2  20 rr rr             JSR     FRESH           ; next line and clear
+000791r 2  A9 25                LDA     #'%'            ; print % sigil for binary
+000793r 2  20 rr rr             JSR     CHROUT
+000796r 2  A9 00                LDA     #0              ; clear digit counter
+000798r 2  A2 18                LDX     #$18            ; max digits + 1
+00079Ar 2  A0 00                LDY     #0              ; bits per digit - 1
+00079Cr 2  20 rr rr             JSR     PRINUM          ; output number
+00079Fr 2  4C rr rr             JMP     STRT            ; back to mainloop
+0007A2r 2               
+0007A2r 2               ; -----------------------------------------------------------------------------
+0007A2r 2               ; convert binary to BCD
+0007A2r 2               
+0007A2r 2               CVTDEC:
+0007A2r 2  20 rr rr             JSR     COPY12          ; copy value from TMP0 to TMP2
+0007A5r 2  A9 00                LDA     #0
+0007A7r 2  A2 02                LDX     #2              ; clear 3 bytes in work buffer
+0007A9r 2               DECML1:
+0007A9r 2  95 D0                STA     U0AA0,X
+0007ABr 2  CA                   DEX
+0007ACr 2  10 FB                BPL     DECML1
+0007AEr 2  A0 10                LDY     #16             ; 16 bits in input
+0007B0r 2  08                   PHP                     ; save status register
+0007B1r 2  78                   SEI                     ; make sure no interrupts occur with BCD enabled
+0007B2r 2  F8                   SED
+0007B3r 2               DECML2:
+0007B3r 2  06 C3                ASL     TMP2            ; rotate bytes out of input low byte
+0007B5r 2  26 C4                ROL     TMP2+1          ; .. into high byte and carry bit
+0007B7r 2  A2 02                LDX     #2              ; process 3 bytes
+0007B9r 2               DECDBL:
+0007B9r 2  B5 D0                LDA     U0AA0,X         ; load current value of byte
+0007BBr 2  75 D0                ADC     U0AA0,X         ; add it to itself plus the carry bit
+0007BDr 2  95 D0                STA     U0AA0,X         ; store it back in the same location
+0007BFr 2  CA                   DEX                     ; decrement byte counter
+0007C0r 2  10 F7                BPL     DECDBL          ; loop until all bytes processed
+0007C2r 2  88                   DEY                     ; decrement bit counter
+0007C3r 2  D0 EE                BNE     DECML2          ; loop until all bits processed
+0007C5r 2  28                   PLP                     ; restore processor status
+0007C6r 2  60                   RTS
+0007C7r 2               
+0007C7r 2               ; load the input value and fall through to print it
+0007C7r 2               PRINUM:
+0007C7r 2  48                   PHA                     ; save accumulator
+0007C8r 2  A5 C1                LDA     TMP0            ; copy input low byte to work buffer
+0007CAr 2  85 D2                STA     U0AA0+2
+0007CCr 2  A5 C2                LDA     TMP0+1          ; copy input high byte to work buffer
+0007CEr 2  85 D1                STA     U0AA0+1
+0007D0r 2  A9 00                LDA     #0              ; clear overflow byte in work buffer
+0007D2r 2  85 D0                STA     U0AA0
+0007D4r 2  68                   PLA                     ; restore accumulator
+0007D5r 2               
+0007D5r 2               ; print number in specified base without leading zeros
+0007D5r 2               NMPRNT:
+0007D5r 2  85 CB                STA     DIGCNT          ; number of digits in accumulator
+0007D7r 2  84 CD                STY     NUMBIT          ; bits per digit passed in Y register
+0007D9r 2               DIGOUT:
+0007D9r 2  A4 CD                LDY     NUMBIT          ; get bits to process
+0007DBr 2  A9 00                LDA     #0              ; clear accumulator
+0007DDr 2               ROLBIT:
+0007DDr 2  06 D2                ASL     U0AA0+2         ; shift bits out of low byte
+0007DFr 2  26 D1                ROL     U0AA0+1         ; ... into high byte
+0007E1r 2  26 D0                ROL     U0AA0           ; ... into overflow byte
+0007E3r 2  2A                   ROL     A               ; ... into accumulator
+0007E4r 2  88                   DEY                     ; decrement bit counter
+0007E5r 2  10 F6                BPL     ROLBIT          ; loop until all bits processed
+0007E7r 2  A8                   TAY                     ; check whether accumulator is 0
+0007E8r 2  D0 08                BNE     NZERO           ; if not, print it
+0007EAr 2  E0 01                CPX     #1              ; have we output the max number of digits?
+0007ECr 2  F0 04                BEQ     NZERO           ; if not, print it
+0007EEr 2  A4 CB                LDY     DIGCNT          ; how many digits have we output?
+0007F0r 2  F0 07                BEQ     ZERSUP          ; skip output if digit is 0
+0007F2r 2               NZERO:
+0007F2r 2  E6 CB                INC     DIGCNT          ; increment digit counter
+0007F4r 2  09 30                ORA     #$30            ; add numeric value to ascii '0' to get ascii char
+0007F6r 2  20 rr rr             JSR     CHROUT          ; output character
+0007F9r 2               ZERSUP:
+0007F9r 2  CA                   DEX                     ; decrement number of leading zeros
+0007FAr 2  D0 DD                BNE     DIGOUT          ; next digit
+0007FCr 2  60                   RTS
+0007FDr 2               
+0007FDr 2               
+0007FDr 2               ; -----------------------------------------------------------------------------
+0007FDr 2               ; print and clear routines
+0007FDr 2               CLINE:
+0007FDr 2  20 rr rr             JSR     CRLF
+000800r 2  4C rr rr             JMP     SNCLR           ; clear line
+000803r 2               SNDCLR:
+000803r 2  20 rr rr             JSR     SNDMSG
+000806r 2               SNCLR:
+000806r 2  A0 28                LDY     #$28            ; loop 40 times
+000808r 2               SNCLP:
+000808r 2  A9 20                LDA     #$20            ; output space character
+00080Ar 2  20 rr rr             JSR     CHROUT
+00080Dr 2  88                   DEY
+00080Er 2  D0 F8                BNE     SNCLP
+000810r 2  A9 0D                LDA     #13             ; output CR
+000812r 2  20 rr rr             JSR     CHROUT          ; send CR
+000815r 2  60                   RTS
+000816r 2               
+000816r 2               ; -----------------------------------------------------------------------------
+000816r 2               ; display message from table
+000816r 2               SNDMSG:
+000816r 2  B9 rr rr             LDA     MSGBAS,Y        ; Y contains offset in msg table
+000819r 2  08                   PHP
+00081Ar 2  29 7F                AND     #$7F            ; strip high bit before output
+00081Cr 2  20 rr rr             JSR     CHOUT
+00081Fr 2  C8                   INY
+000820r 2  28                   PLP
+000821r 2  10 F3                BPL     SNDMSG          ; loop until high bit is set
+000823r 2  60                   RTS
+000824r 2               
+000824r 2               ; -----------------------------------------------------------------------------
+000824r 2               ; check for stop key
+000824r 2               STOP:
+000824r 2  20 rr rr             JSR     IOF_CONIN
+000827r 2  C9 03                CMP     #$03
+000829r 2  F0 03                BEQ     :+
+00082Br 2  A9 FF                LDA     #$FF
+00082Dr 2  60                   RTS
+00082Er 2               :
+00082Er 2  A9 00                LDA     #$00
+000830r 2  60                   RTS
+000831r 2               
+000831r 2               ; -----------------------------------------------------------------------------
+000831r 2               ; LOAD A MOTOROLA FORMATTED HEX FILE
+000831r 2               LOADS19:
+000831r 2  20 rr rr             JSR     IOF_CONINW      ;
+000834r 2  C9 53                CMP     #'S'            ;
+000836r 2  D0 F9                BNE     LOADS19         ; FIRST CHAR NOT (S)
+000838r 2  20 rr rr             JSR     IOF_CONINW      ; READ CHAR
+00083Br 2  C9 39                CMP     #'9'            ;
+00083Dr 2  F0 33                BEQ     LOAD21          ;
+00083Fr 2  C9 31                CMP     #'1'            ;
+000841r 2  D0 EE                BNE     LOADS19         ; SECOND CHAR NOT (1)
+000843r 2  A9 00                LDA     #$00            ;
+000845r 2  85 BC                STA     CKSM            ; ZERO CHECKSUM
+000847r 2  20 rr rr             JSR     GETBYTE         ; READ BYTE
+00084Ar 2  E9 01                SBC     #$01            ;
+00084Cr 2  85 CB                STA     DIGCNT          ; BYTE COUNT
+00084Er 2  20 rr rr             JSR     BADDR           ; BUILD ADDRESS
+000851r 2  A0 00                LDY     #$00            ;
+000853r 2               LOAD11:
+000853r 2  20 rr rr             JSR     GETBYTE         ;
+000856r 2  C6 CB                DEC     DIGCNT          ;
+000858r 2  F0 0F                BEQ     LOAD15          ; ZERO BYTE COUNT
+00085Ar 2  91 BD                STA     (LOADADR),Y     ; STORE DATA
+00085Cr 2  E6 BD                INC     LOADADR         ; INCREMENT LOWBYTE
+00085Er 2  A5 BD                LDA     LOADADR
+000860r 2  C9 00                CMP     #$00
+000862r 2  D0 EF                BNE     LOAD11          ; NOT ZERO?, LOOP
+000864r 2  E6 BE                INC     LOADADR+1       ; ZERO, INC HIGH BYTE
+000866r 2  4C rr rr             JMP     LOAD11          ;
+000869r 2               
+000869r 2               LOAD15:
+000869r 2  E6 BC                INC     CKSM            ;
+00086Br 2  F0 C4                BEQ     LOADS19         ;
+00086Dr 2               LOAD19:
+00086Dr 2  A9 3F                LDA     #'?'            ;
+00086Fr 2  20 rr rr             JSR     OUTCH           ;
+000872r 2               LOAD21:
+000872r 2  60                   RTS
+000873r 2               GETBYTE:
+000873r 2  20 rr rr             JSR     INHEX           ; GET HEX CHAR
+000876r 2  0A                   ASL                     ;
+000877r 2  0A                   ASL                     ;
+000878r 2  0A                   ASL                     ;
+000879r 2  0A                   ASL                     ;
+00087Ar 2  85 BF                STA     LOADWRK         ;
+00087Cr 2  20 rr rr             JSR     INHEX           ;
+00087Fr 2  29 0F                AND     #$0F            ; MASK TO 4 BITS
+000881r 2  05 BF                ORA     LOADWRK         ;
+000883r 2  48                   PHA                     ;
+000884r 2  18                   CLC                     ;
+000885r 2  65 BC                ADC     CKSM            ;
+000887r 2  85 BC                STA     CKSM            ;
+000889r 2  68                   PLA                     ;
+00088Ar 2  60                   RTS                     ;
+00088Br 2               ; INPUT HEX CHAR
+00088Br 2               INHEX:
+00088Br 2  20 rr rr             JSR     IOF_CONINW      ;
+00088Er 2  48                   PHA                     ;
+00088Fr 2  20 rr rr             JSR     OUTCH           ;
+000892r 2  68                   PLA                     ;
+000893r 2  C9 3A                CMP     #$3A            ; LESS THAN 9?
+000895r 2  B0 02                BCS     INHEX_BIG       ; NO, SKIP NEXT
+000897r 2  E9 2F                SBC     #$2F            ; CONVERT 0-9
+000899r 2               INHEX_BIG:
+000899r 2  C9 41                CMP     #$41            ; A OR MORE?
+00089Br 2  90 02                BCC     INHEX_SMALL     ; NO, SKIP NEXT
+00089Dr 2  E9 37                SBC     #$37            ; CONVERT A-F
+00089Fr 2               INHEX_SMALL:
+00089Fr 2  60                   RTS                     ;
+0008A0r 2               ; BUILD ADDRESS
+0008A0r 2               BADDR:
+0008A0r 2  20 rr rr             JSR     GETBYTE         ; READ 2 FRAMES
+0008A3r 2  85 BE                STA     LOADADR+1       ;
+0008A5r 2  20 rr rr             JSR     GETBYTE         ;
+0008A8r 2  85 BD                STA     LOADADR         ;
+0008AAr 2  60                   RTS
+0008ABr 2               LOAD:
+0008ABr 2  20 rr rr             JSR     LOADS19
+0008AEr 2  4C rr rr             JMP     STRT            ; back to main loop
+0008B1r 2               
+0008B1r 2               
+0008B1r 2               
+0008B1r 2               
+0008B1r 2               ; -----------------------------------------------------------------------------
+0008B1r 2               ; message table; last character has high bit set
+0008B1r 2               MSGBAS:
+0008B1r 2               
+0008B1r 2               MSG2:
+0008B1r 2  0D                   .BYTE   $0D             ; header for registers
+0008B2r 2  20 20 20 50          .BYTE   "   PC  SR AC XR YR SP   V1.2"
+0008B6r 2  43 20 20 53  
+0008BAr 2  52 20 41 43  
+0008CEr 2  8D                   .BYTE   $0D+$80
+0008CFr 2               MSG3:
+0008CFr 2  20 BF                .BYTE   $20,$3F+$80     ; syntax error: move right, display "?"
+0008D1r 2               MSG4:
+0008D1r 2  2E 2E 53 59          .BYTE   "..SYS"         ; SYS call to enter monitor
+0008D5r 2  53           
+0008D6r 2  A0                   .BYTE   $20+$80
+0008D7r 2               MSG5:
+0008D7r 2  BA                   .BYTE   $3A+$80         ; ":" then RVS ON for memory ASCII dump
+0008D8r 2               MSG6:
+0008D8r 2  20 45 52 52          .BYTE   " ERRO"         ; I/O error: display " ERROR"
+0008DCr 2  4F           
+0008DDr 2  D2                   .BYTE   'R'+$80
+0008DEr 2               MSG7:
+0008DEr 2  41 A0                .BYTE   $41,$20+$80     ; assemble next instruction: "A " + addr
+0008E0r 2               MSG8:
+0008E0r 2  20 20                .BYTE   "  "            ; pad non-existent byte: skip 3 spaces
+0008E2r 2  A0                   .BYTE   $20+$80
+0008E3r 2               
+0008E3r 2               ; -----------------------------------------------------------------------------
+0008E3r 2               ; addressing mode table - nybbles provide index into MODE2 table
+0008E3r 2               ; for opcodes XXXXXXY0, use XXXXXX as index into table
+0008E3r 2               ; for opcodes WWWXXY01  use $40 + XX as index into table
+0008E3r 2               ; use right nybble if Y=0; use left nybble if Y=1
+0008E3r 2               
+0008E3r 2               MODE:
+0008E3r 2  40 02 45 03          .BYTE   $40,$02,$45,$03 ; even opcodes
+0008E7r 2  D0 08 40 09          .BYTE   $D0,$08,$40,$09
+0008EBr 2  30 22 45 33          .BYTE   $30,$22,$45,$33
+0008EFr 2  D0 08 40 09          .BYTE   $D0,$08,$40,$09
+0008F3r 2  40 02 45 33          .BYTE   $40,$02,$45,$33
+0008F7r 2  D0 08 40 09          .BYTE   $D0,$08,$40,$09
+0008FBr 2  40 02 45 B3          .BYTE   $40,$02,$45,$B3
+0008FFr 2  D0 08 40 09          .BYTE   $D0,$08,$40,$09
+000903r 2  00 22 44 33          .BYTE   $00,$22,$44,$33
+000907r 2  D0 8C 44 00          .BYTE   $D0,$8C,$44,$00
+00090Br 2  11 22 44 33          .BYTE   $11,$22,$44,$33
+00090Fr 2  D0 8C 44 9A          .BYTE   $D0,$8C,$44,$9A
+000913r 2  10 22 44 33          .BYTE   $10,$22,$44,$33
+000917r 2  D0 08 40 09          .BYTE   $D0,$08,$40,$09
+00091Br 2  10 22 44 33          .BYTE   $10,$22,$44,$33
+00091Fr 2  D0 08 40 09          .BYTE   $D0,$08,$40,$09
+000923r 2  62 13 78 A9          .BYTE   $62,$13,$78,$A9 ; opcodes ending in 01
+000927r 2               
+000927r 2               ; addressing mode format definitions indexed by nybbles from MODE table
+000927r 2               
+000927r 2               ; left 6 bits define which characters appear in the assembly operand
+000927r 2               ; left 3 bits are before the address; next 3 bits are after
+000927r 2               
+000927r 2               ; right-most 2 bits define length of binary operand
+000927r 2               
+000927r 2               ; index               654 321
+000927r 2               ; 1st character       $(# ,),
+000927r 2               ; 2nd character        $$ X Y    length  format      idx mode
+000927r 2               MODE2:
+000927r 2  00                   .BYTE   $00             ; 000 000    00                  0   error
+000928r 2  21                   .BYTE   $21             ; 001 000    01      #$00        1   immediate
+000929r 2  81                   .BYTE   $81             ; 100 000    01      $00         2   zero-page
+00092Ar 2  82                   .BYTE   $82             ; 100 000    10      $0000       3   absolute
+00092Br 2  00                   .BYTE   $00             ; 000 000    00                  4   implied
+00092Cr 2  00                   .BYTE   $00             ; 000 000    00                  5   accumulator
+00092Dr 2  59                   .BYTE   $59             ; 010 110    01      ($00,X)     6   indirect,X
+00092Er 2  4D                   .BYTE   $4D             ; 010 011    01      ($00),Y     7   indirect,Y
+00092Fr 2  91                   .BYTE   $91             ; 100 100    01      $00,X       8   zero-page,X
+000930r 2  92                   .BYTE   $92             ; 100 100    10      $0000,X     9   absolute,X
+000931r 2  86                   .BYTE   $86             ; 100 001    10      $0000,Y     A   absolute,Y
+000932r 2  4A                   .BYTE   $4A             ; 010 010    10      ($0000)     B   indirect
+000933r 2  85                   .BYTE   $85             ; 100 001    01      $00,Y       C   zero-page,Y
+000934r 2  9D                   .BYTE   $9D             ; 100 111    01      $0000*      D   relative
+000935r 2               
+000935r 2               ; * relative is special-cased so format bits don't match
+000935r 2               
+000935r 2               
+000935r 2               ; character lookup tables for the format definitions in MODE2
+000935r 2               
+000935r 2               CHAR1:
+000935r 2  2C 29 2C             .BYTE   $2C,$29,$2C     ; ","  ")"  ","
+000938r 2  23 28 24             .BYTE   $23,$28,$24     ; "#"  "("  "$"
+00093Br 2               
+00093Br 2               CHAR2:
+00093Br 2  59 00 58             .BYTE   $59,$00,$58     ; "Y"   0   "X"
+00093Er 2  24 24 00             .BYTE   $24,$24,$00     ; "$"  "$"   0
+000941r 2               
+000941r 2               ; -----------------------------------------------------------------------------
+000941r 2               ; 3-letter mnemonics packed into two bytes (5 bits per letter)
+000941r 2               
+000941r 2               ; left 8 bits
+000941r 2               ; XXXXX000 opcodes
+000941r 2               MNEML:
+000941r 2  1C 8A 1C 23          .BYTE   $1C,$8A,$1C,$23 ; BRK PHP BPL CLC
+000945r 2  5D 8B 1B A1          .BYTE   $5D,$8B,$1B,$A1 ; JSR PLP BMI SEC
+000949r 2  9D 8A 1D 23          .BYTE   $9D,$8A,$1D,$23 ; RTI PHA BVC CLI
+00094Dr 2  9D 8B 1D A1          .BYTE   $9D,$8B,$1D,$A1 ; RTS PLA BVS SEI
+000951r 2  00 29 19 AE          .BYTE   $00,$29,$19,$AE ; ??? DEY BCC TYA
+000955r 2  69 A8 19 23          .BYTE   $69,$A8,$19,$23 ; LDY TAY BCS CLV
+000959r 2  24 53 1B 23          .BYTE   $24,$53,$1B,$23 ; CPY INY BNE CLD
+00095Dr 2  24 53 19 A1          .BYTE   $24,$53,$19,$A1 ; CPX INX BEQ SED
+000961r 2               ; XXXYY100 opcodes
+000961r 2  00 1A 5B 5B          .BYTE   $00,$1A,$5B,$5B ; ??? BIT JMP JMP
+000965r 2  A5 69 24 24          .BYTE   $A5,$69,$24,$24 ; STY LDY CPY CPX
+000969r 2               ; 1XXX1010 opcodes
+000969r 2  AE AE A8 AD          .BYTE   $AE,$AE,$A8,$AD ; TXA TXS TAX TSX
+00096Dr 2  29 00 7C 00          .BYTE   $29,$00,$7C,$00 ; DEX ??? NOP ???
+000971r 2               ; XXXYYY10 opcodes
+000971r 2  15 9C 6D 9C          .BYTE   $15,$9C,$6D,$9C ; ASL ROL LSR ROR
+000975r 2  A5 69 29 53          .BYTE   $A5,$69,$29,$53 ; STX LDX DEC INC
+000979r 2               ; XXXYYY01 opcodes
+000979r 2  84 13 34 11          .BYTE   $84,$13,$34,$11 ; ORA AND EOR ADC
+00097Dr 2  A5 69 23 A0          .BYTE   $A5,$69,$23,$A0 ; STA LDA CMP SBC
+000981r 2               
+000981r 2               ; right 7 bits, left justified
+000981r 2               ; XXXXX000 opcodes
+000981r 2               MNEMR:
+000981r 2  D8 62 5A 48          .BYTE   $D8,$62,$5A,$48 ; BRK PHP BPL CLC
+000985r 2  26 62 94 88          .BYTE   $26,$62,$94,$88 ; JSR PLP BMI SEC
+000989r 2  54 44 C8 54          .BYTE   $54,$44,$C8,$54 ; RTI PHA BVC CLI
+00098Dr 2  68 44 E8 94          .BYTE   $68,$44,$E8,$94 ; RTS PLA BVS SEI
+000991r 2  00 B4 08 84          .BYTE   $00,$B4,$08,$84 ; ??? DEY BCC TYA
+000995r 2  74 B4 28 6E          .BYTE   $74,$B4,$28,$6E ; LDY TAY BCS CLV
+000999r 2  74 F4 CC 4A          .BYTE   $74,$F4,$CC,$4A ; CPY INY BNE CLD
+00099Dr 2  72 F2 A4 8A          .BYTE   $72,$F2,$A4,$8A ; CPX INX BEQ SED
+0009A1r 2               ; XXXYY100 opcodes
+0009A1r 2  00 AA A2 A2          .BYTE   $00,$AA,$A2,$A2 ; ??? BIT JMP JMP
+0009A5r 2  74 74 74 72          .BYTE   $74,$74,$74,$72 ; STY LDY CPY CPX
+0009A9r 2               ; 1XXX1010 opcodes
+0009A9r 2  44 68 B2 32          .BYTE   $44,$68,$B2,$32 ; TXA TXS TAX TSX
+0009ADr 2  B2 00 22 00          .BYTE   $B2,$00,$22,$00 ; DEX ??? NOP ???
+0009B1r 2               ; XXXYYY10 opcodes
+0009B1r 2  1A 1A 26 26          .BYTE   $1A,$1A,$26,$26 ; ASL ROL LSR ROR
+0009B5r 2  72 72 88 C8          .BYTE   $72,$72,$88,$C8 ; STX LDX DEC INC
+0009B9r 2               ; XXXYYY01 opcodes
+0009B9r 2  C4 CA 26 48          .BYTE   $C4,$CA,$26,$48 ; ORA AND EOR ADC
+0009BDr 2  44 44 A2 C8          .BYTE   $44,$44,$A2,$C8 ; STA LDA CMP SBC
+0009C1r 2  0D 20 20 20          .BYTE   $0D,$20,$20,$20
+0009C5r 2               
+0009C5r 2               ; -----------------------------------------------------------------------------
+0009C5r 2               ; single-character commands
+0009C5r 2               KEYW:
+0009C5r 2  41 42 43 44          .BYTE   "ABCDFGHJLMRTWZ.>;"
+0009C9r 2  46 47 48 4A  
+0009CDr 2  4C 4D 52 54  
+0009D6r 2               HIKEY:
+0009D6r 2  24 2B 26 25          .BYTE   "$+&%"
+0009DAr 2               KEYTOP:
+0009DAr 2               
+0009DAr 2               
+0009DAr 2               ; vectors corresponding to commands above
+0009DAr 2               KADDR:
+0009DAr 2  rr rr rr rr          .WORD   ASSEM-1,BOOT-1,COMPAR-1,DISASS-1
+0009DEr 2  rr rr rr rr  
+0009E2r 2  rr rr rr rr          .WORD   FILL-1,GOTO-1,HUNT-1,JSUB-1,LOAD-1
+0009E6r 2  rr rr rr rr  
+0009EAr 2  rr rr        
+0009ECr 2  rr rr rr rr          .WORD   DSPLYM-1,DSPLYR-1,TRANS-1,WRITEOS-1
+0009F0r 2  rr rr rr rr  
+0009F4r 2  rr rr rr rr          .WORD   CLRDIR-1,ASSEM-1,ALTM-1,ALTR-1
+0009F8r 2  rr rr rr rr  
+0009FCr 2               
+0009FCr 2               ; -----------------------------------------------------------------------------
+0009FCr 2               MODTAB:
+0009FCr 2  10 0A 08 02          .BYTE   $10,$0A,$08,02  ; modulo number systems
+000A00r 2               LENTAB:
+000A00r 2  04 03 03 01          .BYTE   $04,$03,$03,$01 ; bits per digit
+000A04r 2               
+000A04r 1               
+000A04r 1               ; START BANNER
+000A04r 1               STARTUP:
+000A04r 1  0D 0A                .BYTE   $0D,$0A
+000A06r 1               
+000A06r 1  20 20 44 75          .BYTE   "  Duodyne",$0D,$0A
+000A0Ar 1  6F 64 79 6E  
+000A0Er 1  65 0D 0A     
+000A11r 1  20 20 20 5F          .BYTE   "   __ _____  _____ ___ ___ ",$0D,$0A
+000A15r 1  5F 20 5F 5F  
+000A19r 1  5F 5F 5F 20  
+000A2Er 1  20 20 2F 20          .BYTE   "  / /| ____|/ ____/ _ \__ \ ",$0D,$0A
+000A32r 1  2F 7C 20 5F  
+000A36r 1  5F 5F 5F 7C  
+000A4Cr 1  20 2F 20 2F          .BYTE   " / /_| |__ | |   | | | | ) | ",$0D,$0A
+000A50r 1  5F 7C 20 7C  
+000A54r 1  5F 5F 20 7C  
+000A6Br 1  7C 20 27 5F          .BYTE   "| '_ \___ \| |   | | | |/ / ",$0D,$0A
+000A6Fr 1  20 5C 5F 5F  
+000A73r 1  5F 20 5C 7C  
+000A89r 1  7C 20 28 5F          .BYTE   "| (_) |__) | |___| |_| / /_ ",$0D,$0A
+000A8Dr 1  29 20 7C 5F  
+000A91r 1  5F 29 20 7C  
+000AA7r 1  20 5C 5F 5F          .BYTE   " \___/____/ \_____\___/____| ",$0D,$0A
+000AABr 1  5F 2F 5F 5F  
+000AAFr 1  5F 5F 2F 20  
+000AC6r 1  2A 20 36 35          .BYTE   "* 65c02 SuperMON ",$0D,$0A,$00
+000ACAr 1  63 30 32 20  
+000ACEr 1  53 75 70 65  
+000ADAr 1               
+000ADAr 1                       .SEGMENT "VECTORS"
+000000r 1               NNTVECTOR:
+000000r 1  rr rr                .WORD   BRKROUTINE      ;
+000002r 1               RSTVECTOR:
+000002r 1  rr rr                .WORD   COLD_START      ;
+000004r 1               INTVECTOR:
+000004r 1  rr rr                .WORD   BRKROUTINE      ; ROM VECTOR FOR IRQ
+000006r 1               
+000006r 1                       .END

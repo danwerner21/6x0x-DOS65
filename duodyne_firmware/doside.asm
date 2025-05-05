@@ -69,8 +69,8 @@ PPIDE_INIT:
         JSR     PRTHEXBYTE      ; PRINT BASE PORT
 ;
         JSR     PPIDE_RESET     ; RESET THE BUS
-        JSR     PPIDE_PROBE     ; DETECT AN ATA DEVICE, ABORT IF NOT FOUND
-        BCS     IDE_ABORT
+;        JSR     PPIDE_PROBE     ; DETECT AN ATA DEVICE, ABORT IF NOT FOUND
+;        BCS     IDE_ABORT
         JMP     IDE_PRINT_INFO
 IDE_ABORT:
         PRTS    " NOT PRESENT$" ; NOT PRESENT
@@ -207,7 +207,7 @@ IDE_REMOVE_DRIVE_ASSIGNMENTS:
         ADC     #$30
         LDX     #$00
 @1:
-        CMP     dskcfg,X        ; GET device
+        CMP     F:LDSKCFG,X        ; GET device
         BEQ     @2
         INX
         INX
@@ -217,9 +217,9 @@ IDE_REMOVE_DRIVE_ASSIGNMENTS:
 @2:
         PHA
         LDA     #$00
-        STA     dskcfg,X        ; SET device
+        STA     F:LDSKCFG,X        ; SET device
         INX
-        STA     dskcfg,X        ; SET device
+        STA     F:LDSKCFG,X        ; SET device
         PLA
         INX
         CPX     #16
@@ -298,9 +298,11 @@ IDE_READ_SECTOR_DIRTY1:
         STA     Cdebcylm        ;
         LDA     sekdsk
         STA     CacUnit         ;
+        PRTDBG  "IDE Read Sector Buffer Dirty OK$"
         LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
         RTS
 IDE_READ_SECTOR_DIRTY_ERROR:
+        PRTDBG  "IDE Read Sector Buffer Dirty ERR$"
         LDA     #$FF            ; ZERO = 1 ON RETURN = OPERATION OK
         RTS
 
@@ -564,7 +566,7 @@ IDE_SETUP_LBA:
         LDX     #$01
         LDA     #PPIDE_SEC_CNT
         JSR     IDE_WRITE
-
+        PRTDBG  "END PPIDE SETUP LBA$"
         RTS
 
 

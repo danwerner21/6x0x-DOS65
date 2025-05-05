@@ -44,8 +44,10 @@ SERIALINIT:
 ;	STA	f:UART1			;
 ;	LDA	#03			;
 ;	STA	f:UART3			; SET 8 BIT DATA, 1 STOPBIT
-;	STA	f:UART4			;
-
+        LDA     #$81                    ; Enable FIFOs
+        STA     F:UART2                 ;
+        LDA     #$23                    ; Enable Auto Flow Control $03 to disable AFC
+        STA     F:UART4
         RTS
 
 
@@ -58,8 +60,8 @@ SERIALINIT:
 WRSER1:
         PHA
 WRSER1a:
-        LDA     f:UART5         ; READ LINE STATUS REGISTER
-        AND     #$20            ; TEST IF UART IS READY TO SEND (BIT 5)
+        LDA     F:UART5         ; Is the destination ready?
+        AND     #$20
         CMP     #$00
         BEQ     WRSER1a         ; NO, WAIT FOR IT
         PLA

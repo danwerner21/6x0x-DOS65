@@ -1060,6 +1060,8 @@ mkeagn:
         LDA     dirmod          ;get number
 extmke:
         RTS                     ;and quit
+
+
 ;extend file
 ; input:fcb@(addinp), x=1 read
 ;		        0 write
@@ -1202,6 +1204,11 @@ gbxlp:
         LDA     (addinp),y      ;else get high
         STA     blknum+1        ;high byte
         RTS                     ;and return
+
+        .IFDEF  DUODYNE
+        .RES    100
+        .ENDIF
+
 ;calculate chkpnt as function of dirrec and chkmap
 ; input:dirrec,chkmap
 ; returns:y=0

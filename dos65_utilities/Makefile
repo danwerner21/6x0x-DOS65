@@ -8,8 +8,10 @@ assign.com: assign.c
 	cc65  -t none -O --cpu 6502  assign.c
 	ca65 --cpu 6502  assign.s
 	ld65 assign.o  ./rbc/rbc.lib -m assign.map -C dos65c.cfg -o assign.com
+	ld65 assign.o  ./rbc/rbcduo02.lib -m assignduo02.map -C dos65c.cfg -o assignduo02.com
 	srec_cat  assign.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  assign.s19  -data-only
 	cp assign.com ../bin/common/
+	cp assign.com ../bin/duodyne02/assign.co6
 	sed -i -e '$$aS9' assign.s19
 	cp assign.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img 0:assign.co6

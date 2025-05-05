@@ -3,6 +3,7 @@ all:
 	$(MAKE) --directory dos65_os
 	$(MAKE) --directory nhyodyne_firmware
 	$(MAKE) --directory duodyne_firmware
+	$(MAKE) --directory duodyne02_firmware
 	$(MAKE) --directory dos65_utilities
 	$(MAKE) --directory software/ZMachine
 
@@ -12,6 +13,7 @@ pretty:
 	$(MAKE) --directory dos65_os pretty
 	$(MAKE) --directory dos65_utilities pretty
 	$(MAKE) --directory duodyne_firmware pretty
+	$(MAKE) --directory duodyne02_firmware pretty
 	$(MAKE) --directory software/ZMachine pretty
 
 clean:
@@ -19,5 +21,6 @@ clean:
 	$(MAKE) --directory nhyodyne_firmware clean
 	$(MAKE) --directory dos65_os clean
 	$(MAKE) --directory dos65_utilities clean
-	$(MAKE) --directory nhyodyne_firmware clean
+	$(MAKE) --directory duodyne_firmware clean
+	$(MAKE) --directory duodyne02_firmware clean
 	$(MAKE) --directory software/ZMachine clean

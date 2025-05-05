@@ -1,5 +1,5 @@
 
-all:  	rbclib rbc816
+all:  	rbclib rbc816 rbcduo02
 
 
 rbclib: crt0.s rbc.s
@@ -12,6 +12,10 @@ rbc816: crt0816.s rbc816.s
 	ca65 rbc816.s --cpu 6502
 	ar65 a rbc816.lib crt0816.o rbc816.o
 
+rbcduo02: crt0.s rbcduo02.s
+	ca65  crt0.s --cpu 6502
+	ca65 rbcduo02.s --cpu 6502
+	ar65 a rbcduo02.lib crt0.o rbcduo02.o
 
 
 clean:
