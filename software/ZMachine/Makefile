@@ -24,6 +24,12 @@ zip.com: zip.out
 	cp zip.s19 ../../bin/common/
 	cp ziptest.z3 ../../bin/common/
 	cp zork1.z3 ../../bin/common/
+	@cpmrm -f wbw_hd512 ../../bin/duodyne02/hd512_duodyne.img zip.co6
+	cpmcp -f wbw_hd512 ../../bin/duodyne02/hd512_duodyne.img  zip.com 0:zip.co6
+	@cpmrm -f wbw_hd512 ../../bin/duodyne02/hd512_duodyne.img ziptest.z3
+	cpmcp -f wbw_hd512 ../../bin/duodyne02/hd512_duodyne.img  ziptest.z3 0:ziptest.z3
+	@cpmrm -f wbw_hd512 ../../bin/duodyne02/hd512_duodyne.img zork1.z3
+	cpmcp -f wbw_hd512 ../../bin/duodyne02/hd512_duodyne.img  zork1.z3 0:zork1.z3
 
 zip816.com: zip816.out
 	srec_cat  zip816.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  zip816.s19  -data-only

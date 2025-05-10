@@ -1,5 +1,5 @@
 
-all:  	  rom02.hex duodos65.com
+all:  	  rom02.hex duodos65.com emudos.bin
 
 dos65.bin: dos65.asm ../dos65_os/ccm215.asm ../dos65_os/pemrbc.asm ../dos65_os/simrbc.asm dosdefn.asm ../dos65_os/macro.asm dos65drv.asm dosser.asm doside.asm dosrtc.asm
 	ca65 -D DOSBEGIN=53248 -D DUODYNE02  dos65.asm -l dos65_d000.lst -o dos65_d000.o
@@ -23,11 +23,22 @@ rom02.hex: rom02.out
 
 duodos65.com: loader.asm dos65.bin
 	z80asm -b -l -m loader.asm  2> loader.err
+	srec_cat  dos65.bin -binary -offset 0x0300  -o  dos65_d000.s19a  -data-only -address-length=3
 	srec_cat  loader_addr0100.bin -binary  -o  dos65_loader.1  -Data_Only
 	srec_cat  dos65_loader.1 dos65_d000.s19a -o duodos65.com  -binary
 	@rm	dos65_loader.1
 	@rm	loader_addr0100.bin
 	@cp duodos65.com ../bin/duodyne02
+	@rm	dos65_d000.s19a
+
+
+
+emudos.bin: rom02.out
+	srec_cat  dos65.bin -binary -offset 0x8400  -o  dos65_d000.s19a  -data-only -address-length=3
+	srec_cat  rom02.out -binary -offset 0xE000 -o  rom02.s19a  -data-only -address-length=3
+	srec_cat  dos65_d000.s19a rom02.s19a  -o emudos.bin  -BINARY
+	@rm	dos65_d000.s19a
+	@rm	rom02.s19a
 
 pretty:
 	cp *.asm ./backup

@@ -11,11 +11,14 @@ assign.com: assign.c
 	ld65 assign.o  ./rbc/rbcduo02.lib -m assignduo02.map -C dos65c.cfg -o assignduo02.com
 	srec_cat  assign.com -binary -offset 0x0800 -exclude 0x0000 0x0800 -o  assign.s19  -data-only
 	cp assign.com ../bin/common/
-	cp assign.com ../bin/duodyne02/assign.co6
+	cp assignduo02.com ../bin/duodyne02/assign.co6
 	sed -i -e '$$aS9' assign.s19
 	cp assign.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img 0:assign.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  assign.com 0:assign.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img 0:assign.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  assignduo02.com 0:assign.co6
+
 
 alloc.out: alloc203.asm
 	ca65 --cpu 6502 alloc203.asm -l alloc.lst
@@ -108,6 +111,8 @@ alloc.com: alloc.out
 	cp alloc.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img alloc.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  alloc.com 0:alloc.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img alloc.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  alloc.com 0:alloc.co6
 
 bcompile.com: bcompile.out
 	srec_cat  bcompile.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  bcompile.s19  -data-only
@@ -119,6 +124,10 @@ bcompile.com: bcompile.out
 	cp bcompile.s19 ../bin/6x0x/
 	cp bcompile.com ../bin/nhyodyne/
 	cp bcompile.s19 ../bin/nhyodyne/
+	cp bcompile.com ../bin/duodyne02/
+	cp bcompile.s19 ../bin/duodyne02/
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img bcompile.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  bcompile.com 0:bcompile.co6
 
 bcomp816.com: bcomp816.out
 	srec_cat  bcomp816.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  bcomp816.s19  -data-only
@@ -142,6 +151,8 @@ asm.com: asm.out
 	cp asm.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img asm.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  asm.com 0:asm.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img asm.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  asm.com 0:asm.co6
 
 
 clrdir.s19: clrdir.out
@@ -159,6 +170,8 @@ compare.com: compare.out
 	cp compare.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img compare.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  compare.com 0:compare.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img compare.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  compare.com 0:compare.co6
 
 
 copy.com: copy.out
@@ -171,6 +184,8 @@ copy.com: copy.out
 	cp copy.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img copy.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  copy.com 0:copy.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img copy.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  copy.com 0:copy.co6
 
 
 cpm.co6: cpm.out
@@ -192,6 +207,11 @@ debug.com: debug.out
 	cp debug.s19 ../bin/6x0x/
 	cp debug.com ../bin/nhyodyne/
 	cp debug.s19 ../bin/nhyodyne/
+	cp debug.com ../bin/duodyne02/
+	cp debug.s19 ../bin/duodyne02/
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img debug.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  debug.com 0:debug.co6
+
 
 dbasic.com: dbasic.out
 	srec_cat  dbasic.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  dbasic.s19  -data-only
@@ -203,6 +223,10 @@ dbasic.com: dbasic.out
 	cp dbasic.s19 ../bin/6x0x/
 	cp dbasic.com ../bin/nhyodyne/
 	cp dbasic.s19 ../bin/nhyodyne/
+	cp dbasic.com ../bin/duodyne02/
+	cp dbasic.s19 ../bin/duodyne02/
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img dbasic.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  dbasic.com 0:dbasic.co6
 
 dbasic816.com: dbasic816.out
 	srec_cat  dbasic816.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  dbasic816.s19  -data-only
@@ -226,6 +250,8 @@ edit.com: edit.out
 	cp edit.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img edit.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  edit.com 0:edit.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img edit.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  edit.com 0:edit.co6
 
 
 format.com: format.out
@@ -238,6 +264,8 @@ format.com: format.out
 	cp format.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img format.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  format.com 0:format.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img format.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  format.com 0:format.co6
 
 
 run.com: run.out
@@ -250,6 +278,8 @@ run.com: run.out
 	cp run.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img run.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  run.com 0:run.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img run.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  run.com 0:run.co6
 
 
 sedit.com: sedit.out
@@ -262,6 +292,8 @@ sedit.com: sedit.out
 	cp sedit.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img sedit.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  sedit.com 0:sedit.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img sedit.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  sedit.com 0:sedit.co6
 
 s19.com: s19.out
 	srec_cat  s19.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  s19.s19  -data-only
@@ -273,6 +305,8 @@ s19.com: s19.out
 	cp s19.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img s19.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  s19.com 0:s19.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img s19.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  s19.com 0:s19.co6
 
 
 writeos.com: writeos.out
@@ -305,6 +339,8 @@ xmr.com: xmr.c
 	cp xmr.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img xmr.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  xmr816.com 0:xmr.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img xmr.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  xmr.com 0:xmr.co6
 
 
 xms.com: xms.c
@@ -319,6 +355,9 @@ xms.com: xms.c
 	cp xms.s19 ../bin/common/
 	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img xms.co6
 	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  xms816.com 0:xms.co6
+	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img xms.co6
+	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  xms.com 0:xms.co6
+
 
 pretty:
 	cp *.asm ./backup

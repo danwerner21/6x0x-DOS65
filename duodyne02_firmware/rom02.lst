@@ -27,6 +27,7 @@ Current file: rom.asm
 000000r 1               BANK40          = $0351
 000000r 1               BANK80          = $0352
 000000r 1               BANKC0          = $0353
+000000r 1               CONSOLE         = $060F
 000000r 1               
 000000r 1               STRPTR          = $10
 000000r 1               
@@ -45,11 +46,11 @@ Current file: rom.asm
 000004r 1  9A                   TXS                     ; CLEAR STACK
 000005r 1               
 000005r 1               ;* Setup Memory Banks (RAM 0000-C000, ROM C000-FFFF)
-000005r 1  A9 82                LDA     #$82
+000005r 1  A9 80                LDA     #$80
 000007r 1  8D 50 03             STA     BANK00
-00000Ar 1  A9 83                LDA     #$83
+00000Ar 1  A9 81                LDA     #$81
 00000Cr 1  8D 51 03             STA     BANK40
-00000Fr 1  A9 84                LDA     #$84
+00000Fr 1  A9 02                LDA     #$02
 000011r 1  8D 52 03             STA     BANK80
 000014r 1  A9 03                LDA     #$03
 000016r 1  8D 53 03             STA     BANKC0

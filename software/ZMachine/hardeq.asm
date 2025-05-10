@@ -26,4 +26,4 @@ CCMLNG          = 2048          ;CCM LENGTH
 ; PAGES 2 & 3
 ; -----------
 
-LBUFF           = $0700         ; 89-BYTE LINE BUFFER
+LBUFF           = $0740         ; 89-BYTE LINE BUFFER

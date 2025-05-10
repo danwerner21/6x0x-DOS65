@@ -37,17 +37,17 @@ UART7           = IO+$5F        ;   SCRATCH REG.
 ;
 SERIALINIT:
 ;	LDA	#$80		;
-;	STA	f:UART3		; SET DLAB FLAG
+;	STA	UART3		; SET DLAB FLAG
 ;	LDA	#12		; SET TO 12 = 9600 BAUD
-;	STA	f:UART0		; save baud rate
+;	STA	UART0		; save baud rate
 ;	LDA	#00		;
-;	STA	f:UART1		;
+;	STA	UART1		;
 ;	LDA	#03		;
-;	STA	f:UART3		; SET 8 BIT DATA, 1 STOPBIT
+;	STA	UART3		; SET 8 BIT DATA, 1 STOPBIT
         LDA     #$81            ; Enable FIFOs
-        STA     F:UART2         ;
+        STA     UART2           ;
         LDA     #$2B            ; Enable Auto Flow Control $03 to disable AFC
-        STA     F:UART4
+        STA     UART4
         RTS
 
 

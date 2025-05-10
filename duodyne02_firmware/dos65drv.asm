@@ -93,13 +93,13 @@ DISPATCHTABLE:
         .WORD   drv_noop        ;DSKY_PUTLED     ; FUNCTION 48 -
         .WORD   drv_noop        ;DSKY_BLANK      ; FUNCTION 49 -
 ;
-        .WORD   drv_noop        ; FUNCTION 50 -
-        .WORD   drv_noop        ; FUNCTION 51 -
-        .WORD   drv_noop        ; FUNCTION 52 -
-
-        .WORD   drv_noop        ; FUNCTION 53
-        .WORD   drv_noop        ; FUNCTION 54
-        .WORD   drv_noop        ; FUNCTION 55
+        .WORD   RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
+        .WORD   RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
+        .WORD   RTC_INIT        ; FUNCTION 52 - INIT RTC
+        .WORD   RTC_LED         ; FUNCTION 53 - CONTROL LEDS
+        .WORD   RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
+        .WORD   RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
+;
         .WORD   drv_noop        ; FUNCTION 56
         .WORD   drv_noop        ; FUNCTION 57
         .WORD   drv_noop        ; FUNCTION 58
@@ -109,18 +109,13 @@ DISPATCHTABLE:
         .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
         .WORD   IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
 
-        .WORD   drv_noop        ; FUNCTION 63
-        .WORD   drv_noop        ; FUNCTION 64
-        .WORD   drv_noop        ; FUNCTION 65
-;
-;    .WORD   MD_SHOW         ; FUNCTION 63 - init the mem device
-;      .WORD   MD_READ_SECTOR  ; FUNCTION 64 - read a sector from the memory device
-;     .WORD   MD_WRITE_SECTOR ; FUNCTION 65 - write a sector to the memory device
-;
+        .WORD   drv_noop        ; FUNCTION 63 - init the mem device
+        .WORD   drv_noop        ; FUNCTION 64 - read a sector from the memory device
+        .WORD   drv_noop        ; FUNCTION 65 - write a sector to the memory device
 
-    .WORD   FL_SETUP        ; FUNCTION 66 - init floppy device
-    .WORD   FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
-  .WORD   FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
+        .WORD   FL_SETUP        ; FUNCTION 66 - init floppy device
+        .WORD   FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
+        .WORD   FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
 
 
 ;__DRIVERS___________________________________________________________________________________________

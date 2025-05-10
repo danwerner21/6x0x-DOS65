@@ -102,6 +102,24 @@ boot:
         STA     farfunct
         JSR     DO_FARCALL
 
+wboot:
+        .IFDEF  DUODYNE
+        CLD                     ; VERIFY DECIMAL MODE IS OFF
+        CLC                     ;
+        XCE                     ; SET NATIVE MODE
+        ACCUMULATORINDEX16
+        LDA     #STACK          ; get the stack address
+        TCS                     ; and set the stack to it
+        ACCUMULATORINDEX8
+        PHK
+        PLB
+        .ELSE
+        SEI
+        LDX     #$ff            ;set stack
+        TXS                     ;pointer
+        CLD                     ;set binary mode
+        .ENDIF
+
         LDA     #<cnstxt        ; STORE POINTER TO COMMAND LINE
         STA     cmdlnp
         LDA     #>cnstxt
@@ -116,29 +134,9 @@ boot:
         STA     dcbpc
         LDA     #>dcba
         STA     dcbpc + 1
-
-
-setup:
+;
         LDX     #0              ;clear index
 ;
-        LDA     #<cnstxt        ; STORE POINTER TO COMMAND LINE
-        STA     cmdlnp
-        LDA     #>cnstxt
-        STA     cmdlnp + 1
-
-        LDA     #<dskcfg        ; STORE POINTER TO DISK CONFIG TABLE FOR APPS
-        STA     dskcfpc
-        LDA     #>dskcfg
-        STA     dskcfpc + 1
-
-        LDA     #<dcba          ; STORE POINTER TO DCB TABLES FOR APPS
-        STA     dcbpc
-        LDA     #>dcba
-        STA     dcbpc + 1
-;
-;first clear key dba variables
-;        STX     hstact          ;host buffer inactive
-;        STX     unacnt          ;clear unalloc count
 setupl:
         LDA     inttbl,x        ;get byte
         STA     $100,x          ;insert at start
@@ -171,27 +169,6 @@ inttbl:
         .BYTE   $4c,<wboote,>wboote,$4c,<pem,>pem
 ;warm boot-read dos/65 back except sim and then
 ; jump to ccm.
-
-
-wboot:
-        .IFDEF  DUODYNE
-        CLD                     ; VERIFY DECIMAL MODE IS OFF
-        CLC                     ;
-        XCE                     ; SET NATIVE MODE
-        ACCUMULATORINDEX16
-        LDA     #STACK          ; get the stack address
-        TCS                     ; and set the stack to it
-        ACCUMULATORINDEX8
-        PHK
-        PLB
-        .ELSE
-        SEI
-        LDX     #$ff            ;set stack
-        TXS                     ;pointer
-        CLD                     ;set binary mode
-        .ENDIF
-
-        JMP     setup           ;go setup
 
 
 

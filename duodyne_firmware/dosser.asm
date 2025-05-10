@@ -44,9 +44,9 @@ SERIALINIT:
 ;	STA	f:UART1			;
 ;	LDA	#03			;
 ;	STA	f:UART3			; SET 8 BIT DATA, 1 STOPBIT
-        LDA     #$81                    ; Enable FIFOs
-        STA     F:UART2                 ;
-        LDA     #$23                    ; Enable Auto Flow Control $03 to disable AFC
+        LDA     #$81            ; Enable FIFOs
+        STA     F:UART2         ;
+        LDA     #$23            ; Enable Auto Flow Control $03 to disable AFC
         STA     F:UART4
         RTS
 

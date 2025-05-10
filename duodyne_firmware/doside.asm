@@ -207,7 +207,7 @@ IDE_REMOVE_DRIVE_ASSIGNMENTS:
         ADC     #$30
         LDX     #$00
 @1:
-        CMP     F:LDSKCFG,X        ; GET device
+        CMP     F:LDSKCFG,X     ; GET device
         BEQ     @2
         INX
         INX
@@ -217,9 +217,9 @@ IDE_REMOVE_DRIVE_ASSIGNMENTS:
 @2:
         PHA
         LDA     #$00
-        STA     F:LDSKCFG,X        ; SET device
+        STA     F:LDSKCFG,X     ; SET device
         INX
-        STA     F:LDSKCFG,X        ; SET device
+        STA     F:LDSKCFG,X     ; SET device
         PLA
         INX
         CPX     #16

@@ -179,7 +179,8 @@ STRING:
         JSR     CHAR
         INX
         DEY                     ; LOOP TILL
-        BNE     DOUT            ; OUT OF CHARS
+        CPY     #$00
+        BNE     DOUT            ; NOT OUT OF CHARS
         RTS
 
 ; -----------------------

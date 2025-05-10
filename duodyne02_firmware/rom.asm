@@ -23,6 +23,7 @@ BANK00          = $0350
 BANK40          = $0351
 BANK80          = $0352
 BANKC0          = $0353
+CONSOLE         = $060F
 
 STRPTR          = $10
 
@@ -41,11 +42,11 @@ COLD_START:
         TXS                     ; CLEAR STACK
 
 ;* Setup Memory Banks (RAM 0000-C000, ROM C000-FFFF)
-        LDA     #$82
+        LDA     #$80
         STA     BANK00
-        LDA     #$83
+        LDA     #$81
         STA     BANK40
-        LDA     #$84
+        LDA     #$02
         STA     BANK80
         LDA     #$03
         STA     BANKC0

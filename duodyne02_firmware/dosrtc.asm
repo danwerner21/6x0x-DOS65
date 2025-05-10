@@ -72,11 +72,11 @@ RTC_INIT:
         LDA     #<RTCIO         ; GET BASE PORT
         JSR     PRTHEXBYTE      ; PRINT BASE PORT
         JSR     NEWLINE         ;
-        LDA     RTCVALUE        ; RESET PORT VALUE
-        STA     f:RTCIO
-        LDY     #$80
-        LDX     #$40
-        JSR     RTC_BEEP
+;        LDA     RTCVALUE        ; RESET PORT VALUE
+;        STA     RTCIO
+;        LDY     #$80
+;        LDX     #$40
+;        JSR     RTC_BEEP
 
         RTS
 
@@ -90,18 +90,18 @@ RTCVALUE:
 ; value in Y
 ;_______________________________________________________________
 RTC_WRITE:
-        PHA
-        JSR     RTC_CE_ENABLE
-        TXA                     ; bring into A the address from X
-        AND     #%00111111      ; keep only bits 6 LSBs, discard 2 MSBs
-        CLC
-        ASL     A
-        ORA     #%10000000      ; set MSB to one for DS1302 COMMAND BYTE (WRITE)
-        JSR     RTC_WR          ; write address to DS1302
-        TYA                     ; start processing value
-        JSR     RTC_WR          ; write value to DS1302
-        JSR     RTC_CE_DISABLE
-        PLA
+;        PHA
+;        JSR     RTC_CE_ENABLE
+;        TXA                     ; bring into A the address from X
+;        AND     #%00111111      ; keep only bits 6 LSBs, discard 2 MSBs
+;        CLC
+;        ASL     A
+;        ORA     #%10000000      ; set MSB to one for DS1302 COMMAND BYTE (WRITE)
+;        JSR     RTC_WR          ; write address to DS1302
+;        TYA                     ; start processing value
+;        JSR     RTC_WR          ; write value to DS1302
+;        JSR     RTC_CE_DISABLE
+;        PLA
         RTS
 
 ;__RTC_READ______________________________________________________
@@ -110,18 +110,18 @@ RTC_WRITE:
 ; value in Y
 ;_______________________________________________________________
 RTC_READ:
-        PHA
-        JSR     RTC_CE_ENABLE
-        TXA                     ; bring into A the address from X
-        AND     #%00111111      ; keep only bits 6 LSBs, discard 2 MSBs
-        CLC
-        ASL     A               ; rotate address bits to the left
-        ORA     #%10000001      ; set MSB to one for DS1302 COMMAND BYTE (READ)
-        JSR     RTC_WR          ; write address to DS1302
-        JSR     RTC_RD          ; read value from DS1302 (value is in reg A)
-        TAY
-        JSR     RTC_CE_DISABLE
-        PLA
+;        PHA
+;        JSR     RTC_CE_ENABLE
+;        TXA                     ; bring into A the address from X
+;        AND     #%00111111      ; keep only bits 6 LSBs, discard 2 MSBs
+;        CLC
+;        ASL     A               ; rotate address bits to the left
+;        ORA     #%10000001      ; set MSB to one for DS1302 COMMAND BYTE (READ)
+;        JSR     RTC_WR          ; write address to DS1302
+;        JSR     RTC_RD          ; read value from DS1302 (value is in reg A)
+;        TAY
+;        JSR     RTC_CE_DISABLE
+;        PLA
         RTS
 
 
@@ -131,32 +131,33 @@ RTC_READ:
 ; value in Y
 ;_______________________________________________________________
 RTC_LED:
-        PHA
-        TXA
-        AND     #$01
-        CMP     #00
-        BNE     :+
-        TYA                     ; LED 00
-        AND     #$01
-        ORA     RTCVALUE
-        STA     RTCVALUE
-        STA     f:RTCIO
+;        PHA
+;        TXA
+;        AND     #$01
+;        CMP     #00
+;        BNE     :+
+;        TYA                     ; LED 00
+;        AND     #$01
+;        ORA     RTCVALUE
+;        STA     RTCVALUE
+;        STA     RTCIO
         RTS
-:
-        TYA                     ; LED 01
-        AND     #$01
-        ASL
-        ORA     RTCVALUE
-        STA     RTCVALUE
-        STA     f:RTCIO
-        RTS
+;:
+;        TYA                     ; LED 01
+;        AND     #$01
+;        ASL
+;        ORA     RTCVALUE
+;        STA     RTCVALUE
+;        STA     RTCIO
+;        RTS
 ;__RTC_BUTTON___________________________________________________
 ; read the button state on the RomRam card
 ; button value in A
 ;_______________________________________________________________
 RTC_BUTTON:
-;        LDA     f:RTCIO
-        AND     mask_button
+
+;        LDA     RTCIO
+;        AND     mask_button
         RTS
 
 ;__RTC_BEEP_____________________________________________________
@@ -165,14 +166,15 @@ RTC_BUTTON:
 ; length in Y (*FF)
 ;_______________________________________________________________
 RTC_BEEP:
-        PHA
-        STX     TEMPWORD
-        STY     TEMPWORD1+1
-        LDA     #$00
-        STA     TEMPWORD+1
-        STA     TEMPWORD1
-        LDA     RTCVALUE
-        STA     RTC_BEEP_TEMP
+        RTS
+;        PHA
+;        STX     TEMPWORD
+;        STY     TEMPWORD1+1
+;        LDA     #$00
+;        STA     TEMPWORD+1
+;        STA     TEMPWORD1
+;        LDA     RTCVALUE
+;        STA     RTC_BEEP_TEMP
 
 ;        LDY     TEMPWORD1
 ;        LDX     TEMPWORD
@@ -185,7 +187,7 @@ RTC_BEEP:
 ;        EOR     #mask_spk
 ;        STA     RTC_BEEP_TEMP
 ;        AND     #$F7
-;        STA     f:RTCIO
+;        STA     RTCIO
 ;:
 ;        DEY
 ;        CPY     #$0000
@@ -193,7 +195,7 @@ RTC_BEEP:
 ;
 ;        INDEX8
 ;        LDA     RTCVALUE
-;        STA     f:RTCIO
+;        STA     RTCIO
 ;        PLA
         RTS
 
@@ -207,47 +209,47 @@ RTC_BEEP_TEMP:
 ; RTC Internal Functions
 ;_______________________________________________________________
 RTC_CE_ENABLE:
-        LDA     RTCVALUE
-        ORA     #mask_ce
-        STA     RTCVALUE
-        STA     f:RTCIO
+;        LDA     RTCVALUE
+;        ORA     #mask_ce
+;        STA     RTCVALUE
+;        STA     RTCIO
         RTS
 
 RTC_CE_DISABLE:
-        LDA     RTCVALUE
-        AND     #mask_ce^$ff
-        STA     RTCVALUE
-        STA     f:RTCIO
+;        LDA     RTCVALUE
+;        AND     #mask_ce^$ff
+;        STA     RTCVALUE
+;        STA     RTCIO
         RTS
 
 ; function RTC_WR
 ; send value in A
 ; uses X
 RTC_WR:
-        STA     TEMPWORD1       ; save accumulator as it is the DATA
-        LDX     #$00            ; set X index counter of FOR loop
-RTC_WR1:
-        LDA     TEMPWORD1
-        AND     #$01
-        CMP     #$00            ; is LSB a 0 or 1?
-        BEQ     :+              ; if its a 0, do not set data.
-; LSB is a 1, handle it below
-        LDA     RTCVALUE
-        ORA     #mask_data_in
-        STA     f:RTCIO
-        JSR     RTC_BIT_DELAY   ; let it settle a while
-:
-        ORA     #mask_clk
-        STA     f:RTCIO
-        JSR     RTC_BIT_DELAY   ; let it settle a while
-        LDA     RTCVALUE
-        STA     f:RTCIO
-        JSR     RTC_BIT_DELAY   ; let it settle a while
+;        STA     TEMPWORD1       ; save accumulator as it is the DATA
+;        LDX     #$00            ; set X index counter of FOR loop
+;RTC_WR1:
+;        LDA     TEMPWORD1
+;        AND     #$01
+;        CMP     #$00            ; is LSB a 0 or 1?
+;        BEQ     :+              ; if its a 0, do not set data.
+;; LSB is a 1, handle it below
+;        LDA     RTCVALUE
+;        ORA     #mask_data_in
+;        STA     RTCIO
+;        JSR     RTC_BIT_DELAY   ; let it settle a while
+;:
+;        ORA     #mask_clk
+;        STA     RTCIO
+;        JSR     RTC_BIT_DELAY   ; let it settle a while
+;        LDA     RTCVALUE
+;        STA     RTCIO
+;        JSR     RTC_BIT_DELAY   ; let it settle a while
 
-        LSR     TEMPWORD1       ; move next bit into LSB position for processing to RTC
-        INX                     ; increment A in FOR loop (A=A+1)
-        CPX     #$08            ; is A < $08 ?
-        BNE     RTC_WR1         ; No, do FOR loop again
+;        LSR     TEMPWORD1       ; move next bit into LSB position for processing to RTC
+;        INX                     ; increment A in FOR loop (A=A+1)
+;        CPX     #$08            ; is A < $08 ?
+;        BNE     RTC_WR1         ; No, do FOR loop again
         RTS                     ; Yes, end function and return
 
 
@@ -255,48 +257,48 @@ RTC_WR1:
 ; get value into A
 ; uses X
 RTC_RD:
-        LDA     RTCVALUE
-        ORA     #mask_wrt_en
-        STA     RTCVALUE
-        STA     f:RTCIO
-        LDA     #$00            ; set A=0 output of RTC_RD is passed in A
-        STA     TEMPWORD1
-        LDX     #$00            ; set X index counter of FOR loop
-RTC_RD1:
-        LDA     RTCVALUE
-        ORA     #mask_clk
-        STA     f:RTCIO
-        JSR     RTC_BIT_DELAY   ; let it settle a while
-        LDA     f:RTCIO
-        AND     #mask_data_out
-        CMP     #$00
-        BEQ     :+
-        LDA     TEMPWORD1
-        ORA     #1
-        STA     TEMPWORD1
-:
-        LDA     RTCVALUE
-        AND     #mask_wrt_en^$ff
-        STA     RTCVALUE
-        STA     f:RTCIO
-        JSR     RTC_BIT_DELAY   ; let it settle a while
-        ASL     TEMPWORD1       ; SHIFT
-        INX                     ; increment FOR loop (A=A+1)
-        CPX     #$08            ; is A < $08 ?
-        BNE     RTC_RD1         ; No, do FOR loop again
-        LDA     TEMPWORD1
+;        LDA     RTCVALUE
+;        ORA     #mask_wrt_en
+;        STA     RTCVALUE
+;        STA     RTCIO
+;        LDA     #$00            ; set A=0 output of RTC_RD is passed in A
+;        STA     TEMPWORD1
+;        LDX     #$00            ; set X index counter of FOR loop
+;RTC_RD1:
+;        LDA     RTCVALUE
+;        ORA     #mask_clk
+;        STA     RTCIO
+;        JSR     RTC_BIT_DELAY   ; let it settle a while
+;        LDA     RTCIO
+;        AND     #mask_data_out
+;        CMP     #$00
+;        BEQ     :+
+;        LDA     TEMPWORD1
+;        ORA     #1
+;        STA     TEMPWORD1
+;:
+;        LDA     RTCVALUE
+;        AND     #mask_wrt_en^$ff
+;        STA     RTCVALUE
+;        STA     RTCIO
+;        JSR     RTC_BIT_DELAY   ; let it settle a while
+;        ASL     TEMPWORD1       ; SHIFT
+;        INX                     ; increment FOR loop (A=A+1)
+;        CPX     #$08            ; is A < $08 ?
+;        BNE     RTC_RD1         ; No, do FOR loop again
+;        LDA     TEMPWORD1
         RTS                     ; Yes, end function and return.  Read RTC value is in A
 
 RTC_BIT_DELAY:                  ; purpose is to delay ~36 uS
 ; (6) JSR INTO
-        PHA                     ; 3
-        LDA     #$02            ; 2  (1 REP AT 1 MHZ 6 REPS AT 2MHZ)
-        STA     TEMPWORD        ; 3
-RTC_BIT_DELAY1:
-        DEC     TEMPWORD        ;5
-        BNE     RTC_BIT_DELAY1  ;3
+;        PHA                     ; 3
+;        LDA     #$02            ; 2  (1 REP AT 1 MHZ 6 REPS AT 2MHZ)
+;        STA     TEMPWORD        ; 3
+;RTC_BIT_DELAY1:
+;        DEC     TEMPWORD        ;5
+;        BNE     RTC_BIT_DELAY1  ;3
 
-        NOP                     ; 2
-        NOP                     ; 2
-        PLA                     ; 4
+;        NOP                     ; 2
+;        NOP                     ; 2
+;        PLA                     ; 4
         RTS                     ; 6

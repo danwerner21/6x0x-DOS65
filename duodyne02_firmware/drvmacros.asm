@@ -52,8 +52,10 @@ p5:
         .error  "Too few parameters for macro PRTS"
         .endif
         PHA
-        PHX
-        PHY
+        TXA
+        PHA
+        TYA
+        PHA
         LDX #$00
 p1:
         LDA p4,x
@@ -63,8 +65,10 @@ p1:
         JSR MACRO_OUTCH
         JMP p1
 p2:
-        PLY
-        PLX
+        PLA
+        TAY
+        PLA
+        TAX
         PLA
         JMP p5
 p4:

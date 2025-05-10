@@ -55,7 +55,7 @@ Cdebsehd        = $0643         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
 Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
 Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 CacUnit         = $0646         ; UNIT (IN CACHE)
-
+CONSOLE         = $060F         ; CONSOLE DEVICE
 tea             = $800          ;tea start
 
 ;zero page for setup
@@ -77,7 +77,6 @@ farfunct        = $32           ; function to call in driver area
 farpointer      = $33           ;
 IRQVECTOR       = $35           ; VECTOR FOR USER IRQ RTN
 NMIVECTOR       = $37           ; VECTOR FOR USER NMI RTN
-CONSOLE         = $0712
 TEMPWORD        = $3B           ;
 TEMPWORD1       = $3D           ;
 TEMPWORD2       = $3F           ;
