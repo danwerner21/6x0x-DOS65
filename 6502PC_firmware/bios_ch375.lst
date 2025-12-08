@@ -1,0 +1,772 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : bios_ch375.asm
+Current file: bios_ch375.asm
+
+000000r 1               ;__USB DRIVERS___________________________________________________________________________________________________________________
+000000r 1               ;
+000000r 1               ; 	DOS/65 USB disk drivers 6502PC - CH375 USB STORAGE
+000000r 1               ;
+000000r 1               ;	Entry points:
+000000r 1               ;		CH375INIT      	 - CALLED DURING OS INIT
+000000r 1               ;		CH_READSEC       - read a sector from drive
+000000r 1               ;		CH_WRITESEC      - write a sector to drive
+000000r 1               ;________________________________________________________________________________________________________________________________
+000000r 1               ;
+000000r 1               PC6502_IOSPACE =  $EF00
+000000r 1               ;
+000000r 1               ; CH375 HARDWARE ADDRESS
+000000r 1               CH0BASE         = $E260
+000000r 1               CH0DATA         = CH0BASE
+000000r 1               CH0COMMAND      = CH0BASE+1
+000000r 1               ;
+000000r 1               ; CH375/376 COMMANDS
+000000r 1               ;
+000000r 1               CH_CMD_VER      = $01                             ; GET IC VER
+000000r 1               CH_CMD_RESET    = $05                             ; FULL CH37X RESET
+000000r 1               CH_CMD_EXIST    = $06                             ; CHECK EXISTS
+000000r 1               CH_CMD_MAXLUN   = $0A                             ; GET MAX LUN NUMBER
+000000r 1               CH_CMD_PKTSEC   = $0B                             ; SET PACKETS PER SECTOR
+000000r 1               CH_CMD_SETRETRY = $0B                             ; SET RETRIES
+000000r 1               CH_CMD_MODE     = $15                             ; SET USB MODE
+000000r 1               CH_CMD_TSTCON   = $16                             ; TEST CONNECT
+000000r 1               CH_CMD_ABRTNAK  = $17                             ; ABORT DEVICE NAK RETRIES
+000000r 1               CH_CMD_STAT     = $22                             ; GET STATUS
+000000r 1               CH_CMD_RD5      = $28                             ; READ USB DATA (375)
+000000r 1               CH_CMD_WR5      = $2B                             ; WRITE USB DATA (375)
+000000r 1               CH_CMD_DSKMNT   = $31                             ; DISK MOUNT
+000000r 1               CH_CMD_BYTE_LOC = $39                             ; BYTE LOCATE
+000000r 1               CH_CMD_BYTERD   = $3A                             ; BYTE READ
+000000r 1               CH_CMD_BYTERDGO = $3B                             ; BYTE READ GO
+000000r 1               CH_CMD_BYTEWR   = $3C                             ; BYTE WRITE
+000000r 1               CH_CMD_BYTEWRGO = $3D                             ; BYTE WRITE GO
+000000r 1               CH_CMD_DSKCAP   = $3E                             ; DISK CAPACITY
+000000r 1               CH_CMD_AUTOSET  = $4D                             ; USB AUTO SETUP
+000000r 1               CH_CMD_DSKINIT  = $51                             ; DISK INIT
+000000r 1               CH_CMD_DSKRES   = $52                             ; DISK RESET
+000000r 1               CH_CMD_DSKSIZ   = $53                             ; DISK SIZE
+000000r 1               CH_CMD_DSKRD    = $54                             ; DISK READ
+000000r 1               CH_CMD_DSKRDGO  = $55                             ; CONTINUE DISK READ
+000000r 1               CH_CMD_DSKWR    = $56                             ; DISK WRITE
+000000r 1               CH_CMD_DSKWRGO  = $57                             ; CONTINUE DISK WRITE
+000000r 1               CH_CMD_DSKINQ   = $58                             ; DISK INQUIRY
+000000r 1               CH_CMD_DSKRDY   = $59                             ; DISK READY
+000000r 1               
+000000r 1               
+000000r 1                       .SEGMENT "TEA"
+000000r 1                       .ORG    $1000
+001000  1               
+001000  1               
+001000  1               CH375INIT:
+001000  1  20 1F 13             JSR     LFCR
+001003  1  20 6E 10             JSR     CH_DETECT
+001006  1  D0 53                BNE     NOTDETECTED
+001008  1               
+001008  1  A9 BD                LDA     #<CHMESSAGE2    ;
+00100A  1  8D 50 00             STA     STRPTR          ;
+00100D  1  A9 12                LDA     #>CHMESSAGE2    ;
+00100F  1  8D 51 00             STA     STRPTR+1        ;
+001012  1  20 2A 13             JSR     WRSTR                             ; DO PROMPT
+001015  1  20 1F 13             JSR     LFCR                              ; AND CRLF
+001018  1               
+001018  1  20 17 11             JSR     CH_DISKINIT
+00101B  1  B0 2B                BCS     :+
+00101D  1               
+00101D  1  A9 CF                LDA     #<CHMESSAGE3    ;
+00101F  1  8D 50 00             STA     STRPTR          ;
+001022  1  A9 12                LDA     #>CHMESSAGE3    ;
+001024  1  8D 51 00             STA     STRPTR+1        ;
+001027  1  20 2A 13             JSR     WRSTR                             ; DO PROMPT
+00102A  1               
+00102A  1  AD 00 04             LDA     HSTBUF
+00102D  1  20 3F 13             JSR     PRINT_BYTE
+001030  1  AD 01 04             LDA     HSTBUF+1
+001033  1  20 3F 13             JSR     PRINT_BYTE
+001036  1  AD 02 04             LDA     HSTBUF+2
+001039  1  20 3F 13             JSR     PRINT_BYTE
+00103C  1  AD 03 04             LDA     HSTBUF+3
+00103F  1  20 3F 13             JSR     PRINT_BYTE
+001042  1               
+001042  1               
+001042  1  20 1F 13             JSR     LFCR                              ; AND CRLF
+001045  1  18                   CLC
+001046  1  00                   BRK
+001047  1  60                   RTS
+001048  1               :
+001048  1  A9 E2                LDA     #<CHMESSAGE5    ;
+00104A  1  8D 50 00             STA     STRPTR          ;
+00104D  1  A9 12                LDA     #>CHMESSAGE5    ;
+00104F  1  8D 51 00             STA     STRPTR+1        ;
+001052  1  20 2A 13             JSR     WRSTR                             ; DO PROMPT
+001055  1  20 1F 13             JSR     LFCR                              ; AND CRLF
+001058  1  38                   SEC
+001059  1  00                   BRK
+00105A  1  60                   RTS
+00105B  1               NOTDETECTED:
+00105B  1  A9 F7                LDA     #<CHMESSAGE6    ;
+00105D  1  8D 50 00             STA     STRPTR          ;
+001060  1  A9 12                LDA     #>CHMESSAGE6    ;
+001062  1  8D 51 00             STA     STRPTR+1        ;
+001065  1  20 2A 13             JSR     WRSTR                             ; DO PROMPT
+001068  1  20 1F 13             JSR     LFCR                              ; AND CRLF
+00106B  1  38                   SEC
+00106C  1  00                   BRK
+00106D  1  60                   RTS
+00106E  1               
+00106E  1               CH_DETECT:
+00106E  1  A9 B2                LDA     #<CHMESSAGE1    ;
+001070  1  8D 50 00             STA     STRPTR          ;
+001073  1  A9 12                LDA     #>CHMESSAGE1    ;
+001075  1  8D 51 00             STA     STRPTR+1        ;
+001078  1  20 2A 13             JSR     WRSTR                             ; DO PROMPT
+00107B  1  20 1F 13             JSR     LFCR                              ; AND CRLF
+00107E  1               
+00107E  1  A9 A2                LDA     #<MESSAGE2    ;
+001080  1  8D 50 00             STA     STRPTR          ;
+001083  1  A9 12                LDA     #>CHMESSAGE2    ;
+001085  1  8D 51 00             STA     STRPTR+1        ;
+001088  1  20 2A 13             JSR     WRSTR                             ; DO PROMPT
+00108B  1  A9 E2                LDA     #>CH0BASE                          ; GET BASE PORT
+00108D  1  20 3F 13             JSR     PRINT_BYTE
+001090  1  A9 60                LDA     #<CH0BASE                          ; GET BASE PORT
+001092  1  20 3F 13             JSR     PRINT_BYTE
+001095  1               
+001095  1  20 C5 10             JSR     CH_RESET
+001098  1               
+001098  1               CH_DETECT1:
+001098  1  A9 06                LDA     #CH_CMD_EXIST                     ; LOAD COMMAND
+00109A  1  20 AB 10             JSR     CH_CMD                            ; SEND COMMAND
+00109D  1  A9 AA                LDA     #$AA                              ; LOAD CHECK PATTERN
+00109F  1  20 BA 10             JSR     CH_WR                             ; SEND IT
+0010A2  1  20 BE 10             JSR     CH_NAP                            ; SMALL DELAY
+0010A5  1  20 B6 10             JSR     CH_RD                             ; GET ECHO
+0010A8  1  C9 55                CMP     #$55                              ; SHOULD BE INVERTED
+0010AA  1  60                   RTS                                       ; RETURN
+0010AB  1               
+0010AB  1               CH_CMD:
+0010AB  1  8D 61 E2             STA     CH0COMMAND                        ; SEND COMMAND
+0010AE  1  20 BE 10             JSR     CH_NAP                            ;
+0010B1  1  60                   RTS
+0010B2  1               ;
+0010B2  1               ; GET STATUS
+0010B2  1               ;
+0010B2  1               CH_STAT:
+0010B2  1  AD 61 E2             LDA     CH0COMMAND                        ; READ STATUS
+0010B5  1  60                   RTS
+0010B6  1               ;
+0010B6  1               ; READ A BYTE FROM DATA PORT
+0010B6  1               ;
+0010B6  1               CH_RD:
+0010B6  1  AD 60 E2             LDA     CH0DATA                           ; READ BYTE
+0010B9  1  60                   RTS
+0010BA  1               ;
+0010BA  1               ; WRITE A BYTE TO DATA PORT
+0010BA  1               ;
+0010BA  1               CH_WR:
+0010BA  1  8D 60 E2             STA     CH0DATA                           ; WRITE BYTE
+0010BD  1  60                   RTS
+0010BE  1               
+0010BE  1               CH_NAP:
+0010BE  1  EA                   NOP
+0010BF  1  EA                   NOP
+0010C0  1  EA                   NOP
+0010C1  1  EA                   NOP
+0010C2  1  EA                   NOP
+0010C3  1  EA                   NOP
+0010C4  1  60                   RTS
+0010C5  1               
+0010C5  1               
+0010C5  1               CH_RESET:
+0010C5  1  48                   PHA
+0010C6  1  8A                   TXA
+0010C7  1  48                   PHA
+0010C8  1  98                   TYA
+0010C9  1  48                   PHA
+0010CA  1  A9 05                LDA     #CH_CMD_RESET
+0010CC  1  20 AB 10             JSR     CH_CMD                            ; SEND COMMAND
+0010CF  1  A0 FF                LDY     #$FF
+0010D1  1               CH_RES1:
+0010D1  1  A2 FF                LDX     #$FF
+0010D3  1               :
+0010D3  1  CA                   DEX
+0010D4  1  D0 FD                BNE     :-
+0010D6  1  88                   DEY
+0010D7  1  D0 F8                BNE     CH_RES1
+0010D9  1  68                   PLA
+0010DA  1  A8                   TAY
+0010DB  1  68                   PLA
+0010DC  1  AA                   TAX
+0010DD  1  68                   PLA
+0010DE  1  60                   RTS
+0010DF  1               
+0010DF  1               
+0010DF  1               
+0010DF  1               ;
+0010DF  1               ; POLL WAITING FOR INTERRUPT
+0010DF  1               ;
+0010DF  1               CH_POLL:
+0010DF  1  48                   PHA
+0010E0  1  8A                   TXA
+0010E1  1  48                   PHA
+0010E2  1  98                   TYA
+0010E3  1  48                   PHA
+0010E4  1  A0 FF                LDY     #$FF
+0010E6  1               CH_POLL0:
+0010E6  1  A2 FF                LDX     #$FF                              ; PRIMARY LOOP COUNTER
+0010E8  1               CH_POLL1:
+0010E8  1  20 B2 10             JSR     CH_STAT                           ; GET INT STATUS
+0010EB  1  29 80                AND     #%10000000
+0010ED  1  F0 0F                BEQ     CH_POLL2                          ; CHECK BIT
+0010EF  1  CA                   DEX
+0010F0  1  D0 F6                BNE     CH_POLL1                          ; INNER LOOP AS NEEDED
+0010F2  1  88                   DEY
+0010F3  1  D0 F1                BNE     CH_POLL0                          ; OUTER LOOP AS NEEDED
+0010F5  1  68                   PLA
+0010F6  1  A8                   TAY
+0010F7  1  68                   PLA
+0010F8  1  AA                   TAX
+0010F9  1  68                   PLA
+0010FA  1  A9 FF                LDA     #$FF
+0010FC  1  38                   SEC
+0010FD  1  60                   RTS                                       ; AND RETURN
+0010FE  1               CH_POLL2:
+0010FE  1  A9 22                LDA     #CH_CMD_STAT                      ; GET STATUS
+001100  1  20 AB 10             JSR     CH_CMD                            ; SEND IT
+001103  1  20 BE 10             JSR     CH_NAP                            ; SMALL DELAY
+001106  1  20 B6 10             JSR     CH_RD                             ; GET RESULT
+001109  1  8D 16 11             STA     CHRESULT
+00110C  1  68                   PLA
+00110D  1  A8                   TAY
+00110E  1  68                   PLA
+00110F  1  AA                   TAX
+001110  1  68                   PLA
+001111  1  AD 16 11             LDA     CHRESULT
+001114  1  18                   CLC
+001115  1  60                   RTS                                       ; AND RETURN
+001116  1               
+001116  1               CHRESULT:
+001116  1  00                   .BYTE 00
+001117  1               
+001117  1               CH_DISKINIT:
+001117  1  48                   PHA
+001118  1  8A                   TXA
+001119  1  48                   PHA
+00111A  1  98                   TYA
+00111B  1  48                   PHA
+00111C  1               	; RESET THE BUS
+00111C  1  A9 15        	LDA	#CH_CMD_MODE		; SET MODE COMMAND
+00111E  1  20 AB 10     	JSR	CH_CMD			; SEND IT
+001121  1  A9 07        	LDA	#7			; RESET BUS
+001123  1  20 BA 10     	JSR	CH_WR			; SEND IT
+001126  1  20 BE 10     	JSR	CH_NAP			; SMALL WAIT
+001129  1  20 B6 10     	JSR	CH_RD			; GET RESULT
+00112C  1  20 BE 10     	JSR	CH_NAP			; SMALL WAIT
+00112F  1               ;
+00112F  1               	; ACTIVATE USB MODE
+00112F  1  A9 15        	LDA	#CH_CMD_MODE		; SET MODE COMMAND
+001131  1  20 AB 10     	JSR	CH_CMD			; SEND IT
+001134  1  A9 06        	LDA	#6			; USB ENABLED, SEND SOF
+001136  1  20 BA 10     	JSR	CH_WR			; SEND IT
+001139  1  20 BE 10     	JSR	CH_NAP			; SMALL WAIT
+00113C  1  20 B6 10     	JSR	CH_RD			; GET RESULT
+00113F  1  20 BE 10     	JSR	CH_NAP			; SMALL WAIT
+001142  1               
+001142  1               ;
+001142  1  A0 FF                LDY     #$FF
+001144  1               CH_DISKINIT1:
+001144  1  A9 51                LDA     #CH_CMD_DSKINIT
+001146  1  20 AB 10             JSR     CH_CMD                            ; SEND COMMAND
+001149  1  A9 FF                LDA     #$FF
+00114B  1  A2 FF                LDX     #$FF
+00114D  1               :
+00114D  1  CA                   DEX
+00114E  1  D0 FD                BNE     :-
+001150  1  AA                   TAX
+001151  1  CA                   DEX
+001152  1  8A                   TXA
+001153  1  A2 FF                LDX     #$FF
+001155  1  C9 00                CMP     #$00
+001157  1  D0 F4                BNE     :-
+001159  1               
+001159  1  20 DF 10             JSR     CH_POLL
+00115C  1               
+00115C  1  C9 14                CMP     #$14                              ; SUCCESS?
+00115E  1  F0 0D                BEQ     CHUSB_RESET1A                     ; IF SO, CHECK READY
+001160  1  C9 16                CMP     #$16                              ; NO MEDIA
+001162  1  F0 1A                BEQ     CHUSB_NOMEDIA                     ; HANDLE IT
+001164  1  20 BE 10             JSR     CH_NAP                            ; SMALL DELAY
+001167  1  88                   DEY
+001168  1  D0 DA                BNE     CH_DISKINIT1                      ; LOOP AS NEEDED
+00116A  1  4C 77 11             JMP     CH_DISKINIT_TO                    ; HANDLE TIMEOUT
+00116D  1               
+00116D  1               CHUSB_RESET1A:
+00116D  1  20 95 11             JSR     CH_DSKSIZ                         ; GET AND RECORD DISK SIZE
+001170  1  68                   PLA
+001171  1  A8                   TAY
+001172  1  68                   PLA
+001173  1  AA                   TAX
+001174  1  68                   PLA
+001175  1  18                   CLC
+001176  1  60                   RTS
+001177  1               
+001177  1               CH_DISKINIT_TO:
+001177  1  68                   PLA
+001178  1  A8                   TAY
+001179  1  68                   PLA
+00117A  1  AA                   TAX
+00117B  1  68                   PLA
+00117C  1  38                   SEC
+00117D  1  60                   RTS
+00117E  1               
+00117E  1               
+00117E  1               CHUSB_NOMEDIA:
+00117E  1  A9 0D                LDA     #<CHMESSAGE7    ;
+001180  1  8D 50 00             STA     STRPTR          ;
+001183  1  A9 13                LDA     #>CHMESSAGE7    ;
+001185  1  8D 51 00             STA     STRPTR+1        ;
+001188  1  20 2A 13             JSR     WRSTR                             ; DO PROMPT
+00118B  1  20 1F 13             JSR     LFCR                              ; AND CRLF
+00118E  1  68                   PLA
+00118F  1  A8                   TAY
+001190  1  68                   PLA
+001191  1  AA                   TAX
+001192  1  68                   PLA
+001193  1  38                   SEC
+001194  1  60                   RTS
+001195  1               
+001195  1               CH_DSKSIZ:
+001195  1  A9 53                LDA     #CH_CMD_DSKSIZ                    ; DISK SIZE COMMAND
+001197  1  20 AB 10             JSR     CH_CMD                            ; SEND IT
+00119A  1  20 DF 10             JSR     CH_POLL                           ; WAIT FOR RESULT
+00119D  1               
+00119D  1  C9 14                CMP     #$14                              ; SUCCESS?
+00119F  1  D0 30                BNE     CHUSB_CMDERR                      ; HANDLE CMD ERROR
+0011A1  1  20 D7 11             JSR     CH_CMD_RD                         ; SEND READ USB DATA CMD
+0011A4  1  20 B6 10             JSR     CH_RD                             ; GET RD DATA LEN
+0011A7  1               
+0011A7  1  C9 08                CMP     #$08                              ; MAKE SURE IT IS 8
+0011A9  1  D0 26                BNE     CHUSB_CMDERR                      ; HANDLE CMD ERROR
+0011AB  1               
+0011AB  1  20 B6 10             JSR     CH_RD
+0011AE  1  8D 00 04             STA     HSTBUF
+0011B1  1  20 B6 10             JSR     CH_RD
+0011B4  1  8D 01 04             STA     HSTBUF+1
+0011B7  1  20 B6 10             JSR     CH_RD
+0011BA  1  8D 02 04             STA     HSTBUF+2
+0011BD  1  20 B6 10             JSR     CH_RD
+0011C0  1  8D 03 04             STA     HSTBUF+3
+0011C3  1  20 B6 10             JSR     CH_RD
+0011C6  1  20 B6 10             JSR     CH_RD
+0011C9  1  20 B6 10             JSR     CH_RD
+0011CC  1  20 B6 10             JSR     CH_RD
+0011CF  1  18                   CLC
+0011D0  1  60                   RTS                                       ; AND DONE
+0011D1  1               CHUSB_CMDERR:
+0011D1  1  38                   SEC
+0011D2  1  60                   RTS                                       ; AND DONE
+0011D3  1               
+0011D3  1               CHUSB_IOERR:
+0011D3  1  A9 02                LDA     #$02                              ; SET ERROR CONDITION
+0011D5  1  38                   SEC
+0011D6  1  60                   RTS                                       ; AND DONE
+0011D7  1               
+0011D7  1               
+0011D7  1               ; SEND READ USB DATA COMMAND
+0011D7  1               ; USING BEST OPCODE FOR DEVICE
+0011D7  1               ;
+0011D7  1               CH_CMD_RD:
+0011D7  1  A9 28                LDA     #CH_CMD_RD5
+0011D9  1  4C AB 10             JMP     CH_CMD
+0011DC  1               ;
+0011DC  1               ; SEND WRITE USB DATA COMMAND
+0011DC  1               ; USING BEST OPCODE FOR DEVICE
+0011DC  1               ;
+0011DC  1               CH_CMD_WR:
+0011DC  1  A9 2B                LDA     #CH_CMD_WR5
+0011DE  1  4C AB 10             JMP     CH_CMD
+0011E1  1               
+0011E1  1               DSKBUFTMP:
+0011E1  1  00 04                .WORD   HSTBUF
+0011E3  1  40 04                .WORD   HSTBUF+64
+0011E5  1  80 04                .WORD   HSTBUF+128
+0011E7  1  C0 04                .WORD   HSTBUF+192
+0011E9  1  00 05                .WORD   HSTBUF+256
+0011EB  1  40 05                .WORD   HSTBUF+320
+0011ED  1  80 05                .WORD   HSTBUF+384
+0011EF  1  C0 05                .WORD   HSTBUF+448
+0011F1  1               
+0011F1  1               
+0011F1  1               
+0011F1  1               CH_READSEC:
+0011F1  1  A9 54        	LDA	#CH_CMD_DSKRD		; DISK READ COMMAND
+0011F3  1  20 80 12     	JSR	CHUSB_RWSTART		; SEND CMD AND LBA
+0011F6  1               ;
+0011F6  1               	; READ THE SECTOR IN 64 BYTE CHUNKS
+0011F6  1  A2 00                LDX     #00
+0011F8  1  A0 00        	LDY	#00			; 8 CHUNKS OF 64 FOR 512 BYTE SECTOR
+0011FA  1               CHUSB_READ1:
+0011FA  1  BD E1 11             LDA     DSKBUFTMP,X
+0011FD  1  8D 3F 00             STA     TEMPWORD2
+001200  1  E8                   INX
+001201  1  BD E1 11             LDA     DSKBUFTMP,X
+001204  1  8D 3F 00             STA     TEMPWORD2
+001207  1  E8                   INX
+001208  1  20 DF 10     	JSR	CH_POLL			; WAIT FOR DATA READY
+00120B  1  C9 1D        	CMP	#$1D			; DATA READY TO READ?
+00120D  1  D0 C4        	BNE	CHUSB_IOERR		; HANDLE IO ERROR
+00120F  1  20 D7 11     	JSR	CH_CMD_RD		; SEND READ USB DATA CMD
+001212  1  20 B6 10     	JSR	CH_RD			; READ DATA BLOCK LENGTH
+001215  1  C9 40        	CMP	#64			; AS EXPECTED?
+001217  1  D0 BA        	BNE	CHUSB_IOERR		; IF NOT, HANDLE ERROR
+001219  1               	; BYTE READ LOOP
+001219  1               
+001219  1               CHUSB_READ2:
+001219  1  20 B6 10     	JSR	CH_RD			; GET NEXT BYTE
+00121C  1  91 3F        	STA	(TEMPWORD2),Y	       	; SAVE IT
+00121E  1  C8                   INY
+00121F  1  C0 40                CPY     #64
+001221  1  D0 F6                BNE 	CHUSB_READ2		; LOOP AS NEEDED
+001223  1               ;
+001223  1  A0 00                LDY     #00
+001225  1               	; PREPARE FOR NEXT CHUNK
+001225  1  A9 55        	LDA	#CH_CMD_DSKRDGO	        ; CONTINUE DISK READ
+001227  1  20 AB 10     	JSR	CH_CMD			; SEND IT
+00122A  1  E0 10                CPX     #16
+00122C  1  D0 CC        	BNE	CHUSB_READ1		; LOOP TILL DONE
+00122E  1               ;
+00122E  1               	; FINAL CHECK FOR COMPLETION & SUCCESS
+00122E  1  20 DF 10     	JSR	CH_POLL			; WAIT FOR COMPLETION
+001231  1  C9 14        	CMP	#$14			; SUCCESS?
+001233  1  D0 9E        	BNE     CHUSB_IOERR		; IF NOT, HANDLE ERROR
+001235  1               ;
+001235  1  A9 00                lda     #$00
+001237  1  18           	CLC 				; SIGNAL SUCCESS
+001238  1  60           	RTS
+001239  1               ;
+001239  1               ;
+001239  1               ;
+001239  1               CH_WRITESEC:
+001239  1  A9 56        	LDA	#CH_CMD_DSKWR		; DISK WRITE COMMAND
+00123B  1  20 80 12     	JSR	CHUSB_RWSTART		; SEND CMD AND LBA
+00123E  1               ;
+00123E  1               	; WRITE THE SECTOR IN 64 BYTE CHUNKS
+00123E  1  A2 00                LDX     #0
+001240  1  A0 00        	LDY	#0			; 8 CHUNKS OF 64 FOR 512 BYTE SECTOR
+001242  1               CHUSB_WRITE1:
+001242  1  BD E1 11             LDA     DSKBUFTMP,X
+001245  1  8D 3F 00             STA     TEMPWORD2
+001248  1  E8                   INX
+001249  1  BD E1 11             LDA     DSKBUFTMP,X
+00124C  1  8D 3F 00             STA     TEMPWORD2
+00124F  1  E8                   INX
+001250  1  20 DF 10     	JSR	CH_POLL			; WAIT FOR DATA READY
+001253  1  C9 1E        	CMP	#$1E			; DATA READY TO WRITE
+001255  1  D0 26        	BNE	CHUSB_IOERR1		; HANDLE IO ERROR
+001257  1  20 DC 11     	JSR	CH_CMD_WR		; SEND WRITE USB DATA CMD
+00125A  1  A9 40        	LDA	#64			; 64 BYTE CHUNK
+00125C  1  20 BA 10     	JSR	CH_WR			; SEND DATA BLOCK LENGTH
+00125F  1               ;
+00125F  1               	; BYTE WRITE LOOP
+00125F  1               CHUSB_WRITE2:
+00125F  1  B1 3F        	LDA	(TEMPWORD2),Y        	; GET NEXT BYTE
+001261  1  20 BA 10     	JSR	CH_WR			; WRITE NEXT BYTE
+001264  1  C8           	INY
+001265  1  C0 40                CPY     #64
+001267  1  D0 F6                BNE	CHUSB_WRITE2		; LOOP AS NEEDED
+001269  1               ;
+001269  1               	; PREPARE FOR NEXT CHUNK
+001269  1  A9 57        	LDA	#CH_CMD_DSKWRGO	        ; CONTINUE DISK READ
+00126B  1  20 AB 10     	JSR	CH_CMD			; SEND IT
+00126E  1  E0 10                CPX     #16
+001270  1  D0 D0        	BNE	CHUSB_WRITE1		; LOOP TILL DONE
+001272  1               ;
+001272  1               	; FINAL CHECK FOR COMPLETION & SUCCESS
+001272  1  20 DF 10     	JSR	CH_POLL			; WAIT FOR COMPLETION
+001275  1  C9 14        	CMP	#$14			; SUCCESS?
+001277  1  D0 04        	BNE	CHUSB_IOERR1		; IF NOT, HANDLE ERROR
+001279  1               ;
+001279  1  A9 00                lda     #$00
+00127B  1  18           	CLC	        		; SIGNAL SUCCESS
+00127C  1  60           	RTS
+00127D  1               CHUSB_IOERR1:
+00127D  1  4C D3 11             JMP     CHUSB_IOERR
+001280  1               ;
+001280  1               ; INITIATE A DISK SECTOR READ/WRITE OPERATION
+001280  1               ; A: READ OR WRITE OPCODE
+001280  1               ;
+001280  1               CHUSB_RWSTART:
+001280  1  20 AB 10     	JSR	CH_CMD			; SEND R/W COMMAND
+001283  1               ;
+001283  1               ; SEND LBA, 4 BYTES, LITTLE ENDIAN
+001283  1  AD 12 06             LDA     debsehd
+001286  1  20 BA 10     	JSR	CH_WR			; SEND BYTE
+001289  1  AC 10 06             LDY     debcyll
+00128C  1  C8                   INY                             ; CYL 0 reserved for boot image
+00128D  1  98                   TYA
+00128E  1  20 BA 10     	JSR	CH_WR			; SEND BYTE
+001291  1  AD 11 06             LDA     debcylm                 ;
+001294  1  20 BA 10     	JSR	CH_WR			; SEND BYTE
+001297  1  A9 00                LDA     #0              ;
+001299  1  20 BA 10     	JSR	CH_WR			; SEND BYTE
+00129C  1               ; REQUEST 1 SECTOR
+00129C  1  A9 01                LDA     #1                      ;
+00129E  1  20 BA 10     	JSR	CH_WR			; SEND BYTE
+0012A1  1  60           	RTS
+0012A2  1               ;
+0012A2  1               
+0012A2  1               MESSAGE2:
+0012A2  1  20 20 49 4F          .BYTE   "  IO ADDRESS=0x",00
+0012A6  1  20 41 44 44  
+0012AA  1  52 45 53 53  
+0012B2  1               CHMESSAGE1:
+0012B2  1  43 48 33 37          .BYTE   "CH375 USB:",00
+0012B6  1  35 20 55 53  
+0012BA  1  42 3A 00     
+0012BD  1               CHMESSAGE2:
+0012BD  1  20 20 43 48          .BYTE   "  CH375 DETECTED.",00
+0012C1  1  33 37 35 20  
+0012C5  1  44 45 54 45  
+0012CF  1               CHMESSAGE3:
+0012CF  1  20 20 43 48          .BYTE   "  CH375: BLOCKS=0x",00
+0012D3  1  33 37 35 3A  
+0012D7  1  20 42 4C 4F  
+0012E2  1               CHMESSAGE5:
+0012E2  1  20 20 43 48          .BYTE   "  CH375 MEDIA ERROR.",00
+0012E6  1  33 37 35 20  
+0012EA  1  4D 45 44 49  
+0012F7  1               CHMESSAGE6:
+0012F7  1  20 20 43 48          .BYTE   "  CH375 NOT DETECTED.",00
+0012FB  1  33 37 35 20  
+0012FF  1  4E 4F 54 20  
+00130D  1               CHMESSAGE7:
+00130D  1  20 20 43 48          .BYTE   "  CH375 NO MEDIA.",00
+001311  1  33 37 35 20  
+001315  1  4E 4F 20 4D  
+00131F  1               
+00131F  1               ;------------------------------------------------------------------------
+00131F  1               LFCR:
+00131F  1  A9 0A                lda     #10
+001321  1  20 75 13             JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
+001324  1  A9 0D                lda     #13
+001326  1  20 75 13             JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
+001329  1  60                   rts
+00132A  1               
+00132A  1               STRPTR = $50
+00132A  1               
+00132A  1               ;__WRSTR_______________________________________________________
+00132A  1               ;
+00132A  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00132A  1               ;
+00132A  1               ;______________________________________________________________
+00132A  1               WRSTR:
+00132A  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+00132C  1               OUTSTRLP:
+00132C  1  B1 50                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+00132E  1  C9 00                CMP     #$00            ; IS NULL?
+001330  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+001332  1  20 75 13             JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
+001335  1  E6 50                INC     STRPTR
+001337  1  D0 F3                BNE     OUTSTRLP
+001339  1  E6 51                INC     STRPTR+1
+00133B  1  4C 2C 13             JMP     OUTSTRLP        ; DO NEXT CHAR
+00133E  1               ENDOUTSTR:
+00133E  1  60                   RTS                     ; RETURN
+00133F  1               
+00133F  1               PRINT_BYTE:
+00133F  1  8E 64 13             STX     SAVX            ; save X
+001342  1  20 4F 13             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
+001345  1  20 75 13             JSR     IOF_OUTCH      ; output upper nybble
+001348  1  8A                   TXA                     ; transfer lower to A
+001349  1  AE 64 13             LDX     SAVX            ; restore X
+00134C  1  4C 75 13             JMP     IOF_OUTCH       ; output lower nybble
+00134F  1               ASCTWO:
+00134F  1  48                   PHA                     ; save byte
+001350  1  20 59 13             JSR     ASCII           ; do low nybble
+001353  1  AA                   TAX                     ; save in X
+001354  1  68                   PLA                     ; restore byte
+001355  1  4A                   LSR     A               ; shift upper nybble down
+001356  1  4A                   LSR     A
+001357  1  4A                   LSR     A
+001358  1  4A                   LSR     A
+001359  1               ; convert low nybble in A to hex digit
+001359  1               ASCII:
+001359  1  29 0F                AND     #$0F            ; clear upper nibble
+00135B  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
+00135D  1  90 02                BCC     ASC1
+00135F  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
+001361  1               ASC1:
+001361  1  69 30                ADC     #$30            ; add ascii char 0 to value
+001363  1  60                   RTS
+001364  1               SAVX:
+001364  1  00                   .BYTE 00
+001365  1               
+001365  1               
+001365  1                       .INCLUDE "bios_serial.asm"
+001365  2               ;__SERIAL DRIVERS________________________________________________________________________________________________________________
+001365  2               ;
+001365  2               ; 	serial drivers
+001365  2               ;
+001365  2               ;	Entry points:
+001365  2               ;		SERIALINIT  - called during OS init
+001365  2               ;		RDSER1	    - read a byte from serial port ('A' POINTS TO BYTE)
+001365  2               ;		WRSER1	    - write a byte from serial port  ('A' POINTS TO BYTE)
+001365  2               ;		RDSER1W	    - read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
+001365  2               ;		SERIALSTATUS- GET UART STATUS
+001365  2               ;________________________________________________________________________________________________________________________________
+001365  2               ;
+001365  2               
+001365  2               
+001365  2               ;*
+001365  2               ;* HARDWARE I/O ADDRESSES
+001365  2               ;*
+001365  2               
+001365  2               UART1DATA       = PC6502_IOSPACE+$84; SERIAL PORT 1 (I/O Card)
+001365  2               UART1STATUS     = PC6502_IOSPACE+$85; SERIAL PORT 1 (I/O Card)
+001365  2               UART1COMMAND    = PC6502_IOSPACE+$86; SERIAL PORT 1 (I/O Card)
+001365  2               UART1CONTROL    = PC6502_IOSPACE+$87; SERIAL PORT 1 (I/O Card)
+001365  2               
+001365  2               
+001365  2               ;Command Register
+001365  2               ;No bit is affected by a software reset, however, all bits are set to zero on a hardware reset.
+001365  2               ;Bit 7 6 5  configuration
+001365  2               ;    x x 0  no parity bit
+001365  2               ;    0 0 1  send and receive with odd parity
+001365  2               ;    0 1 1  send and receive with even parity
+001365  2               ;    1 0 1  send: parity=1; receive: parity not evaluated
+001365  2               ;    1 1 1  send: parity=0; receive: parity not evaluated
+001365  2               ;
+001365  2               ;Bit 4  0: no echo
+001365  2               ;       1: echo (received characters are being sent again,
+001365  2               ;                bits 2 and 3 must be 0 for that)
+001365  2               ;
+001365  2               ;Bit 3 2  sender interr.   RTS level   sender
+001365  2               ;    0 0  no               high        off
+001365  2               ;    0 1  yes              low         on
+001365  2               ;    1 0  no               low         on
+001365  2               ;    1 1  no               low         send BRK
+001365  2               ;
+001365  2               ;Bit 1  0: interrupt gets triggered by bit 3 in status register
+001365  2               ;       1: no interrupt
+001365  2               ;
+001365  2               ;Bit 0  0: disable transceiver and interrupts, /DTR high
+001365  2               ;       1: enable transceiver and interrupts, /DTR low
+001365  2               ;
+001365  2               ;Control Register
+001365  2               ;Bits 0 to 3 are set to zero on a software reset, and all bits are set to zero on a hardware reset.
+001365  2               ;Bit 7  0: 1 stop bit
+001365  2               ;       1: a) with 8 data bits and 1 parity bit: 1 stop bit
+001365  2               ;          b) with 5 data bits and no parity bit: 1.5 stop bits
+001365  2               ;          c) otherwise 2 stop bits
+001365  2               ;
+001365  2               ;Bit 6 5  data bits
+001365  2               ;    0 0  8
+001365  2               ;    0 1  7
+001365  2               ;    1 0  6
+001365  2               ;    1 1  5
+001365  2               ;
+001365  2               ;Bit 4  0: external receive clock
+001365  2               ;       1: builtin clock as receive clock
+001365  2               ;
+001365  2               ;Bit 3 2 1 0  baud rate
+001365  2               ;    0 0 0 0  1/16 times external clock
+001365  2               ;    0 0 0 1  50 bps
+001365  2               ;    0 0 1 0  75 bps
+001365  2               ;    0 0 1 1  109.92 bps
+001365  2               ;    0 1 0 0  134.58 bps
+001365  2               ;    0 1 0 1  150 bps
+001365  2               ;    0 1 1 0  300 bps
+001365  2               ;    0 1 1 1  600 bps
+001365  2               ;    1 0 0 0  1200 bps
+001365  2               ;    1 0 0 1  1800 bps
+001365  2               ;    1 0 1 0  2400 bps
+001365  2               ;    1 0 1 1  3600 bps
+001365  2               ;    1 1 0 0  4800 bps
+001365  2               ;    1 1 0 1  7200 bps
+001365  2               ;    1 1 1 0  9600 bps
+001365  2               ;    1 1 1 1  19200 bps
+001365  2               
+001365  2               
+001365  2               
+001365  2               ;__SERIALINIT____________________________________________________________________________________________________________________
+001365  2               ;
+001365  2               ;	INITIALIZE SERIAL PORTS
+001365  2               ;________________________________________________________________________________________________________________________________
+001365  2               ;
+001365  2               SERIALINIT:
+001365  2  A9 00                LDA     #$00            ; RESET UART
+001367  2  8D 85 EF             STA     UART1STATUS     ;
+00136A  2  A9 0B                LDA     #$0B            ;
+00136C  2  8D 86 EF             STA     UART1COMMAND    ;
+00136F  2  A9 1E                LDA     #$1E            ; 9600, 8 BITS, NO PARITY, 1 STOP BIT
+001371  2  8D 87 EF             STA     UART1CONTROL    ;
+001374  2  60                   RTS
+001375  2               
+001375  2               
+001375  2               
+001375  2               ;__WRSER1________________________________________________________________________________________________________________________
+001375  2               ;
+001375  2               ;	WRITE CHARACTER(A) TO UART
+001375  2               ;________________________________________________________________________________________________________________________________
+001375  2               ;
+001375  2               IOF_OUTCH:
+001375  2               WRSER1:
+001375  2  48                   PHA
+001376  2               WRSER1a:
+001376  2  AD 85 EF             LDA     UART1STATUS     ; GET STATUS
+001379  2  29 10                AND     #%00010000      ; IS TX READY
+00137B  2  F0 F9                BEQ     WRSER1a         ; NO, WAIT FOR IT
+00137D  2  68                   PLA
+00137E  2  8D 84 EF             STA     UART1DATA       ; WRITE DATA
+001381  2  60                   RTS
+001382  2               
+001382  2               ;__RDSER1________________________________________________________________________________________________________________________
+001382  2               ;
+001382  2               ;	READ CHARACTER FROM UART TO (A)
+001382  2               ;________________________________________________________________________________________________________________________________
+001382  2               ;
+001382  2               IOF_CONIN:
+001382  2               RDSER1:
+001382  2  AD 85 EF             LDA     UART1STATUS     ; GET STATUS REGISTER
+001385  2  29 08                AND     #%00001000      ; IS RX READY
+001387  2  F0 04                BEQ     RDSER1N         ; NO, INDICATE NO CHAR
+001389  2  AD 84 EF             LDA     UART1DATA       ; GET DATA CHAR
+00138C  2  60                   RTS
+00138D  2               RDSER1N:
+00138D  2  A9 00                LDA     #$00            ;
+00138F  2  60                   RTS                     ;
+001390  2               
+001390  2               ;__RDSER1W_______________________________________________________________________________________________________________________
+001390  2               ;
+001390  2               ;	READ CHARACTER FROM UART TO (A) - WAIT FOR CHAR
+001390  2               ;________________________________________________________________________________________________________________________________
+001390  2               ;
+001390  2               IOF_CONINW:
+001390  2               RDSER1W:
+001390  2  20 82 13             JSR     RDSER1
+001393  2  C9 00                CMP     #$00
+001395  2  F0 F9                BEQ     RDSER1W
+001397  2  29 7F                AND     #$7F
+001399  2  60                   RTS
+00139A  2               
+00139A  2               ;__SERIALSTATUS__________________________________________________________________________________________________________________
+00139A  2               ;
+00139A  2               ;	READ UARD STATUS
+00139A  2               ;________________________________________________________________________________________________________________________________
+00139A  2               ;
+00139A  2               SERIALSTATUS:
+00139A  2  AD 85 EF             LDA     UART1STATUS     ; GET STATUS REGISTER
+00139D  2  29 08                AND     #%00001000      ; IS RX READY
+00139F  2  D0 03                BNE     RDSTAT1         ; INDICATE CHAR
+0013A1  2  A9 00                LDA     #$00            ; NO CHAR
+0013A3  2  60                   RTS
+0013A4  2               RDSTAT1:
+0013A4  2  A9 FF                LDA     #$FF            ; DATA CHAR
+0013A6  2  60                   RTS
+0013A7  2               
+0013A7  1               
+0013A7  1               
+0013A7  1               debcyll         = $0610         ; DEBLOCKED CYLINDER LSB
+0013A7  1               debcylm         = $0611         ; DEBLOCKED CYLINDER MSB
+0013A7  1               debsehd         = $0612         ; DEBLOCKED SECTOR AND HEAD (HS)
+0013A7  1               HSTBUF          = $0400         ; 0400-05ff host buffer
+0013A7  1               TEMPWORD2       = $3F           ;
+0013A7  1               

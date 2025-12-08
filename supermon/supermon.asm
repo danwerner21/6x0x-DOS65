@@ -1471,12 +1471,12 @@ MSG2:
         .BYTE   "   PC  SR AC XR YR SP   V1.2"
         .BYTE   $0D+$80
 MSG3:
-        .BYTE   $1D,$3F+$80     ; syntax error: move right, display "?"
+        .BYTE   $20,$3F+$80     ; syntax error: move right, display "?"
 MSG4:
         .BYTE   "..SYS"         ; SYS call to enter monitor
         .BYTE   $20+$80
 MSG5:
-        .BYTE   $3A,$12+$80     ; ":" then RVS ON for memory ASCII dump
+        .BYTE   $3A,$20+$80     ; ":" then RVS ON for memory ASCII dump
 MSG6:
         .BYTE   " ERRO"         ; I/O error: display " ERROR"
         .BYTE   'R'+$80
