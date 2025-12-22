@@ -252,7 +252,9 @@ read:
 ;SD
         .IFDEF  DUODYNE
         .ELSE
+        .IFNDEF  PC6502
         JSR     CONVERT_SECTOR_LBA
+        .ENDIF
         .ENDIF
         LDA     #64             ; sd read sector
         STA     farfunct
@@ -265,7 +267,9 @@ read:
 ;FD
         .IFDEF  DUODYNE
         .ELSE
+        .IFNDEF  PC6502
         JSR     SETUP_FD_CHS
+        .ENDIF
         .ENDIF
         LDA     #67             ; floppy read sector
         STA     farfunct
@@ -278,7 +282,9 @@ read:
 ;PPIDE
         .IFDEF  DUODYNE
         .ELSE
+        .IFNDEF  PC6502
         JSR     CONVERT_SECTOR_LBA
+        .ENDIF
         .ENDIF
         LDA     #61             ; IDE_READ_SECTOR
         STA     farfunct
@@ -315,7 +321,9 @@ write:
 ;SD
         .IFDEF  DUODYNE
         .ELSE
+        .IFNDEF  PC6502
         JSR     CONVERT_SECTOR_LBA
+        .ENDIF
         .ENDIF
 
         LDA     #64             ;PPP_READ_SECTOR
@@ -333,7 +341,9 @@ write:
 ;FD
         .IFDEF  DUODYNE
         .ELSE
+        .IFNDEF  PC6502
         JSR     SETUP_FD_CHS
+        .ENDIF
         .ENDIF
         LDA     #67             ; floppy read sector
         STA     farfunct
@@ -349,7 +359,9 @@ write:
 ;PPIDE
         .IFDEF  DUODYNE
         .ELSE
+        .IFNDEF  PC6502
         JSR     CONVERT_SECTOR_LBA
+        .ENDIF
         .ENDIF
 
         LDA     #61             ; IDE read sector
@@ -443,7 +455,7 @@ ENDOUTSTR:
 
         .IFDEF  DUODYNE
         .ELSE
-
+        .IFNDEF  PC6502
 ;___CONVERT_SECTOR_LBA___________________________________________________________________________________
 ;
 ; 	TRANSLATE LBA SECTORS
@@ -580,7 +592,7 @@ SETUP_FD_CHS:
         STA     farfunct
         JSR     DO_FARCALL
         RTS
-
+        .ENDIF
         .ENDIF
 
 
@@ -775,6 +787,98 @@ dftdskcfg:
 
 
         .ENDIF
+
+;__________________________________________________________________________________________________________________________________
+        .IFDEF  PC6502
+;disk control blocks
+dcba:
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpa           ;address of map for a
+        .BYTE   128             ;no checksums
+        .WORD   ckmp            ;checksum map
+dcbb:
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpb           ;address of map for a
+        .BYTE   128             ;no checksums
+        .WORD   ckmp            ;checksum map
+dcbc:
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpc           ;address of map for a
+        .BYTE   128             ;no checksums
+        .WORD   ckmp            ;checksum map
+dcbd:
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpd           ;address of map for a
+        .BYTE   128             ;no checksums
+        .WORD   ckmp            ;checksum map
+dcbe:
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpe           ;address of map for a
+        .BYTE   128             ;no checksums
+        .WORD   ckmp            ;checksum map
+dcbf:
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpf           ;address of map for a
+        .BYTE   128             ;no checksums
+        .WORD   ckmp            ;checksum map
+dcbg:
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almpg           ;address of map for a
+        .BYTE   128             ;no checksums
+        .WORD   ckmp            ;checksum map
+dcbh:
+        .WORD   2047            ;max block number
+        .WORD   64              ;sectors per track
+        .WORD   16              ;number system tracks
+        .BYTE   2               ;block size = 4096
+        .WORD   511             ;max directory number
+        .WORD   almph           ;address of map for a
+        .BYTE   128             ;no checksums
+        .WORD   ckmp            ;checksum map
+
+; See Platform Documentation for Drive Types.
+dftdskcfg:
+        .BYTE   $30, $00        ; disk A: unit, slice (invalid for floppy disks) XT-IDE
+        .BYTE   $30, $01        ; disk B: unit, slice (invalid for floppy disks) XT-IDE
+        .BYTE   $90, $00        ; disk C: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk D: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk E: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk F: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk G: unit, slice (invalid for floppy disks)
+        .BYTE   $90, $00        ; disk H: unit, slice (invalid for floppy disks)
+
+
+
+        .ENDIF
+
 
 ;__________________________________________________________________________________________________________________________________
         .IFDEF  NHYODYNE

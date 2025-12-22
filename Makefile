@@ -1,6 +1,7 @@
 all:
-	$(MAKE) --directory 6x0x_firmware
 	$(MAKE) --directory dos65_os
+	$(MAKE) --directory 6x0x_firmware
+	$(MAKE) --directory 6502PC_firmware
 	$(MAKE) --directory nhyodyne_firmware
 	$(MAKE) --directory duodyne_firmware
 	$(MAKE) --directory duodyne02_firmware
@@ -9,6 +10,7 @@ all:
 
 pretty:
 	$(MAKE) --directory 6x0x_firmware pretty
+	$(MAKE) --directory 6502PC_firmware pretty
 	$(MAKE) --directory nhyodyne_firmware pretty
 	$(MAKE) --directory dos65_os pretty
 	$(MAKE) --directory dos65_utilities pretty
@@ -18,6 +20,7 @@ pretty:
 
 clean:
 	$(MAKE) --directory 6x0x_firmware clean
+	$(MAKE) --directory 6502PC_firmware clean
 	$(MAKE) --directory nhyodyne_firmware clean
 	$(MAKE) --directory dos65_os clean
 	$(MAKE) --directory dos65_utilities clean

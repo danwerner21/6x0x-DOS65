@@ -71,7 +71,6 @@ Current file: dos65drv.asm
 008800  2               Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 008800  2               Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
 008800  2               
-008800  2               
 008800  2               tea             = $800          ;tea start
 008800  2               
 008800  2               ;zero page for setup
@@ -134,6 +133,10 @@ Current file: dos65drv.asm
 008800  2               
 008800  2               
 008800  2                       .IFDEF  RBC6X0X
+008800  2                       .DEFINE COMSUFFIX "COM"
+008800  2                       .ENDIF
+008800  2               
+008800  2                       .IFDEF  PC6502
 008800  2                       .DEFINE COMSUFFIX "COM"
 008800  2                       .ENDIF
 008800  2               

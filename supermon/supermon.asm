@@ -448,6 +448,7 @@ FSTART:
 FERROR:
         JMP     ERROR           ; handle error
 ; -----------------------------------------------------------------------------
+  .ifndef  PC6502BIOS
 ; Boot System [B]
 BOOT:
         BCS     BOOTX           ; exit with error if no parameter given
@@ -466,7 +467,7 @@ BOOT:
         JMP     hstbuf
 BOOTX:
         JMP     ERROR           ; back to main loop
-
+        .endif
 
 
 ; -----------------------------------------------------------------------------

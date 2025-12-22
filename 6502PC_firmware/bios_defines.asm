@@ -22,6 +22,7 @@ PC6502_MAP_SPACE = PC6502_IOSPACE+$D0
 ; DATA CONSTANTS
 ;__________________________________________________________________________________________________
 ;ZERO PAGE	ADDRESS			; FUNCTION
+XTIDETIMEOUT    =$F0
 
 ;
 ; DRIVER WORKING STORAGE

@@ -3554,7 +3554,9 @@ Current file: dos65.asm
 00E6CA  2               ;SD
 00E6CA  2                       .IFDEF  DUODYNE
 00E6CA  2                       .ELSE
+00E6CA  2                       .IFNDEF  PC6502
 00E6CA  2                       JSR     CONVERT_SECTOR_LBA
+00E6CA  2                       .ENDIF
 00E6CA  2                       .ENDIF
 00E6CA  2  A9 40                LDA     #64             ; sd read sector
 00E6CC  2  85 32                STA     farfunct
@@ -3567,7 +3569,9 @@ Current file: dos65.asm
 00E6D9  2               ;FD
 00E6D9  2                       .IFDEF  DUODYNE
 00E6D9  2                       .ELSE
+00E6D9  2                       .IFNDEF  PC6502
 00E6D9  2                       JSR     SETUP_FD_CHS
+00E6D9  2                       .ENDIF
 00E6D9  2                       .ENDIF
 00E6D9  2  A9 43                LDA     #67             ; floppy read sector
 00E6DB  2  85 32                STA     farfunct
@@ -3580,7 +3584,9 @@ Current file: dos65.asm
 00E6E8  2               ;PPIDE
 00E6E8  2                       .IFDEF  DUODYNE
 00E6E8  2                       .ELSE
+00E6E8  2                       .IFNDEF  PC6502
 00E6E8  2                       JSR     CONVERT_SECTOR_LBA
+00E6E8  2                       .ENDIF
 00E6E8  2                       .ENDIF
 00E6E8  2  A9 3D                LDA     #61             ; IDE_READ_SECTOR
 00E6EA  2  85 32                STA     farfunct
@@ -3617,7 +3623,9 @@ Current file: dos65.asm
 00E715  2               ;SD
 00E715  2                       .IFDEF  DUODYNE
 00E715  2                       .ELSE
+00E715  2                       .IFNDEF  PC6502
 00E715  2                       JSR     CONVERT_SECTOR_LBA
+00E715  2                       .ENDIF
 00E715  2                       .ENDIF
 00E715  2               
 00E715  2  A9 40                LDA     #64             ;PPP_READ_SECTOR
@@ -3635,7 +3643,9 @@ Current file: dos65.asm
 00E72B  2               ;FD
 00E72B  2                       .IFDEF  DUODYNE
 00E72B  2                       .ELSE
+00E72B  2                       .IFNDEF  PC6502
 00E72B  2                       JSR     SETUP_FD_CHS
+00E72B  2                       .ENDIF
 00E72B  2                       .ENDIF
 00E72B  2  A9 43                LDA     #67             ; floppy read sector
 00E72D  2  85 32                STA     farfunct
@@ -3651,7 +3661,9 @@ Current file: dos65.asm
 00E741  2               ;PPIDE
 00E741  2                       .IFDEF  DUODYNE
 00E741  2                       .ELSE
+00E741  2                       .IFNDEF  PC6502
 00E741  2                       JSR     CONVERT_SECTOR_LBA
+00E741  2                       .ENDIF
 00E741  2                       .ENDIF
 00E741  2               
 00E741  2  A9 3D                LDA     #61             ; IDE read sector
@@ -3745,7 +3757,7 @@ Current file: dos65.asm
 00E78D  2               
 00E78D  2                       .IFDEF  DUODYNE
 00E78D  2                       .ELSE
-00E78D  2               
+00E78D  2                       .IFNDEF  PC6502
 00E78D  2               ;___CONVERT_SECTOR_LBA___________________________________________________________________________________
 00E78D  2               ;
 00E78D  2               ; 	TRANSLATE LBA SECTORS
@@ -3882,7 +3894,7 @@ Current file: dos65.asm
 00E78D  2                       STA     farfunct
 00E78D  2                       JSR     DO_FARCALL
 00E78D  2                       RTS
-00E78D  2               
+00E78D  2                       .ENDIF
 00E78D  2                       .ENDIF
 00E78D  2               
 00E78D  2               
@@ -4077,6 +4089,98 @@ Current file: dos65.asm
 00E804  2               
 00E804  2               
 00E804  2                       .ENDIF
+00E804  2               
+00E804  2               ;__________________________________________________________________________________________________________________________________
+00E804  2                       .IFDEF  PC6502
+00E804  2               ;disk control blocks
+00E804  2               dcba:
+00E804  2                       .WORD   2047            ;max block number
+00E804  2                       .WORD   64              ;sectors per track
+00E804  2                       .WORD   16              ;number system tracks
+00E804  2                       .BYTE   2               ;block size = 4096
+00E804  2                       .WORD   511             ;max directory number
+00E804  2                       .WORD   almpa           ;address of map for a
+00E804  2                       .BYTE   128             ;no checksums
+00E804  2                       .WORD   ckmp            ;checksum map
+00E804  2               dcbb:
+00E804  2                       .WORD   2047            ;max block number
+00E804  2                       .WORD   64              ;sectors per track
+00E804  2                       .WORD   16              ;number system tracks
+00E804  2                       .BYTE   2               ;block size = 4096
+00E804  2                       .WORD   511             ;max directory number
+00E804  2                       .WORD   almpb           ;address of map for a
+00E804  2                       .BYTE   128             ;no checksums
+00E804  2                       .WORD   ckmp            ;checksum map
+00E804  2               dcbc:
+00E804  2                       .WORD   2047            ;max block number
+00E804  2                       .WORD   64              ;sectors per track
+00E804  2                       .WORD   16              ;number system tracks
+00E804  2                       .BYTE   2               ;block size = 4096
+00E804  2                       .WORD   511             ;max directory number
+00E804  2                       .WORD   almpc           ;address of map for a
+00E804  2                       .BYTE   128             ;no checksums
+00E804  2                       .WORD   ckmp            ;checksum map
+00E804  2               dcbd:
+00E804  2                       .WORD   2047            ;max block number
+00E804  2                       .WORD   64              ;sectors per track
+00E804  2                       .WORD   16              ;number system tracks
+00E804  2                       .BYTE   2               ;block size = 4096
+00E804  2                       .WORD   511             ;max directory number
+00E804  2                       .WORD   almpd           ;address of map for a
+00E804  2                       .BYTE   128             ;no checksums
+00E804  2                       .WORD   ckmp            ;checksum map
+00E804  2               dcbe:
+00E804  2                       .WORD   2047            ;max block number
+00E804  2                       .WORD   64              ;sectors per track
+00E804  2                       .WORD   16              ;number system tracks
+00E804  2                       .BYTE   2               ;block size = 4096
+00E804  2                       .WORD   511             ;max directory number
+00E804  2                       .WORD   almpe           ;address of map for a
+00E804  2                       .BYTE   128             ;no checksums
+00E804  2                       .WORD   ckmp            ;checksum map
+00E804  2               dcbf:
+00E804  2                       .WORD   2047            ;max block number
+00E804  2                       .WORD   64              ;sectors per track
+00E804  2                       .WORD   16              ;number system tracks
+00E804  2                       .BYTE   2               ;block size = 4096
+00E804  2                       .WORD   511             ;max directory number
+00E804  2                       .WORD   almpf           ;address of map for a
+00E804  2                       .BYTE   128             ;no checksums
+00E804  2                       .WORD   ckmp            ;checksum map
+00E804  2               dcbg:
+00E804  2                       .WORD   2047            ;max block number
+00E804  2                       .WORD   64              ;sectors per track
+00E804  2                       .WORD   16              ;number system tracks
+00E804  2                       .BYTE   2               ;block size = 4096
+00E804  2                       .WORD   511             ;max directory number
+00E804  2                       .WORD   almpg           ;address of map for a
+00E804  2                       .BYTE   128             ;no checksums
+00E804  2                       .WORD   ckmp            ;checksum map
+00E804  2               dcbh:
+00E804  2                       .WORD   2047            ;max block number
+00E804  2                       .WORD   64              ;sectors per track
+00E804  2                       .WORD   16              ;number system tracks
+00E804  2                       .BYTE   2               ;block size = 4096
+00E804  2                       .WORD   511             ;max directory number
+00E804  2                       .WORD   almph           ;address of map for a
+00E804  2                       .BYTE   128             ;no checksums
+00E804  2                       .WORD   ckmp            ;checksum map
+00E804  2               
+00E804  2               ; See Platform Documentation for Drive Types.
+00E804  2               dftdskcfg:
+00E804  2                       .BYTE   $30, $00        ; disk A: unit, slice (invalid for floppy disks) XT-IDE
+00E804  2                       .BYTE   $30, $01        ; disk B: unit, slice (invalid for floppy disks) XT-IDE
+00E804  2                       .BYTE   $90, $00        ; disk C: unit, slice (invalid for floppy disks)
+00E804  2                       .BYTE   $90, $00        ; disk D: unit, slice (invalid for floppy disks)
+00E804  2                       .BYTE   $90, $00        ; disk E: unit, slice (invalid for floppy disks)
+00E804  2                       .BYTE   $90, $00        ; disk F: unit, slice (invalid for floppy disks)
+00E804  2                       .BYTE   $90, $00        ; disk G: unit, slice (invalid for floppy disks)
+00E804  2                       .BYTE   $90, $00        ; disk H: unit, slice (invalid for floppy disks)
+00E804  2               
+00E804  2               
+00E804  2               
+00E804  2                       .ENDIF
+00E804  2               
 00E804  2               
 00E804  2               ;__________________________________________________________________________________________________________________________________
 00E804  2                       .IFDEF  NHYODYNE

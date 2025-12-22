@@ -111,7 +111,6 @@ Current file: dos65.asm
 000000r 2               Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 000000r 2               Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
 000000r 2               
-000000r 2               
 000000r 2               tea             = $800          ;tea start
 000000r 2               
 000000r 2               ;zero page for setup
@@ -174,6 +173,10 @@ Current file: dos65.asm
 000000r 2               
 000000r 2               
 000000r 2                       .IFDEF  RBC6X0X
+000000r 2                       .DEFINE COMSUFFIX "COM"
+000000r 2                       .ENDIF
+000000r 2               
+000000r 2                       .IFDEF  PC6502
 000000r 2                       .DEFINE COMSUFFIX "COM"
 000000r 2                       .ENDIF
 000000r 2               
@@ -3500,7 +3503,9 @@ Current file: dos65.asm
 00E60F  2               ;SD
 00E60F  2                       .IFDEF  DUODYNE
 00E60F  2                       .ELSE
+00E60F  2                       .IFNDEF  PC6502
 00E60F  2  20 E4 E6             JSR     CONVERT_SECTOR_LBA
+00E612  2                       .ENDIF
 00E612  2                       .ENDIF
 00E612  2  A9 40                LDA     #64             ; sd read sector
 00E614  2  85 32                STA     farfunct
@@ -3513,7 +3518,9 @@ Current file: dos65.asm
 00E621  2               ;FD
 00E621  2                       .IFDEF  DUODYNE
 00E621  2                       .ELSE
+00E621  2                       .IFNDEF  PC6502
 00E621  2  20 AF E7             JSR     SETUP_FD_CHS
+00E624  2                       .ENDIF
 00E624  2                       .ENDIF
 00E624  2  A9 43                LDA     #67             ; floppy read sector
 00E626  2  85 32                STA     farfunct
@@ -3526,7 +3533,9 @@ Current file: dos65.asm
 00E633  2               ;PPIDE
 00E633  2                       .IFDEF  DUODYNE
 00E633  2                       .ELSE
+00E633  2                       .IFNDEF  PC6502
 00E633  2  20 E4 E6             JSR     CONVERT_SECTOR_LBA
+00E636  2                       .ENDIF
 00E636  2                       .ENDIF
 00E636  2  A9 3D                LDA     #61             ; IDE_READ_SECTOR
 00E638  2  85 32                STA     farfunct
@@ -3563,7 +3572,9 @@ Current file: dos65.asm
 00E663  2               ;SD
 00E663  2                       .IFDEF  DUODYNE
 00E663  2                       .ELSE
+00E663  2                       .IFNDEF  PC6502
 00E663  2  20 E4 E6             JSR     CONVERT_SECTOR_LBA
+00E666  2                       .ENDIF
 00E666  2                       .ENDIF
 00E666  2               
 00E666  2  A9 40                LDA     #64             ;PPP_READ_SECTOR
@@ -3581,7 +3592,9 @@ Current file: dos65.asm
 00E67C  2               ;FD
 00E67C  2                       .IFDEF  DUODYNE
 00E67C  2                       .ELSE
+00E67C  2                       .IFNDEF  PC6502
 00E67C  2  20 AF E7             JSR     SETUP_FD_CHS
+00E67F  2                       .ENDIF
 00E67F  2                       .ENDIF
 00E67F  2  A9 43                LDA     #67             ; floppy read sector
 00E681  2  85 32                STA     farfunct
@@ -3597,7 +3610,9 @@ Current file: dos65.asm
 00E695  2               ;PPIDE
 00E695  2                       .IFDEF  DUODYNE
 00E695  2                       .ELSE
+00E695  2                       .IFNDEF  PC6502
 00E695  2  20 E4 E6             JSR     CONVERT_SECTOR_LBA
+00E698  2                       .ENDIF
 00E698  2                       .ENDIF
 00E698  2               
 00E698  2  A9 3D                LDA     #61             ; IDE read sector
@@ -3691,7 +3706,7 @@ Current file: dos65.asm
 00E6E4  2               
 00E6E4  2                       .IFDEF  DUODYNE
 00E6E4  2                       .ELSE
-00E6E4  2               
+00E6E4  2                       .IFNDEF  PC6502
 00E6E4  2               ;___CONVERT_SECTOR_LBA___________________________________________________________________________________
 00E6E4  2               ;
 00E6E4  2               ; 	TRANSLATE LBA SECTORS
@@ -3828,7 +3843,7 @@ Current file: dos65.asm
 00E7E7  2  85 32                STA     farfunct
 00E7E9  2  20 F0 FF             JSR     DO_FARCALL
 00E7EC  2  60                   RTS
-00E7ED  2               
+00E7ED  2                       .ENDIF
 00E7ED  2                       .ENDIF
 00E7ED  2               
 00E7ED  2               
@@ -4023,6 +4038,98 @@ Current file: dos65.asm
 00E868  2               
 00E868  2               
 00E868  2                       .ENDIF
+00E868  2               
+00E868  2               ;__________________________________________________________________________________________________________________________________
+00E868  2                       .IFDEF  PC6502
+00E868  2               ;disk control blocks
+00E868  2               dcba:
+00E868  2                       .WORD   2047            ;max block number
+00E868  2                       .WORD   64              ;sectors per track
+00E868  2                       .WORD   16              ;number system tracks
+00E868  2                       .BYTE   2               ;block size = 4096
+00E868  2                       .WORD   511             ;max directory number
+00E868  2                       .WORD   almpa           ;address of map for a
+00E868  2                       .BYTE   128             ;no checksums
+00E868  2                       .WORD   ckmp            ;checksum map
+00E868  2               dcbb:
+00E868  2                       .WORD   2047            ;max block number
+00E868  2                       .WORD   64              ;sectors per track
+00E868  2                       .WORD   16              ;number system tracks
+00E868  2                       .BYTE   2               ;block size = 4096
+00E868  2                       .WORD   511             ;max directory number
+00E868  2                       .WORD   almpb           ;address of map for a
+00E868  2                       .BYTE   128             ;no checksums
+00E868  2                       .WORD   ckmp            ;checksum map
+00E868  2               dcbc:
+00E868  2                       .WORD   2047            ;max block number
+00E868  2                       .WORD   64              ;sectors per track
+00E868  2                       .WORD   16              ;number system tracks
+00E868  2                       .BYTE   2               ;block size = 4096
+00E868  2                       .WORD   511             ;max directory number
+00E868  2                       .WORD   almpc           ;address of map for a
+00E868  2                       .BYTE   128             ;no checksums
+00E868  2                       .WORD   ckmp            ;checksum map
+00E868  2               dcbd:
+00E868  2                       .WORD   2047            ;max block number
+00E868  2                       .WORD   64              ;sectors per track
+00E868  2                       .WORD   16              ;number system tracks
+00E868  2                       .BYTE   2               ;block size = 4096
+00E868  2                       .WORD   511             ;max directory number
+00E868  2                       .WORD   almpd           ;address of map for a
+00E868  2                       .BYTE   128             ;no checksums
+00E868  2                       .WORD   ckmp            ;checksum map
+00E868  2               dcbe:
+00E868  2                       .WORD   2047            ;max block number
+00E868  2                       .WORD   64              ;sectors per track
+00E868  2                       .WORD   16              ;number system tracks
+00E868  2                       .BYTE   2               ;block size = 4096
+00E868  2                       .WORD   511             ;max directory number
+00E868  2                       .WORD   almpe           ;address of map for a
+00E868  2                       .BYTE   128             ;no checksums
+00E868  2                       .WORD   ckmp            ;checksum map
+00E868  2               dcbf:
+00E868  2                       .WORD   2047            ;max block number
+00E868  2                       .WORD   64              ;sectors per track
+00E868  2                       .WORD   16              ;number system tracks
+00E868  2                       .BYTE   2               ;block size = 4096
+00E868  2                       .WORD   511             ;max directory number
+00E868  2                       .WORD   almpf           ;address of map for a
+00E868  2                       .BYTE   128             ;no checksums
+00E868  2                       .WORD   ckmp            ;checksum map
+00E868  2               dcbg:
+00E868  2                       .WORD   2047            ;max block number
+00E868  2                       .WORD   64              ;sectors per track
+00E868  2                       .WORD   16              ;number system tracks
+00E868  2                       .BYTE   2               ;block size = 4096
+00E868  2                       .WORD   511             ;max directory number
+00E868  2                       .WORD   almpg           ;address of map for a
+00E868  2                       .BYTE   128             ;no checksums
+00E868  2                       .WORD   ckmp            ;checksum map
+00E868  2               dcbh:
+00E868  2                       .WORD   2047            ;max block number
+00E868  2                       .WORD   64              ;sectors per track
+00E868  2                       .WORD   16              ;number system tracks
+00E868  2                       .BYTE   2               ;block size = 4096
+00E868  2                       .WORD   511             ;max directory number
+00E868  2                       .WORD   almph           ;address of map for a
+00E868  2                       .BYTE   128             ;no checksums
+00E868  2                       .WORD   ckmp            ;checksum map
+00E868  2               
+00E868  2               ; See Platform Documentation for Drive Types.
+00E868  2               dftdskcfg:
+00E868  2                       .BYTE   $30, $00        ; disk A: unit, slice (invalid for floppy disks) XT-IDE
+00E868  2                       .BYTE   $30, $01        ; disk B: unit, slice (invalid for floppy disks) XT-IDE
+00E868  2                       .BYTE   $90, $00        ; disk C: unit, slice (invalid for floppy disks)
+00E868  2                       .BYTE   $90, $00        ; disk D: unit, slice (invalid for floppy disks)
+00E868  2                       .BYTE   $90, $00        ; disk E: unit, slice (invalid for floppy disks)
+00E868  2                       .BYTE   $90, $00        ; disk F: unit, slice (invalid for floppy disks)
+00E868  2                       .BYTE   $90, $00        ; disk G: unit, slice (invalid for floppy disks)
+00E868  2                       .BYTE   $90, $00        ; disk H: unit, slice (invalid for floppy disks)
+00E868  2               
+00E868  2               
+00E868  2               
+00E868  2                       .ENDIF
+00E868  2               
 00E868  2               
 00E868  2               ;__________________________________________________________________________________________________________________________________
 00E868  2                       .IFDEF  NHYODYNE

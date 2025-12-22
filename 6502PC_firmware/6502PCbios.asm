@@ -94,6 +94,7 @@ NINTERRUPT:
 
         .INCLUDE "../supermon/supermon.asm"
         .INCLUDE "bios_serial.asm"
+        .INCLUDE "bios_ide.asm"
         .INCLUDE "bios_pager.ASM"
 
 

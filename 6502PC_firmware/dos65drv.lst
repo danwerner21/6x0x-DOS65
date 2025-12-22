@@ -1,0 +1,1146 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : dos65drv.asm
+Current file: dos65drv.asm
+
+000000r 1               ;________________________________________________________________________________________________________________________________
+000000r 1               ;
+000000r 1               ;	6502PC dos/65 banked driver code
+000000r 1               ;
+000000r 1               ;
+000000r 1               ;  DWERNER 12/20/2025 	Initial
+000000r 1               ;________________________________________________________________________________________________________________________________
+000000r 1               
+000000r 1               PC6502_IOSPACE  = $EF00
+000000r 1                       .INCLUDE "../dos65_os/dosdefn.asm"
+000000r 2               ;________________________________________________________________________________________________________________________________
+000000r 2               ;
+000000r 2               ;	DOS/65 base addresses and definitions
+000000r 2               ;
+000000r 2               ;  DWERNER 04/24/2022 	Initial
+000000r 2               ;________________________________________________________________________________________________________________________________
+000000r 2               
+000000r 2               ;base addresses and definitions
+000000r 2               btejmp          = $0100         ; warm boot jump
+000000r 2               pemjmp          = $0103         ; jump to pem
+000000r 2               iostat          = $0106         ; i/o status
+000000r 2               dflfcb          = $0107         ; default fcb
+000000r 2               dflbuf          = $0128         ; default buffer
+000000r 2               memmovr         = $0200         ; 0200-02ff subr to move data from ram/rom disks
+000000r 2               MD_PAGERA       = $0200         ; PAGE DRIVER ADDRESS
+000000r 2               IO              = $0300         ; 0300-03FF Memory mapped IO
+000000r 2               MPCL_ROM        = $037C         ; ROM MAPPER
+000000r 2               MPCL_RAM        = $0378         ; RAM MAPPER
+000000r 2               hstbuf          = $0400         ; 0400-05ff host buffer
+000000r 2               ;
+000000r 2               ; DRIVER WORKING STORAGE
+000000r 2               ;
+000000r 2               
+000000r 2               
+000000r 2               DSKY_BUF        = $0600         ; Eight Bytes DSKY display buffer
+000000r 2               DSKY_BUFLEN     = 8             ;
+000000r 2               DSKY_HEXBUF     = $0608         ; Four Bytes DSKY hex buffer
+000000r 2               DSKY_HEXBUFLEN  = 4             ;
+000000r 2               sektrk          = $060C         ; seek track number
+000000r 2               seksec          = $060E         ; seek sector number
+000000r 2               debcyll         = $0610         ; DEBLOCKED CYLINDER LSB
+000000r 2               debcylm         = $0611         ; DEBLOCKED CYLINDER MSB
+000000r 2               debsehd         = $0612         ; DEBLOCKED SECTOR AND HEAD (HS)
+000000r 2               sekdsk          = $0616         ; seek disk number
+000000r 2               dskcfg          = $0617         ; 16 bytes disk configuration table
+000000r 2               DSKUNIT         = $0628         ; seek disk number
+000000r 2               slicetmp        = $0631         ; (word)
+000000r 2               STACKA          = $0635
+000000r 2               nmsstr          = $0636
+000000r 2               FLRETRY         = $0637         ;
+000000r 2               FLRETRY1        = $0638         ;
+000000r 2               ST0             = $0639         ;
+000000r 2               FLERR           = $063A         ;
+000000r 2               FCMD            = $063B         ;
+000000r 2               PPIDEINDEX      = $063C
+000000r 2               currentDrive    = $063D
+000000r 2               DSKY_X_STORAGE  = $063E
+000000r 2               DSKY_Y_STORAGE  = $063F
+000000r 2               DSKY_TEMP_VAL   = $0640
+000000r 2               DSKY_PPIX_VAL   = $0641
+000000r 2               FLOPPY_DETCT    = $0642
+000000r 2               DSKY_PRESENT    = $0643
+000000r 2               Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
+000000r 2               Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
+000000r 2               Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
+000000r 2               
+000000r 2               tea             = $800          ;tea start
+000000r 2               
+000000r 2               ;zero page for setup
+000000r 2               addinp          = $02           ;initialized to a,y
+000000r 2               bufadd          = $04           ;buffer address
+000000r 2               alcpnt          = $06           ;allocation map pointer
+000000r 2               chkpnt          = $08           ;checksum map pointer
+000000r 2               numvar          = 8             ;eight bytes
+000000r 2               
+000000r 2               
+000000r 2               msgptr          = chkpnt+2      ;message pointer
+000000r 2               movptr          = msgptr        ;and move pointer
+000000r 2               dcbloc          = msgptr+2      ;pointer to dcb
+000000r 2               
+000000r 2               dcbpc           = $2C           ;pointer to DCB table
+000000r 2               dskcfpc         = $2E           ;pointer to disk configuration table
+000000r 2               cmdlnp          = $30           ;pointer to command line buffer
+000000r 2               farfunct        = $32           ; function to call in driver area
+000000r 2               farpointer      = $33           ;
+000000r 2               IRQVECTOR       = $35           ; VECTOR FOR USER IRQ RTN
+000000r 2               NMIVECTOR       = $37           ; VECTOR FOR USER NMI RTN
+000000r 2               CONSOLE         = $3A
+000000r 2               TEMPWORD        = $3B           ;
+000000r 2               TEMPWORD1       = $3D           ;
+000000r 2               TEMPWORD2       = $3F           ;
+000000r 2               STRPTR          = $41           ;
+000000r 2               DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
+000000r 2               
+000000r 2               
+000000r 2               DO_FARCALL      = $FFF0
+000000r 2               
+000000r 2               ;page zero and system ram assignments
+000000r 2               DEST            = $EC           ;pointer for OutMsg
+000000r 2               SRC             = $EE           ;pointer for OutMsg
+000000r 2               OUTMSG_W        = $F0           ;pointer for OutMsg
+000000r 2               dmaadr          = $f4           ;pointer for r/w
+000000r 2               
+000000r 2               
+000000r 2               ;pem constants on entry to write
+000000r 2               wrall           = 0             ;write to allocated
+000000r 2               wrdir           = 1             ;write to directory
+000000r 2               wrual           = 2             ;write to unallocated
+000000r 2               
+000000r 2               ;fixed parameters
+000000r 2               lf              = $a            ;linefeeed
+000000r 2               cr              = $d            ;return
+000000r 2               eof             = $1a           ;end of file
+000000r 2               null            = 0             ;null
+000000r 2               ctlc            = 3             ;abort
+000000r 2               ctle            = 5             ;physical cr lf
+000000r 2               ctli            = 9             ;tab character
+000000r 2               ctlp            = $10           ;toggle printer
+000000r 2               ctlr            = $12           ;repeat line
+000000r 2               ctls            = $13           ;freeze
+000000r 2               ctlx            = $18           ;cancel
+000000r 2               semico          = $3b           ;semicolon
+000000r 2               delete          = $08           ;delete character
+000000r 2               numcmd          = 36            ;number commands
+000000r 2               DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
+000000r 2               
+000000r 2               
+000000r 2                       .IFDEF  RBC6X0X
+000000r 2                       .DEFINE COMSUFFIX "COM"
+000000r 2                       .ENDIF
+000000r 2               
+000000r 2                       .IFDEF  PC6502
+000000r 2                       .DEFINE COMSUFFIX "COM"
+000000r 2                       .ENDIF
+000000r 2               
+000000r 2                       .IFDEF  NHYODYNE
+000000r 2                       .DEFINE COMSUFFIX "CO6"
+000000r 2                       .ENDIF
+000000r 2               
+000000r 2               DEBUG           = 0
+000000r 2               BANKED_DRIVER_DISPATCHER=$8800
+000000r 2               
+000000r 1               
+000000r 1                       .SEGMENT "DRIVERS"
+000000r 1                       .ORG    $C000
+00C000  1               
+00C000  1               ;__DISPATCHER________________________________________________________________________________________
+00C000  1               ;
+00C000  1               ;  Function dispatcher
+00C000  1               ;  function to call is located in "farfunct"
+00C000  1               ;____________________________________________________________________________________________________
+00C000  1               ;
+00C000  1               FUNCTION_DISPATCHER1:
+00C000  1  48                   PHA
+00C001  1  8A                   TXA
+00C002  1  48                   PHA
+00C003  1  A5 32                LDA     farfunct
+00C005  1  0A                   ASL     A               ; DOUBLE NUMBER FOR TABLE LOOKUP
+00C006  1  AA                   TAX
+00C007  1  BD 1B C0             LDA     DISPATCHTABLE,X
+00C00A  1  85 33                STA     farpointer
+00C00C  1  BD 1C C0             LDA     DISPATCHTABLE+1,X
+00C00F  1  85 34                STA     farpointer+1
+00C011  1  68                   PLA
+00C012  1  AA                   TAX
+00C013  1  68                   PLA
+00C014  1  20 18 C0             JSR     jsrindirect
+00C017  1  60                   RTS
+00C018  1               
+00C018  1               jsrindirect:
+00C018  1  6C 33 00             JMP     (farpointer)
+00C01B  1               
+00C01B  1               DISPATCHTABLE:
+00C01B  1  5D C4                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
+00C01D  1  5D C4                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
+00C01F  1  5D C4                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
+00C021  1  5D C4                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
+00C023  1               
+00C023  1  B5 C0                .WORD   WRSER1          ; FUNCTION 04 - WRITE SERIAL PORT
+00C025  1  C2 C0                .WORD   RDSER1          ; FUNCTION 05 - READ SERIAL PORT
+00C027  1  D0 C0                .WORD   RDSER1W         ; FUNCTION 06 - READ SERIAL PORT (BLOCKING)
+00C029  1  DA C0                .WORD   SERIALSTATUS    ; FUNCTION 07 - GET SERIAL STATUS
+00C02B  1  A5 C0                .WORD   SERIALINIT      ; FUNCTION 08 - SERIAL PORT INIT
+00C02D  1               
+00C02D  1  B5 C0                .WORD   WRSER1          ; FUNCTION 09 - WRITE VIDEO
+00C02F  1  C2 C0                .WORD   RDSER1          ; FUNCTION 10 - READ KEYBOARD
+00C031  1  D0 C0                .WORD   RDSER1W         ; FUNCTION 11 - READ KEYBOARD (BLOCKING)
+00C033  1  DA C0                .WORD   SERIALSTATUS    ; FUNCTION 12 - GET KEYBOARD STATUS
+00C035  1  A5 C0                .WORD   SERIALINIT      ; FUNCTION 13 - INIT INTERFACE
+00C037  1               
+00C037  1  70 C4                .WORD   drv_noop        ; FUNCTION 14
+00C039  1  70 C4                .WORD   drv_noop        ; FUNCTION 15
+00C03B  1  70 C4                .WORD   drv_noop        ; FUNCTION 16
+00C03D  1  70 C4                .WORD   drv_noop        ; FUNCTION 17
+00C03F  1  70 C4                .WORD   drv_noop        ; FUNCTION 18
+00C041  1  70 C4                .WORD   drv_noop        ; FUNCTION 19
+00C043  1  70 C4                .WORD   drv_noop        ; FUNCTION 20
+00C045  1  70 C4                .WORD   drv_noop        ; FUNCTION 21
+00C047  1  70 C4                .WORD   drv_noop        ; FUNCTION 22
+00C049  1  70 C4                .WORD   drv_noop        ; FUNCTION 23
+00C04B  1  70 C4                .WORD   drv_noop        ; FUNCTION 24
+00C04D  1  70 C4                .WORD   drv_noop        ; FUNCTION 25
+00C04F  1  70 C4                .WORD   drv_noop        ; FUNCTION 26
+00C051  1  70 C4                .WORD   drv_noop        ; FUNCTION 27
+00C053  1  70 C4                .WORD   drv_noop        ; FUNCTION 28
+00C055  1  70 C4                .WORD   drv_noop        ; FUNCTION 29
+00C057  1  70 C4                .WORD   drv_noop        ; FUNCTION 30
+00C059  1  70 C4                .WORD   drv_noop        ; FUNCTION 31
+00C05B  1  70 C4                .WORD   drv_noop        ; FUNCTION 32
+00C05D  1  70 C4                .WORD   drv_noop        ; FUNCTION 33
+00C05F  1  70 C4                .WORD   drv_noop        ; FUNCTION 34
+00C061  1  70 C4                .WORD   drv_noop        ; FUNCTION 35
+00C063  1  70 C4                .WORD   drv_noop        ; FUNCTION 36
+00C065  1  70 C4                .WORD   drv_noop        ; FUNCTION 37
+00C067  1  70 C4                .WORD   drv_noop        ; FUNCTION 38
+00C069  1  70 C4                .WORD   drv_noop        ; FUNCTION 39
+00C06B  1               
+00C06B  1  70 C4                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
+00C06D  1  70 C4                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
+00C06F  1  70 C4                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
+00C071  1  70 C4                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
+00C073  1  70 C4                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
+00C075  1  70 C4                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
+00C077  1  70 C4                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
+00C079  1  70 C4                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
+00C07B  1  70 C4                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
+00C07D  1  70 C4                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
+00C07F  1               ;
+00C07F  1  70 C4                .WORD   drv_noop        ;RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
+00C081  1  70 C4                .WORD   drv_noop        ;RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
+00C083  1  70 C4                .WORD   drv_noop        ;RTC_INIT        ; FUNCTION 52 - INIT RTC
+00C085  1  70 C4                .WORD   drv_noop        ;RTC_LED         ; FUNCTION 53 - CONTROL LEDS
+00C087  1  70 C4                .WORD   drv_noop        ;RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
+00C089  1  70 C4                .WORD   drv_noop        ;RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
+00C08B  1               ;
+00C08B  1  70 C4                .WORD   drv_noop        ; FUNCTION 56
+00C08D  1  70 C4                .WORD   drv_noop        ; FUNCTION 57
+00C08F  1  70 C4                .WORD   drv_noop        ; FUNCTION 58
+00C091  1  70 C4                .WORD   drv_noop        ; FUNCTION 59
+00C093  1               
+00C093  1  E9 C0                .WORD   XTIDE_INIT      ; FUNCTION 60 - called during OS init
+00C095  1  20 C2                .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
+00C097  1  F2 C2                .WORD   IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
+00C099  1               ;
+00C099  1  70 C4                .WORD   drv_noop        ; FUNCTION 63 - init the mem device
+00C09B  1  70 C4                .WORD   drv_noop        ; FUNCTION 64 - read a sector from the memory device
+00C09D  1  70 C4                .WORD   drv_noop        ; FUNCTION 65 - write a sector to the memory device
+00C09F  1               ;
+00C09F  1  70 C4                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
+00C0A1  1  70 C4                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
+00C0A3  1  70 C4                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
+00C0A5  1               
+00C0A5  1               ;______________________________________________________________________________
+00C0A5  1               
+00C0A5  1               
+00C0A5  1               
+00C0A5  1               ;__DRIVERS___________________________________________________________________________________________
+00C0A5  1               ;
+00C0A5  1                       .INCLUDE "bios_serial.asm"
+00C0A5  2               ;__SERIAL DRIVERS________________________________________________________________________________________________________________
+00C0A5  2               ;
+00C0A5  2               ; 	serial drivers
+00C0A5  2               ;
+00C0A5  2               ;	Entry points:
+00C0A5  2               ;		SERIALINIT  - called during OS init
+00C0A5  2               ;		RDSER1	    - read a byte from serial port ('A' POINTS TO BYTE)
+00C0A5  2               ;		WRSER1	    - write a byte from serial port  ('A' POINTS TO BYTE)
+00C0A5  2               ;		RDSER1W	    - read a byte from serial port ('A' POINTS TO BYTE, WAIT FOR INPUT)
+00C0A5  2               ;		SERIALSTATUS- GET UART STATUS
+00C0A5  2               ;________________________________________________________________________________________________________________________________
+00C0A5  2               ;
+00C0A5  2               
+00C0A5  2               
+00C0A5  2               ;*
+00C0A5  2               ;* HARDWARE I/O ADDRESSES
+00C0A5  2               ;*
+00C0A5  2               
+00C0A5  2               UART1DATA       = PC6502_IOSPACE+$84; SERIAL PORT 1 (I/O Card)
+00C0A5  2               UART1STATUS     = PC6502_IOSPACE+$85; SERIAL PORT 1 (I/O Card)
+00C0A5  2               UART1COMMAND    = PC6502_IOSPACE+$86; SERIAL PORT 1 (I/O Card)
+00C0A5  2               UART1CONTROL    = PC6502_IOSPACE+$87; SERIAL PORT 1 (I/O Card)
+00C0A5  2               
+00C0A5  2               
+00C0A5  2               ;Command Register
+00C0A5  2               ;No bit is affected by a software reset, however, all bits are set to zero on a hardware reset.
+00C0A5  2               ;Bit 7 6 5  configuration
+00C0A5  2               ;    x x 0  no parity bit
+00C0A5  2               ;    0 0 1  send and receive with odd parity
+00C0A5  2               ;    0 1 1  send and receive with even parity
+00C0A5  2               ;    1 0 1  send: parity=1; receive: parity not evaluated
+00C0A5  2               ;    1 1 1  send: parity=0; receive: parity not evaluated
+00C0A5  2               ;
+00C0A5  2               ;Bit 4  0: no echo
+00C0A5  2               ;       1: echo (received characters are being sent again,
+00C0A5  2               ;                bits 2 and 3 must be 0 for that)
+00C0A5  2               ;
+00C0A5  2               ;Bit 3 2  sender interr.   RTS level   sender
+00C0A5  2               ;    0 0  no               high        off
+00C0A5  2               ;    0 1  yes              low         on
+00C0A5  2               ;    1 0  no               low         on
+00C0A5  2               ;    1 1  no               low         send BRK
+00C0A5  2               ;
+00C0A5  2               ;Bit 1  0: interrupt gets triggered by bit 3 in status register
+00C0A5  2               ;       1: no interrupt
+00C0A5  2               ;
+00C0A5  2               ;Bit 0  0: disable transceiver and interrupts, /DTR high
+00C0A5  2               ;       1: enable transceiver and interrupts, /DTR low
+00C0A5  2               ;
+00C0A5  2               ;Control Register
+00C0A5  2               ;Bits 0 to 3 are set to zero on a software reset, and all bits are set to zero on a hardware reset.
+00C0A5  2               ;Bit 7  0: 1 stop bit
+00C0A5  2               ;       1: a) with 8 data bits and 1 parity bit: 1 stop bit
+00C0A5  2               ;          b) with 5 data bits and no parity bit: 1.5 stop bits
+00C0A5  2               ;          c) otherwise 2 stop bits
+00C0A5  2               ;
+00C0A5  2               ;Bit 6 5  data bits
+00C0A5  2               ;    0 0  8
+00C0A5  2               ;    0 1  7
+00C0A5  2               ;    1 0  6
+00C0A5  2               ;    1 1  5
+00C0A5  2               ;
+00C0A5  2               ;Bit 4  0: external receive clock
+00C0A5  2               ;       1: builtin clock as receive clock
+00C0A5  2               ;
+00C0A5  2               ;Bit 3 2 1 0  baud rate
+00C0A5  2               ;    0 0 0 0  1/16 times external clock
+00C0A5  2               ;    0 0 0 1  50 bps
+00C0A5  2               ;    0 0 1 0  75 bps
+00C0A5  2               ;    0 0 1 1  109.92 bps
+00C0A5  2               ;    0 1 0 0  134.58 bps
+00C0A5  2               ;    0 1 0 1  150 bps
+00C0A5  2               ;    0 1 1 0  300 bps
+00C0A5  2               ;    0 1 1 1  600 bps
+00C0A5  2               ;    1 0 0 0  1200 bps
+00C0A5  2               ;    1 0 0 1  1800 bps
+00C0A5  2               ;    1 0 1 0  2400 bps
+00C0A5  2               ;    1 0 1 1  3600 bps
+00C0A5  2               ;    1 1 0 0  4800 bps
+00C0A5  2               ;    1 1 0 1  7200 bps
+00C0A5  2               ;    1 1 1 0  9600 bps
+00C0A5  2               ;    1 1 1 1  19200 bps
+00C0A5  2               
+00C0A5  2               
+00C0A5  2               
+00C0A5  2               ;__SERIALINIT____________________________________________________________________________________________________________________
+00C0A5  2               ;
+00C0A5  2               ;	INITIALIZE SERIAL PORTS
+00C0A5  2               ;________________________________________________________________________________________________________________________________
+00C0A5  2               ;
+00C0A5  2               SERIALINIT:
+00C0A5  2  A9 00                LDA     #$00            ; RESET UART
+00C0A7  2  8D 85 EF             STA     UART1STATUS     ;
+00C0AA  2  A9 0B                LDA     #$0B            ;
+00C0AC  2  8D 86 EF             STA     UART1COMMAND    ;
+00C0AF  2  A9 1E                LDA     #$1E            ; 9600, 8 BITS, NO PARITY, 1 STOP BIT
+00C0B1  2  8D 87 EF             STA     UART1CONTROL    ;
+00C0B4  2  60                   RTS
+00C0B5  2               
+00C0B5  2               
+00C0B5  2               
+00C0B5  2               ;__WRSER1________________________________________________________________________________________________________________________
+00C0B5  2               ;
+00C0B5  2               ;	WRITE CHARACTER(A) TO UART
+00C0B5  2               ;________________________________________________________________________________________________________________________________
+00C0B5  2               ;
+00C0B5  2               IOF_OUTCH:
+00C0B5  2               WRSER1:
+00C0B5  2  48                   PHA
+00C0B6  2               WRSER1a:
+00C0B6  2  AD 85 EF             LDA     UART1STATUS     ; GET STATUS
+00C0B9  2  29 10                AND     #%00010000      ; IS TX READY
+00C0BB  2  F0 F9                BEQ     WRSER1a         ; NO, WAIT FOR IT
+00C0BD  2  68                   PLA
+00C0BE  2  8D 84 EF             STA     UART1DATA       ; WRITE DATA
+00C0C1  2  60                   RTS
+00C0C2  2               
+00C0C2  2               ;__RDSER1________________________________________________________________________________________________________________________
+00C0C2  2               ;
+00C0C2  2               ;	READ CHARACTER FROM UART TO (A)
+00C0C2  2               ;________________________________________________________________________________________________________________________________
+00C0C2  2               ;
+00C0C2  2               IOF_CONIN:
+00C0C2  2               RDSER1:
+00C0C2  2  AD 85 EF             LDA     UART1STATUS     ; GET STATUS REGISTER
+00C0C5  2  29 08                AND     #%00001000      ; IS RX READY
+00C0C7  2  F0 04                BEQ     RDSER1N         ; NO, INDICATE NO CHAR
+00C0C9  2  AD 84 EF             LDA     UART1DATA       ; GET DATA CHAR
+00C0CC  2  60                   RTS
+00C0CD  2               RDSER1N:
+00C0CD  2  A9 00                LDA     #$00            ;
+00C0CF  2  60                   RTS                     ;
+00C0D0  2               
+00C0D0  2               ;__RDSER1W_______________________________________________________________________________________________________________________
+00C0D0  2               ;
+00C0D0  2               ;	READ CHARACTER FROM UART TO (A) - WAIT FOR CHAR
+00C0D0  2               ;________________________________________________________________________________________________________________________________
+00C0D0  2               ;
+00C0D0  2               IOF_CONINW:
+00C0D0  2               RDSER1W:
+00C0D0  2  20 C2 C0             JSR     RDSER1
+00C0D3  2  C9 00                CMP     #$00
+00C0D5  2  F0 F9                BEQ     RDSER1W
+00C0D7  2  29 7F                AND     #$7F
+00C0D9  2  60                   RTS
+00C0DA  2               
+00C0DA  2               ;__SERIALSTATUS__________________________________________________________________________________________________________________
+00C0DA  2               ;
+00C0DA  2               ;	READ UARD STATUS
+00C0DA  2               ;________________________________________________________________________________________________________________________________
+00C0DA  2               ;
+00C0DA  2               SERIALSTATUS:
+00C0DA  2  AD 85 EF             LDA     UART1STATUS     ; GET STATUS REGISTER
+00C0DD  2  29 08                AND     #%00001000      ; IS RX READY
+00C0DF  2  D0 03                BNE     RDSTAT1         ; INDICATE CHAR
+00C0E1  2  A9 00                LDA     #$00            ; NO CHAR
+00C0E3  2  60                   RTS
+00C0E4  2               RDSTAT1:
+00C0E4  2  A9 FF                LDA     #$FF            ; DATA CHAR
+00C0E6  2  60                   RTS
+00C0E7  2               
+00C0E7  1                       .INCLUDE "bios_ide.asm"
+00C0E7  2               ;__IDE DRIVERS___________________________________________________________________________________________________________________
+00C0E7  2               ;
+00C0E7  2               ; 	DOS/65 IDE disk drivers 6502PC - XT IDE ISA CARD
+00C0E7  2               ;
+00C0E7  2               ;	Entry points:
+00C0E7  2               ;		XTIDE_INIT   	- CALLED DURING OS INIT
+00C0E7  2               ;		IDE_READ_SECTOR  - read a sector from drive
+00C0E7  2               ;		IDE_WRITE_SECTOR - write a sector to drive
+00C0E7  2               ;________________________________________________________________________________________________________________________________
+00C0E7  2               ;
+00C0E7  2               PC6502_IO       = $E000
+00C0E7  2               
+00C0E7  2               XTIDE_DATA_LO   = PC6502_IO+$300
+00C0E7  2               XTIDE_DATA_HI   = PC6502_IO+$301
+00C0E7  2               XTIDE_ERR       = PC6502_IO+$302
+00C0E7  2               XTIDE_FECODE    = PC6502_IO+$302
+00C0E7  2               XTIDE_SEC_CNT   = PC6502_IO+$304
+00C0E7  2               XTIDE_LBALOW    = PC6502_IO+$306
+00C0E7  2               XTIDE_LBAMID    = PC6502_IO+$308
+00C0E7  2               XTIDE_LBAHI     = PC6502_IO+$30A
+00C0E7  2               XTIDE_DEVICE    = PC6502_IO+$30C
+00C0E7  2               XTIDE_COMMAND   = PC6502_IO+$30E
+00C0E7  2               XTIDE_STATUS    = PC6502_IO+$30E
+00C0E7  2               
+00C0E7  2               
+00C0E7  2               
+00C0E7  2               
+00C0E7  2               ;IDE COMMAND CONSTANTS.  THESE SHOULD NEVER CHANGE.
+00C0E7  2               XTIDE_CMD_RECAL = $10
+00C0E7  2               XTIDE_CMD_READ  = $20
+00C0E7  2               XTIDE_CMD_WRITE = $30
+00C0E7  2               XTIDE_CMD_INIT  = $91
+00C0E7  2               XTIDE_CMD_ID    = $EC
+00C0E7  2               XTIDE_CMD_FEAT  = $EF
+00C0E7  2               XTIDE_CMD_SPINDOWN = $E0
+00C0E7  2               XTIDE_CMD_SPINUP = $E1
+00C0E7  2               
+00C0E7  2               
+00C0E7  2               
+00C0E7  2                       .IFDEF  PC6502BIOS
+00C0E7  2               XTIDE_INIT:
+00C0E7  2                       JSR     XTIDE_PROBE
+00C0E7  2                       LDA     #$E0            ; E0=MST  F0=SLV
+00C0E7  2                       STA     XTIDE_DEVICE
+00C0E7  2               
+00C0E7  2                       JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+00C0E7  2                       CMP     #$00
+00C0E7  2                       BNE     :+
+00C0E7  2               
+00C0E7  2                       LDA     #$01            ; ENABLE 8-BIT MODE (XT-CF-LITE)
+00C0E7  2                       STA     XTIDE_FECODE
+00C0E7  2                       LDA     #XTIDE_CMD_FEAT
+00C0E7  2                       STA     XTIDE_COMMAND
+00C0E7  2               :
+00C0E7  2               
+00C0E7  2                       RTS
+00C0E7  2                       .ENDIF
+00C0E7  2               
+00C0E7  2               
+00C0E7  2                       .IFNDEF PC6502BIOS
+00C0E7  2               XTIDETIMEOUT:
+00C0E7  2  00 00                .BYTE   $00,$00
+00C0E9  2               
+00C0E9  2               
+00C0E9  2               
+00C0E9  2               ;__XTIDE_INIT________________________________________________________________________________________
+00C0E9  2               ;
+00C0E9  2               ;  INIT AND DISPLAY IDE INFO
+00C0E9  2               ;____________________________________________________________________________________________________
+00C0E9  2               ;
+00C0E9  2               XTIDE_INIT:
+00C0E9  2  20 71 C4             JSR     LFCR            ; AND CRLF
+00C0EC  2  A9 4D                LDA     #<MESSAGE1      ;
+00C0EE  2  85 41                STA     STRPTR          ;
+00C0F0  2  A9 C3                LDA     #>MESSAGE1      ;
+00C0F2  2  85 42                STA     STRPTR+1        ;
+00C0F4  2  20 7C C4             JSR     WRSTR
+00C0F7  2  20 71 C4             JSR     LFCR            ; AND CRLF
+00C0FA  2               ;
+00C0FA  2  A9 55                LDA     #<MESSAGE2      ;
+00C0FC  2  85 41                STA     STRPTR          ;
+00C0FE  2  A9 C3                LDA     #>MESSAGE2      ;
+00C100  2  85 42                STA     STRPTR+1        ;
+00C102  2  20 7C C4             JSR     WRSTR           ; DO PROMPT
+00C105  2               
+00C105  2  A9 E3                LDA     #>XTIDE_DATA_LO ; GET BASE PORT
+00C107  2  20 91 C4             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C10A  2  A9 00                LDA     #<XTIDE_DATA_LO ; GET BASE PORT
+00C10C  2  20 91 C4             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C10F  2               ;
+00C10F  2  20 4B C1             JSR     XTIDE_PROBE     ; DETECT AN ATA DEVICE, ABORT IF NOT FOUND
+00C112  2  C9 00                CMP     #$00
+00C114  2  D0 03                BNE     IDE_ABORT
+00C116  2  4C 27 C1             JMP     IDE_PRINT_INFO
+00C119  2               IDE_ABORT:
+00C119  2  A9 5C                LDA     #<MESSAGE3      ;
+00C11B  2  85 41                STA     STRPTR          ;
+00C11D  2  A9 C3                LDA     #>MESSAGE3      ;
+00C11F  2  85 42                STA     STRPTR+1        ;
+00C121  2  20 7C C4             JSR     WRSTR           ; DO PROMPT
+00C124  2  4C 4A C1             JMP     IDE_INITA
+00C127  2               IDE_PRINT_INFO:
+00C127  2  20 71 C4             JSR     LFCR            ; AND CRLF
+00C12A  2  A9 69                LDA     #<MESSAGE4      ;
+00C12C  2  85 41                STA     STRPTR          ;
+00C12E  2  A9 C3                LDA     #>MESSAGE4      ;
+00C130  2  85 42                STA     STRPTR+1        ;
+00C132  2  20 7C C4             JSR     WRSTR           ; DO PROMPT
+00C135  2  A9 00                LDA     #$00
+00C137  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
+00C13A  2  A9 7B                LDA     #<MESSAGE5      ;
+00C13C  2  85 41                STA     STRPTR          ;
+00C13E  2  A9 C3                LDA     #>MESSAGE5      ;
+00C140  2  85 42                STA     STRPTR+1        ;
+00C142  2  20 7C C4             JSR     WRSTR           ; DO PROMPT
+00C145  2  A9 01                LDA     #$01
+00C147  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
+00C14A  2               IDE_INITA:
+00C14A  2  60                   RTS                     ; DONE
+00C14B  2                       .ENDIF
+00C14B  2               ;
+00C14B  2               ;__XTIDE_PROBE_______________________________________________________________________________________
+00C14B  2               ;
+00C14B  2               ;  XTPROBE FOR IDE HARDWARE
+00C14B  2               ;____________________________________________________________________________________________________
+00C14B  2               ;
+00C14B  2               XTIDE_PROBE:
+00C14B  2               ;
+00C14B  2               ; RESET PORTS
+00C14B  2  A2 00                LDX     #$00
+00C14D  2  A9 FF                LDA     #$FF
+00C14F  2               :
+00C14F  2  9D 00 E3             STA     XTIDE_DATA_LO,X
+00C152  2  E8                   INX
+00C153  2  E0 31                CPX     #$31
+00C155  2  D0 F8                BNE     :-
+00C157  2               
+00C157  2  A2 00                LDX     #$00
+00C159  2  A9 00                LDA     #$00
+00C15B  2               :
+00C15B  2  9D 00 E3             STA     XTIDE_DATA_LO,X
+00C15E  2  E8                   INX
+00C15F  2  E0 31                CPX     #$31
+00C161  2  D0 F8                BNE     :-
+00C163  2               ; CHECK SIGNATURE
+00C163  2  A0 00                LDY     #$00
+00C165  2  A2 00                LDX     #$00
+00C167  2               ;       SOMETIMES THE CF-XTIDE WILL ONLY READ 80, THIS CAN BE RESET BY WRITING ZEROS UNTIL VALUES ARE PROPERLY READ
+00C167  2               :
+00C167  2  AD 00 E3             LDA     XTIDE_DATA_LO
+00C16A  2  C9 80                CMP     #$80
+00C16C  2  D0 2F                BNE     :+
+00C16E  2  A9 00                LDA     #$00
+00C170  2  8D 00 E3             STA     XTIDE_DATA_LO
+00C173  2  EA                   NOP
+00C174  2  8D 01 E3             STA     XTIDE_DATA_HI
+00C177  2  EA                   NOP
+00C178  2  8D 06 E3             STA     XTIDE_LBALOW
+00C17B  2  EA                   NOP
+00C17C  2  8D 08 E3             STA     XTIDE_LBAMID
+00C17F  2  EA                   NOP
+00C180  2  8D 0A E3             STA     XTIDE_LBAHI
+00C183  2  EA                   NOP
+00C184  2  8D 0C E3             STA     XTIDE_DEVICE
+00C187  2  EA                   NOP
+00C188  2  8D 0E E3             STA     XTIDE_COMMAND
+00C18B  2  EA                   NOP
+00C18C  2  8D 0E E3             STA     XTIDE_STATUS
+00C18F  2  EA                   NOP
+00C190  2  E8                   INX
+00C191  2  E0 00                CPX     #$00
+00C193  2  D0 D2                BNE     :-
+00C195  2  C8                   INY
+00C196  2  C0 03                CPY     #$03
+00C198  2  D0 CD                BNE     :-
+00C19A  2  4C A7 C1             JMP     XTIDE_PROBE_FAIL; TIMED OUT
+00C19D  2               :
+00C19D  2  20 77 C2             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+00C1A0  2  C9 00                CMP     #$00
+00C1A2  2  D0 03                BNE     XTIDE_PROBE_FAIL
+00C1A4  2  4C AA C1             JMP     XTIDE_PROBE_SUCCESS
+00C1A7  2               XTIDE_PROBE_FAIL:
+00C1A7  2  A9 FF                LDA     #$FF
+00C1A9  2  60                   RTS
+00C1AA  2               XTIDE_PROBE_SUCCESS:
+00C1AA  2  A9 00                LDA     #$00
+00C1AC  2  60                   RTS                     ; DONE, NOTE THAT A=0 AND Z IS SET
+00C1AD  2               
+00C1AD  2                       .IFNDEF PC6502BIOS
+00C1AD  2               ;*__IDE_READ_INFO___________________________________________________________________________________
+00C1AD  2               ;*
+00C1AD  2               ;*  READ IDE INFORMATION
+00C1AD  2               ;*	CARRY SET ON ERROR
+00C1AD  2               ;* 	A=MST/SLV
+00C1AD  2               ;*____________________________________________________________________________________________________
+00C1AD  2               IDE_READ_INFO:
+00C1AD  2               ; SET DRIVE BIT
+00C1AD  2  29 01                AND     #$01            ; ONLY WANT THE 1 BIT (MST/SLV)
+00C1AF  2  0A                   ASL     A               ; SHIFT 4
+00C1B0  2  0A                   ASL     A               ;
+00C1B1  2  0A                   ASL     A               ;
+00C1B2  2  0A                   ASL     A               ;
+00C1B3  2  09 E0                ORA     #$E0            ; E0=MST  F0=SLV
+00C1B5  2  8D 0C E3             STA     XTIDE_DEVICE
+00C1B8  2               
+00C1B8  2  20 77 C2             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+00C1BB  2  C9 00                CMP     #$00
+00C1BD  2  D0 4A                BNE     IDE_READ_INFO_ABORT
+00C1BF  2               
+00C1BF  2  A9 01                LDA     #$01            ; ENABLE 8-BIT MODE (XT-CF-LITE)
+00C1C1  2  8D 02 E3             STA     XTIDE_FECODE
+00C1C4  2  A9 EF                LDA     #XTIDE_CMD_FEAT
+00C1C6  2  8D 0E E3             STA     XTIDE_COMMAND
+00C1C9  2               
+00C1C9  2  EA                   NOP                     ; TINY DELAY, JUST IN CASE
+00C1CA  2  EA                   NOP
+00C1CB  2  EA                   NOP
+00C1CC  2  EA                   NOP
+00C1CD  2  EA                   NOP
+00C1CE  2  EA                   NOP
+00C1CF  2  EA                   NOP
+00C1D0  2  EA                   NOP
+00C1D1  2  EA                   NOP
+00C1D2  2  EA                   NOP
+00C1D3  2  EA                   NOP
+00C1D4  2               
+00C1D4  2               
+00C1D4  2  A9 EC                LDA     #XTIDE_CMD_ID   ; ID COMMAND
+00C1D6  2  8D 0E E3             STA     XTIDE_COMMAND
+00C1D9  2               
+00C1D9  2  20 A4 C2             JSR     IDE_WAIT_DRQ    ;WAIT UNTIL IT'S GOT THE DATA
+00C1DC  2  C9 00                CMP     #$00
+00C1DE  2  D0 29                BNE     IDE_READ_INFO_ABORT
+00C1E0  2               
+00C1E0  2  20 CB C2             JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
+00C1E3  2               
+00C1E3  2  A9 8D                LDA     #<MESSAGE6      ;
+00C1E5  2  85 41                STA     STRPTR          ;
+00C1E7  2  A9 C3                LDA     #>MESSAGE6      ;
+00C1E9  2  85 42                STA     STRPTR+1        ;
+00C1EB  2  20 7C C4             JSR     WRSTR
+00C1EE  2  AD 7B 04             LDA     hstbuf+123
+00C1F1  2  20 91 C4             JSR     PRINT_BYTE
+00C1F4  2  AD 7A 04             LDA     hstbuf+122
+00C1F7  2  20 91 C4             JSR     PRINT_BYTE
+00C1FA  2  AD 79 04             LDA     hstbuf+121
+00C1FD  2  20 91 C4             JSR     PRINT_BYTE
+00C200  2  AD 78 04             LDA     hstbuf+120
+00C203  2  20 91 C4             JSR     PRINT_BYTE
+00C206  2  4C 1A C2             JMP     IDE_READ_INFO_OK
+00C209  2               IDE_READ_INFO_ABORT:
+00C209  2  A9 5C                LDA     #<MESSAGE3      ;
+00C20B  2  85 41                STA     STRPTR          ;
+00C20D  2  A9 C3                LDA     #>MESSAGE3      ;
+00C20F  2  85 42                STA     STRPTR+1        ;
+00C211  2  20 7C C4             JSR     WRSTR           ;DO PROMPT
+00C214  2  20 71 C4             JSR     LFCR            ;AND CRLF
+00C217  2  A9 FF                LDA     #$FF
+00C219  2  60                   RTS                     ;
+00C21A  2               IDE_READ_INFO_OK:
+00C21A  2  20 71 C4             JSR     LFCR            ; AND CRLF
+00C21D  2  A9 00                LDA     #$00
+00C21F  2  60                   RTS
+00C220  2                       .ENDIF
+00C220  2               
+00C220  2               
+00C220  2               ;*__IDE_READ_SECTOR___________________________________________________________________________________
+00C220  2               ;*
+00C220  2               ;*  READ IDE SECTOR (IN LBA) INTO BUFFER
+00C220  2               ;*
+00C220  2               ;*____________________________________________________________________________________________________
+00C220  2               IDE_READ_SECTOR:
+00C220  2                       .IFNDEF PC6502BIOS
+00C220  2  20 90 C3             JSR     IDE_CONVERT_SECTOR_LBA
+00C223  2  AD 12 06             LDA     debsehd         ; STORE CURRENT PARMS
+00C226  2  CD 46 06             CMP     Cdebsehd        ;
+00C229  2  D0 1B                BNE     IDE_READ_SECTOR_DIRTY
+00C22B  2  AD 11 06             LDA     debcylm         ;
+00C22E  2  CD 45 06             CMP     Cdebcylm        ;
+00C231  2  D0 13                BNE     IDE_READ_SECTOR_DIRTY
+00C233  2  AD 10 06             LDA     debcyll         ;
+00C236  2  CD 44 06             CMP     Cdebcyll        ;
+00C239  2  D0 0B                BNE     IDE_READ_SECTOR_DIRTY
+00C23B  2  AD 16 06             LDA     sekdsk          ;
+00C23E  2  CD 3D 06             CMP     currentDrive
+00C241  2  D0 03                BNE     IDE_READ_SECTOR_DIRTY
+00C243  2  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
+00C245  2  60                   RTS
+00C246  2                       .ENDIF
+00C246  2               IDE_READ_SECTOR_DIRTY:
+00C246  2  20 77 C2             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+00C249  2  C9 00                CMP     #$00
+00C24B  2  D0 27                BNE     IDE_READ_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00C24D  2               IDE_READ_SECTOR_1:
+00C24D  2                       .IFNDEF PC6502BIOS
+00C24D  2  20 34 C4             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
+00C250  2                       .ENDIF
+00C250  2  A9 20                LDA     #XTIDE_CMD_READ
+00C252  2  8D 0E E3             STA     XTIDE_COMMAND
+00C255  2               
+00C255  2  20 A4 C2             JSR     IDE_WAIT_DRQ    ; WAIT UNTIL IT'S GOT THE DATA
+00C258  2  C9 00                CMP     #$00
+00C25A  2  D0 18                BNE     IDE_READ_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00C25C  2  20 CB C2             JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
+00C25F  2                       .IFNDEF PC6502BIOS
+00C25F  2  AD 12 06             LDA     debsehd         ; STORE CURRENT PARMS
+00C262  2  8D 46 06             STA     Cdebsehd        ;
+00C265  2  AD 10 06             LDA     debcyll         ;
+00C268  2  8D 44 06             STA     Cdebcyll        ;
+00C26B  2  AD 11 06             LDA     debcylm         ;
+00C26E  2  8D 45 06             STA     Cdebcylm        ;
+00C271  2                       .ENDIF
+00C271  2               
+00C271  2  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
+00C273  2  60                   RTS
+00C274  2               IDE_READ_SECTOR_ERROR:
+00C274  2  A9 FF                LDA     #$FF            ; ZERO = 1 ON RETURN = OPERATION OK
+00C276  2  60                   RTS
+00C277  2               
+00C277  2               
+00C277  2               ;*__IDE_WAIT_NOT_BUSY_______________________________________________________________________________
+00C277  2               ;*
+00C277  2               ;*  WAIT FOR IDE CHANNEL TO BECOME READY
+00C277  2               ;*
+00C277  2               ;*____________________________________________________________________________________________________
+00C277  2               IDE_WAIT_NOT_BUSY:
+00C277  2  8A                   TXA
+00C278  2  48                   PHA
+00C279  2  98                   TYA
+00C27A  2  48                   PHA
+00C27B  2  A9 00                LDA     #$00
+00C27D  2  8D E7 C0             STA     XTIDETIMEOUT
+00C280  2  8D E8 C0             STA     XTIDETIMEOUT+1
+00C283  2               IDE_WAIT_NOT_BUSY1:
+00C283  2  AD 0E E3             LDA     XTIDE_STATUS    ;WAIT FOR RDY BIT TO BE SET
+00C286  2  29 80                AND     #$80
+00C288  2  C9 00                CMP     #$00
+00C28A  2  F0 11                BEQ     IDE_WAIT_NOT_BUSY2
+00C28C  2  EE E7 C0             INC     XTIDETIMEOUT
+00C28F  2  D0 F2                BNE     IDE_WAIT_NOT_BUSY1
+00C291  2  EE E8 C0             INC     XTIDETIMEOUT+1
+00C294  2  D0 ED                BNE     IDE_WAIT_NOT_BUSY1
+00C296  2  68                   PLA
+00C297  2  A8                   TAY
+00C298  2  68                   PLA
+00C299  2  AA                   TAX
+00C29A  2  A9 FF                LDA     #$FF
+00C29C  2  60                   RTS
+00C29D  2               IDE_WAIT_NOT_BUSY2:
+00C29D  2  68                   PLA
+00C29E  2  A8                   TAY
+00C29F  2  68                   PLA
+00C2A0  2  AA                   TAX
+00C2A1  2  A9 00                LDA     #$00
+00C2A3  2  60                   RTS
+00C2A4  2               
+00C2A4  2               ;*__IDE_WAIT_DRQ______________________________________________________________________________________
+00C2A4  2               ;*
+00C2A4  2               ;*	WAIT FOR THE DRIVE TO BE READY TO TRANSFER DATA.
+00C2A4  2               ;*
+00C2A4  2               ;*____________________________________________________________________________________________________
+00C2A4  2               IDE_WAIT_DRQ:
+00C2A4  2  A9 00                LDA     #$00
+00C2A6  2  8D E7 C0             STA     XTIDETIMEOUT
+00C2A9  2  8D E8 C0             STA     XTIDETIMEOUT+1
+00C2AC  2               IDE_WAIT_DRQ1:
+00C2AC  2  AD 0E E3             LDA     XTIDE_STATUS    ;WAIT FOR DRQ BIT TO BE SET
+00C2AF  2  29 88                AND     #%10001000      ; MASK OFF BUSY(7) AND DRQ(3)
+00C2B1  2  C9 08                CMP     #%00001000      ; WE WANT BUSY(7) TO BE 0 AND DRQ (3) TO BE 1
+00C2B3  2  F0 13                BEQ     IDE_WAIT_DRQ2
+00C2B5  2  29 01                AND     #%00000001      ; IS ERROR?
+00C2B7  2  C9 01                CMP     #%00000001      ;
+00C2B9  2  F0 0A                BEQ     IDE_WAIT_DRQE
+00C2BB  2  EE E7 C0             INC     XTIDETIMEOUT
+00C2BE  2  D0 EC                BNE     IDE_WAIT_DRQ1
+00C2C0  2  EE E8 C0             INC     XTIDETIMEOUT+1
+00C2C3  2  D0 E7                BNE     IDE_WAIT_DRQ1
+00C2C5  2               IDE_WAIT_DRQE:
+00C2C5  2  A9 FF                LDA     #$FF
+00C2C7  2  60                   RTS
+00C2C8  2               IDE_WAIT_DRQ2:
+00C2C8  2  A9 00                LDA     #$00
+00C2CA  2  60                   RTS
+00C2CB  2               
+00C2CB  2               
+00C2CB  2               ;*__IDE_READ_BUFFER___________________________________________________________________________________
+00C2CB  2               ;*
+00C2CB  2               ;*  READ IDE BUFFER LITTLE ENDIAN
+00C2CB  2               ;*
+00C2CB  2               ;*____________________________________________________________________________________________________
+00C2CB  2               IDE_READ_BUFFER:
+00C2CB  2  A0 00                LDY     #$00            ; INDEX
+00C2CD  2               :
+00C2CD  2  AD 00 E3             LDA     XTIDE_DATA_LO
+00C2D0  2  99 00 04             STA     hstbuf,Y        ;
+00C2D3  2  C8                   INY
+00C2D4  2  AD 01 E3             LDA     XTIDE_DATA_HI
+00C2D7  2  99 00 04             STA     hstbuf,Y        ;
+00C2DA  2  C8                   INY
+00C2DB  2  C0 00                CPY     #$00            ;
+00C2DD  2  D0 EE                BNE     :-
+00C2DF  2               :
+00C2DF  2               ;
+00C2DF  2  AD 00 E3             LDA     XTIDE_DATA_LO
+00C2E2  2  99 00 05             STA     hstbuf+$100,Y   ;
+00C2E5  2  C8                   INY
+00C2E6  2  AD 01 E3             LDA     XTIDE_DATA_HI
+00C2E9  2  99 00 05             STA     hstbuf+$100,Y   ;
+00C2EC  2  C8                   INY
+00C2ED  2  C0 00                CPY     #$00            ;
+00C2EF  2  D0 EE                BNE     :-              ;
+00C2F1  2  60                   RTS                     ;
+00C2F2  2               
+00C2F2  2               ;*__IDE_WRITE_SECTOR__________________________________________________________________________________
+00C2F2  2               ;*
+00C2F2  2               ;*  WRITE IDE SECTOR (IN LBA) FROM BUFFER
+00C2F2  2               ;*
+00C2F2  2               ;*____________________________________________________________________________________________________
+00C2F2  2               IDE_WRITE_SECTOR:
+00C2F2  2                       .IFNDEF PC6502BIOS
+00C2F2  2  20 90 C3             JSR     IDE_CONVERT_SECTOR_LBA
+00C2F5  2                       .ENDIF
+00C2F5  2  20 77 C2             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
+00C2F8  2  C9 00                CMP     #$00
+00C2FA  2  D0 27                BNE     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00C2FC  2                       .IFNDEF PC6502BIOS
+00C2FC  2  20 34 C4             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
+00C2FF  2                       .ENDIF
+00C2FF  2  A9 30                LDA     #XTIDE_CMD_WRITE
+00C301  2  8D 0E E3             STA     XTIDE_COMMAND
+00C304  2  20 A4 C2             JSR     IDE_WAIT_DRQ    ;WAIT UNIT IT WANTS THE DATA
+00C307  2  C9 00                CMP     #$00
+00C309  2  D0 18                BNE     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00C30B  2  20 26 C3             JSR     IDE_WRITE_BUFFER;GIVE THE DATA TO THE DRIVE
+00C30E  2  20 77 C2             JSR     IDE_WAIT_NOT_BUSY;WAIT UNTIL THE WRITE IS COMPLETE
+00C311  2  C9 00                CMP     #$00
+00C313  2  D0 0E                BNE     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
+00C315  2                       .IFNDEF PC6502BIOS
+00C315  2  A9 FF                LDA     #$FF            ; INVALIDATE CACHE
+00C317  2  8D 46 06             STA     Cdebsehd        ;
+00C31A  2  8D 44 06             STA     Cdebcyll        ;
+00C31D  2  8D 45 06             STA     Cdebcylm        ;
+00C320  2                       .ENDIF
+00C320  2  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
+00C322  2  60                   RTS
+00C323  2               IDE_WRITE_SECTOR_ERROR:
+00C323  2  A9 FF                LDA     #$FF
+00C325  2  60                   RTS
+00C326  2               
+00C326  2               ;*__IDE_WRITE_BUFFER___________________________________________________________________________________
+00C326  2               ;*
+00C326  2               ;*  WRITE IDE BUFFER LITTLE ENDIAN
+00C326  2               ;*
+00C326  2               ;*____________________________________________________________________________________________________
+00C326  2               IDE_WRITE_BUFFER:
+00C326  2  A0 00                LDY     #$00            ; INDEX
+00C328  2               :
+00C328  2  B9 00 04             LDA     hstbuf,Y        ;
+00C32B  2  8D 00 E3             STA     XTIDE_DATA_LO
+00C32E  2  C8                   INY
+00C32F  2  B9 00 04             LDA     hstbuf,Y        ;
+00C332  2  8D 01 E3             STA     XTIDE_DATA_HI
+00C335  2  C8                   INY
+00C336  2  C0 00                CPY     #$00            ;
+00C338  2  D0 EE                BNE     :-              ;
+00C33A  2               :
+00C33A  2  B9 00 05             LDA     hstbuf+$100,Y   ;
+00C33D  2  8D 00 E3             STA     XTIDE_DATA_LO
+00C340  2  C8                   INY
+00C341  2  B9 00 05             LDA     hstbuf+$100,Y   ;
+00C344  2  8D 01 E3             STA     XTIDE_DATA_HI
+00C347  2  C8                   INY
+00C348  2  C0 00                CPY     #$00            ;
+00C34A  2  D0 EE                BNE     :-              ;
+00C34C  2  60                   RTS                     ;
+00C34D  2               
+00C34D  2                       .IFNDEF PC6502BIOS
+00C34D  2               MESSAGE1:
+00C34D  2  58 54 2D 49          .BYTE   "XT-IDE:"
+00C351  2  44 45 3A     
+00C354  2  00                   .BYTE   00
+00C355  2               MESSAGE2:
+00C355  2  20 49 4F 3D          .BYTE   " IO=0x"
+00C359  2  30 78        
+00C35B  2  00                   .BYTE   00
+00C35C  2               MESSAGE3:
+00C35C  2  20 4E 4F 54          .BYTE   " NOT PRESENT"
+00C360  2  20 50 52 45  
+00C364  2  53 45 4E 54  
+00C368  2  00                   .BYTE   00
+00C369  2               MESSAGE4:
+00C369  2  20 58 54 2D          .BYTE   " XT-IDE0: BLOCKS="
+00C36D  2  49 44 45 30  
+00C371  2  3A 20 42 4C  
+00C37A  2  00                   .BYTE   00
+00C37B  2               MESSAGE5:
+00C37B  2  20 58 54 2D          .BYTE   " XT-IDE1: BLOCKS="
+00C37F  2  49 44 45 31  
+00C383  2  3A 20 42 4C  
+00C38C  2  00                   .BYTE   00
+00C38D  2               MESSAGE6:
+00C38D  2  30 78                .BYTE   "0x"
+00C38F  2  00                   .BYTE   00
+00C390  2               
+00C390  2               
+00C390  2               ;___IDE_CONVERT_SECTOR_LBA_______________________________________________________________________________
+00C390  2               ;
+00C390  2               ; 	TRANSLATE LBA SECTORS
+00C390  2               ;________________________________________________________________________________________________________
+00C390  2               IDE_CONVERT_SECTOR_LBA:
+00C390  2  AD 0C 06             LDA     sektrk          ; LOAD TRACK # (LOW BYTE)
+00C393  2  29 0F                AND     #$0F            ; ISOLATE HEAD IN LOW 4 BITS
+00C395  2  0A                   ASL     a               ; MOVE TO HIGH BYTE
+00C396  2  0A                   ASL     a
+00C397  2  0A                   ASL     a
+00C398  2  0A                   ASL     a
+00C399  2  AA                   TAX                     ; PARK IN X
+00C39A  2  AD 0E 06             LDA     seksec          ; LOAD SECTOR # (LOW BYTE)
+00C39D  2  4A                   LSR     A               ;
+00C39E  2  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING)
+00C39F  2  29 0F                AND     #$0F            ; CLEAR UPPER 4 BITS (JUST 'CAUSE)
+00C3A1  2  8D 12 06             STA     debsehd         ; STORE IN SECTOR/HEAD
+00C3A4  2  8A                   TXA                     ; GET HEAD BACK
+00C3A5  2  0D 12 06             ORA     debsehd
+00C3A8  2  8D 12 06             STA     debsehd         ; STORE IN SECTOR/HEAD
+00C3AB  2               
+00C3AB  2  AD 0C 06             LDA     sektrk
+00C3AE  2  8D 10 06             STA     debcyll         ; STORE IN TRACK (lsb)
+00C3B1  2  AD 0D 06             LDA     sektrk+1
+00C3B4  2  8D 11 06             STA     debcylm         ; STORE IN TRACK (msb)
+00C3B7  2               ; REMOVE HEAD FROM TRACK VALUE (DIV/4)
+00C3B7  2  AD 11 06             LDA     debcylm
+00C3BA  2  4A                   LSR     A
+00C3BB  2  8D 11 06             STA     debcylm
+00C3BE  2  AD 10 06             LDA     debcyll
+00C3C1  2  6A                   ROR     A
+00C3C2  2  8D 10 06             STA     debcyll
+00C3C5  2               
+00C3C5  2  AD 11 06             LDA     debcylm
+00C3C8  2  4A                   LSR     A
+00C3C9  2  8D 11 06             STA     debcylm
+00C3CC  2  AD 10 06             LDA     debcyll
+00C3CF  2  6A                   ROR     A
+00C3D0  2  8D 10 06             STA     debcyll
+00C3D3  2               
+00C3D3  2  AD 11 06             LDA     debcylm
+00C3D6  2  4A                   LSR     A
+00C3D7  2  8D 11 06             STA     debcylm
+00C3DA  2  AD 10 06             LDA     debcyll
+00C3DD  2  6A                   ROR     A
+00C3DE  2  8D 10 06             STA     debcyll
+00C3E1  2               
+00C3E1  2  AD 11 06             LDA     debcylm
+00C3E4  2  4A                   LSR     A
+00C3E5  2  8D 11 06             STA     debcylm
+00C3E8  2  AD 10 06             LDA     debcyll
+00C3EB  2  6A                   ROR     A
+00C3EC  2  8D 10 06             STA     debcyll
+00C3EF  2               ;	ADD SLICE OFFSET
+00C3EF  2  AD 16 06             LDA     sekdsk          ; GET DRIVE#
+00C3F2  2  29 07                AND     #7              ; ONLY FIRST 8 DEVICES SUPPORTED
+00C3F4  2  0A                   ASL     a               ; DOUBLE NUMBER FOR TABLE LOOKUP
+00C3F5  2  AA                   TAX                     ; MOVE TO X REGISTER
+00C3F6  2  E8                   INX                     ; WANT SECOND BYTE OF ENTRY
+00C3F7  2  BD 17 06             LDA     dskcfg,X        ; GET SLICE#
+00C3FA  2  8D 32 06             STA     slicetmp+1      ; SLICE OFFSET MSB
+00C3FD  2  A9 00                LDA     #0              ; GET SLICE#
+00C3FF  2  8D 31 06             STA     slicetmp        ; SLICE OFFSET LSB
+00C402  2  18                   CLC                     ; VOODOO MATH TO TAKE SLICE*$4000
+00C403  2  6E 32 06             ROR     slicetmp+1
+00C406  2  6E 31 06             ROR     slicetmp
+00C409  2  6E 32 06             ROR     slicetmp+1
+00C40C  2  6E 31 06             ROR     slicetmp
+00C40F  2               
+00C40F  2  BD 17 06             LDA     dskcfg,X        ; GET SLICE#
+00C412  2  18                   CLC
+00C413  2  6D 31 06             ADC     slicetmp
+00C416  2  8D 31 06             STA     slicetmp
+00C419  2  A9 00                LDA     #$00            ; LOGIC ERROR FOR SLICES THAT CARRY?
+00C41B  2  6D 32 06             ADC     slicetmp+1      ;
+00C41E  2  8D 32 06             STA     slicetmp+1      ;
+00C421  2               
+00C421  2               ; ADD SLICE OFFSET TO TRACK #
+00C421  2  AD 31 06             LDA     slicetmp
+00C424  2  6D 10 06             ADC     debcyll
+00C427  2  8D 10 06             STA     debcyll         ; store sum of LSBs
+00C42A  2  AD 32 06             LDA     slicetmp+1
+00C42D  2  6D 11 06             ADC     debcylm         ; add the MSBs using carry from
+00C430  2  8D 11 06             STA     debcylm         ; the previous calculation
+00C433  2  60                   RTS
+00C434  2               
+00C434  2               ;*__IDE_SETUP_LBA_____________________________________________________________________________________
+00C434  2               ;*
+00C434  2               ;*  SETUP LBA DATA
+00C434  2               ;*  A= DRIVE DEVICE
+00C434  2               ;*____________________________________________________________________________________________________
+00C434  2               IDE_SETUP_LBA:
+00C434  2  AD 3D 06             LDA     currentDrive
+00C437  2  29 01                AND     #$01            ; only want drive cfg
+00C439  2  0A                   ASL     a               ; SHIFT 4
+00C43A  2  0A                   ASL     a               ;
+00C43B  2  0A                   ASL     a               ;
+00C43C  2  0A                   ASL     a               ;
+00C43D  2  09 E0                ORA     #$E0            ; E0=MST  F0=SLV
+00C43F  2  AA                   TAX
+00C440  2  A0 00                LDY     #$00
+00C442  2  8D 0C E3             STA     XTIDE_DEVICE
+00C445  2               
+00C445  2  AD 11 06             LDA     debcylm
+00C448  2  8D 0A E3             STA     XTIDE_LBAHI
+00C44B  2               
+00C44B  2  AD 10 06             LDA     debcyll
+00C44E  2  8D 08 E3             STA     XTIDE_LBAMID
+00C451  2               
+00C451  2  AD 12 06             LDA     debsehd
+00C454  2  8D 06 E3             STA     XTIDE_LBALOW
+00C457  2               
+00C457  2  A9 01                LDA     #$01
+00C459  2  8D 04 E3             STA     XTIDE_SEC_CNT
+00C45C  2  60                   RTS
+00C45D  2               
+00C45D  2                       .ENDIF
+00C45D  2               
+00C45D  2                       .IFDEF  PC6502BIOS
+00C45D  2               ; Boot System [B]
+00C45D  2               BOOT:
+00C45D  2                       BCS     BOOTX           ; exit with error if no parameter given
+00C45D  2                       LDA     TMP0
+00C45D  2                       AND     #$0F
+00C45D  2                       STA     DSKUNIT
+00C45D  2                       LDA     #$00
+00C45D  2                       STA     debcyll         ;
+00C45D  2                       STA     debcylm         ;
+00C45D  2                       STA     debsehd         ;
+00C45D  2                       JSR     GETPAR          ; get value for next byte of memory
+00C45D  2                       BCS     BOOTX           ; exit with error if no parameter given
+00C45D  2                       JSR     IDE_READ_SECTOR
+00C45D  2                       JMP     hstbuf
+00C45D  2               BOOTX:
+00C45D  2                       JMP     ERROR           ; back to main loop
+00C45D  2                       .ENDIF
+00C45D  2               
+00C45D  1               
+00C45D  1               
+00C45D  1               
+00C45D  1               
+00C45D  1               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
+00C45D  1               ;
+00C45D  1               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
+00C45D  1               ;________________________________________________________________________________________________________________________________
+00C45D  1               DFT_CONSOLE:
+00C45D  1  8D 6F C4             STA     drvtmp
+00C460  1  A5 3A                LDA     CONSOLE
+00C462  1  18                   CLC
+00C463  1  65 32                ADC     farfunct
+00C465  1  85 32                STA     farfunct
+00C467  1  68                   PLA
+00C468  1  68                   PLA
+00C469  1  AD 6F C4             LDA     drvtmp
+00C46C  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
+00C46F  1               drvtmp:
+00C46F  1  00                   .BYTE   00
+00C470  1               
+00C470  1               drv_noop:
+00C470  1  60                   RTS
+00C471  1               
+00C471  1               ;------------------------------------------------------------------------
+00C471  1               LFCR:
+00C471  1  A9 0A                LDA     #10
+00C473  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
+00C476  1  A9 0D                LDA     #13
+00C478  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
+00C47B  1  60                   RTS
+00C47C  1               
+00C47C  1               ;__WRSTR_______________________________________________________
+00C47C  1               ;
+00C47C  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00C47C  1               ;
+00C47C  1               ;______________________________________________________________
+00C47C  1               WRSTR:
+00C47C  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+00C47E  1               OUTSTRLP:
+00C47E  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+00C480  1  C9 00                CMP     #$00            ; IS NULL?
+00C482  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00C484  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
+00C487  1  E6 41                INC     STRPTR
+00C489  1  D0 F3                BNE     OUTSTRLP
+00C48B  1  E6 42                INC     STRPTR+1
+00C48D  1  4C 7E C4             JMP     OUTSTRLP        ; DO NEXT CHAR
+00C490  1               ENDOUTSTR:
+00C490  1  60                   RTS                     ; RETURN
+00C491  1               
+00C491  1               PRINT_BYTE:
+00C491  1  8E B6 C4             STX     SAVX            ; save X
+00C494  1  20 A1 C4             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
+00C497  1  20 B5 C0             JSR     WRSER1          ; output upper nybble
+00C49A  1  8A                   TXA                     ; transfer lower to A
+00C49B  1  AE B6 C4             LDX     SAVX            ; restore X
+00C49E  1  4C B5 C0             JMP     WRSER1          ; output lower nybble
+00C4A1  1               ASCTWO:
+00C4A1  1  48                   PHA                     ; save byte
+00C4A2  1  20 AB C4             JSR     ASCII           ; do low nybble
+00C4A5  1  AA                   TAX                     ; save in X
+00C4A6  1  68                   PLA                     ; restore byte
+00C4A7  1  4A                   LSR     A               ; shift upper nybble down
+00C4A8  1  4A                   LSR     A
+00C4A9  1  4A                   LSR     A
+00C4AA  1  4A                   LSR     A
+00C4AB  1               ; convert low nybble in A to hex digit
+00C4AB  1               ASCII:
+00C4AB  1  29 0F                AND     #$0F            ; clear upper nibble
+00C4AD  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
+00C4AF  1  90 02                BCC     ASC1
+00C4B1  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
+00C4B3  1               ASC1:
+00C4B3  1  69 30                ADC     #$30            ; add ascii char 0 to value
+00C4B5  1  60                   RTS
+00C4B6  1               SAVX:
+00C4B6  1  00                   .BYTE   00
+00C4B6  1               

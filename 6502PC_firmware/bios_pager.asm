@@ -30,21 +30,21 @@ INITPAGES:
         LDA     #$00            ; ENSURE MMU IS DISABLED (SHOULD BE ALREADY, BUT . . . )
         STA     PC6502_MMU_ENA
         LDA     #$01
-        STA     PC6502_MAP_SETUP ; Fill TASK 1
+        STA     PC6502_MAP_SETUP; Fill TASK 1
         JSR     INITPAGE        ; FILL TASK 1 WITH A 1:1 MAP
         LDA     #$10            ; BUT, MAP Cxxx AND Dxxx TO RAM 10xxx AND 11xxx RATHER THAN RAM
         STA     PC6502_MAP_SPACE+$0C
         LDA     #$11
         STA     PC6502_MAP_SPACE+$0D
         LDA     #$00
-        STA     PC6502_MAP_SETUP ; Then do task 0
+        STA     PC6502_MAP_SETUP; Then do task 0
         JSR     INITPAGE        ; FILL TASK 0 WITH A 1:1 MAP
 ;  Why task 1 before task 0??   On some boards every write to the register also writes to task 0
 ;  so it is important to write task 0 last (or not use it)
         LDA     #$00
-        STA     PC6502_ACT_TASK  ; SET ACTIVE TASK TO 00
+        STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
         LDA     #$01
-        STA     PC6502_MMU_ENA   ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
+        STA     PC6502_MMU_ENA  ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
         RTS
 
 INITPAGE:
@@ -59,13 +59,13 @@ INITPAGE:
 PAGE_EXIT:
         PHA
         LDA     #$00
-        STA     PC6502_ACT_TASK  ; SET ACTIVE TASK TO 00
+        STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
         PLA
         RTS
 PAGE_ENTER:
         PHA
         LDA     #$01
-        STA     PC6502_ACT_TASK  ; SET ACTIVE TASK TO 01
+        STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 01
         PLA
         RTS
 

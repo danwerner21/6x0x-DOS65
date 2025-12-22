@@ -84,7 +84,6 @@ Current file: com.asm
 000000r 2               Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 000000r 2               Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
 000000r 2               
-000000r 2               
 000000r 2               tea             = $800          ;tea start
 000000r 2               
 000000r 2               ;zero page for setup
@@ -147,6 +146,10 @@ Current file: com.asm
 000000r 2               
 000000r 2               
 000000r 2                       .IFDEF  RBC6X0X
+000000r 2                       .DEFINE COMSUFFIX "COM"
+000000r 2                       .ENDIF
+000000r 2               
+000000r 2                       .IFDEF  PC6502
 000000r 2                       .DEFINE COMSUFFIX "COM"
 000000r 2                       .ENDIF
 000000r 2               
@@ -755,6 +758,7 @@ Current file: com.asm
 0002F5r 2               FERROR:
 0002F5r 2  4C rr rr             JMP     ERROR           ; handle error
 0002F8r 2               ; -----------------------------------------------------------------------------
+0002F8r 2                 .ifndef  PC6502BIOS
 0002F8r 2               ; Boot System [B]
 0002F8r 2               BOOT:
 0002F8r 2  B0 21                BCS     BOOTX           ; exit with error if no parameter given
@@ -773,7 +777,7 @@ Current file: com.asm
 000318r 2  4C 00 04             JMP     hstbuf
 00031Br 2               BOOTX:
 00031Br 2  4C rr rr             JMP     ERROR           ; back to main loop
-00031Er 2               
+00031Er 2                       .endif
 00031Er 2               
 00031Er 2               
 00031Er 2               ; -----------------------------------------------------------------------------
@@ -1780,13 +1784,13 @@ Current file: com.asm
 0008CEr 2  52 20 41 43  
 0008E2r 2  8D                   .BYTE   $0D+$80
 0008E3r 2               MSG3:
-0008E3r 2  1D BF                .BYTE   $1D,$3F+$80     ; syntax error: move right, display "?"
+0008E3r 2  20 BF                .BYTE   $20,$3F+$80     ; syntax error: move right, display "?"
 0008E5r 2               MSG4:
 0008E5r 2  2E 2E 53 59          .BYTE   "..SYS"         ; SYS call to enter monitor
 0008E9r 2  53           
 0008EAr 2  A0                   .BYTE   $20+$80
 0008EBr 2               MSG5:
-0008EBr 2  3A 92                .BYTE   $3A,$12+$80     ; ":" then RVS ON for memory ASCII dump
+0008EBr 2  3A A0                .BYTE   $3A,$20+$80     ; ":" then RVS ON for memory ASCII dump
 0008EDr 2               MSG6:
 0008EDr 2  20 45 52 52          .BYTE   " ERRO"         ; I/O error: display " ERROR"
 0008F1r 2  4F           

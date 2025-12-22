@@ -54,7 +54,6 @@ Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
 Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
 
-
 tea             = $800          ;tea start
 
 ;zero page for setup
@@ -117,6 +116,10 @@ DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
 
 
         .IFDEF  RBC6X0X
+        .DEFINE COMSUFFIX "COM"
+        .ENDIF
+
+        .IFDEF  PC6502
         .DEFINE COMSUFFIX "COM"
         .ENDIF
 

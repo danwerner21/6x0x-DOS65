@@ -108,16 +108,4 @@ PrDecDigit2:
 
 
 MACRO_OUTCH:
-        PHA
-        LDA     CONSOLE
-        STA     farfunct
-        PLA
-        JMP     FUNCTION_DISPATCHER
-
-PRINT_BYTE:
-        STX     SAVX            ; save X
-        JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
-        JSR     MACRO_OUTCH     ; output upper nybble
-        TXA                     ; transfer lower to A
-        LDX     SAVX            ; restore X
-        JMP     MACRO_OUTCH     ; output lower nybble
+        jmp     WRSER1
