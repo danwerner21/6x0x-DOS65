@@ -39,6 +39,22 @@ XTIDE_CMD_SPINUP = $E1
 
         .IFDEF  PC6502BIOS
 XTIDE_INIT:
+; RESET PORTS
+        LDX     #$00
+        LDA     #$FF
+:
+        STA     XTIDE_DATA_LO,X
+        INX
+        CPX     #$31
+        BNE     :-
+
+        LDX     #$00
+        LDA     #$00
+:
+        STA     XTIDE_DATA_LO,X
+        INX
+        CPX     #$31
+        BNE     :-
         JSR     XTIDE_PROBE
         LDA     #$E0            ; E0=MST  F0=SLV
         STA     XTIDE_DEVICE
@@ -52,7 +68,6 @@ XTIDE_INIT:
         LDA     #XTIDE_CMD_FEAT
         STA     XTIDE_COMMAND
 :
-
         RTS
         .ENDIF
 
@@ -292,9 +307,7 @@ IDE_READ_SECTOR_DIRTY:
         CMP     #$00
         BNE     IDE_READ_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
 IDE_READ_SECTOR_1:
-        .IFNDEF PC6502BIOS
         JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
-        .ENDIF
         LDA     #XTIDE_CMD_READ
         STA     XTIDE_COMMAND
 
@@ -423,9 +436,7 @@ IDE_WRITE_SECTOR:
         JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
         CMP     #$00
         BNE     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
-        .IFNDEF PC6502BIOS
         JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
-        .ENDIF
         LDA     #XTIDE_CMD_WRITE
         STA     XTIDE_COMMAND
         JSR     IDE_WAIT_DRQ    ;WAIT UNIT IT WANTS THE DATA
@@ -581,6 +592,8 @@ IDE_CONVERT_SECTOR_LBA:
         STA     debcylm         ; the previous calculation
         RTS
 
+        .ENDIF
+
 ;*__IDE_SETUP_LBA_____________________________________________________________________________________
 ;*
 ;*  SETUP LBA DATA
@@ -594,8 +607,6 @@ IDE_SETUP_LBA:
         ASL     a               ;
         ASL     a               ;
         ORA     #$E0            ; E0=MST  F0=SLV
-        TAX
-        LDY     #$00
         STA     XTIDE_DEVICE
 
         LDA     debcylm
@@ -611,23 +622,96 @@ IDE_SETUP_LBA:
         STA     XTIDE_SEC_CNT
         RTS
 
-        .ENDIF
-
         .IFDEF  PC6502BIOS
 ; Boot System [B]
 BOOT:
-        BCS     BOOTX           ; exit with error if no parameter given
-        LDA     TMP0
-        AND     #$0F
-        STA     DSKUNIT
+        JSR     XTIDE_INIT      ; INIT IDE
+                                ; SETUP LOCATION
         LDA     #$00
         STA     debcyll         ;
         STA     debcylm         ;
         STA     debsehd         ;
-        JSR     GETPAR          ; get value for next byte of memory
-        BCS     BOOTX           ; exit with error if no parameter given
-        JSR     IDE_READ_SECTOR
-        JMP     hstbuf
+        STA     currentDrive    ;
+        STA     SRC             ; SETUP SOURCE AND DEST POINTERS
+        STA     DEST
+        LDA     #$04
+        STA     SRC+1
+        LDA     #$08
+        STA     DEST+1
+
+BOOT1:
+        JSR     IDE_READ_SECTOR ; READ THE SECTOR
+        CMP     #$00
+        BNE     BOOTX
+        LDY     #$00
+:
+        LDA     (SRC),Y
+        STA     (DEST),Y
+        INY
+        CPY     #$00
+        BNE     :-
+        INC     SRC+1
+        INC     DEST+1
+:
+        LDA     (SRC),Y
+        STA     (DEST),Y
+        INY
+        CPY     #$00
+        BNE     :-
+        INC     DEST+1
+        LDA     #$04
+        STA     SRC+1
+        INC     debsehd
+        LDA     DEST+1
+        CMP     #$80
+        BNE     BOOT1
+        JMP     $0800
 BOOTX:
         JMP     ERROR           ; back to main loop
+
+WBOOT:
+        JSR     XTIDE_INIT      ; INIT IDE
+                                ; SETUP LOCATION
+        LDA     #$00
+        STA     debcyll         ;
+        STA     debcylm         ;
+        STA     debsehd         ;
+        STA     currentDrive    ;
+        STA     SRC             ; SETUP SOURCE AND DEST POINTERS
+        STA     DEST
+        LDA     #$08
+        STA     SRC+1
+        LDA     #$04
+        STA     DEST+1
+
+BOOTW1:
+        LDY     #$00
+:
+        LDA     (SRC),Y
+        STA     (DEST),Y
+        INY
+        CPY     #$00
+        BNE     :-
+        INC     SRC+1
+        INC     DEST+1
+:
+        LDA     (SRC),Y
+        STA     (DEST),Y
+        INY
+        CPY     #$00
+        BNE     :-
+
+        JSR     IDE_WRITE_SECTOR; READ THE SECTOR
+        CMP     #$00
+        BNE     BOOTX
+
+        INC     SRC+1
+        LDA     #$04
+        STA     DEST+1
+        INC     debsehd
+        LDA     SRC+1
+        CMP     #$80
+        BNE     BOOTW1
+        BRK
+
         .ENDIF

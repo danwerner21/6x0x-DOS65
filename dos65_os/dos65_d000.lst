@@ -3503,7 +3503,7 @@ Current file: dos65.asm
 00E60F  2               ;SD
 00E60F  2                       .IFDEF  DUODYNE
 00E60F  2                       .ELSE
-00E60F  2                       .IFNDEF  PC6502
+00E60F  2                       .IFNDEF PC6502
 00E60F  2  20 E4 E6             JSR     CONVERT_SECTOR_LBA
 00E612  2                       .ENDIF
 00E612  2                       .ENDIF
@@ -3518,7 +3518,7 @@ Current file: dos65.asm
 00E621  2               ;FD
 00E621  2                       .IFDEF  DUODYNE
 00E621  2                       .ELSE
-00E621  2                       .IFNDEF  PC6502
+00E621  2                       .IFNDEF PC6502
 00E621  2  20 AF E7             JSR     SETUP_FD_CHS
 00E624  2                       .ENDIF
 00E624  2                       .ENDIF
@@ -3533,7 +3533,7 @@ Current file: dos65.asm
 00E633  2               ;PPIDE
 00E633  2                       .IFDEF  DUODYNE
 00E633  2                       .ELSE
-00E633  2                       .IFNDEF  PC6502
+00E633  2                       .IFNDEF PC6502
 00E633  2  20 E4 E6             JSR     CONVERT_SECTOR_LBA
 00E636  2                       .ENDIF
 00E636  2                       .ENDIF
@@ -3572,7 +3572,7 @@ Current file: dos65.asm
 00E663  2               ;SD
 00E663  2                       .IFDEF  DUODYNE
 00E663  2                       .ELSE
-00E663  2                       .IFNDEF  PC6502
+00E663  2                       .IFNDEF PC6502
 00E663  2  20 E4 E6             JSR     CONVERT_SECTOR_LBA
 00E666  2                       .ENDIF
 00E666  2                       .ENDIF
@@ -3592,7 +3592,7 @@ Current file: dos65.asm
 00E67C  2               ;FD
 00E67C  2                       .IFDEF  DUODYNE
 00E67C  2                       .ELSE
-00E67C  2                       .IFNDEF  PC6502
+00E67C  2                       .IFNDEF PC6502
 00E67C  2  20 AF E7             JSR     SETUP_FD_CHS
 00E67F  2                       .ENDIF
 00E67F  2                       .ENDIF
@@ -3610,7 +3610,7 @@ Current file: dos65.asm
 00E695  2               ;PPIDE
 00E695  2                       .IFDEF  DUODYNE
 00E695  2                       .ELSE
-00E695  2                       .IFNDEF  PC6502
+00E695  2                       .IFNDEF PC6502
 00E695  2  20 E4 E6             JSR     CONVERT_SECTOR_LBA
 00E698  2                       .ENDIF
 00E698  2                       .ENDIF
@@ -3706,7 +3706,7 @@ Current file: dos65.asm
 00E6E4  2               
 00E6E4  2                       .IFDEF  DUODYNE
 00E6E4  2                       .ELSE
-00E6E4  2                       .IFNDEF  PC6502
+00E6E4  2                       .IFNDEF PC6502
 00E6E4  2               ;___CONVERT_SECTOR_LBA___________________________________________________________________________________
 00E6E4  2               ;
 00E6E4  2               ; 	TRANSLATE LBA SECTORS

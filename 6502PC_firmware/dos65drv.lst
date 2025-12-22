@@ -175,10 +175,10 @@ Current file: dos65drv.asm
 00C018  1  6C 33 00             JMP     (farpointer)
 00C01B  1               
 00C01B  1               DISPATCHTABLE:
-00C01B  1  5D C4                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
-00C01D  1  5D C4                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
-00C01F  1  5D C4                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
-00C021  1  5D C4                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
+00C01B  1  5A C4                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
+00C01D  1  5A C4                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
+00C01F  1  5A C4                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
+00C021  1  5A C4                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
 00C023  1               
 00C023  1  B5 C0                .WORD   WRSER1          ; FUNCTION 04 - WRITE SERIAL PORT
 00C025  1  C2 C0                .WORD   RDSER1          ; FUNCTION 05 - READ SERIAL PORT
@@ -192,67 +192,67 @@ Current file: dos65drv.asm
 00C033  1  DA C0                .WORD   SERIALSTATUS    ; FUNCTION 12 - GET KEYBOARD STATUS
 00C035  1  A5 C0                .WORD   SERIALINIT      ; FUNCTION 13 - INIT INTERFACE
 00C037  1               
-00C037  1  70 C4                .WORD   drv_noop        ; FUNCTION 14
-00C039  1  70 C4                .WORD   drv_noop        ; FUNCTION 15
-00C03B  1  70 C4                .WORD   drv_noop        ; FUNCTION 16
-00C03D  1  70 C4                .WORD   drv_noop        ; FUNCTION 17
-00C03F  1  70 C4                .WORD   drv_noop        ; FUNCTION 18
-00C041  1  70 C4                .WORD   drv_noop        ; FUNCTION 19
-00C043  1  70 C4                .WORD   drv_noop        ; FUNCTION 20
-00C045  1  70 C4                .WORD   drv_noop        ; FUNCTION 21
-00C047  1  70 C4                .WORD   drv_noop        ; FUNCTION 22
-00C049  1  70 C4                .WORD   drv_noop        ; FUNCTION 23
-00C04B  1  70 C4                .WORD   drv_noop        ; FUNCTION 24
-00C04D  1  70 C4                .WORD   drv_noop        ; FUNCTION 25
-00C04F  1  70 C4                .WORD   drv_noop        ; FUNCTION 26
-00C051  1  70 C4                .WORD   drv_noop        ; FUNCTION 27
-00C053  1  70 C4                .WORD   drv_noop        ; FUNCTION 28
-00C055  1  70 C4                .WORD   drv_noop        ; FUNCTION 29
-00C057  1  70 C4                .WORD   drv_noop        ; FUNCTION 30
-00C059  1  70 C4                .WORD   drv_noop        ; FUNCTION 31
-00C05B  1  70 C4                .WORD   drv_noop        ; FUNCTION 32
-00C05D  1  70 C4                .WORD   drv_noop        ; FUNCTION 33
-00C05F  1  70 C4                .WORD   drv_noop        ; FUNCTION 34
-00C061  1  70 C4                .WORD   drv_noop        ; FUNCTION 35
-00C063  1  70 C4                .WORD   drv_noop        ; FUNCTION 36
-00C065  1  70 C4                .WORD   drv_noop        ; FUNCTION 37
-00C067  1  70 C4                .WORD   drv_noop        ; FUNCTION 38
-00C069  1  70 C4                .WORD   drv_noop        ; FUNCTION 39
+00C037  1  6D C4                .WORD   drv_noop        ; FUNCTION 14
+00C039  1  6D C4                .WORD   drv_noop        ; FUNCTION 15
+00C03B  1  6D C4                .WORD   drv_noop        ; FUNCTION 16
+00C03D  1  6D C4                .WORD   drv_noop        ; FUNCTION 17
+00C03F  1  6D C4                .WORD   drv_noop        ; FUNCTION 18
+00C041  1  6D C4                .WORD   drv_noop        ; FUNCTION 19
+00C043  1  6D C4                .WORD   drv_noop        ; FUNCTION 20
+00C045  1  6D C4                .WORD   drv_noop        ; FUNCTION 21
+00C047  1  6D C4                .WORD   drv_noop        ; FUNCTION 22
+00C049  1  6D C4                .WORD   drv_noop        ; FUNCTION 23
+00C04B  1  6D C4                .WORD   drv_noop        ; FUNCTION 24
+00C04D  1  6D C4                .WORD   drv_noop        ; FUNCTION 25
+00C04F  1  6D C4                .WORD   drv_noop        ; FUNCTION 26
+00C051  1  6D C4                .WORD   drv_noop        ; FUNCTION 27
+00C053  1  6D C4                .WORD   drv_noop        ; FUNCTION 28
+00C055  1  6D C4                .WORD   drv_noop        ; FUNCTION 29
+00C057  1  6D C4                .WORD   drv_noop        ; FUNCTION 30
+00C059  1  6D C4                .WORD   drv_noop        ; FUNCTION 31
+00C05B  1  6D C4                .WORD   drv_noop        ; FUNCTION 32
+00C05D  1  6D C4                .WORD   drv_noop        ; FUNCTION 33
+00C05F  1  6D C4                .WORD   drv_noop        ; FUNCTION 34
+00C061  1  6D C4                .WORD   drv_noop        ; FUNCTION 35
+00C063  1  6D C4                .WORD   drv_noop        ; FUNCTION 36
+00C065  1  6D C4                .WORD   drv_noop        ; FUNCTION 37
+00C067  1  6D C4                .WORD   drv_noop        ; FUNCTION 38
+00C069  1  6D C4                .WORD   drv_noop        ; FUNCTION 39
 00C06B  1               
-00C06B  1  70 C4                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
-00C06D  1  70 C4                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
-00C06F  1  70 C4                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
-00C071  1  70 C4                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
-00C073  1  70 C4                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
-00C075  1  70 C4                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
-00C077  1  70 C4                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
-00C079  1  70 C4                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
-00C07B  1  70 C4                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
-00C07D  1  70 C4                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
+00C06B  1  6D C4                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
+00C06D  1  6D C4                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
+00C06F  1  6D C4                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
+00C071  1  6D C4                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
+00C073  1  6D C4                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
+00C075  1  6D C4                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
+00C077  1  6D C4                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
+00C079  1  6D C4                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
+00C07B  1  6D C4                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
+00C07D  1  6D C4                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
 00C07F  1               ;
-00C07F  1  70 C4                .WORD   drv_noop        ;RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
-00C081  1  70 C4                .WORD   drv_noop        ;RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
-00C083  1  70 C4                .WORD   drv_noop        ;RTC_INIT        ; FUNCTION 52 - INIT RTC
-00C085  1  70 C4                .WORD   drv_noop        ;RTC_LED         ; FUNCTION 53 - CONTROL LEDS
-00C087  1  70 C4                .WORD   drv_noop        ;RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
-00C089  1  70 C4                .WORD   drv_noop        ;RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
+00C07F  1  6D C4                .WORD   drv_noop        ;RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
+00C081  1  6D C4                .WORD   drv_noop        ;RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
+00C083  1  6D C4                .WORD   drv_noop        ;RTC_INIT        ; FUNCTION 52 - INIT RTC
+00C085  1  6D C4                .WORD   drv_noop        ;RTC_LED         ; FUNCTION 53 - CONTROL LEDS
+00C087  1  6D C4                .WORD   drv_noop        ;RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
+00C089  1  6D C4                .WORD   drv_noop        ;RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
 00C08B  1               ;
-00C08B  1  70 C4                .WORD   drv_noop        ; FUNCTION 56
-00C08D  1  70 C4                .WORD   drv_noop        ; FUNCTION 57
-00C08F  1  70 C4                .WORD   drv_noop        ; FUNCTION 58
-00C091  1  70 C4                .WORD   drv_noop        ; FUNCTION 59
+00C08B  1  6D C4                .WORD   drv_noop        ; FUNCTION 56
+00C08D  1  6D C4                .WORD   drv_noop        ; FUNCTION 57
+00C08F  1  6D C4                .WORD   drv_noop        ; FUNCTION 58
+00C091  1  6D C4                .WORD   drv_noop        ; FUNCTION 59
 00C093  1               
 00C093  1  E9 C0                .WORD   XTIDE_INIT      ; FUNCTION 60 - called during OS init
 00C095  1  20 C2                .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
 00C097  1  F2 C2                .WORD   IDE_WRITE_SECTOR; FUNCTION 62 - write a sector to drive
 00C099  1               ;
-00C099  1  70 C4                .WORD   drv_noop        ; FUNCTION 63 - init the mem device
-00C09B  1  70 C4                .WORD   drv_noop        ; FUNCTION 64 - read a sector from the memory device
-00C09D  1  70 C4                .WORD   drv_noop        ; FUNCTION 65 - write a sector to the memory device
+00C099  1  6D C4                .WORD   drv_noop        ; FUNCTION 63 - init the mem device
+00C09B  1  6D C4                .WORD   drv_noop        ; FUNCTION 64 - read a sector from the memory device
+00C09D  1  6D C4                .WORD   drv_noop        ; FUNCTION 65 - write a sector to the memory device
 00C09F  1               ;
-00C09F  1  70 C4                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
-00C0A1  1  70 C4                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
-00C0A3  1  70 C4                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
+00C09F  1  6D C4                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
+00C0A1  1  6D C4                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
+00C0A3  1  6D C4                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
 00C0A5  1               
 00C0A5  1               ;______________________________________________________________________________
 00C0A5  1               
@@ -464,6 +464,22 @@ Current file: dos65drv.asm
 00C0E7  2               
 00C0E7  2                       .IFDEF  PC6502BIOS
 00C0E7  2               XTIDE_INIT:
+00C0E7  2               ; RESET PORTS
+00C0E7  2                       LDX     #$00
+00C0E7  2                       LDA     #$FF
+00C0E7  2               :
+00C0E7  2                       STA     XTIDE_DATA_LO,X
+00C0E7  2                       INX
+00C0E7  2                       CPX     #$31
+00C0E7  2                       BNE     :-
+00C0E7  2               
+00C0E7  2                       LDX     #$00
+00C0E7  2                       LDA     #$00
+00C0E7  2               :
+00C0E7  2                       STA     XTIDE_DATA_LO,X
+00C0E7  2                       INX
+00C0E7  2                       CPX     #$31
+00C0E7  2                       BNE     :-
 00C0E7  2                       JSR     XTIDE_PROBE
 00C0E7  2                       LDA     #$E0            ; E0=MST  F0=SLV
 00C0E7  2                       STA     XTIDE_DEVICE
@@ -477,7 +493,6 @@ Current file: dos65drv.asm
 00C0E7  2                       LDA     #XTIDE_CMD_FEAT
 00C0E7  2                       STA     XTIDE_COMMAND
 00C0E7  2               :
-00C0E7  2               
 00C0E7  2                       RTS
 00C0E7  2                       .ENDIF
 00C0E7  2               
@@ -494,24 +509,24 @@ Current file: dos65drv.asm
 00C0E9  2               ;____________________________________________________________________________________________________
 00C0E9  2               ;
 00C0E9  2               XTIDE_INIT:
-00C0E9  2  20 71 C4             JSR     LFCR            ; AND CRLF
+00C0E9  2  20 6E C4             JSR     LFCR            ; AND CRLF
 00C0EC  2  A9 4D                LDA     #<MESSAGE1      ;
 00C0EE  2  85 41                STA     STRPTR          ;
 00C0F0  2  A9 C3                LDA     #>MESSAGE1      ;
 00C0F2  2  85 42                STA     STRPTR+1        ;
-00C0F4  2  20 7C C4             JSR     WRSTR
-00C0F7  2  20 71 C4             JSR     LFCR            ; AND CRLF
+00C0F4  2  20 79 C4             JSR     WRSTR
+00C0F7  2  20 6E C4             JSR     LFCR            ; AND CRLF
 00C0FA  2               ;
 00C0FA  2  A9 55                LDA     #<MESSAGE2      ;
 00C0FC  2  85 41                STA     STRPTR          ;
 00C0FE  2  A9 C3                LDA     #>MESSAGE2      ;
 00C100  2  85 42                STA     STRPTR+1        ;
-00C102  2  20 7C C4             JSR     WRSTR           ; DO PROMPT
+00C102  2  20 79 C4             JSR     WRSTR           ; DO PROMPT
 00C105  2               
 00C105  2  A9 E3                LDA     #>XTIDE_DATA_LO ; GET BASE PORT
-00C107  2  20 91 C4             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C107  2  20 8E C4             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C10A  2  A9 00                LDA     #<XTIDE_DATA_LO ; GET BASE PORT
-00C10C  2  20 91 C4             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C10C  2  20 8E C4             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C10F  2               ;
 00C10F  2  20 4B C1             JSR     XTIDE_PROBE     ; DETECT AN ATA DEVICE, ABORT IF NOT FOUND
 00C112  2  C9 00                CMP     #$00
@@ -522,22 +537,22 @@ Current file: dos65drv.asm
 00C11B  2  85 41                STA     STRPTR          ;
 00C11D  2  A9 C3                LDA     #>MESSAGE3      ;
 00C11F  2  85 42                STA     STRPTR+1        ;
-00C121  2  20 7C C4             JSR     WRSTR           ; DO PROMPT
+00C121  2  20 79 C4             JSR     WRSTR           ; DO PROMPT
 00C124  2  4C 4A C1             JMP     IDE_INITA
 00C127  2               IDE_PRINT_INFO:
-00C127  2  20 71 C4             JSR     LFCR            ; AND CRLF
+00C127  2  20 6E C4             JSR     LFCR            ; AND CRLF
 00C12A  2  A9 69                LDA     #<MESSAGE4      ;
 00C12C  2  85 41                STA     STRPTR          ;
 00C12E  2  A9 C3                LDA     #>MESSAGE4      ;
 00C130  2  85 42                STA     STRPTR+1        ;
-00C132  2  20 7C C4             JSR     WRSTR           ; DO PROMPT
+00C132  2  20 79 C4             JSR     WRSTR           ; DO PROMPT
 00C135  2  A9 00                LDA     #$00
 00C137  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
 00C13A  2  A9 7B                LDA     #<MESSAGE5      ;
 00C13C  2  85 41                STA     STRPTR          ;
 00C13E  2  A9 C3                LDA     #>MESSAGE5      ;
 00C140  2  85 42                STA     STRPTR+1        ;
-00C142  2  20 7C C4             JSR     WRSTR           ; DO PROMPT
+00C142  2  20 79 C4             JSR     WRSTR           ; DO PROMPT
 00C145  2  A9 01                LDA     #$01
 00C147  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
 00C14A  2               IDE_INITA:
@@ -663,27 +678,27 @@ Current file: dos65drv.asm
 00C1E5  2  85 41                STA     STRPTR          ;
 00C1E7  2  A9 C3                LDA     #>MESSAGE6      ;
 00C1E9  2  85 42                STA     STRPTR+1        ;
-00C1EB  2  20 7C C4             JSR     WRSTR
+00C1EB  2  20 79 C4             JSR     WRSTR
 00C1EE  2  AD 7B 04             LDA     hstbuf+123
-00C1F1  2  20 91 C4             JSR     PRINT_BYTE
+00C1F1  2  20 8E C4             JSR     PRINT_BYTE
 00C1F4  2  AD 7A 04             LDA     hstbuf+122
-00C1F7  2  20 91 C4             JSR     PRINT_BYTE
+00C1F7  2  20 8E C4             JSR     PRINT_BYTE
 00C1FA  2  AD 79 04             LDA     hstbuf+121
-00C1FD  2  20 91 C4             JSR     PRINT_BYTE
+00C1FD  2  20 8E C4             JSR     PRINT_BYTE
 00C200  2  AD 78 04             LDA     hstbuf+120
-00C203  2  20 91 C4             JSR     PRINT_BYTE
+00C203  2  20 8E C4             JSR     PRINT_BYTE
 00C206  2  4C 1A C2             JMP     IDE_READ_INFO_OK
 00C209  2               IDE_READ_INFO_ABORT:
 00C209  2  A9 5C                LDA     #<MESSAGE3      ;
 00C20B  2  85 41                STA     STRPTR          ;
 00C20D  2  A9 C3                LDA     #>MESSAGE3      ;
 00C20F  2  85 42                STA     STRPTR+1        ;
-00C211  2  20 7C C4             JSR     WRSTR           ;DO PROMPT
-00C214  2  20 71 C4             JSR     LFCR            ;AND CRLF
+00C211  2  20 79 C4             JSR     WRSTR           ;DO PROMPT
+00C214  2  20 6E C4             JSR     LFCR            ;AND CRLF
 00C217  2  A9 FF                LDA     #$FF
 00C219  2  60                   RTS                     ;
 00C21A  2               IDE_READ_INFO_OK:
-00C21A  2  20 71 C4             JSR     LFCR            ; AND CRLF
+00C21A  2  20 6E C4             JSR     LFCR            ; AND CRLF
 00C21D  2  A9 00                LDA     #$00
 00C21F  2  60                   RTS
 00C220  2                       .ENDIF
@@ -717,9 +732,7 @@ Current file: dos65drv.asm
 00C249  2  C9 00                CMP     #$00
 00C24B  2  D0 27                BNE     IDE_READ_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
 00C24D  2               IDE_READ_SECTOR_1:
-00C24D  2                       .IFNDEF PC6502BIOS
 00C24D  2  20 34 C4             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
-00C250  2                       .ENDIF
 00C250  2  A9 20                LDA     #XTIDE_CMD_READ
 00C252  2  8D 0E E3             STA     XTIDE_COMMAND
 00C255  2               
@@ -848,9 +861,7 @@ Current file: dos65drv.asm
 00C2F5  2  20 77 C2             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
 00C2F8  2  C9 00                CMP     #$00
 00C2FA  2  D0 27                BNE     IDE_WRITE_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
-00C2FC  2                       .IFNDEF PC6502BIOS
 00C2FC  2  20 34 C4             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
-00C2FF  2                       .ENDIF
 00C2FF  2  A9 30                LDA     #XTIDE_CMD_WRITE
 00C301  2  8D 0E E3             STA     XTIDE_COMMAND
 00C304  2  20 A4 C2             JSR     IDE_WAIT_DRQ    ;WAIT UNIT IT WANTS THE DATA
@@ -1014,6 +1025,8 @@ Current file: dos65drv.asm
 00C430  2  8D 11 06             STA     debcylm         ; the previous calculation
 00C433  2  60                   RTS
 00C434  2               
+00C434  2                       .ENDIF
+00C434  2               
 00C434  2               ;*__IDE_SETUP_LBA_____________________________________________________________________________________
 00C434  2               ;*
 00C434  2               ;*  SETUP LBA DATA
@@ -1027,120 +1040,191 @@ Current file: dos65drv.asm
 00C43B  2  0A                   ASL     a               ;
 00C43C  2  0A                   ASL     a               ;
 00C43D  2  09 E0                ORA     #$E0            ; E0=MST  F0=SLV
-00C43F  2  AA                   TAX
-00C440  2  A0 00                LDY     #$00
-00C442  2  8D 0C E3             STA     XTIDE_DEVICE
-00C445  2               
-00C445  2  AD 11 06             LDA     debcylm
-00C448  2  8D 0A E3             STA     XTIDE_LBAHI
-00C44B  2               
-00C44B  2  AD 10 06             LDA     debcyll
-00C44E  2  8D 08 E3             STA     XTIDE_LBAMID
-00C451  2               
-00C451  2  AD 12 06             LDA     debsehd
-00C454  2  8D 06 E3             STA     XTIDE_LBALOW
-00C457  2               
-00C457  2  A9 01                LDA     #$01
-00C459  2  8D 04 E3             STA     XTIDE_SEC_CNT
-00C45C  2  60                   RTS
-00C45D  2               
-00C45D  2                       .ENDIF
-00C45D  2               
-00C45D  2                       .IFDEF  PC6502BIOS
-00C45D  2               ; Boot System [B]
-00C45D  2               BOOT:
-00C45D  2                       BCS     BOOTX           ; exit with error if no parameter given
-00C45D  2                       LDA     TMP0
-00C45D  2                       AND     #$0F
-00C45D  2                       STA     DSKUNIT
-00C45D  2                       LDA     #$00
-00C45D  2                       STA     debcyll         ;
-00C45D  2                       STA     debcylm         ;
-00C45D  2                       STA     debsehd         ;
-00C45D  2                       JSR     GETPAR          ; get value for next byte of memory
-00C45D  2                       BCS     BOOTX           ; exit with error if no parameter given
-00C45D  2                       JSR     IDE_READ_SECTOR
-00C45D  2                       JMP     hstbuf
-00C45D  2               BOOTX:
-00C45D  2                       JMP     ERROR           ; back to main loop
-00C45D  2                       .ENDIF
-00C45D  2               
-00C45D  1               
-00C45D  1               
-00C45D  1               
-00C45D  1               
-00C45D  1               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
-00C45D  1               ;
-00C45D  1               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
-00C45D  1               ;________________________________________________________________________________________________________________________________
-00C45D  1               DFT_CONSOLE:
-00C45D  1  8D 6F C4             STA     drvtmp
-00C460  1  A5 3A                LDA     CONSOLE
-00C462  1  18                   CLC
-00C463  1  65 32                ADC     farfunct
-00C465  1  85 32                STA     farfunct
-00C467  1  68                   PLA
-00C468  1  68                   PLA
-00C469  1  AD 6F C4             LDA     drvtmp
-00C46C  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
-00C46F  1               drvtmp:
-00C46F  1  00                   .BYTE   00
-00C470  1               
-00C470  1               drv_noop:
-00C470  1  60                   RTS
-00C471  1               
-00C471  1               ;------------------------------------------------------------------------
-00C471  1               LFCR:
-00C471  1  A9 0A                LDA     #10
-00C473  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
-00C476  1  A9 0D                LDA     #13
-00C478  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
-00C47B  1  60                   RTS
-00C47C  1               
-00C47C  1               ;__WRSTR_______________________________________________________
-00C47C  1               ;
-00C47C  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00C47C  1               ;
-00C47C  1               ;______________________________________________________________
-00C47C  1               WRSTR:
-00C47C  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
-00C47E  1               OUTSTRLP:
-00C47E  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
-00C480  1  C9 00                CMP     #$00            ; IS NULL?
-00C482  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-00C484  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
-00C487  1  E6 41                INC     STRPTR
-00C489  1  D0 F3                BNE     OUTSTRLP
-00C48B  1  E6 42                INC     STRPTR+1
-00C48D  1  4C 7E C4             JMP     OUTSTRLP        ; DO NEXT CHAR
-00C490  1               ENDOUTSTR:
-00C490  1  60                   RTS                     ; RETURN
-00C491  1               
-00C491  1               PRINT_BYTE:
-00C491  1  8E B6 C4             STX     SAVX            ; save X
-00C494  1  20 A1 C4             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
-00C497  1  20 B5 C0             JSR     WRSER1          ; output upper nybble
-00C49A  1  8A                   TXA                     ; transfer lower to A
-00C49B  1  AE B6 C4             LDX     SAVX            ; restore X
-00C49E  1  4C B5 C0             JMP     WRSER1          ; output lower nybble
-00C4A1  1               ASCTWO:
-00C4A1  1  48                   PHA                     ; save byte
-00C4A2  1  20 AB C4             JSR     ASCII           ; do low nybble
-00C4A5  1  AA                   TAX                     ; save in X
-00C4A6  1  68                   PLA                     ; restore byte
-00C4A7  1  4A                   LSR     A               ; shift upper nybble down
-00C4A8  1  4A                   LSR     A
-00C4A9  1  4A                   LSR     A
-00C4AA  1  4A                   LSR     A
-00C4AB  1               ; convert low nybble in A to hex digit
-00C4AB  1               ASCII:
-00C4AB  1  29 0F                AND     #$0F            ; clear upper nibble
-00C4AD  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
-00C4AF  1  90 02                BCC     ASC1
-00C4B1  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
-00C4B3  1               ASC1:
-00C4B3  1  69 30                ADC     #$30            ; add ascii char 0 to value
-00C4B5  1  60                   RTS
-00C4B6  1               SAVX:
-00C4B6  1  00                   .BYTE   00
-00C4B6  1               
+00C43F  2  8D 0C E3             STA     XTIDE_DEVICE
+00C442  2               
+00C442  2  AD 11 06             LDA     debcylm
+00C445  2  8D 0A E3             STA     XTIDE_LBAHI
+00C448  2               
+00C448  2  AD 10 06             LDA     debcyll
+00C44B  2  8D 08 E3             STA     XTIDE_LBAMID
+00C44E  2               
+00C44E  2  AD 12 06             LDA     debsehd
+00C451  2  8D 06 E3             STA     XTIDE_LBALOW
+00C454  2               
+00C454  2  A9 01                LDA     #$01
+00C456  2  8D 04 E3             STA     XTIDE_SEC_CNT
+00C459  2  60                   RTS
+00C45A  2               
+00C45A  2                       .IFDEF  PC6502BIOS
+00C45A  2               ; Boot System [B]
+00C45A  2               BOOT:
+00C45A  2                       JSR     XTIDE_INIT      ; INIT IDE
+00C45A  2                                               ; SETUP LOCATION
+00C45A  2                       LDA     #$00
+00C45A  2                       STA     debcyll         ;
+00C45A  2                       STA     debcylm         ;
+00C45A  2                       STA     debsehd         ;
+00C45A  2                       STA     currentDrive    ;
+00C45A  2                       STA     SRC             ; SETUP SOURCE AND DEST POINTERS
+00C45A  2                       STA     DEST
+00C45A  2                       LDA     #$04
+00C45A  2                       STA     SRC+1
+00C45A  2                       LDA     #$08
+00C45A  2                       STA     DEST+1
+00C45A  2               
+00C45A  2               BOOT1:
+00C45A  2                       JSR     IDE_READ_SECTOR ; READ THE SECTOR
+00C45A  2                       CMP     #$00
+00C45A  2                       BNE     BOOTX
+00C45A  2                       LDY     #$00
+00C45A  2               :
+00C45A  2                       LDA     (SRC),Y
+00C45A  2                       STA     (DEST),Y
+00C45A  2                       INY
+00C45A  2                       CPY     #$00
+00C45A  2                       BNE     :-
+00C45A  2                       INC     SRC+1
+00C45A  2                       INC     DEST+1
+00C45A  2               :
+00C45A  2                       LDA     (SRC),Y
+00C45A  2                       STA     (DEST),Y
+00C45A  2                       INY
+00C45A  2                       CPY     #$00
+00C45A  2                       BNE     :-
+00C45A  2                       INC     DEST+1
+00C45A  2                       LDA     #$04
+00C45A  2                       STA     SRC+1
+00C45A  2                       INC     debsehd
+00C45A  2                       LDA     DEST+1
+00C45A  2                       CMP     #$80
+00C45A  2                       BNE     BOOT1
+00C45A  2                       JMP     $0800
+00C45A  2               BOOTX:
+00C45A  2                       JMP     ERROR           ; back to main loop
+00C45A  2               
+00C45A  2               WBOOT:
+00C45A  2                       JSR     XTIDE_INIT      ; INIT IDE
+00C45A  2                                               ; SETUP LOCATION
+00C45A  2                       LDA     #$00
+00C45A  2                       STA     debcyll         ;
+00C45A  2                       STA     debcylm         ;
+00C45A  2                       STA     debsehd         ;
+00C45A  2                       STA     currentDrive    ;
+00C45A  2                       STA     SRC             ; SETUP SOURCE AND DEST POINTERS
+00C45A  2                       STA     DEST
+00C45A  2                       LDA     #$08
+00C45A  2                       STA     SRC+1
+00C45A  2                       LDA     #$04
+00C45A  2                       STA     DEST+1
+00C45A  2               
+00C45A  2               BOOTW1:
+00C45A  2                       LDY     #$00
+00C45A  2               :
+00C45A  2                       LDA     (SRC),Y
+00C45A  2                       STA     (DEST),Y
+00C45A  2                       INY
+00C45A  2                       CPY     #$00
+00C45A  2                       BNE     :-
+00C45A  2                       INC     SRC+1
+00C45A  2                       INC     DEST+1
+00C45A  2               :
+00C45A  2                       LDA     (SRC),Y
+00C45A  2                       STA     (DEST),Y
+00C45A  2                       INY
+00C45A  2                       CPY     #$00
+00C45A  2                       BNE     :-
+00C45A  2               
+00C45A  2                       JSR     IDE_WRITE_SECTOR; READ THE SECTOR
+00C45A  2                       CMP     #$00
+00C45A  2                       BNE     BOOTX
+00C45A  2               
+00C45A  2                       INC     SRC+1
+00C45A  2                       LDA     #$04
+00C45A  2                       STA     DEST+1
+00C45A  2                       INC     debsehd
+00C45A  2                       LDA     SRC+1
+00C45A  2                       CMP     #$80
+00C45A  2                       BNE     BOOTW1
+00C45A  2                       BRK
+00C45A  2               
+00C45A  2                       .ENDIF
+00C45A  2               
+00C45A  1               
+00C45A  1               
+00C45A  1               
+00C45A  1               
+00C45A  1               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
+00C45A  1               ;
+00C45A  1               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
+00C45A  1               ;________________________________________________________________________________________________________________________________
+00C45A  1               DFT_CONSOLE:
+00C45A  1  8D 6C C4             STA     drvtmp
+00C45D  1  A5 3A                LDA     CONSOLE
+00C45F  1  18                   CLC
+00C460  1  65 32                ADC     farfunct
+00C462  1  85 32                STA     farfunct
+00C464  1  68                   PLA
+00C465  1  68                   PLA
+00C466  1  AD 6C C4             LDA     drvtmp
+00C469  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
+00C46C  1               drvtmp:
+00C46C  1  00                   .BYTE   00
+00C46D  1               
+00C46D  1               drv_noop:
+00C46D  1  60                   RTS
+00C46E  1               
+00C46E  1               ;------------------------------------------------------------------------
+00C46E  1               LFCR:
+00C46E  1  A9 0A                LDA     #10
+00C470  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
+00C473  1  A9 0D                LDA     #13
+00C475  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
+00C478  1  60                   RTS
+00C479  1               
+00C479  1               ;__WRSTR_______________________________________________________
+00C479  1               ;
+00C479  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00C479  1               ;
+00C479  1               ;______________________________________________________________
+00C479  1               WRSTR:
+00C479  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+00C47B  1               OUTSTRLP:
+00C47B  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+00C47D  1  C9 00                CMP     #$00            ; IS NULL?
+00C47F  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00C481  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
+00C484  1  E6 41                INC     STRPTR
+00C486  1  D0 F3                BNE     OUTSTRLP
+00C488  1  E6 42                INC     STRPTR+1
+00C48A  1  4C 7B C4             JMP     OUTSTRLP        ; DO NEXT CHAR
+00C48D  1               ENDOUTSTR:
+00C48D  1  60                   RTS                     ; RETURN
+00C48E  1               
+00C48E  1               PRINT_BYTE:
+00C48E  1  8E B3 C4             STX     SAVX            ; save X
+00C491  1  20 9E C4             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
+00C494  1  20 B5 C0             JSR     WRSER1          ; output upper nybble
+00C497  1  8A                   TXA                     ; transfer lower to A
+00C498  1  AE B3 C4             LDX     SAVX            ; restore X
+00C49B  1  4C B5 C0             JMP     WRSER1          ; output lower nybble
+00C49E  1               ASCTWO:
+00C49E  1  48                   PHA                     ; save byte
+00C49F  1  20 A8 C4             JSR     ASCII           ; do low nybble
+00C4A2  1  AA                   TAX                     ; save in X
+00C4A3  1  68                   PLA                     ; restore byte
+00C4A4  1  4A                   LSR     A               ; shift upper nybble down
+00C4A5  1  4A                   LSR     A
+00C4A6  1  4A                   LSR     A
+00C4A7  1  4A                   LSR     A
+00C4A8  1               ; convert low nybble in A to hex digit
+00C4A8  1               ASCII:
+00C4A8  1  29 0F                AND     #$0F            ; clear upper nibble
+00C4AA  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
+00C4AC  1  90 02                BCC     ASC1
+00C4AE  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
+00C4B0  1               ASC1:
+00C4B0  1  69 30                ADC     #$30            ; add ascii char 0 to value
+00C4B2  1  60                   RTS
+00C4B3  1               SAVX:
+00C4B3  1  00                   .BYTE   00
+00C4B3  1               

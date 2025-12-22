@@ -252,7 +252,7 @@ read:
 ;SD
         .IFDEF  DUODYNE
         .ELSE
-        .IFNDEF  PC6502
+        .IFNDEF PC6502
         JSR     CONVERT_SECTOR_LBA
         .ENDIF
         .ENDIF
@@ -267,7 +267,7 @@ read:
 ;FD
         .IFDEF  DUODYNE
         .ELSE
-        .IFNDEF  PC6502
+        .IFNDEF PC6502
         JSR     SETUP_FD_CHS
         .ENDIF
         .ENDIF
@@ -282,7 +282,7 @@ read:
 ;PPIDE
         .IFDEF  DUODYNE
         .ELSE
-        .IFNDEF  PC6502
+        .IFNDEF PC6502
         JSR     CONVERT_SECTOR_LBA
         .ENDIF
         .ENDIF
@@ -321,7 +321,7 @@ write:
 ;SD
         .IFDEF  DUODYNE
         .ELSE
-        .IFNDEF  PC6502
+        .IFNDEF PC6502
         JSR     CONVERT_SECTOR_LBA
         .ENDIF
         .ENDIF
@@ -341,7 +341,7 @@ write:
 ;FD
         .IFDEF  DUODYNE
         .ELSE
-        .IFNDEF  PC6502
+        .IFNDEF PC6502
         JSR     SETUP_FD_CHS
         .ENDIF
         .ENDIF
@@ -359,7 +359,7 @@ write:
 ;PPIDE
         .IFDEF  DUODYNE
         .ELSE
-        .IFNDEF  PC6502
+        .IFNDEF PC6502
         JSR     CONVERT_SECTOR_LBA
         .ENDIF
         .ENDIF
@@ -455,7 +455,7 @@ ENDOUTSTR:
 
         .IFDEF  DUODYNE
         .ELSE
-        .IFNDEF  PC6502
+        .IFNDEF PC6502
 ;___CONVERT_SECTOR_LBA___________________________________________________________________________________
 ;
 ; 	TRANSLATE LBA SECTORS
