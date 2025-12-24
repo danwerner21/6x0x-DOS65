@@ -3178,7 +3178,7 @@ INTLZ
         JMP     INSCAN
 ;MAIN PROGRAM
 MAIN
-        LDX     #2              ;clear page zero
+        LDX     #$40            ;clear page zero
         LDA     #0
 PZC
         .IFDEF  DUODYNE
@@ -3279,9 +3279,9 @@ M20
         STX     INDEX           ;index=0
 M22
         .IFDEF  DUODYNE
-        STA     F:ACCUM,X       ;store it
+        LDA     F:ACCUM,X       ;store it
         .ELSE
-        STA     ACCUM,X         ;store it
+        LDA     ACCUM,X         ;store it
         .ENDIF
         JSR     STVRCI
         INC     INDEX           ;index=index+1

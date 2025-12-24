@@ -3574,7 +3574,7 @@ Current file: compl203.asm
 002224  1  4C 1A 0B             JMP     INSCAN
 002227  1               ;MAIN PROGRAM
 002227  1               MAIN
-002227  1  A2 02                LDX     #2              ;clear page zero
+002227  1  A2 40                LDX     #$40            ;clear page zero
 002229  1  A9 00                LDA     #0
 00222B  1               PZC
 00222B  1                       .IFDEF  DUODYNE
@@ -3678,9 +3678,9 @@ Current file: compl203.asm
 0022F9  1  86 9E                STX     INDEX           ;index=0
 0022FB  1               M22
 0022FB  1                       .IFDEF  DUODYNE
-0022FB  1  9F 4E 00 00          STA     F:ACCUM,X       ;store it
+0022FB  1  BF 4E 00 00          LDA     F:ACCUM,X       ;store it
 0022FF  1                       .ELSE
-0022FF  1                       STA     ACCUM,X         ;store it
+0022FF  1                       LDA     ACCUM,X         ;store it
 0022FF  1                       .ENDIF
 0022FF  1  20 0C 22             JSR     STVRCI
 002302  1  E6 9E                INC     INDEX           ;index=index+1

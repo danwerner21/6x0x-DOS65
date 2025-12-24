@@ -75,7 +75,7 @@ static const unsigned short crc16tab[256] = {
     0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
     0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0};
 
-unsigned char _inbyte(unsigned int timeout)
+unsigned char _inbyte(unsigned int timeout,unsigned char d)
 {
     int i;
     while (timeout--)
@@ -110,6 +110,7 @@ static int check(int crc, const unsigned char *buf, int sz)
     {
         unsigned short crc = crc16_ccitt(buf, sz);
         unsigned short tcrc = (buf[sz] << 8) + buf[sz + 1];
+
         if (crc == tcrc)
             return 1;
     }
@@ -121,6 +122,7 @@ static int check(int crc, const unsigned char *buf, int sz)
         {
             cks += buf[i];
         }
+
         if (cks == buf[sz])
             return 1;
     }
@@ -130,7 +132,7 @@ static int check(int crc, const unsigned char *buf, int sz)
 
 static void flushinput(void)
 {
-    while (_inbyte(DLY_1S) > 0)
+    while (_inbyte(DLY_1S,3) > 0)
         continue;
 }
 
@@ -149,7 +151,7 @@ int xmodemReceive()
         { // approx 30 seconds allowed to make connection
             if (trychar)
                 cputserial(trychar);
-            if ((c = _inbyte(DLY_1S)))
+            if ((c = _inbyte(DLY_1S,2)))
             {
                 switch (c)
                 {
@@ -164,7 +166,7 @@ int xmodemReceive()
                     cputserial(ACK);
                     return len; /* normal end */
                 case CAN:
-                    if ((c = _inbyte(DLY_1S)) == CAN)
+                    if ((c = _inbyte(DLY_1S,1)) == CAN)
                     {
                         flushinput();
                         cputserial(ACK);
@@ -195,18 +197,20 @@ int xmodemReceive()
         *p++ = c;
         for (i = 0; i < (bufsz + (crc ? 1 : 0) + 3); ++i)
         {
-            if ((c = _inbyte(DLY_1S)) < 0)
+            if ((c = _inbyte(DLY_1S,0)) < 0)
                 goto reject;
             *p++ = c;
         }
 
-        if (xbuff[1] == (unsigned char)(~xbuff[2]) &&
-            (xbuff[1] == packetno || xbuff[1] == (unsigned char)packetno - 1) &&
+        //if (xbuff[1] == (unsigned char)(~xbuff[2]) &&
+       //     (xbuff[1] == packetno || xbuff[1] == (unsigned char)packetno - 1) &&
+       //     check(crc, &xbuff[3], bufsz))
+
+       if ((xbuff[1] == packetno || xbuff[1] == (unsigned char)packetno - 1) &&
             check(crc, &xbuff[3], bufsz))
         {
             if (xbuff[1] == packetno)
             {
-
                 if (bufsz == 128)
                 {
                     // xmemcpy (&dest[len], &xbuff[3], count);
@@ -287,6 +291,7 @@ int xmodemReceive()
 int main(void)
 {
     int st;
+    int c;
 
     cprintf("\n\rSend data using the xmodem protocol from your terminal emulator now...\n\r");
 

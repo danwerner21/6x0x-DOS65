@@ -88,7 +88,7 @@ VERNUM:
 ; --------------------------
 
 MEMTOP:
-        LDA     #$CF            ; IT'S A GIVEN
+        LDA     #$B7            ; IT'S A GIVEN
         RTS
 
 ; --------------------------------

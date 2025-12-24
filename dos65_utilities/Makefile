@@ -122,6 +122,8 @@ bcompile.com: bcompile.out
 	sed -i -e '$$aS9' bcompile.s19
 	cp bcompile.com ../bin/6x0x/
 	cp bcompile.s19 ../bin/6x0x/
+	cp bcompile.com ../bin/6502PC/
+	cp bcompile.s19 ../bin/6502PC/
 	cp bcompile.com ../bin/nhyodyne/
 	cp bcompile.s19 ../bin/nhyodyne/
 	cp bcompile.com ../bin/duodyne02/

@@ -47,22 +47,22 @@ DFLFCB          = $107
 DFLBUF          = $128
 ;PAGE ZERO VARIABLES
 
-N               = $02           ;COUNT IN SORT
-PASNUM          = $04           ;PASS NUMBER
-SRCIND          = $05           ;SOURCE BUFFER INDEX
-KIMIND          = $07           ;KIM BUFFER INDEX
-LSTIND          = $09           ;LIST BUFFER INDEX
-STSAVE          = $0B           ;SYMBOL TABLE START
-TBLSZ           = $0D           ;SYMBOL TABLE END
-SYMTBL          = $0F           ;ADDRESS OF SYMBOL FOUND
-OPRTBL          = $11           ;ADDRESS OF OPCODE IN TABLE
-TBLPTR          = $13           ;USED IN ASSEMBLER DIRECTIVE SEARCHES
-COLCNT          = $15           ;COLUMN COUNT
-LINENO          = $16           ;LINE NUMBER (HL)
-NOSYM           = $18           ;NUMBER SYMBOLS (HL)
-ERCT            = $1A           ;TOTAL ERROR COUNT (HL)
-PC              = $1C           ;PROGRAM COUNTER
-FLAGS           = $1E           ;SET OF FLAGS
+N               = $42           ;COUNT IN SORT
+PASNUM          = $44           ;PASS NUMBER
+SRCIND          = $45           ;SOURCE BUFFER INDEX
+KIMIND          = $47           ;KIM BUFFER INDEX
+LSTIND          = $49           ;LIST BUFFER INDEX
+STSAVE          = $4B           ;SYMBOL TABLE START
+TBLSZ           = $4D           ;SYMBOL TABLE END
+SYMTBL          = $4F           ;ADDRESS OF SYMBOL FOUND
+OPRTBL          = $51           ;ADDRESS OF OPCODE IN TABLE
+TBLPTR          = $53           ;USED IN ASSEMBLER DIRECTIVE SEARCHES
+COLCNT          = $55           ;COLUMN COUNT
+LINENO          = $56           ;LINE NUMBER (HL)
+NOSYM           = $58           ;NUMBER SYMBOLS (HL)
+ERCT            = $5A           ;TOTAL ERROR COUNT (HL)
+PC              = $5C           ;PROGRAM COUNTER
+FLAGS           = $5E           ;SET OF FLAGS
 ;FLAG BIT FUNCTIONS
 ; FLAG	(7)	IF 1 THEN DO NOT GENERATE STRINGS
 ;	(6)	IF 1 THEN LIST SYMBOL TABLE
@@ -80,61 +80,61 @@ FLAGS           = $1E           ;SET OF FLAGS
 ;	(2)
 ;	(1)	SIGN BIT
 ;	(0)	EXP SIGN BIT
-COLP            = $20           ;CURRENT COLUMN
-CSB             = $21           ;CURRENT STRING BEGINNING
-CSE             = $22           ;CURRENT STRING END
-CSL             = $23           ;CURRENT STRING LENGTH
-LSST            = $24           ;START OF LABEL
-EXP             = $25           ;VALUE OF EXPRESSION (HL)
-PARST           = $27           ;PARSE STARTING COLUMN
-MAXCL           = $28           ;MAX COLUMN IN LINE
-LABL            = $29           ;FLAG SET IF LABEL IN LINE
-ORG             = $2A           ;FLAG SET IF ORG IN LINE
-BYWOR           = $2B           ;BYTE/WORD FLAG
-LCDPT           = $2C           ;MULTIPLE LINES FLAG
-SYMPTR          = $2D           ;CURRENT # SYMBOLS SEARCHED IN FIND
-LEN             = $2F           ;LENGTH OF STRING TO BE PACKED
-BASE            = $30           ;BASE OF NUMBER
-OP              = $31           ;NEXT OPERATOR IN EVAL
-LOW             = $32           ;< FLAG
-HIGH            = $33           ;> FLAG
-VAL             = $34           ;INTERMEDIATE VALUE IN EVAL (HL)
-RETURN          = $36           ;RETURN CODE
-OPBAS           = $37           ;BASE OPCODE
-OPTEM           = $38           ;OPCODE TEMPLATE
-OPLEN           = $39           ;OPERAND LENGTH
-OPTYP           = $3A           ;OPERAND TYPE
-NOPV            = $3B           ;FLAG FOR NO OPERAND VALUE
-J               = $3C           ;UTILITY VARIABLE
-ERCOL           = $3D           ;COLUMN WITH ERROR
-EROR            = $3E           ;ERROR NUMBER
-TEMP            = $3F           ;UTILITY VARIABLE
-TEMB            = $41           ;UTILITY VARIABLE
-LTBL            = $43           ;LENGTH TABLE - INFO BUFFER
-SRTFLG          = $48           ;SORT FLAG
-CURADR          = $49           ;CURRENT SYMBOL FOR SORT
-NXTADR          = $4B           ;NEXT SYMBOL FOR SORT
-BYTCNT          = $4D           ;KIM RECORD BYTE COUNT
-FRSTPC          = $4E           ;FIRST PC IN KIM RECORD
-KIMREC          = $50           ;KIM RECORD BUFFER
-CHKSUM          = $68           ;KIM RECORD CHECKSUM
-CURNPC          = $6A           ;CURRENT KIM PC
-CDEPTR          = $6C           ;CODE POINTER
-SAVE            = $6E           ;SAVE FOR X AND Y
-ACC             = $70           ;MUL AND DIV ACCUM
-KINDEX          = $72           ;KIM RECORD INDEX
-KIMCNT          = $73           ;KIM CODE COUNT
-RDSCCN          = $74           ;READ SOURCE SECTOR COUNT
-LNGKIM          = $75           ;LENGTH OF BUFFER AT WRITE
-LNGLST          = $77           ;LENGTH OF LIST BUFFER
-MPNT            = $79           ;POINTER FOR STRING WRITE
-MAXECH          = $7B           ;LAST ECHO POSITION
-STRING          = $7C           ;LOWERCASE FLAG
-LSTFLG          = $7D           ;LIST FILE TO CONSOLE IF > 127
-NLSFLG          = $7E           ;NO LIST FILE OUTPUT IF > 127
-NKMFLG          = $7F           ;NO KIM FILE OUTPUT IF > 127
-STRDEL          = $80           ;STRING DELIMITER IN .BYT
-LASTZP          = $81
+COLP            = $60           ;CURRENT COLUMN
+CSB             = $61           ;CURRENT STRING BEGINNING
+CSE             = $62           ;CURRENT STRING END
+CSL             = $63           ;CURRENT STRING LENGTH
+LSST            = $64           ;START OF LABEL
+EXP             = $65           ;VALUE OF EXPRESSION (HL)
+PARST           = $67           ;PARSE STARTING COLUMN
+MAXCL           = $68           ;MAX COLUMN IN LINE
+LABL            = $69           ;FLAG SET IF LABEL IN LINE
+ORG             = $6A           ;FLAG SET IF ORG IN LINE
+BYWOR           = $6B           ;BYTE/WORD FLAG
+LCDPT           = $6C           ;MULTIPLE LINES FLAG
+SYMPTR          = $6D           ;CURRENT # SYMBOLS SEARCHED IN FIND
+LEN             = $6F           ;LENGTH OF STRING TO BE PACKED
+BASE            = $70           ;BASE OF NUMBER
+OP              = $71           ;NEXT OPERATOR IN EVAL
+LOW             = $72           ;< FLAG
+HIGH            = $73           ;> FLAG
+VAL             = $74           ;INTERMEDIATE VALUE IN EVAL (HL)
+RETURN          = $76           ;RETURN CODE
+OPBAS           = $77           ;BASE OPCODE
+OPTEM           = $78           ;OPCODE TEMPLATE
+OPLEN           = $79           ;OPERAND LENGTH
+OPTYP           = $7A           ;OPERAND TYPE
+NOPV            = $7B           ;FLAG FOR NO OPERAND VALUE
+J               = $7C           ;UTILITY VARIABLE
+ERCOL           = $7D           ;COLUMN WITH ERROR
+EROR            = $7E           ;ERROR NUMBER
+TEMP            = $7F           ;UTILITY VARIABLE
+TEMB            = $81           ;UTILITY VARIABLE
+LTBL            = $83           ;LENGTH TABLE - INFO BUFFER
+SRTFLG          = $88           ;SORT FLAG
+CURADR          = $89           ;CURRENT SYMBOL FOR SORT
+NXTADR          = $8B           ;NEXT SYMBOL FOR SORT
+BYTCNT          = $8D           ;KIM RECORD BYTE COUNT
+FRSTPC          = $8E           ;FIRST PC IN KIM RECORD
+KIMREC          = $90           ;KIM RECORD BUFFER
+CHKSUM          = $A8           ;KIM RECORD CHECKSUM
+CURNPC          = $AA           ;CURRENT KIM PC
+CDEPTR          = $AC           ;CODE POINTER
+SAVE            = $AE           ;SAVE FOR X AND Y
+ACC             = $B0           ;MUL AND DIV ACCUM
+KINDEX          = $B2           ;KIM RECORD INDEX
+KIMCNT          = $B3           ;KIM CODE COUNT
+RDSCCN          = $B4           ;READ SOURCE SECTOR COUNT
+LNGKIM          = $B5           ;LENGTH OF BUFFER AT WRITE
+LNGLST          = $B7           ;LENGTH OF LIST BUFFER
+MPNT            = $B9           ;POINTER FOR STRING WRITE
+MAXECH          = $BB           ;LAST ECHO POSITION
+STRING          = $BC           ;LOWERCASE FLAG
+LSTFLG          = $BD           ;LIST FILE TO CONSOLE IF > 127
+NLSFLG          = $BE           ;NO LIST FILE OUTPUT IF > 127
+NKMFLG          = $BF           ;NO KIM FILE OUTPUT IF > 127
+STRDEL          = $C0           ;STRING DELIMITER IN .BYT
+LASTZP          = $C1
 ;ENTRY POINT
         .SEGMENT "TEA"
         .ORG    $0800
@@ -2903,7 +2903,7 @@ MAIN:
         LDY     #>STRMSG        ;START MESSAGE
         JSR     WRCNMS          ;WRITE IT
 ;CLEAR PAGE ZERO
-        LDX     #2              ;SET INDEX
+        LDX     #$40            ;SET INDEX
         LDA     #0              ;CLEAR A
 CLRZP:
         STA     $00,X           ;CLEAR MEM

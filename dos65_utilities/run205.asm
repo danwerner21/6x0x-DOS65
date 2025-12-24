@@ -5498,7 +5498,7 @@ GETPRM
 ;MAIN BUILD ROUTINE
 BUILD
 ;CLEAR ALL OF PAGE ZERO
-        LDX     #2
+        LDX     #60
         LDA     #0
 CLRZP
         STA     0,X

@@ -5646,7 +5646,7 @@ Current file: run205.asm
 0030C0  1               ;MAIN BUILD ROUTINE
 0030C0  1               BUILD
 0030C0  1               ;CLEAR ALL OF PAGE ZERO
-0030C0  1  A2 02                LDX     #2
+0030C0  1  A2 3C                LDX     #60
 0030C2  1  A9 00                LDA     #0
 0030C4  1               CLRZP
 0030C4  1  95 00                STA     0,X

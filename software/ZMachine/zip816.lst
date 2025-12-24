@@ -4093,7 +4093,7 @@ Current file: zip.asm
 001E55  2               ; --------------------------
 001E55  2               
 001E55  2               MEMTOP:
-001E55  2  A9 CF                LDA     #$CF            ; IT'S A GIVEN
+001E55  2  A9 B7                LDA     #$B7            ; IT'S A GIVEN
 001E57  2  60                   RTS
 001E58  2               
 001E58  2               ; --------------------------------
