@@ -87,8 +87,5 @@ Current file: loader.asm
 000857  1  A9 00                LDA     #$00
 000859  1  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
 00085C  1               
-00085C  1  A9 04                LDA     #$04            ; ENSURE CONSOLE IS SET TO RATIONAL VALUE
-00085E  1  85 3A                STA     $3A
-000860  1               
-000860  1  4C 00 B8             JMP     $B800           ; BOOT IT UP
-000860  1               
+00085C  1  4C 00 B8             JMP     $B800           ; BOOT IT UP
+00085C  1               

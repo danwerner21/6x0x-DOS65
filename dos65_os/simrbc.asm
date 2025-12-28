@@ -82,6 +82,10 @@ boot:
         CPX     #$10
         BNE     :-
 
+        LDA     #13             ; Video INITIALIZE
+        STA     farfunct
+        JSR     DO_FARCALL
+
         LDA     #40             ; DSKY INITIALIZE
         STA     farfunct
         JSR     DO_FARCALL
@@ -101,6 +105,11 @@ boot:
         LDA     #66             ; FLOPPY INITIALIZE
         STA     farfunct
         JSR     DO_FARCALL
+
+        LDA     #36             ; MULTI IO INITIALIZE
+        STA     farfunct
+        JSR     DO_FARCALL
+
 
 wboot:
         .IFDEF  DUODYNE
@@ -307,11 +316,11 @@ write:
         CMP     #$00
         BNE     :+              ; not MD drive
 ;MD
-        LDA     #64             ;PPP_READ_SECTOR
+        LDA     #64             ;READ_SECTOR
         STA     farfunct
         JSR     DO_FARCALL
         JSR     BLKSECR
-        LDA     #65             ;PPP_WRITE_SECTOR
+        LDA     #65             ;WRITE_SECTOR
         STA     farfunct
         JSR     DO_FARCALL
         RTS
@@ -326,11 +335,11 @@ write:
         .ENDIF
         .ENDIF
 
-        LDA     #64             ;PPP_READ_SECTOR
+        LDA     #64             ;READ_SECTOR
         STA     farfunct
         JSR     DO_FARCALL
         JSR     BLKSECR
-        LDA     #65             ;PPP_WRITE_SECTOR
+        LDA     #65             ;WRITE_SECTOR
         STA     farfunct
         JSR     DO_FARCALL
         RTS
@@ -420,14 +429,23 @@ conwrt:
         JMP     DO_FARCALL
 
 prnwrt:
+        PHA
+        LDA     #34             ; LPT OUT BYTE
+        STA     farfunct
+        PLA
+        JSR     DO_FARCALL
         RTS                     ;printer
+
 punwrt:
         RTS                     ;punch output
+
 rdrinp:
         RTS                     ;reader input
+
 rdtime:
         LDX     #128
         RTS                     ;read clock
+
 xlate:
         RTS                     ;sector translate
 
@@ -868,15 +886,12 @@ dcbh:
 dftdskcfg:
         .BYTE   $30, $00        ; disk A: unit, slice (invalid for floppy disks) XT-IDE
         .BYTE   $30, $01        ; disk B: unit, slice (invalid for floppy disks) XT-IDE
-        .BYTE   $90, $00        ; disk C: unit, slice (invalid for floppy disks)
-        .BYTE   $90, $00        ; disk D: unit, slice (invalid for floppy disks)
+        .BYTE   $10, $00        ; disk C: unit, slice (invalid for floppy disks)
+        .BYTE   $10, $01        ; disk D: unit, slice (invalid for floppy disks)
         .BYTE   $90, $00        ; disk E: unit, slice (invalid for floppy disks)
         .BYTE   $90, $00        ; disk F: unit, slice (invalid for floppy disks)
         .BYTE   $90, $00        ; disk G: unit, slice (invalid for floppy disks)
         .BYTE   $90, $00        ; disk H: unit, slice (invalid for floppy disks)
-
-
-
         .ENDIF
 
 

@@ -11,16 +11,21 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-* UPDATE docs FOR NHYODYNE
-* UPDATE docs for 6809PC
-* Make assign system independent
-* Make format system independent
-* Add RTC support for NHYODYNE
-* add RTC support for 6809PC
-* Add ROM support for NHYODYNE
-* re-test entire system for both targets
+1. add RTC support for 6502PC
+1. add console boot support for 6502PC
+1. TEST MULTI IO PS2 SUPPORT (INIT BUG?)
+1. ADD IEC SUPPORT
+1. UPDATE docs for 6502PC
+1. Make assign system independent
+1. Make format system independent
+1. re-test entire system for all targets
+1. UPDATE docs FOR NHYODYNE
+1. Add RTC support for NHYODYNE
+1. Add ROM support for NHYODYNE
 
-
+1. Add Dbasic Graphics support for 6502PC
+1. Clean Up SEDIT bugs
+1. ADD A NEW CLEAR DIRECTORY PROGRAM
 1. add dbasic docs
 1. add xmr & xms docs
 1. add FORMAT.COM docs
@@ -34,19 +39,18 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. add images of backplane in an atx case
 1. add 6x0x backplane repo to wiki
 1. MD support FOR 6X0X
+1. RAMDISK support FOR 6502PC
 
 1. IO ASSIGNMENT?
- * prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
- * punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
- * rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+1. prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
+1. punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
+1. rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
 
 
 ## BUGS
 1. sedit does not paint properly on console (colors)
 1. DSKY GETKEY DISPLAY BUG
 1. POSSIBLE? FD0 Software bug (fd1 works fine . . )
-1. Duodyne basic compiler issues (problem with string literals)
-1. duodyne basic run time fails
 1. sedit needs to be terminal independent and has bugs
 
 ---

@@ -1,7 +1,7 @@
 
 all:  	assign.com alloc.com asm.com \
 	bcompile.com bcomp816.com compare.com copy.com debug.com edit.com run.com sedit.com cpm.co6 \
-	dbasic.com dbasic816.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com clrdir.s19
+	dbasic.com dbasic816.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com clrdir.com
 
 
 assign.com: assign.c
@@ -157,10 +157,13 @@ asm.com: asm.out
 	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  asm.com 0:asm.co6
 
 
-clrdir.s19: clrdir.out
+clrdir.com: clrdir.out
 	srec_cat  clrdir.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  clrdir.s19  -data-only
+	srec_cat  clrdir.s19  -offset -0x0800  -o  clrdirA.s  -data-only
+	srec_cat  clrdirA.s -o clrdir.com  -BINARY
+	@rm -f clrdirA.s
 	sed -i -e '$$aS9' clrdir.s19
-	cp clrdir.s19 ../bin/common/
+	cp clrdir.com ../bin/common/
 
 compare.com: compare.out
 	srec_cat  compare.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  compare.s19  -data-only

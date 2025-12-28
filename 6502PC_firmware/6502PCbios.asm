@@ -29,8 +29,20 @@ COLD_START:
         LDX     #$FF            ;
         TXS                     ; CLEAR STACK
         TXA
+;                                 STARTUP DELAY
+        LDX     #$00
+        LDY     #$00
+:
+        DEX
+        CPX     #$00
+        BNE     :-
+        DEY
+        CPY     #$00
+        BNE     :-
+;
+        LDA     #$04            ; SET CONSOLE
+        STA     CONSOLE         ;
 ;;;
-
         LDA     #<IRQROUTINE
         STA     IRQVECTOR
         STA     NMIVECTOR
@@ -95,8 +107,51 @@ NINTERRUPT:
         .INCLUDE "../supermon/supermon.asm"
         .INCLUDE "bios_serial.asm"
         .INCLUDE "bios_ide.asm"
+        .INCLUDE "bios_esp.asm"
         .INCLUDE "bios_pager.ASM"
 
+;__IOF_OUTCH___________________________________________________
+;
+; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+;
+;______________________________________________________________
+IOF_OUTCH:
+        PHA
+        LDA     CONSOLE
+        CMP     #$09
+        BNE     :+
+        PLA
+        JMP     ESPVIDEOOUT
+:
+        PLA
+        JMP     WRSER1
+
+;__IOF_CONIN___________________________________________________
+;
+; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+;
+;______________________________________________________________
+IOF_CONIN:
+        LDA     CONSOLE
+        CMP     #$09
+        BNE     :+
+        JMP     ESPPS2IN
+:
+        JMP     RDSER1
+
+
+;__IOF_CONINW__________________________________________________
+;
+; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+;
+;______________________________________________________________
+IOF_CONINW:
+        LDA     CONSOLE
+        CMP     #$09
+        BNE     :+
+        JMP     ESPPS2INW
+:
+        JMP     RDSER1W
 
 ;__OUTSTR______________________________________________________
 ;

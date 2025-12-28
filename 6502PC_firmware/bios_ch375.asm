@@ -8,8 +8,6 @@
 ;		CH_WRITESEC      - write a sector to drive
 ;________________________________________________________________________________________________________________________________
 ;
-PC6502_IOSPACE  = $EF00
-;
 ; CH375 HARDWARE ADDRESS
 CH0BASE         = $E260
 CH0DATA         = CH0BASE
@@ -48,10 +46,6 @@ CH_CMD_DSKINQ   = $58           ; DISK INQUIRY
 CH_CMD_DSKRDY   = $59           ; DISK READY
 
 
-        .SEGMENT "TEA"
-        .ORG    $1000
-
-
 CH375INIT:
         JSR     LFCR
         JSR     CH_DETECT
@@ -73,19 +67,18 @@ CH375INIT:
         STA     STRPTR+1        ;
         JSR     WRSTR           ; DO PROMPT
 
-        LDA     HSTBUF+3
+        LDA     hstbuf
         JSR     PRINT_BYTE
-        LDA     HSTBUF+2
+        LDA     hstbuf+1
         JSR     PRINT_BYTE
-        LDA     HSTBUF+1
+        LDA     hstbuf+2
         JSR     PRINT_BYTE
-        LDA     HSTBUF
+        LDA     hstbuf+3
         JSR     PRINT_BYTE
 
 
         JSR     LFCR            ; AND CRLF
-        CLC
-        BRK
+        LDA     #$00
         RTS
 :
         LDA     #<CHMESSAGE5    ;
@@ -94,8 +87,7 @@ CH375INIT:
         STA     STRPTR+1        ;
         JSR     WRSTR           ; DO PROMPT
         JSR     LFCR            ; AND CRLF
-        SEC
-        BRK
+        LDA     #$FF
         RTS
 NOTDETECTED:
         LDA     #<CHMESSAGE6    ;
@@ -104,8 +96,7 @@ NOTDETECTED:
         STA     STRPTR+1        ;
         JSR     WRSTR           ; DO PROMPT
         JSR     LFCR            ; AND CRLF
-        SEC
-        BRK
+        LDA     #$FF
         RTS
 
 CH_DETECT:
@@ -118,7 +109,7 @@ CH_DETECT:
 
         LDA     #<MESSAGE2      ;
         STA     STRPTR          ;
-        LDA     #>CHMESSAGE2    ;
+        LDA     #>MESSAGE2      ;
         STA     STRPTR+1        ;
         JSR     WRSTR           ; DO PROMPT
         LDA     #>CH0BASE       ; GET BASE PORT
@@ -180,11 +171,6 @@ CH_NAP:
 
 
 CH_RESET:
-        PHA
-        TXA
-        PHA
-        TYA
-        PHA
         LDA     #CH_CMD_RESET
         JSR     CH_CMD          ; SEND COMMAND
         LDY     #$FF
@@ -195,11 +181,6 @@ CH_RES1:
         BNE     :-
         DEY
         BNE     CH_RES1
-        PLA
-        TAY
-        PLA
-        TAX
-        PLA
         RTS
 
 
@@ -208,7 +189,6 @@ CH_RES1:
 ; POLL WAITING FOR INTERRUPT
 ;
 CH_POLL:
-        PHA
         TXA
         PHA
         TYA
@@ -224,13 +204,10 @@ CH_POLL1:
         BNE     CH_POLL1        ; INNER LOOP AS NEEDED
         DEY
         BNE     CH_POLL0        ; OUTER LOOP AS NEEDED
-        PLA
         TAY
         PLA
         TAX
         PLA
-        LDA     #$FF
-        SEC
         RTS                     ; AND RETURN
 CH_POLL2:
         LDA     #CH_CMD_STAT    ; GET STATUS
@@ -242,9 +219,7 @@ CH_POLL2:
         TAY
         PLA
         TAX
-        PLA
         LDA     CHRESULT
-        CLC
         RTS                     ; AND RETURN
 
 CHRESULT:
@@ -364,13 +339,13 @@ CH_DSKSIZ:
         BNE     CHUSB_CMDERR    ; HANDLE CMD ERROR
 
         JSR     CH_RD
-        STA     HSTBUF
+        STA     hstbuf
         JSR     CH_RD
-        STA     HSTBUF+1
+        STA     hstbuf+1
         JSR     CH_RD
-        STA     HSTBUF+2
+        STA     hstbuf+2
         JSR     CH_RD
-        STA     HSTBUF+3
+        STA     hstbuf+3
         JSR     CH_RD
         JSR     CH_RD
         JSR     CH_RD
@@ -382,7 +357,7 @@ CHUSB_CMDERR:
         RTS                     ; AND DONE
 
 CHUSB_IOERR:
-        LDA     #$02            ; SET ERROR CONDITION
+        LDA     #$FF            ; SET ERROR CONDITION
         SEC
         RTS                     ; AND DONE
 
@@ -402,15 +377,16 @@ CH_CMD_WR:
         JMP     CH_CMD
 
 DSKBUFTMP:
-        .WORD   HSTBUF
-        .WORD   HSTBUF+64
-        .WORD   HSTBUF+128
-        .WORD   HSTBUF+192
-        .WORD   HSTBUF+256
-        .WORD   HSTBUF+320
-        .WORD   HSTBUF+384
-        .WORD   HSTBUF+448
-
+        .WORD   hstbuf
+        .WORD   hstbuf+64
+        .WORD   hstbuf+128
+        .WORD   hstbuf+192
+        .WORD   hstbuf+256
+        .WORD   hstbuf+320
+        .WORD   hstbuf+384
+        .WORD   hstbuf+448
+DSKBUFCNT:
+        .BYTE   00
 
 
 CH_READSEC:
@@ -418,15 +394,17 @@ CH_READSEC:
         JSR     CHUSB_RWSTART   ; SEND CMD AND LBA
 ;
 ; READ THE SECTOR IN 64 BYTE CHUNKS
-        LDX     #00
-        LDY     #00             ; 8 CHUNKS OF 64 FOR 512 BYTE SECTOR
+        LDA     #00
+        STA     DSKBUFCNT
 CHUSB_READ1:
+        LDX     DSKBUFCNT
         LDA     DSKBUFTMP,X
         STA     TEMPWORD2
         INX
         LDA     DSKBUFTMP,X
-        STA     TEMPWORD2
+        STA     TEMPWORD2+1
         INX
+        STX     DSKBUFCNT
         JSR     CH_POLL         ; WAIT FOR DATA READY
         CMP     #$1D            ; DATA READY TO READ?
         BNE     CHUSB_IOERR     ; HANDLE IO ERROR
@@ -434,6 +412,7 @@ CHUSB_READ1:
         JSR     CH_RD           ; READ DATA BLOCK LENGTH
         CMP     #64             ; AS EXPECTED?
         BNE     CHUSB_IOERR     ; IF NOT, HANDLE ERROR
+        LDY     #0              ; 8 CHUNKS OF 64 FOR 512 BYTE SECTOR
 ; BYTE READ LOOP
 
 CHUSB_READ2:
@@ -443,10 +422,10 @@ CHUSB_READ2:
         CPY     #64
         BNE     CHUSB_READ2     ; LOOP AS NEEDED
 ;
-        LDY     #00
 ; PREPARE FOR NEXT CHUNK
         LDA     #CH_CMD_DSKRDGO ; CONTINUE DISK READ
         JSR     CH_CMD          ; SEND IT
+        LDX     DSKBUFCNT
         CPX     #16
         BNE     CHUSB_READ1     ; LOOP TILL DONE
 ;
@@ -456,7 +435,6 @@ CHUSB_READ2:
         BNE     CHUSB_IOERR     ; IF NOT, HANDLE ERROR
 ;
         LDA     #$00
-        CLC                     ; SIGNAL SUCCESS
         RTS
 ;
 ;
@@ -466,21 +444,24 @@ CH_WRITESEC:
         JSR     CHUSB_RWSTART   ; SEND CMD AND LBA
 ;
 ; WRITE THE SECTOR IN 64 BYTE CHUNKS
-        LDX     #0
-        LDY     #0              ; 8 CHUNKS OF 64 FOR 512 BYTE SECTOR
+        LDA     #00
+        STA     DSKBUFCNT
 CHUSB_WRITE1:
+        LDX     DSKBUFCNT
         LDA     DSKBUFTMP,X
         STA     TEMPWORD2
         INX
         LDA     DSKBUFTMP,X
-        STA     TEMPWORD2
+        STA     TEMPWORD2+1
         INX
+        STX     DSKBUFCNT
         JSR     CH_POLL         ; WAIT FOR DATA READY
         CMP     #$1E            ; DATA READY TO WRITE
         BNE     CHUSB_IOERR1    ; HANDLE IO ERROR
         JSR     CH_CMD_WR       ; SEND WRITE USB DATA CMD
         LDA     #64             ; 64 BYTE CHUNK
         JSR     CH_WR           ; SEND DATA BLOCK LENGTH
+        LDY     #0              ; 8 CHUNKS OF 64 FOR 512 BYTE SECTOR
 ;
 ; BYTE WRITE LOOP
 CHUSB_WRITE2:
@@ -493,6 +474,7 @@ CHUSB_WRITE2:
 ; PREPARE FOR NEXT CHUNK
         LDA     #CH_CMD_DSKWRGO ; CONTINUE DISK READ
         JSR     CH_CMD          ; SEND IT
+        LDX     DSKBUFCNT
         CPX     #16
         BNE     CHUSB_WRITE1    ; LOOP TILL DONE
 ;
@@ -511,14 +493,15 @@ CHUSB_IOERR1:
 ; A: READ OR WRITE OPCODE
 ;
 CHUSB_RWSTART:
+        PHA
+        JSR     IDE_CONVERT_SECTOR_LBA
+        PLA
         JSR     CH_CMD          ; SEND R/W COMMAND
 ;
 ; SEND LBA, 4 BYTES, LITTLE ENDIAN
         LDA     debsehd
         JSR     CH_WR           ; SEND BYTE
-        LDY     debcyll
-        INY                     ; CYL 0 reserved for boot image
-        TYA
+        LDA     debcyll
         JSR     CH_WR           ; SEND BYTE
         LDA     debcylm         ;
         JSR     CH_WR           ; SEND BYTE
@@ -529,9 +512,6 @@ CHUSB_RWSTART:
         JSR     CH_WR           ; SEND BYTE
         RTS
 ;
-
-MESSAGE2:
-        .BYTE   "  IO ADDRESS=0x",00
 CHMESSAGE1:
         .BYTE   "CH375 USB:",00
 CHMESSAGE2:
@@ -546,69 +526,3 @@ CHMESSAGE7:
         .BYTE   "  CH375 NO MEDIA.",00
 CHMESSAGE8:
         .BYTE   "  CH375 INIT ERROR=0x",00
-;------------------------------------------------------------------------
-LFCR:
-        LDA     #10
-        JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
-        LDA     #13
-        JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
-        RTS
-
-STRPTR          = $50
-
-;__WRSTR_______________________________________________________
-;
-; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-;
-;______________________________________________________________
-WRSTR:
-        LDY     #$00            ; LOAD $00 INTO Y
-OUTSTRLP:
-        LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
-        CMP     #$00            ; IS NULL?
-        BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-        JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
-        INC     STRPTR
-        BNE     OUTSTRLP
-        INC     STRPTR+1
-        JMP     OUTSTRLP        ; DO NEXT CHAR
-ENDOUTSTR:
-        RTS                     ; RETURN
-
-PRINT_BYTE:
-        STX     SAVX            ; save X
-        JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
-        JSR     IOF_OUTCH       ; output upper nybble
-        TXA                     ; transfer lower to A
-        LDX     SAVX            ; restore X
-        JMP     IOF_OUTCH       ; output lower nybble
-ASCTWO:
-        PHA                     ; save byte
-        JSR     ASCII           ; do low nybble
-        TAX                     ; save in X
-        PLA                     ; restore byte
-        LSR     A               ; shift upper nybble down
-        LSR     A
-        LSR     A
-        LSR     A
-; convert low nybble in A to hex digit
-ASCII:
-        AND     #$0F            ; clear upper nibble
-        CMP     #$0A            ; if less than A, skip next step
-        BCC     ASC1
-        ADC     #6              ; skip ascii chars between 9 and A
-ASC1:
-        ADC     #$30            ; add ascii char 0 to value
-        RTS
-SAVX:
-        .BYTE   00
-
-
-        .INCLUDE "bios_serial.asm"
-
-
-debcyll         = $0610         ; DEBLOCKED CYLINDER LSB
-debcylm         = $0611         ; DEBLOCKED CYLINDER MSB
-debsehd         = $0612         ; DEBLOCKED SECTOR AND HEAD (HS)
-HSTBUF          = $2400         ; 0400-05ff host buffer
-TEMPWORD2       = $3F           ;

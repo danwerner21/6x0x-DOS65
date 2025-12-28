@@ -83,7 +83,4 @@ LOOP2:
         LDA     #$00
         STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
 
-        LDA     #$04            ; ENSURE CONSOLE IS SET TO RATIONAL VALUE
-        STA     $3A
-
         JMP     $B800           ; BOOT IT UP

@@ -143,7 +143,7 @@ L0104:
 L00A1:
 	.byte	$0A,$0D,$20,$44,$4F,$53,$2F,$36,$35,$20,$44,$72,$69,$76,$65,$20
 	.byte	$61,$73,$73,$69,$67,$6E,$6D,$65,$6E,$74,$3A,$0A,$0D,$00
-L017E:
+L0189:
 	.byte	$55,$6E,$6B,$6F,$77,$6E,$20,$64,$65,$76,$69,$63,$65,$20,$61,$73
 	.byte	$73,$69,$67,$6E,$6D,$65,$6E,$74,$2E,$20,$0A,$0D,$00
 L00EF:
@@ -155,7 +155,7 @@ L00EC:
 L00FE:
 	.byte	$0A,$0D,$20,$50,$4F,$53,$53,$49,$42,$4C,$45,$20,$46,$4C,$41,$47
 	.byte	$53,$3A,$0A,$0D,$00
-L019B:
+L01A6:
 	.byte	$43,$68,$61,$6E,$67,$65,$64,$20,$74,$6F,$3A,$20,$20,$25,$63,$3A
 	.byte	$3D,$00
 L0123:
@@ -166,45 +166,48 @@ L00DA:
 L00D2:
 	.byte	$55,$4E,$4B,$4E,$4F,$57,$4E,$00
 L0173:
-	.byte	$50,$50,$49,$44,$45,$31,$3A,$00
-L0168:
 	.byte	$50,$50,$49,$44,$45,$30,$3A,$00
-L00C4	:=	L00D2+0
-L01AF:
+L017E:
+	.byte	$50,$50,$49,$44,$45,$31,$3A,$00
+L00AD	:=	L01A6+11
+L01BA:
 	.byte	$28,$33,$36,$30,$4B,$29,$00
 L012B:
 	.byte	$3A,$25,$75,$20,$0A,$0D,$00
-L00AD	:=	L019B+11
 L00B4:
 	.byte	$3A,$25,$69,$0A,$0D,$00
 L00CE:
 	.byte	$50,$50,$49,$44,$45,$00
-L015F:
+L01AE:
+	.byte	$3A,$25,$75,$20,$00
+L016A:
 	.byte	$2F,$35,$32,$35,$00
-L01AB	:=	L015F+0
+L01B6	:=	L016A+0
 L0135:
 	.byte	$53,$44,$30,$3A,$00
 L0140:
+	.byte	$55,$53,$42,$3A,$00
+L014B:
 	.byte	$46,$44,$30,$3A,$00
-L014B	:=	L015F+0
-L0154:
+L0156	:=	L016A+0
+L015F:
 	.byte	$46,$44,$31,$3A,$00
-L01A3:
-	.byte	$3A,$25,$75,$20,$00
+L00C4:
+	.byte	$55,$53,$42,$00
 L00BF:
 	.byte	$53,$44,$00
+L01BD	:=	L00DD+63
 L00C9:
 	.byte	$46,$44,$00
-L01B2	:=	L00DD+63
 L00D5:
 	.byte	$25,$69,$00
-L0188	:=	L0173+6
-L0093	:=	L019B+16
-L0085	:=	L019B+16
-L0076	:=	L01A3+3
-L0071	:=	L01A3+3
-L006C	:=	L01A3+3
-L0183	:=	L0173+6
+L0193	:=	L0173+6
+L0093	:=	L01A6+16
+L0085	:=	L01A6+16
+L0076	:=	L01AE+3
+L0071	:=	L01AE+3
+L006C	:=	L01AE+3
+L018E	:=	L0173+6
 
 ; ---------------------------------------------------------------
 ; void __near__ prtusage (void)
@@ -336,7 +339,7 @@ L00BB:	lda     #<(L00D5)
 	jsr     _cputs
 	ldx     #$00
 	txa
-L01C7:	jsr     stax0sp
+L01D2:	jsr     stax0sp
 	cmp     #$10
 	txa
 	sbc     #$00
@@ -391,7 +394,7 @@ L00AA:	bpl     L00A4
 	jsr     _cprintf
 	jsr     ldax0sp
 	jsr     incax1
-	jmp     L01C7
+	jmp     L01D2
 L00A4:	jmp     incsp4
 
 .endproc
@@ -475,10 +478,10 @@ L0062:	lda     (sp),y
 	jsr     _strtok
 	jsr     stax0sp
 	cpx     #$00
-	bne     L01C8
+	bne     L01D3
 	cmp     #$00
 	beq     L0078
-L01C8:	ldy     #$0A
+L01D3:	ldy     #$0A
 	jsr     pushwysp
 	ldy     #$05
 	jsr     pushwysp
@@ -498,10 +501,10 @@ L0078:	ldy     #$02
 	ldy     #$02
 	jsr     staxysp
 	cpx     #$00
-	bne     L01C9
+	bne     L01D4
 	cmp     #$00
 	beq     L0095
-L01C9:	ldy     #$0E
+L01D4:	ldy     #$0E
 	jsr     pushwysp
 	ldy     #$07
 	jsr     pushwysp
@@ -519,10 +522,10 @@ L01C9:	ldy     #$0E
 	ldy     #$02
 	jsr     staxysp
 	cpx     #$00
-	bne     L01CA
+	bne     L01D5
 	cmp     #$00
 	beq     L0095
-L01CA:	ldy     #$0C
+L01D5:	ldy     #$0C
 	jsr     pushwysp
 	ldy     #$07
 	jsr     pushwysp
@@ -573,7 +576,7 @@ L0095:	ldy     #$06
 	bcc     L011A
 	lda     #<(L0120)
 	ldx     #>(L0120)
-	jmp     L01D1
+	jmp     L01DC
 L011A:	lda     #<(L0123)
 	ldx     #>(L0123)
 	jsr     pushax
@@ -589,10 +592,10 @@ L011A:	lda     #<(L0123)
 	ldy     #$06
 	lda     (sp),y
 	asl     a
-	bcc     L01D2
+	bcc     L01DD
 	inx
 	clc
-L01D2:	ldy     #$0D
+L01DD:	ldy     #$0D
 	adc     (sp),y
 	sta     ptr1
 	txa
@@ -609,10 +612,10 @@ L01D2:	ldy     #$0D
 	ldy     #$08
 	lda     (sp),y
 	asl     a
-	bcc     L01D3
+	bcc     L01DE
 	inx
 	clc
-L01D3:	ldy     #$0F
+L01DE:	ldy     #$0F
 	adc     (sp),y
 	pha
 	txa
@@ -660,7 +663,27 @@ L0132:	ldy     #$0C
 	jsr     _strncmp
 	stx     tmp1
 	ora     tmp1
-	bne     L0148
+	bne     L013D
+	lda     #$10
+	ldy     #$05
+	sta     (sp),y
+	iny
+	lda     (sp),y
+	jsr     pusha
+	lda     #<(_hdddcb)
+	ldx     #>(_hdddcb)
+	jsr     _updatedosmap
+L013D:	ldy     #$0C
+	jsr     pushwysp
+	lda     #<(L014B)
+	ldx     #>(L014B)
+	jsr     pushax
+	ldx     #$00
+	lda     #$04
+	jsr     _strncmp
+	stx     tmp1
+	ora     tmp1
+	bne     L0153
 	lda     #$20
 	ldy     #$05
 	sta     (sp),y
@@ -672,32 +695,32 @@ L0132:	ldy     #$0C
 	jsr     _updatedosmap
 	ldy     #$0A
 	jsr     pushwysp
-	lda     #<(L014B)
-	ldx     #>(L014B)
+	lda     #<(L0156)
+	ldx     #>(L0156)
 	jsr     pushax
 	ldx     #$00
 	lda     #$04
 	jsr     _strncmp
 	stx     tmp1
 	ora     tmp1
-	bne     L0148
+	bne     L0153
 	ldy     #$06
 	lda     (sp),y
 	jsr     pusha
 	lda     #<(_floppy525360dcb)
 	ldx     #>(_floppy525360dcb)
 	jsr     _updatedosmap
-L0148:	ldy     #$0C
+L0153:	ldy     #$0C
 	jsr     pushwysp
-	lda     #<(L0154)
-	ldx     #>(L0154)
+	lda     #<(L015F)
+	ldx     #>(L015F)
 	jsr     pushax
 	ldx     #$00
 	lda     #$04
 	jsr     _strncmp
 	stx     tmp1
 	ora     tmp1
-	bne     L015C
+	bne     L0167
 	lda     #$21
 	ldy     #$05
 	sta     (sp),y
@@ -709,42 +732,22 @@ L0148:	ldy     #$0C
 	jsr     _updatedosmap
 	ldy     #$0A
 	jsr     pushwysp
-	lda     #<(L015F)
-	ldx     #>(L015F)
+	lda     #<(L016A)
+	ldx     #>(L016A)
 	jsr     pushax
 	ldx     #$00
 	lda     #$04
 	jsr     _strncmp
 	stx     tmp1
 	ora     tmp1
-	bne     L015C
+	bne     L0167
 	ldy     #$06
 	lda     (sp),y
 	jsr     pusha
 	lda     #<(_floppy525360dcb)
 	ldx     #>(_floppy525360dcb)
 	jsr     _updatedosmap
-L015C:	ldy     #$0C
-	jsr     pushwysp
-	lda     #<(L0168)
-	ldx     #>(L0168)
-	jsr     pushax
-	ldx     #$00
-	lda     #$07
-	jsr     _strncmp
-	stx     tmp1
-	ora     tmp1
-	bne     L0165
-	lda     #$30
-	ldy     #$05
-	sta     (sp),y
-	iny
-	lda     (sp),y
-	jsr     pusha
-	lda     #<(_hdddcb)
-	ldx     #>(_hdddcb)
-	jsr     _updatedosmap
-L0165:	ldy     #$0C
+L0167:	ldy     #$0C
 	jsr     pushwysp
 	lda     #<(L0173)
 	ldx     #>(L0173)
@@ -755,6 +758,26 @@ L0165:	ldy     #$0C
 	stx     tmp1
 	ora     tmp1
 	bne     L0170
+	lda     #$30
+	ldy     #$05
+	sta     (sp),y
+	iny
+	lda     (sp),y
+	jsr     pusha
+	lda     #<(_hdddcb)
+	ldx     #>(_hdddcb)
+	jsr     _updatedosmap
+L0170:	ldy     #$0C
+	jsr     pushwysp
+	lda     #<(L017E)
+	ldx     #>(L017E)
+	jsr     pushax
+	ldx     #$00
+	lda     #$07
+	jsr     _strncmp
+	stx     tmp1
+	ora     tmp1
+	bne     L017B
 	lda     #$31
 	ldy     #$05
 	sta     (sp),y
@@ -764,34 +787,34 @@ L0165:	ldy     #$0C
 	lda     #<(_hdddcb)
 	ldx     #>(_hdddcb)
 	jsr     _updatedosmap
-L0170:	ldy     #$05
+L017B:	ldy     #$05
 	lda     (sp),y
 	cmp     #$FF
-	bne     L017B
-	lda     #<(L017E)
-	ldx     #>(L017E)
+	bne     L0186
+	lda     #<(L0189)
+	ldx     #>(L0189)
 	jsr     pushax
 	ldy     #$02
 	jsr     _cprintf
 	jmp     L0114
-L017B:	ldy     #$0C
+L0186:	ldy     #$0C
 	jsr     pushwysp
-	lda     #<(L0183)
-	ldx     #>(L0183)
+	lda     #<(L018E)
+	ldx     #>(L018E)
 	jsr     _strtok
 	ldy     #$03
 	jsr     staxysp
 	jsr     push0
-	lda     #<(L0188)
-	ldx     #>(L0188)
+	lda     #<(L0193)
+	ldx     #>(L0193)
 	jsr     _strtok
 	ldy     #$03
 	jsr     staxysp
 	cpx     #$00
-	bne     L01D9
+	bne     L01E4
 	cmp     #$00
-	beq     L01DA
-L01D9:	ldy     #$06
+	beq     L01E5
+L01E4:	ldy     #$06
 	jsr     pushwysp
 	lda     #$03
 	jsr     leaa0sp
@@ -802,13 +825,13 @@ L01D9:	ldy     #$06
 	ldy     #$00
 	sta     (sp),y
 	ldx     #$00
-L01DA:	ldy     #$06
+L01E5:	ldy     #$06
 	lda     (sp),y
 	asl     a
-	bcc     L01D4
+	bcc     L01DF
 	inx
 	clc
-L01D4:	ldy     #$0D
+L01DF:	ldy     #$0D
 	adc     (sp),y
 	sta     ptr1
 	txa
@@ -823,10 +846,10 @@ L01D4:	ldy     #$0D
 	ldy     #$06
 	lda     (sp),y
 	asl     a
-	bcc     L01D5
+	bcc     L01E0
 	inx
 	clc
-L01D5:	ldy     #$0D
+L01E0:	ldy     #$0D
 	adc     (sp),y
 	pha
 	txa
@@ -840,8 +863,8 @@ L01D5:	ldy     #$0D
 	ldy     #$00
 	lda     (sp),y
 	sta     (ptr1),y
-	lda     #<(L019B)
-	ldx     #>(L019B)
+	lda     #<(L01A6)
+	ldx     #>(L01A6)
 	jsr     pushax
 	ldy     #$08
 	ldx     #$00
@@ -855,10 +878,10 @@ L01D5:	ldy     #$0D
 	ldy     #$06
 	lda     (sp),y
 	asl     a
-	bcc     L01D6
+	bcc     L01E1
 	inx
 	clc
-L01D6:	ldy     #$0D
+L01E1:	ldy     #$0D
 	adc     (sp),y
 	sta     ptr1
 	txa
@@ -868,17 +891,17 @@ L01D6:	ldy     #$0D
 	ldy     #$00
 	lda     (ptr1),y
 	jsr     _prtdevice
-	lda     #<(L01A3)
-	ldx     #>(L01A3)
+	lda     #<(L01AE)
+	ldx     #>(L01AE)
 	jsr     pushax
 	ldx     #$00
 	ldy     #$08
 	lda     (sp),y
 	asl     a
-	bcc     L01D7
+	bcc     L01E2
 	inx
 	clc
-L01D7:	ldy     #$0F
+L01E2:	ldy     #$0F
 	adc     (sp),y
 	pha
 	txa
@@ -896,21 +919,21 @@ L01D7:	ldy     #$0F
 	jsr     _cprintf
 	ldy     #$0A
 	jsr     pushwysp
-	lda     #<(L01AB)
-	ldx     #>(L01AB)
+	lda     #<(L01B6)
+	ldx     #>(L01B6)
 	jsr     pushax
 	ldx     #$00
 	lda     #$04
 	jsr     _strncmp
 	stx     tmp1
 	ora     tmp1
-	bne     L01A8
-	lda     #<(L01AF)
-	ldx     #>(L01AF)
+	bne     L01B3
+	lda     #<(L01BA)
+	ldx     #>(L01BA)
 	jsr     _cputs
-L01A8:	lda     #<(L01B2)
-	ldx     #>(L01B2)
-L01D1:	jsr     _cputs
+L01B3:	lda     #<(L01BD)
+	ldx     #>(L01BD)
+L01DC:	jsr     _cputs
 L0114:	ldy     #$0F
 	jmp     addysp
 
@@ -941,13 +964,13 @@ L0114:	ldy     #$0F
 	jsr     decsp2
 	ldx     #$00
 	txa
-L01DC:	jsr     stax0sp
+L01E7:	jsr     stax0sp
 	cmp     #$09
 	txa
 	sbc     #$00
-	bvc     L01C0
+	bvc     L01CB
 	eor     #$80
-L01C0:	bpl     L01BA
+L01CB:	bpl     L01C5
 	jsr     ldax0sp
 	clc
 	ldy     #$02
@@ -971,8 +994,8 @@ L01C0:	bpl     L01BA
 	sta     (sreg),y
 	jsr     ldax0sp
 	jsr     incax1
-	jmp     L01DC
-L01BA:	ldy     #$09
+	jmp     L01E7
+L01C5:	ldy     #$09
 	jmp     addysp
 
 .endproc
@@ -1066,7 +1089,7 @@ L0109:	jsr     ldax0sp
 	beq     L004A
 	cmp     #$02
 	beq     L004D
-	jmp     L01E0
+	jmp     L01EB
 L0046:	ldy     #$5F
 	jsr     ldaxysp
 	jsr     _prttable
@@ -1085,7 +1108,7 @@ L004D:	ldy     #$61
 	jsr     leaa0sp
 	jsr     _mapdrive
 L0044:	ldx     #$00
-L01E0:	txa
+L01EB:	txa
 	ldy     #$60
 	jmp     addysp
 

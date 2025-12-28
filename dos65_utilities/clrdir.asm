@@ -8,34 +8,9 @@
 ;__________________________________________________________________________________________________
 ;
 ; BIOS JUMP TABLE
+        .INCLUDE "../dos65_os/dosdefn.asm"; base addresses and definitions
 
-farfunct        = $32           ; function to call in driver area
-farpointer      = $33           ;
-STRPTR          = $48           ;
-
-
-TEMPWORD        = $0640         ;
-TEMPWORD1       = $0642         ;
-STARTTRACK      = $0644         ;
-COUNTER         = $0646         ; COUNTER
-FUNCTREF        = $0648         ;
-
-DSKY_HEXBUF     = $0508         ; Four Bytes DSKY hex buffer
-sektrk          = $050C         ; seek track number
-seksec          = $050E         ; seek sector number
-debcyll         = $0510         ; DEBLOCKED CYLINDER LSB
-debcylm         = $0511         ; DEBLOCKED CYLINDER MSB
-debsehd         = $0512         ; DEBLOCKED SECTOR AND HEAD (HS)
-sekdsk          = $0516         ; seek disk number
-dskcfg          = $0517         ; 16 bytes disk configuration table
-DSKUNIT         = $0528         ; seek disk number
-slicetmp        = $0531         ; (word)
-CURRENT_IDE_DRIVE = $0534
-
-
-INBUFFER        = $0200         ; DISK BUFFER
 BUFFER          = $0400         ; DISK BUFFER
-DO_FARCALL      = $FFF0
 
 
         .SEGMENT "TEA"
@@ -66,7 +41,7 @@ DO_FARCALL      = $FFF0
         LDA     #>ABORTMSG
         STA     STRPTR+1
         JSR     OUTSTR
-        BRK
+        JMP     $B800
 
 DO_SD:
         LDA     #<SDMSG
@@ -74,21 +49,21 @@ DO_SD:
         LDA     #>SDMSG
         STA     STRPTR+1
         JSR     OUTSTR
-        LDA     #$02
-        STA     CURRENT_IDE_DRIVE
+        LDA     #$00
+        STA     currentDrive
         LDA     #65
         STA     FUNCTREF
         JMP     :++
 DO_2IDE:
         LDA     #$01
-        STA     CURRENT_IDE_DRIVE
+        STA     currentDrive
         LDA     #62
         STA     FUNCTREF
         JMP     :+
 
 DO_IDE:
         LDA     #$00
-        STA     CURRENT_IDE_DRIVE
+        STA     currentDrive
         LDA     #62
         STA     FUNCTREF
 :
@@ -113,10 +88,13 @@ DO_IDE:
         LDA     #$E5
         LDX     #$00
 :
-        STA     INBUFFER,X
+        STA     BUFFER,X
+        STA     BUFFER+$100,X
         INX
         CPX     #$00
         BNE     :-
+
+
 
         LDA     #00
         STA     farfunct
@@ -140,6 +118,10 @@ LOOP:
         LDA     #00
         STA     farfunct
         LDA     #$0D
+        JSR     DO_FARCALL
+        LDA     #00
+        STA     farfunct
+        LDA     #$0A
         JSR     DO_FARCALL
 :
         STX     debsehd
@@ -166,7 +148,8 @@ LOOP:
         STA     STRPTR+1
         JSR     OUTSTR
 
-        BRK
+        JMP     $B800
+
 
 ;__GETSTR______________________________________________________
 ;
@@ -196,12 +179,12 @@ GETSTR_LOOP:
         JSR     DO_FARCALL
 
         AND     #$0F
-        STA     BUFFER,X
+        STA     CBUFF,X
         INX
         JMP     GETSTR_LOOP
 GETSTR_DONE:
         LDA     #$FF
-        STA     BUFFER,X
+        STA     CBUFF,X
         RTS
 GETSTR_DEL:
         CPX     #$00
@@ -228,7 +211,7 @@ GETDECIMAL:
         STX     TEMPWORD
 
 GETDECIMAL_LOOP:
-        LDA     BUFFER,X
+        LDA     CBUFF,X
         CMP     #$FF
         BEQ     GETDECIMAL_DONE
 
@@ -245,7 +228,7 @@ GETDECIMAL_LOOP:
         ADC     TEMPWORD1
         ADC     TEMPWORD1
         STA     TEMPWORD        ; store sum
-        LDA     BUFFER,X        ; add new decimal digit
+        LDA     CBUFF,X         ; add new decimal digit
         INX
         CLC
         ADC     TEMPWORD
@@ -372,6 +355,18 @@ ENDMSG:
         .BYTE   $0D,$0A,"CLEAR COMPLETE.",$0D,$0A
         .BYTE   0
 
+FUNCTREF:
+        .BYTE   0
+COUNTER:
+        .BYTE   0
+
+CBUFF:
+        .BYTE   0,0,0,0,0,0,0,0,0
+        .BYTE   0,0,0,0,0,0,0,0,0
+        .BYTE   0,0,0,0,0,0,0,0,0
+        .BYTE   0,0,0,0,0,0,0,0,0
+        .BYTE   0,0,0,0,0,0,0,0,0
+        .BYTE   0,0,0,0,0,0,0,0,0
 
 
 

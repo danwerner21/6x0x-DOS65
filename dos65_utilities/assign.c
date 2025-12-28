@@ -101,7 +101,7 @@ void prtdevice(char dev)
     cputs("SD");
      break;
   case 0x10:
-    cputs("UNKNOWN");
+    cputs("USB");
     return;
   case 0x20:
     cputs("FD");
@@ -166,6 +166,11 @@ void mapdrive(char *bytes, char *token1, char *token2, char *flags)
   if (!strncmp(token2, "SD0:", 4))
     {
     newdevice = 0x00;
+    updatedosmap(drive,hdddcb);
+    }
+  if (!strncmp(token2, "USB:", 4))
+    {
+    newdevice = 0x10;
     updatedosmap(drive,hdddcb);
     }
   if (!strncmp(token2, "FD0:", 4))
