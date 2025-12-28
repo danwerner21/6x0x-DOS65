@@ -154,26 +154,30 @@ L00B1	:=	L0054+52
 .segment	"CODE"
 
 	jsr     pusha
-	ldx     #$00
-	lda     (sp,x)
-	jsr     pusha0
-	lda     #$0A
-	jsr     tosudiva0
-	jsr     shlax4
-	jsr     pushax
+	jsr     decsp2
 	ldy     #$02
 	lda     (sp),y
 	jsr     pusha0
-	ldy     #$04
+	lda     #$0A
+	jsr     tosudiva0
+	asl     a
+	asl     a
+	asl     a
+	asl     a
+	ldy     #$00
+	sta     (sp),y
+	ldy     #$02
 	lda     (sp),y
 	jsr     pusha0
 	lda     #$0A
-	jsr     tosudiva0
-	jsr     mulax10
-	jsr     tossubax
-	jsr     tosaddax
+	jsr     tosumoda0
+	ldy     #$01
+	sta     (sp),y
 	ldx     #$00
-	jmp     incsp1
+	lda     (sp),y
+	dey
+	ora     (sp),y
+	jmp     incsp3
 
 .endproc
 

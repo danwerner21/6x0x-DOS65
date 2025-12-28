@@ -152,388 +152,392 @@ Current file: clrdir.asm
 000000r 1                       .SEGMENT "TEA"
 000000r 1                       .ORG    $0800
 000800  1               
-000800  1  A9 BC                LDA     #<MSG
+000800  1  A9 C7                LDA     #<MSG
 000802  1  85 41                STA     STRPTR
 000804  1  A9 09                LDA     #>MSG
 000806  1  85 42                STA     STRPTR+1
-000808  1  20 54 09             JSR     OUTSTR
+000808  1  20 5F 09             JSR     OUTSTR
 00080B  1               
 00080B  1  A9 02                LDA     #02
 00080D  1  85 32                STA     farfunct
 00080F  1  20 F0 FF             JSR     DO_FARCALL
 000812  1               
 000812  1  C9 49                CMP     #'I'
-000814  1  F0 39                BEQ     DO_IDE
+000814  1  F0 3B                BEQ     DO_IDE
 000816  1               
 000816  1  C9 4A                CMP     #'J'
-000818  1  F0 28                BEQ     DO_2IDE
+000818  1  F0 2A                BEQ     DO_2IDE
 00081A  1               
 00081A  1  C9 53                CMP     #'S'
-00081C  1  F0 0C                BEQ     DO_SD
+00081C  1  F0 0E                BEQ     DO_SD
 00081E  1               
 00081E  1               ; ABORT
-00081E  1  A9 81                LDA     #<ABORTMSG
+00081E  1  A9 8C                LDA     #<ABORTMSG
 000820  1  85 41                STA     STRPTR
 000822  1  A9 0A                LDA     #>ABORTMSG
 000824  1  85 42                STA     STRPTR+1
-000826  1  20 54 09             JSR     OUTSTR
-000829  1  00                   BRK
-00082A  1               
-00082A  1               DO_SD:
-00082A  1  A9 47                LDA     #<SDMSG
-00082C  1  85 41                STA     STRPTR
-00082E  1  A9 0A                LDA     #>SDMSG
-000830  1  85 42                STA     STRPTR+1
-000832  1  20 54 09             JSR     OUTSTR
-000835  1  A9 00                LDA     #$00
-000837  1  8D 3D 06             STA     currentDrive
-00083A  1  A9 41                LDA     #65
-00083C  1  8D B5 0A             STA     FUNCTREF
-00083F  1  4C 64 08             JMP     :++
-000842  1               DO_2IDE:
-000842  1  A9 01                LDA     #$01
-000844  1  8D 3D 06             STA     currentDrive
-000847  1  A9 3E                LDA     #62
-000849  1  8D B5 0A             STA     FUNCTREF
-00084C  1  4C 59 08             JMP     :+
-00084F  1               
-00084F  1               DO_IDE:
-00084F  1  A9 00                LDA     #$00
-000851  1  8D 3D 06             STA     currentDrive
-000854  1  A9 3E                LDA     #62
-000856  1  8D B5 0A             STA     FUNCTREF
-000859  1               :
-000859  1  A9 2D                LDA     #<IDEMSG
-00085B  1  85 41                STA     STRPTR
-00085D  1  A9 0A                LDA     #>IDEMSG
-00085F  1  85 42                STA     STRPTR+1
-000861  1  20 54 09             JSR     OUTSTR
-000864  1               :
-000864  1               
-000864  1               ;   get SLICE
-000864  1  A9 60                LDA     #<INPUTNUMBER
-000866  1  85 41                STA     STRPTR
-000868  1  A9 0A                LDA     #>INPUTNUMBER
-00086A  1  85 42                STA     STRPTR+1
-00086C  1  20 54 09             JSR     OUTSTR
-00086F  1  20 EA 08             JSR     GETSTR
-000872  1  20 2C 09             JSR     GETDECIMAL
-000875  1  20 6D 09             JSR     TRANSLATESLICE
-000878  1               
-000878  1               ;   FILL BUFFER WITH $E5
-000878  1  A9 E5                LDA     #$E5
-00087A  1  A2 00                LDX     #$00
-00087C  1               :
-00087C  1  9D 00 04             STA     BUFFER,X
-00087F  1  9D 00 05             STA     BUFFER+$100,X
-000882  1  E8                   INX
-000883  1  E0 00                CPX     #$00
-000885  1  D0 F5                BNE     :-
-000887  1               
-000887  1               
-000887  1               
-000887  1  A9 00                LDA     #00
-000889  1  85 32                STA     farfunct
-00088B  1  A9 0D                LDA     #$0D
-00088D  1  20 F0 FF             JSR     DO_FARCALL
-000890  1  A9 0A                LDA     #$0A
-000892  1  20 F0 FF             JSR     DO_FARCALL
-000895  1               
-000895  1  A2 00                LDX     #$00
-000897  1  8E B6 0A             STX     COUNTER
-00089A  1               LOOP:
-00089A  1  A9 90                LDA     #<RUNMSG
-00089C  1  85 41                STA     STRPTR
-00089E  1  A9 0A                LDA     #>RUNMSG
-0008A0  1  85 42                STA     STRPTR+1
-0008A2  1  20 54 09             JSR     OUTSTR
-0008A5  1  AD 11 06             LDA     debcylm
-0008A8  1  20 9B 09             JSR     PRINT_BYTE
-0008AB  1  AD 10 06             LDA     debcyll
-0008AE  1  20 9B 09             JSR     PRINT_BYTE
-0008B1  1  A9 00                LDA     #00
-0008B3  1  85 32                STA     farfunct
-0008B5  1  A9 0D                LDA     #$0D
-0008B7  1  20 F0 FF             JSR     DO_FARCALL
-0008BA  1               :
-0008BA  1  8E 12 06             STX     debsehd
-0008BD  1  E8                   INX
-0008BE  1  AD B5 0A             LDA     FUNCTREF
-0008C1  1  85 32                STA     farfunct
-0008C3  1  20 F0 FF             JSR     DO_FARCALL
-0008C6  1               
-0008C6  1  E0 00                CPX     #$00
-0008C8  1  D0 F0                BNE     :-
-0008CA  1               
-0008CA  1  EE 10 06             INC     debcyll
-0008CD  1  D0 03                BNE     :+
-0008CF  1  EE 11 06             INC     debcylm
-0008D2  1               :
-0008D2  1  EE B6 0A             INC     COUNTER
-0008D5  1  AD B6 0A             LDA     COUNTER
-0008D8  1  C9 3F                CMP     #$3F
-0008DA  1  D0 BE                BNE     LOOP
-0008DC  1               
-0008DC  1  A9 A1                LDA     #<ENDMSG
-0008DE  1  85 41                STA     STRPTR
-0008E0  1  A9 0A                LDA     #>ENDMSG
-0008E2  1  85 42                STA     STRPTR+1
-0008E4  1  20 54 09             JSR     OUTSTR
+000826  1  20 5F 09             JSR     OUTSTR
+000829  1  4C 00 B8             JMP     $B800
+00082C  1               
+00082C  1               DO_SD:
+00082C  1  A9 52                LDA     #<SDMSG
+00082E  1  85 41                STA     STRPTR
+000830  1  A9 0A                LDA     #>SDMSG
+000832  1  85 42                STA     STRPTR+1
+000834  1  20 5F 09             JSR     OUTSTR
+000837  1  A9 00                LDA     #$00
+000839  1  8D 3D 06             STA     currentDrive
+00083C  1  A9 41                LDA     #65
+00083E  1  8D C0 0A             STA     FUNCTREF
+000841  1  4C 66 08             JMP     :++
+000844  1               DO_2IDE:
+000844  1  A9 01                LDA     #$01
+000846  1  8D 3D 06             STA     currentDrive
+000849  1  A9 3E                LDA     #62
+00084B  1  8D C0 0A             STA     FUNCTREF
+00084E  1  4C 5B 08             JMP     :+
+000851  1               
+000851  1               DO_IDE:
+000851  1  A9 00                LDA     #$00
+000853  1  8D 3D 06             STA     currentDrive
+000856  1  A9 3E                LDA     #62
+000858  1  8D C0 0A             STA     FUNCTREF
+00085B  1               :
+00085B  1  A9 38                LDA     #<IDEMSG
+00085D  1  85 41                STA     STRPTR
+00085F  1  A9 0A                LDA     #>IDEMSG
+000861  1  85 42                STA     STRPTR+1
+000863  1  20 5F 09             JSR     OUTSTR
+000866  1               :
+000866  1               
+000866  1               ;   get SLICE
+000866  1  A9 6B                LDA     #<INPUTNUMBER
+000868  1  85 41                STA     STRPTR
+00086A  1  A9 0A                LDA     #>INPUTNUMBER
+00086C  1  85 42                STA     STRPTR+1
+00086E  1  20 5F 09             JSR     OUTSTR
+000871  1  20 F5 08             JSR     GETSTR
+000874  1  20 37 09             JSR     GETDECIMAL
+000877  1  20 78 09             JSR     TRANSLATESLICE
+00087A  1               
+00087A  1               ;   FILL BUFFER WITH $E5
+00087A  1  A9 E5                LDA     #$E5
+00087C  1  A2 00                LDX     #$00
+00087E  1               :
+00087E  1  9D 00 04             STA     BUFFER,X
+000881  1  9D 00 05             STA     BUFFER+$100,X
+000884  1  E8                   INX
+000885  1  E0 00                CPX     #$00
+000887  1  D0 F5                BNE     :-
+000889  1               
+000889  1               
+000889  1               
+000889  1  A9 00                LDA     #00
+00088B  1  85 32                STA     farfunct
+00088D  1  A9 0D                LDA     #$0D
+00088F  1  20 F0 FF             JSR     DO_FARCALL
+000892  1  A9 0A                LDA     #$0A
+000894  1  20 F0 FF             JSR     DO_FARCALL
+000897  1               
+000897  1  A2 00                LDX     #$00
+000899  1  8E C1 0A             STX     COUNTER
+00089C  1               LOOP:
+00089C  1  A9 9B                LDA     #<RUNMSG
+00089E  1  85 41                STA     STRPTR
+0008A0  1  A9 0A                LDA     #>RUNMSG
+0008A2  1  85 42                STA     STRPTR+1
+0008A4  1  20 5F 09             JSR     OUTSTR
+0008A7  1  AD 11 06             LDA     debcylm
+0008AA  1  20 A6 09             JSR     PRINT_BYTE
+0008AD  1  AD 10 06             LDA     debcyll
+0008B0  1  20 A6 09             JSR     PRINT_BYTE
+0008B3  1  A9 00                LDA     #00
+0008B5  1  85 32                STA     farfunct
+0008B7  1  A9 0D                LDA     #$0D
+0008B9  1  20 F0 FF             JSR     DO_FARCALL
+0008BC  1  A9 00                LDA     #00
+0008BE  1  85 32                STA     farfunct
+0008C0  1  A9 0A                LDA     #$0A
+0008C2  1  20 F0 FF             JSR     DO_FARCALL
+0008C5  1               :
+0008C5  1  8E 12 06             STX     debsehd
+0008C8  1  E8                   INX
+0008C9  1  AD C0 0A             LDA     FUNCTREF
+0008CC  1  85 32                STA     farfunct
+0008CE  1  20 F0 FF             JSR     DO_FARCALL
+0008D1  1               
+0008D1  1  E0 00                CPX     #$00
+0008D3  1  D0 F0                BNE     :-
+0008D5  1               
+0008D5  1  EE 10 06             INC     debcyll
+0008D8  1  D0 03                BNE     :+
+0008DA  1  EE 11 06             INC     debcylm
+0008DD  1               :
+0008DD  1  EE C1 0A             INC     COUNTER
+0008E0  1  AD C1 0A             LDA     COUNTER
+0008E3  1  C9 3F                CMP     #$3F
+0008E5  1  D0 B5                BNE     LOOP
 0008E7  1               
-0008E7  1  4C 00 B8             JMP     $B800
-0008EA  1               
-0008EA  1               
-0008EA  1               ;__GETSTR______________________________________________________
-0008EA  1               ;
-0008EA  1               ; GET A STRING INTO BUFFER
-0008EA  1               ;
-0008EA  1               ;______________________________________________________________
-0008EA  1               GETSTR:
-0008EA  1  A2 00                LDX     #$00
-0008EC  1               GETSTR_LOOP:
-0008EC  1  A9 02                LDA     #02
-0008EE  1  85 32                STA     farfunct
-0008F0  1  20 F0 FF             JSR     DO_FARCALL
-0008F3  1               
-0008F3  1  C9 0D                CMP     #$0D
-0008F5  1  F0 1E                BEQ     GETSTR_DONE
-0008F7  1  C9 08                CMP     #$08
-0008F9  1  F0 20                BEQ     GETSTR_DEL
-0008FB  1  C9 30                CMP     #$30
-0008FD  1  90 ED                BCC     GETSTR_LOOP
-0008FF  1  C9 40                CMP     #$40
-000901  1  B0 E9                BCS     GETSTR_LOOP
-000903  1               
-000903  1  48                   PHA
-000904  1  A9 00                LDA     #00
-000906  1  85 32                STA     farfunct
-000908  1  68                   PLA
-000909  1  20 F0 FF             JSR     DO_FARCALL
-00090C  1               
-00090C  1  29 0F                AND     #$0F
-00090E  1  9D B7 0A             STA     CBUFF,X
-000911  1  E8                   INX
-000912  1  4C EC 08             JMP     GETSTR_LOOP
-000915  1               GETSTR_DONE:
-000915  1  A9 FF                LDA     #$FF
-000917  1  9D B7 0A             STA     CBUFF,X
-00091A  1  60                   RTS
-00091B  1               GETSTR_DEL:
-00091B  1  E0 00                CPX     #$00
-00091D  1  F0 CD                BEQ     GETSTR_LOOP
-00091F  1               
-00091F  1  48                   PHA
-000920  1  A9 00                LDA     #00
-000922  1  85 32                STA     farfunct
-000924  1  68                   PLA
-000925  1  20 F0 FF             JSR     DO_FARCALL
-000928  1               
-000928  1  CA                   DEX
-000929  1  4C EC 08             JMP     GETSTR_LOOP
-00092C  1               
-00092C  1               
-00092C  1               
-00092C  1               ;__GETDECIMAL__________________________________________________
-00092C  1               ;
-00092C  1               ; CONVERT A STRING (DECIMAL) TO A 8 BIT NUMBER IN TEMPWORD
-00092C  1               ;
-00092C  1               ;______________________________________________________________
-00092C  1               GETDECIMAL:
-00092C  1  A2 00                LDX     #$00
-00092E  1  86 3B                STX     TEMPWORD
-000930  1               
-000930  1               GETDECIMAL_LOOP:
-000930  1  BD B7 0A             LDA     CBUFF,X
-000933  1  C9 FF                CMP     #$FF
-000935  1  F0 1C                BEQ     GETDECIMAL_DONE
+0008E7  1  A9 AC                LDA     #<ENDMSG
+0008E9  1  85 41                STA     STRPTR
+0008EB  1  A9 0A                LDA     #>ENDMSG
+0008ED  1  85 42                STA     STRPTR+1
+0008EF  1  20 5F 09             JSR     OUTSTR
+0008F2  1               
+0008F2  1  4C 00 B8             JMP     $B800
+0008F5  1               
+0008F5  1               
+0008F5  1               ;__GETSTR______________________________________________________
+0008F5  1               ;
+0008F5  1               ; GET A STRING INTO BUFFER
+0008F5  1               ;
+0008F5  1               ;______________________________________________________________
+0008F5  1               GETSTR:
+0008F5  1  A2 00                LDX     #$00
+0008F7  1               GETSTR_LOOP:
+0008F7  1  A9 02                LDA     #02
+0008F9  1  85 32                STA     farfunct
+0008FB  1  20 F0 FF             JSR     DO_FARCALL
+0008FE  1               
+0008FE  1  C9 0D                CMP     #$0D
+000900  1  F0 1E                BEQ     GETSTR_DONE
+000902  1  C9 08                CMP     #$08
+000904  1  F0 20                BEQ     GETSTR_DEL
+000906  1  C9 30                CMP     #$30
+000908  1  90 ED                BCC     GETSTR_LOOP
+00090A  1  C9 40                CMP     #$40
+00090C  1  B0 E9                BCS     GETSTR_LOOP
+00090E  1               
+00090E  1  48                   PHA
+00090F  1  A9 00                LDA     #00
+000911  1  85 32                STA     farfunct
+000913  1  68                   PLA
+000914  1  20 F0 FF             JSR     DO_FARCALL
+000917  1               
+000917  1  29 0F                AND     #$0F
+000919  1  9D C2 0A             STA     CBUFF,X
+00091C  1  E8                   INX
+00091D  1  4C F7 08             JMP     GETSTR_LOOP
+000920  1               GETSTR_DONE:
+000920  1  A9 FF                LDA     #$FF
+000922  1  9D C2 0A             STA     CBUFF,X
+000925  1  60                   RTS
+000926  1               GETSTR_DEL:
+000926  1  E0 00                CPX     #$00
+000928  1  F0 CD                BEQ     GETSTR_LOOP
+00092A  1               
+00092A  1  48                   PHA
+00092B  1  A9 00                LDA     #00
+00092D  1  85 32                STA     farfunct
+00092F  1  68                   PLA
+000930  1  20 F0 FF             JSR     DO_FARCALL
+000933  1               
+000933  1  CA                   DEX
+000934  1  4C F7 08             JMP     GETSTR_LOOP
 000937  1               
-000937  1               ; MULTIPLY TEMPWORD*10
-000937  1  A5 3B                LDA     TEMPWORD
-000939  1  85 3D                STA     TEMPWORD1
+000937  1               
+000937  1               
+000937  1               ;__GETDECIMAL__________________________________________________
+000937  1               ;
+000937  1               ; CONVERT A STRING (DECIMAL) TO A 8 BIT NUMBER IN TEMPWORD
+000937  1               ;
+000937  1               ;______________________________________________________________
+000937  1               GETDECIMAL:
+000937  1  A2 00                LDX     #$00
+000939  1  86 3B                STX     TEMPWORD
 00093B  1               
-00093B  1  A5 3B                LDA     TEMPWORD
-00093D  1  0A                   ASL     A               ;*2
-00093E  1  0A                   ASL     A               ;*2
-00093F  1  0A                   ASL     A               ;*2
-000940  1               
-000940  1  18                   CLC
-000941  1  65 3D                ADC     TEMPWORD1
-000943  1  65 3D                ADC     TEMPWORD1
-000945  1  85 3B                STA     TEMPWORD        ; store sum
-000947  1  BD B7 0A             LDA     CBUFF,X         ; add new decimal digit
-00094A  1  E8                   INX
+00093B  1               GETDECIMAL_LOOP:
+00093B  1  BD C2 0A             LDA     CBUFF,X
+00093E  1  C9 FF                CMP     #$FF
+000940  1  F0 1C                BEQ     GETDECIMAL_DONE
+000942  1               
+000942  1               ; MULTIPLY TEMPWORD*10
+000942  1  A5 3B                LDA     TEMPWORD
+000944  1  85 3D                STA     TEMPWORD1
+000946  1               
+000946  1  A5 3B                LDA     TEMPWORD
+000948  1  0A                   ASL     A               ;*2
+000949  1  0A                   ASL     A               ;*2
+00094A  1  0A                   ASL     A               ;*2
+00094B  1               
 00094B  1  18                   CLC
-00094C  1  65 3B                ADC     TEMPWORD
-00094E  1  85 3B                STA     TEMPWORD        ; store sum
-000950  1  4C 30 09             JMP     GETDECIMAL_LOOP
-000953  1               GETDECIMAL_DONE:
-000953  1  60                   RTS
-000954  1               
-000954  1               
-000954  1               
-000954  1               ;__OUTSTR______________________________________________________
-000954  1               ;
-000954  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-000954  1               ;
-000954  1               ;______________________________________________________________
-000954  1               OUTSTR:
-000954  1  A9 00                LDA     #00
-000956  1  85 32                STA     farfunct
-000958  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
-00095A  1               OUTSTRLP:
-00095A  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
-00095C  1  C9 00                CMP     #$00            ; IS NULL?
-00095E  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-000960  1  20 F0 FF             JSR     DO_FARCALL
-000963  1               
-000963  1  E6 41                INC     STRPTR
-000965  1  D0 F3                BNE     OUTSTRLP
-000967  1  E6 42                INC     STRPTR+1
-000969  1  4C 5A 09             JMP     OUTSTRLP        ; DO NEXT CHAR
-00096C  1               ENDOUTSTR:
-00096C  1  60                   RTS                     ; RETURN
-00096D  1               
-00096D  1               
-00096D  1               TRANSLATESLICE:
-00096D  1  A9 00                LDA     #$00            ; LOAD TRACK # (LOW BYTE)
-00096F  1  8D 12 06             STA     debsehd         ; STORE IN SECTOR/HEAD
-000972  1               
-000972  1  A5 3B                LDA     TEMPWORD        ; GET SLICE#
-000974  1  8D 11 06             STA     debcylm         ; SLICE OFFSET MSB
-000977  1  A9 00                LDA     #0              ; GET SLICE#
-000979  1  8D 10 06             STA     debcyll         ; SLICE OFFSET LSB
-00097C  1  18                   CLC                     ; VOODOO MATH TO TAKE SLICE*$4000
-00097D  1  6E 11 06             ROR     debcylm
-000980  1  6E 10 06             ROR     debcyll
-000983  1  6E 11 06             ROR     debcylm
-000986  1  6E 10 06             ROR     debcyll
-000989  1               
-000989  1  A5 3B                LDA     TEMPWORD        ; GET SLICE#
-00098B  1  18                   CLC
-00098C  1  6D 10 06             ADC     debcyll
-00098F  1  8D 10 06             STA     debcyll
-000992  1  A9 00                LDA     #$00
-000994  1  6D 11 06             ADC     debcylm
-000997  1  8D 11 06             STA     debcylm
-00099A  1  60                   RTS
-00099B  1               
-00099B  1               ;__PRINT_BYTE__________________________________________________
-00099B  1               ;
-00099B  1               ; PRINT OUT ACCUMULATOR AS HEX NUMBER
-00099B  1               ;
-00099B  1               ;______________________________________________________________
-00099B  1               PRINT_BYTE:
-00099B  1  48                   PHA                     ; SAVE A REGISTER
-00099C  1  4A                   LSR     A               ; SHIFT HIGH NIBBLE TO LOW NIBBLE
-00099D  1  4A                   LSR     A               ;
-00099E  1  4A                   LSR     A               ;
-00099F  1  4A                   LSR     A               ;
-0009A0  1  18                   CLC                     ; CLEAR CARRY
-0009A1  1  20 A8 09             JSR     PRINT_DIGIT     ; PRINT LOW NIBBLE
-0009A4  1  68                   PLA                     ; RESTORE ACCUMULATOR
-0009A5  1  4C A8 09             JMP     PRINT_DIGIT     ; PRINT LOW NIBBLE
-0009A8  1               
-0009A8  1               ;__PRINT_DIGIT_________________________________________________
-0009A8  1               ;
-0009A8  1               ; PRINT OUT LOW NIBBLE OF ACCUMULATOR IN HEX
-0009A8  1               ;
-0009A8  1               ;______________________________________________________________
-0009A8  1               PRINT_DIGIT:
-0009A8  1  29 0F                AND     #$0F            ; STRIP OFF HIGH NIBBLE
-0009AA  1  09 30                ORA     #$30            ; ADD $30 TO PRODUCE ASCII
-0009AC  1  C9 3A                CMP     #$3A            ; IS GREATER THAN 9
-0009AE  1  30 03                BMI     :+              ; NO, SKIP ADD
-0009B0  1  18                   CLC                     ; CLEAR CARRY
-0009B1  1  69 07                ADC     #$07            ; ADD ON FOR LETTER VALUES
-0009B3  1               :       ;
-0009B3  1  48                   PHA
-0009B4  1  A9 00                LDA     #00
-0009B6  1  85 32                STA     farfunct
-0009B8  1  68                   PLA
-0009B9  1  4C F0 FF             JMP     DO_FARCALL
-0009BC  1               
-0009BC  1               MSG:
-0009BC  1  0D 0A 43 4C          .BYTE   $0D,$0A,"CLEARDIR - CLEAR TRACKS ON SELECTED DEVICE",$0D,$0A,$0D,$0A
-0009C0  1  45 41 52 44  
-0009C4  1  49 52 20 2D  
-0009EC  1  53 45 4C 45          .BYTE   "SELECT DRIVE:",$0D,$0A
-0009F0  1  43 54 20 44  
-0009F4  1  52 49 56 45  
-0009FB  1  28 49 29 20          .BYTE   "(I) IDE PRIMARY",$0D,$0A
-0009FF  1  49 44 45 20  
-000A03  1  50 52 49 4D  
-000A0C  1  28 4A 29 20          .BYTE   "(J) IDE SECONDARY",$0D,$0A
-000A10  1  49 44 45 20  
-000A14  1  53 45 43 4F  
-000A1F  1  28 53 29 20          .BYTE   "(S) SD CARD",$0D,$0A
-000A23  1  53 44 20 43  
-000A27  1  41 52 44 0D  
-000A2C  1  00                   .BYTE   0
-000A2D  1               
-000A2D  1               IDEMSG:
-000A2D  1  0D 0A 43 4C          .BYTE   $0D,$0A,"CLEARING TRACKS ON IDE."
-000A31  1  45 41 52 49  
-000A35  1  4E 47 20 54  
-000A46  1  00                   .BYTE   0
-000A47  1               
-000A47  1               
-000A47  1               SDMSG:
-000A47  1  0D 0A 43 4C          .BYTE   $0D,$0A,"CLEARING TRACKS ON SD."
-000A4B  1  45 41 52 49  
-000A4F  1  4E 47 20 54  
-000A5F  1  00                   .BYTE   0
-000A60  1               
-000A60  1               
-000A60  1               INPUTNUMBER:
-000A60  1  0D 0A 57 48          .BYTE   $0D,$0A,"WHICH SLICE TO CLEAR? (0-255):"
-000A64  1  49 43 48 20  
-000A68  1  53 4C 49 43  
-000A80  1  00                   .BYTE   0
-000A81  1               
-000A81  1               
-000A81  1               ABORTMSG:
-000A81  1  0D 0A 41 42          .BYTE   $0D,$0A,"ABORTED.",$0D,$0A,$0D,$0A
-000A85  1  4F 52 54 45  
-000A89  1  44 2E 0D 0A  
-000A8F  1  00                   .BYTE   0
-000A90  1               
-000A90  1               RUNMSG:
-000A90  1  43 4C 45 41          .BYTE   "CLEARING TRACK $"
-000A94  1  52 49 4E 47  
-000A98  1  20 54 52 41  
-000AA0  1  00                   .BYTE   0
-000AA1  1               
-000AA1  1               ENDMSG:
-000AA1  1  0D 0A 43 4C          .BYTE   $0D,$0A,"CLEAR COMPLETE.",$0D,$0A
-000AA5  1  45 41 52 20  
-000AA9  1  43 4F 4D 50  
-000AB4  1  00                   .BYTE   0
-000AB5  1               
-000AB5  1               FUNCTREF:
-000AB5  1  00                   .BYTE   0
-000AB6  1               COUNTER:
-000AB6  1  00                   .BYTE   0
-000AB7  1               
-000AB7  1               CBUFF:
-000AB7  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
-000ABB  1  00 00 00 00  
-000ABF  1  00           
-000AC0  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
-000AC4  1  00 00 00 00  
-000AC8  1  00           
-000AC9  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
-000ACD  1  00 00 00 00  
-000AD1  1  00           
-000AD2  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
-000AD6  1  00 00 00 00  
-000ADA  1  00           
-000ADB  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
-000ADF  1  00 00 00 00  
-000AE3  1  00           
-000AE4  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
-000AE8  1  00 00 00 00  
-000AEC  1  00           
-000AED  1               
-000AED  1               
-000AED  1               
-000AED  1               .END
+00094C  1  65 3D                ADC     TEMPWORD1
+00094E  1  65 3D                ADC     TEMPWORD1
+000950  1  85 3B                STA     TEMPWORD        ; store sum
+000952  1  BD C2 0A             LDA     CBUFF,X         ; add new decimal digit
+000955  1  E8                   INX
+000956  1  18                   CLC
+000957  1  65 3B                ADC     TEMPWORD
+000959  1  85 3B                STA     TEMPWORD        ; store sum
+00095B  1  4C 3B 09             JMP     GETDECIMAL_LOOP
+00095E  1               GETDECIMAL_DONE:
+00095E  1  60                   RTS
+00095F  1               
+00095F  1               
+00095F  1               
+00095F  1               ;__OUTSTR______________________________________________________
+00095F  1               ;
+00095F  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00095F  1               ;
+00095F  1               ;______________________________________________________________
+00095F  1               OUTSTR:
+00095F  1  A9 00                LDA     #00
+000961  1  85 32                STA     farfunct
+000963  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+000965  1               OUTSTRLP:
+000965  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+000967  1  C9 00                CMP     #$00            ; IS NULL?
+000969  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00096B  1  20 F0 FF             JSR     DO_FARCALL
+00096E  1               
+00096E  1  E6 41                INC     STRPTR
+000970  1  D0 F3                BNE     OUTSTRLP
+000972  1  E6 42                INC     STRPTR+1
+000974  1  4C 65 09             JMP     OUTSTRLP        ; DO NEXT CHAR
+000977  1               ENDOUTSTR:
+000977  1  60                   RTS                     ; RETURN
+000978  1               
+000978  1               
+000978  1               TRANSLATESLICE:
+000978  1  A9 00                LDA     #$00            ; LOAD TRACK # (LOW BYTE)
+00097A  1  8D 12 06             STA     debsehd         ; STORE IN SECTOR/HEAD
+00097D  1               
+00097D  1  A5 3B                LDA     TEMPWORD        ; GET SLICE#
+00097F  1  8D 11 06             STA     debcylm         ; SLICE OFFSET MSB
+000982  1  A9 00                LDA     #0              ; GET SLICE#
+000984  1  8D 10 06             STA     debcyll         ; SLICE OFFSET LSB
+000987  1  18                   CLC                     ; VOODOO MATH TO TAKE SLICE*$4000
+000988  1  6E 11 06             ROR     debcylm
+00098B  1  6E 10 06             ROR     debcyll
+00098E  1  6E 11 06             ROR     debcylm
+000991  1  6E 10 06             ROR     debcyll
+000994  1               
+000994  1  A5 3B                LDA     TEMPWORD        ; GET SLICE#
+000996  1  18                   CLC
+000997  1  6D 10 06             ADC     debcyll
+00099A  1  8D 10 06             STA     debcyll
+00099D  1  A9 00                LDA     #$00
+00099F  1  6D 11 06             ADC     debcylm
+0009A2  1  8D 11 06             STA     debcylm
+0009A5  1  60                   RTS
+0009A6  1               
+0009A6  1               ;__PRINT_BYTE__________________________________________________
+0009A6  1               ;
+0009A6  1               ; PRINT OUT ACCUMULATOR AS HEX NUMBER
+0009A6  1               ;
+0009A6  1               ;______________________________________________________________
+0009A6  1               PRINT_BYTE:
+0009A6  1  48                   PHA                     ; SAVE A REGISTER
+0009A7  1  4A                   LSR     A               ; SHIFT HIGH NIBBLE TO LOW NIBBLE
+0009A8  1  4A                   LSR     A               ;
+0009A9  1  4A                   LSR     A               ;
+0009AA  1  4A                   LSR     A               ;
+0009AB  1  18                   CLC                     ; CLEAR CARRY
+0009AC  1  20 B3 09             JSR     PRINT_DIGIT     ; PRINT LOW NIBBLE
+0009AF  1  68                   PLA                     ; RESTORE ACCUMULATOR
+0009B0  1  4C B3 09             JMP     PRINT_DIGIT     ; PRINT LOW NIBBLE
+0009B3  1               
+0009B3  1               ;__PRINT_DIGIT_________________________________________________
+0009B3  1               ;
+0009B3  1               ; PRINT OUT LOW NIBBLE OF ACCUMULATOR IN HEX
+0009B3  1               ;
+0009B3  1               ;______________________________________________________________
+0009B3  1               PRINT_DIGIT:
+0009B3  1  29 0F                AND     #$0F            ; STRIP OFF HIGH NIBBLE
+0009B5  1  09 30                ORA     #$30            ; ADD $30 TO PRODUCE ASCII
+0009B7  1  C9 3A                CMP     #$3A            ; IS GREATER THAN 9
+0009B9  1  30 03                BMI     :+              ; NO, SKIP ADD
+0009BB  1  18                   CLC                     ; CLEAR CARRY
+0009BC  1  69 07                ADC     #$07            ; ADD ON FOR LETTER VALUES
+0009BE  1               :       ;
+0009BE  1  48                   PHA
+0009BF  1  A9 00                LDA     #00
+0009C1  1  85 32                STA     farfunct
+0009C3  1  68                   PLA
+0009C4  1  4C F0 FF             JMP     DO_FARCALL
+0009C7  1               
+0009C7  1               MSG:
+0009C7  1  0D 0A 43 4C          .BYTE   $0D,$0A,"CLEARDIR - CLEAR TRACKS ON SELECTED DEVICE",$0D,$0A,$0D,$0A
+0009CB  1  45 41 52 44  
+0009CF  1  49 52 20 2D  
+0009F7  1  53 45 4C 45          .BYTE   "SELECT DRIVE:",$0D,$0A
+0009FB  1  43 54 20 44  
+0009FF  1  52 49 56 45  
+000A06  1  28 49 29 20          .BYTE   "(I) IDE PRIMARY",$0D,$0A
+000A0A  1  49 44 45 20  
+000A0E  1  50 52 49 4D  
+000A17  1  28 4A 29 20          .BYTE   "(J) IDE SECONDARY",$0D,$0A
+000A1B  1  49 44 45 20  
+000A1F  1  53 45 43 4F  
+000A2A  1  28 53 29 20          .BYTE   "(S) SD CARD",$0D,$0A
+000A2E  1  53 44 20 43  
+000A32  1  41 52 44 0D  
+000A37  1  00                   .BYTE   0
+000A38  1               
+000A38  1               IDEMSG:
+000A38  1  0D 0A 43 4C          .BYTE   $0D,$0A,"CLEARING TRACKS ON IDE."
+000A3C  1  45 41 52 49  
+000A40  1  4E 47 20 54  
+000A51  1  00                   .BYTE   0
+000A52  1               
+000A52  1               
+000A52  1               SDMSG:
+000A52  1  0D 0A 43 4C          .BYTE   $0D,$0A,"CLEARING TRACKS ON SD."
+000A56  1  45 41 52 49  
+000A5A  1  4E 47 20 54  
+000A6A  1  00                   .BYTE   0
+000A6B  1               
+000A6B  1               
+000A6B  1               INPUTNUMBER:
+000A6B  1  0D 0A 57 48          .BYTE   $0D,$0A,"WHICH SLICE TO CLEAR? (0-255):"
+000A6F  1  49 43 48 20  
+000A73  1  53 4C 49 43  
+000A8B  1  00                   .BYTE   0
+000A8C  1               
+000A8C  1               
+000A8C  1               ABORTMSG:
+000A8C  1  0D 0A 41 42          .BYTE   $0D,$0A,"ABORTED.",$0D,$0A,$0D,$0A
+000A90  1  4F 52 54 45  
+000A94  1  44 2E 0D 0A  
+000A9A  1  00                   .BYTE   0
+000A9B  1               
+000A9B  1               RUNMSG:
+000A9B  1  43 4C 45 41          .BYTE   "CLEARING TRACK $"
+000A9F  1  52 49 4E 47  
+000AA3  1  20 54 52 41  
+000AAB  1  00                   .BYTE   0
+000AAC  1               
+000AAC  1               ENDMSG:
+000AAC  1  0D 0A 43 4C          .BYTE   $0D,$0A,"CLEAR COMPLETE.",$0D,$0A
+000AB0  1  45 41 52 20  
+000AB4  1  43 4F 4D 50  
+000ABF  1  00                   .BYTE   0
+000AC0  1               
+000AC0  1               FUNCTREF:
+000AC0  1  00                   .BYTE   0
+000AC1  1               COUNTER:
+000AC1  1  00                   .BYTE   0
+000AC2  1               
+000AC2  1               CBUFF:
+000AC2  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
+000AC6  1  00 00 00 00  
+000ACA  1  00           
+000ACB  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
+000ACF  1  00 00 00 00  
+000AD3  1  00           
+000AD4  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
+000AD8  1  00 00 00 00  
+000ADC  1  00           
+000ADD  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
+000AE1  1  00 00 00 00  
+000AE5  1  00           
+000AE6  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
+000AEA  1  00 00 00 00  
+000AEE  1  00           
+000AEF  1  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0,0
+000AF3  1  00 00 00 00  
+000AF7  1  00           
+000AF8  1               
+000AF8  1               
+000AF8  1               
+000AF8  1               .END

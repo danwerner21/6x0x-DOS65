@@ -210,11 +210,11 @@ Current file: 6502PCbios.asm
 00F012  1  D0 F6                BNE     :-
 00F014  1               ;
 00F014  1                       .IFNDEF ESP
-00F014  1  A9 04                LDA     #$04            ; SET CONSOLE SERIAL
+00F014  1                       LDA     #$04            ; SET CONSOLE SERIAL
+00F014  1                       STA     CONSOLE         ;
+00F014  1                       .ELSE
+00F014  1  A9 09                LDA     #$09            ; SET CONSOLE ESP
 00F016  1  85 3A                STA     CONSOLE         ;
-00F018  1                       .ELSE
-00F018  1                       LDA     #$09            ; SET CONSOLE ESP
-00F018  1                       STA     CONSOLE         ;
 00F018  1                       .ENDIF
 00F018  1               ;;;
 00F018  1  A9 41                LDA     #<IRQROUTINE
@@ -3571,31 +3571,33 @@ Current file: 6502PCbios.asm
 00FE70  1  00 3E 73 00  
 00FE74  1               STARTUP:
 00FE74  1                       .IFDEF  ESP
-00FE74  1                       .BYTE   $0D,$0A
-00FE74  1                       .BYTE   $0D,$0A
-00FE74  1                       .BYTE   $0D,$0A
-00FE74  1                       .BYTE   27,"[32;40m",27,"[2J"
-00FE74  1                       .BYTE   $0D,$0A
-00FE74  1                       .ENDIF
 00FE74  1  0D 0A                .BYTE   $0D,$0A
-00FE76  1  20 20 5F 5F          .BYTE   "  __  ____   ___ ____    ___  ___",$0D,$0A
-00FE7A  1  20 20 5F 5F  
-00FE7E  1  5F 5F 20 20  
-00FE99  1  20 2F 20 2F          .BYTE   " / /_| ___| / _ \___ \  / _ \/ __\",$0D,$0A
-00FE9D  1  5F 7C 20 5F  
-00FEA1  1  5F 5F 7C 20  
-00FEBD  1  7C 20 27 5F          .BYTE   "| '_ \___ \| | | |__) |/ /_)/ /",$0D,$0A
-00FEC1  1  20 5C 5F 5F  
-00FEC5  1  5F 20 5C 7C  
-00FEDE  1  7C 20 28 5F          .BYTE   "| (_) |__) | |_| / __// ___/ /___",$0D,$0A
-00FEE2  1  29 20 7C 5F  
-00FEE6  1  5F 29 20 7C  
-00FF01  1  20 5C 5F 5F          .BYTE   " \___/____/ \___/_____\/   \____/",$0D,$0A,$0D,$0A
-00FF05  1  5F 2F 5F 5F  
-00FF09  1  5F 5F 2F 20  
-00FF26  1               
-00FF26  1                       .SEGMENT "IVECTOR"
-00FF26  1                       .ORG    $FFF0
+00FE76  1  0D 0A                .BYTE   $0D,$0A
+00FE78  1  0D 0A                .BYTE   $0D,$0A
+00FE7A  1  1B 5B 33 32          .BYTE   27,"[32;40m",27,"[2J"
+00FE7E  1  3B 34 30 6D  
+00FE82  1  1B 5B 32 4A  
+00FE86  1  0D 0A                .BYTE   $0D,$0A
+00FE88  1                       .ENDIF
+00FE88  1  0D 0A                .BYTE   $0D,$0A
+00FE8A  1  20 20 5F 5F          .BYTE   "  __  ____   ___ ____    ___  ___",$0D,$0A
+00FE8E  1  20 20 5F 5F  
+00FE92  1  5F 5F 20 20  
+00FEAD  1  20 2F 20 2F          .BYTE   " / /_| ___| / _ \___ \  / _ \/ __\",$0D,$0A
+00FEB1  1  5F 7C 20 5F  
+00FEB5  1  5F 5F 7C 20  
+00FED1  1  7C 20 27 5F          .BYTE   "| '_ \___ \| | | |__) |/ /_)/ /",$0D,$0A
+00FED5  1  20 5C 5F 5F  
+00FED9  1  5F 20 5C 7C  
+00FEF2  1  7C 20 28 5F          .BYTE   "| (_) |__) | |_| / __// ___/ /___",$0D,$0A
+00FEF6  1  29 20 7C 5F  
+00FEFA  1  5F 29 20 7C  
+00FF15  1  20 5C 5F 5F          .BYTE   " \___/____/ \___/_____\/   \____/",$0D,$0A,$0D,$0A
+00FF19  1  5F 2F 5F 5F  
+00FF1D  1  5F 5F 2F 20  
+00FF3A  1               
+00FF3A  1                       .SEGMENT "IVECTOR"
+00FF3A  1                       .ORG    $FFF0
 00FFF0  1  4C 27 FE             JMP     DO_FARCALL_ACTUAL
 00FFF3  1  4C EE F7             JMP     LOADS19
 00FFF6  1               

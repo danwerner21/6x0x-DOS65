@@ -40,8 +40,13 @@ COLD_START:
         CPY     #$00
         BNE     :-
 ;
-        LDA     #$04            ; SET CONSOLE
+        .IFNDEF ESP
+        LDA     #$04            ; SET CONSOLE SERIAL
         STA     CONSOLE         ;
+        .ELSE
+        LDA     #$09            ; SET CONSOLE ESP
+        STA     CONSOLE         ;
+        .ENDIF
 ;;;
         LDA     #<IRQROUTINE
         STA     IRQVECTOR
@@ -175,6 +180,13 @@ ENDOUTSTR:
 DSKYMSG:
         .BYTE   $7C, $6, $3F, $6D, $0, $3E, $73, $0
 STARTUP:
+        .IFDEF  ESP
+        .BYTE   $0D,$0A
+        .BYTE   $0D,$0A
+        .BYTE   $0D,$0A
+        .BYTE   27,"[32;40m",27,"[2J"
+        .BYTE   $0D,$0A
+        .ENDIF
         .BYTE   $0D,$0A
         .BYTE   "  __  ____   ___ ____    ___  ___",$0D,$0A
         .BYTE   " / /_| ___| / _ \___ \  / _ \/ __\",$0D,$0A

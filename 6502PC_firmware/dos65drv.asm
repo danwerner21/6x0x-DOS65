@@ -98,12 +98,12 @@ DISPATCHTABLE:
         .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
         .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
 ;
-        .WORD   drv_noop        ;RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
-        .WORD   drv_noop        ;RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
-        .WORD   drv_noop        ;RTC_INIT        ; FUNCTION 52 - INIT RTC
-        .WORD   drv_noop        ;RTC_LED         ; FUNCTION 53 - CONTROL LEDS
-        .WORD   drv_noop        ;RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
-        .WORD   drv_noop        ;RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
+        .WORD   RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
+        .WORD   RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
+        .WORD   RTC_INIT        ; FUNCTION 52 - INIT RTC
+        .WORD   RTC_LED         ; FUNCTION 53 - CONTROL LEDS
+        .WORD   RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
+        .WORD   RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
 ;
         .WORD   drv_noop        ; FUNCTION 56
         .WORD   drv_noop        ; FUNCTION 57
@@ -133,6 +133,7 @@ DISPATCHTABLE:
         .INCLUDE "bios_ch375.asm"
         .INCLUDE "bios_esp.asm"
         .INCLUDE "bios_multi.asm"
+        .INCLUDE "bios_rtc.asm"
 
 
 

@@ -77,7 +77,10 @@ unsigned char bcdtodec(unsigned char in)
 
 unsigned char dectobcd(unsigned char in)
 {
-    return ((in/10)*16)+(in-((in/10)*10));
+    char lo,hi;
+    hi=(in/10)<<4;
+    lo= in % 10;
+    return hi|lo;
 }
 
 void UpdateTime(void)

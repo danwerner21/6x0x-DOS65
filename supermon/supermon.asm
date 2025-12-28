@@ -466,6 +466,7 @@ BOOT:
         JSR     DO_FARCALL
         JMP     hstbuf
 BOOTX:
+WBOOT:
         JMP     ERROR           ; back to main loop
         .endif
 
@@ -1606,7 +1607,7 @@ MNEMR:
 ; -----------------------------------------------------------------------------
 ; single-character commands
 KEYW:
-        .BYTE   "ABCDFGHJLMRT.>;"
+        .BYTE   "ABCDFGHJLMRTW.>;"
 HIKEY:
         .BYTE   "$+&%"
 KEYTOP:
@@ -1616,7 +1617,7 @@ KEYTOP:
 KADDR:
         .WORD   ASSEM-1,BOOT-1,COMPAR-1,DISASS-1
         .WORD   FILL-1,GOTO-1,HUNT-1,JSUB-1
-        .WORD   LOAD-1,DSPLYM-1,DSPLYR-1,TRANS-1
+        .WORD   LOAD-1,DSPLYM-1,DSPLYR-1,TRANS-1,WBOOT-1
         .WORD   ASSEM-1,ALTM-1,ALTR-1
 
 ; -----------------------------------------------------------------------------

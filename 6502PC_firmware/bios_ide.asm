@@ -505,7 +505,6 @@ MESSAGE6:
         .BYTE   "0x"
         .BYTE   00
 
-
 ;___IDE_CONVERT_SECTOR_LBA_______________________________________________________________________________
 ;
 ; 	TRANSLATE LBA SECTORS
@@ -670,6 +669,24 @@ BOOTX:
         JMP     ERROR           ; back to main loop
 
 WBOOT:
+        LDA     #<MESSAGE7      ;
+        STA     STRPTR          ;
+        LDA     #>MESSAGE7      ;
+        STA     STRPTR+1        ;
+        JSR     OUTSTR
+        JSR     IOF_CONINW
+        CMP     #'Y'
+        BEQ     :+
+
+        LDA     #<MESSAGE8      ;
+        STA     STRPTR          ;
+        LDA     #>MESSAGE8      ;
+        STA     STRPTR+1        ;
+        JSR     OUTSTR
+        BRK
+
+
+:
         JSR     XTIDE_INIT      ; INIT IDE
                                 ; SETUP LOCATION
         LDA     #$00
@@ -712,6 +729,23 @@ BOOTW1:
         LDA     SRC+1
         CMP     #$80
         BNE     BOOTW1
+
+        LDA     #<MESSAGE9      ;
+        STA     STRPTR          ;
+        LDA     #>MESSAGE9      ;
+        STA     STRPTR+1        ;
+        JSR     OUTSTR
         BRK
+
+MESSAGE7:
+        .BYTE   13,10," ARE YOU SURE YOU WANT TO REPLACE BOOT IMAGE?",13,10
+        .BYTE   " PRESS 'Y' TO CONTINUE",13,10
+        .BYTE   00
+MESSAGE8:
+        .BYTE   " BOOT IMAGE WRITE ABORTED.",13,10
+        .BYTE   00
+MESSAGE9:
+        .BYTE   " BOOT IMAGE WRITTEN.",13,10
+        .BYTE   00
 
         .ENDIF

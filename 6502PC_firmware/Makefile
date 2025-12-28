@@ -3,9 +3,11 @@ all:  	rom.hex dos65drv.s19 pcdos65.s19
 6502PCbios.out: 6502PCbios.asm bios_serial.asm ../supermon/supermon.asm \
 			  bios_pager.asm bios_ide.asm
 	ca65 6502PCbios.asm -l 6502PCbios.lst
+	ca65 6502PCbios.asm -D ESP -l 6502PCbiosesp.lst -o 6502PCbiosesp.o
 	ld65 6502PCbios.o -vm -v -m 6502PCbios.map -C dos65.cfg -o 6502PCbios.out
+	ld65 6502PCbiosesp.o -vm -v -m 6502PCbiosesp.map -C dos65.cfg -o 6502PCbiosesp.out
 
-dos65drv.out: dos65drv.asm bios_serial.asm  \
+dos65drv.out: dos65drv.asm bios_serial.asm  bios_rtc.asm \
 			  bios_pager.asm bios_ide.asm bios_ch375.asm bios_esp.asm bios_multi.asm
 	ca65 dos65drv.asm -l dos65drv.lst
 	ld65 dos65drv.o -vm -v -m dos65drv.map -C dos65.cfg -o dos65drv.out
@@ -15,7 +17,11 @@ bios_ch375.out: bios_ch375.asm
 	ld65 bios_ch375.o -vm -v -m bios_ch375.map -C dos65.cfg -o bios_ch375.out
 
 rom.hex: 6502PCbios.out bios_ch375.asm bios_ide.asm
-	srec_cat  6502PCbios.out -binary -exclude 0x0000 0xEF00 -offset -0x8F00 -o rom.hex  -intel -address-length=2
+	srec_cat  6502PCbios.out -binary -exclude 0x0000 0xEF00 -offset -0x8F00 -o rom.h1  -intel -address-length=2 --Data_Only
+	srec_cat  6502PCbiosesp.out -binary -exclude 0x0000 0xEF00 -offset -0x7F00 -o rom.h2  -intel -address-length=2
+	cat 	rom.h1 rom.h2 > rom.hex
+	@rm	rom.h1
+	@rm	rom.h2
 	cp rom.hex ../bin/6502PC/
 
 dos65drv.s19: dos65drv.out
@@ -42,6 +48,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_pager.asm bios_pager.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_ch375.asm bios_ch375.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_ide.asm bios_ide.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_rtc.asm bios_rtc.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_esp.asm bios_esp.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_multi.asm bios_multi.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/loader.asm loader.asm

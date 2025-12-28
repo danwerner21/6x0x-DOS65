@@ -175,10 +175,10 @@ Current file: dos65drv.asm
 00C018  1  6C 33 00             JMP     (farpointer)
 00C01B  1               
 00C01B  1               DISPATCHTABLE:
-00C01B  1  50 D0                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
-00C01D  1  50 D0                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
-00C01F  1  50 D0                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
-00C021  1  50 D0                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
+00C01B  1  66 D1                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
+00C01D  1  66 D1                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
+00C01F  1  66 D1                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
+00C021  1  66 D1                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
 00C023  1               
 00C023  1  B5 C0                .WORD   WRSER1          ; FUNCTION 04 - WRITE SERIAL PORT
 00C025  1  C2 C0                .WORD   RDSER1          ; FUNCTION 05 - READ SERIAL PORT
@@ -192,59 +192,59 @@ Current file: dos65drv.asm
 00C033  1  08 C9                .WORD   ESPPS2BUFL      ; FUNCTION 12 - GET KEYBOARD STATUS
 00C035  1  96 C7                .WORD   ESPINIT         ; FUNCTION 13 - INIT INTERFACE
 00C037  1               
-00C037  1  63 D0                .WORD   drv_noop        ; FUNCTION 14
-00C039  1  63 D0                .WORD   drv_noop        ; FUNCTION 15
-00C03B  1  63 D0                .WORD   drv_noop        ; FUNCTION 16
-00C03D  1  63 D0                .WORD   drv_noop        ; FUNCTION 17
-00C03F  1  63 D0                .WORD   drv_noop        ; FUNCTION 18
+00C037  1  79 D1                .WORD   drv_noop        ; FUNCTION 14
+00C039  1  79 D1                .WORD   drv_noop        ; FUNCTION 15
+00C03B  1  79 D1                .WORD   drv_noop        ; FUNCTION 16
+00C03D  1  79 D1                .WORD   drv_noop        ; FUNCTION 17
+00C03F  1  79 D1                .WORD   drv_noop        ; FUNCTION 18
 00C041  1               
-00C041  1  63 D0                .WORD   drv_noop        ; FUNCTION 19
-00C043  1  63 D0                .WORD   drv_noop        ; FUNCTION 20
-00C045  1  63 D0                .WORD   drv_noop        ; FUNCTION 21
-00C047  1  63 D0                .WORD   drv_noop        ; FUNCTION 22
-00C049  1  63 D0                .WORD   drv_noop        ; FUNCTION 23
+00C041  1  79 D1                .WORD   drv_noop        ; FUNCTION 19
+00C043  1  79 D1                .WORD   drv_noop        ; FUNCTION 20
+00C045  1  79 D1                .WORD   drv_noop        ; FUNCTION 21
+00C047  1  79 D1                .WORD   drv_noop        ; FUNCTION 22
+00C049  1  79 D1                .WORD   drv_noop        ; FUNCTION 23
 00C04B  1               
-00C04B  1  63 D0                .WORD   drv_noop        ; FUNCTION 24
-00C04D  1  63 D0                .WORD   drv_noop        ; FUNCTION 25
-00C04F  1  63 D0                .WORD   drv_noop        ; FUNCTION 26
-00C051  1  63 D0                .WORD   drv_noop        ; FUNCTION 27
-00C053  1  63 D0                .WORD   drv_noop        ; FUNCTION 28
+00C04B  1  79 D1                .WORD   drv_noop        ; FUNCTION 24
+00C04D  1  79 D1                .WORD   drv_noop        ; FUNCTION 25
+00C04F  1  79 D1                .WORD   drv_noop        ; FUNCTION 26
+00C051  1  79 D1                .WORD   drv_noop        ; FUNCTION 27
+00C053  1  79 D1                .WORD   drv_noop        ; FUNCTION 28
 00C055  1               
-00C055  1  63 D0                .WORD   drv_noop        ; FUNCTION 29
-00C057  1  63 D0                .WORD   drv_noop        ; FUNCTION 30
-00C059  1  63 D0                .WORD   drv_noop        ; FUNCTION 31
-00C05B  1  63 D0                .WORD   drv_noop        ; FUNCTION 32
-00C05D  1  63 D0                .WORD   drv_noop        ; FUNCTION 33
+00C055  1  79 D1                .WORD   drv_noop        ; FUNCTION 29
+00C057  1  79 D1                .WORD   drv_noop        ; FUNCTION 30
+00C059  1  79 D1                .WORD   drv_noop        ; FUNCTION 31
+00C05B  1  79 D1                .WORD   drv_noop        ; FUNCTION 32
+00C05D  1  79 D1                .WORD   drv_noop        ; FUNCTION 33
 00C05F  1               
 00C05F  1  1D D0                .WORD   LPT_OUT         ; SEND BYTE TO LPT PORT ; FUNCTION 34
 00C061  1  1F CC                .WORD   KBD_GETKEY      ; GET a character from the MULTI IO ps/2 keyboard ; FUNCTION 35
 00C063  1  75 CA                .WORD   MULTIOINIT      ; INIT MULTI IO CARD   ; FUNCTION 36
-00C065  1  63 D0                .WORD   drv_noop        ; FUNCTION 37
-00C067  1  63 D0                .WORD   drv_noop        ; FUNCTION 38
-00C069  1  63 D0                .WORD   drv_noop        ; FUNCTION 39
+00C065  1  79 D1                .WORD   drv_noop        ; FUNCTION 37
+00C067  1  79 D1                .WORD   drv_noop        ; FUNCTION 38
+00C069  1  79 D1                .WORD   drv_noop        ; FUNCTION 39
 00C06B  1               
-00C06B  1  63 D0                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
-00C06D  1  63 D0                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
-00C06F  1  63 D0                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
-00C071  1  63 D0                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
-00C073  1  63 D0                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
-00C075  1  63 D0                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
-00C077  1  63 D0                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
-00C079  1  63 D0                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
-00C07B  1  63 D0                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
-00C07D  1  63 D0                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
+00C06B  1  79 D1                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
+00C06D  1  79 D1                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
+00C06F  1  79 D1                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
+00C071  1  79 D1                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
+00C073  1  79 D1                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
+00C075  1  79 D1                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
+00C077  1  79 D1                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
+00C079  1  79 D1                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
+00C07B  1  79 D1                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
+00C07D  1  79 D1                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
 00C07F  1               ;
-00C07F  1  63 D0                .WORD   drv_noop        ;RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
-00C081  1  63 D0                .WORD   drv_noop        ;RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
-00C083  1  63 D0                .WORD   drv_noop        ;RTC_INIT        ; FUNCTION 52 - INIT RTC
-00C085  1  63 D0                .WORD   drv_noop        ;RTC_LED         ; FUNCTION 53 - CONTROL LEDS
-00C087  1  63 D0                .WORD   drv_noop        ;RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
-00C089  1  63 D0                .WORD   drv_noop        ;RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
+00C07F  1  50 D0                .WORD   RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
+00C081  1  9A D0                .WORD   RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
+00C083  1  C3 D0                .WORD   RTC_INIT        ; FUNCTION 52 - INIT RTC
+00C085  1  C2 D0                .WORD   RTC_LED         ; FUNCTION 53 - CONTROL LEDS
+00C087  1  BF D0                .WORD   RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
+00C089  1  BE D0                .WORD   RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
 00C08B  1               ;
-00C08B  1  63 D0                .WORD   drv_noop        ; FUNCTION 56
-00C08D  1  63 D0                .WORD   drv_noop        ; FUNCTION 57
-00C08F  1  63 D0                .WORD   drv_noop        ; FUNCTION 58
-00C091  1  63 D0                .WORD   drv_noop        ; FUNCTION 59
+00C08B  1  79 D1                .WORD   drv_noop        ; FUNCTION 56
+00C08D  1  79 D1                .WORD   drv_noop        ; FUNCTION 57
+00C08F  1  79 D1                .WORD   drv_noop        ; FUNCTION 58
+00C091  1  79 D1                .WORD   drv_noop        ; FUNCTION 59
 00C093  1               
 00C093  1  E9 C0                .WORD   XTIDE_INIT      ; FUNCTION 60 - called during OS init
 00C095  1  20 C2                .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
@@ -254,9 +254,9 @@ Current file: dos65drv.asm
 00C09B  1  4D C6                .WORD   CH_READSEC      ; FUNCTION 64 - read a sector from the memory device
 00C09D  1  9C C6                .WORD   CH_WRITESEC     ; FUNCTION 65 - write a sector to the memory device
 00C09F  1               ;
-00C09F  1  63 D0                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
-00C0A1  1  63 D0                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
-00C0A3  1  63 D0                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
+00C09F  1  79 D1                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
+00C0A1  1  79 D1                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
+00C0A3  1  79 D1                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
 00C0A5  1               
 00C0A5  1               ;______________________________________________________________________________
 00C0A5  1               
@@ -510,24 +510,24 @@ Current file: dos65drv.asm
 00C0E9  2               ;____________________________________________________________________________________________________
 00C0E9  2               ;
 00C0E9  2               XTIDE_INIT:
-00C0E9  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C0E9  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C0EC  2  A9 4D                LDA     #<MESSAGE1      ;
 00C0EE  2  85 41                STA     STRPTR          ;
 00C0F0  2  A9 C3                LDA     #>MESSAGE1      ;
 00C0F2  2  85 42                STA     STRPTR+1        ;
-00C0F4  2  20 6F D0             JSR     WRSTR
-00C0F7  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C0F4  2  20 85 D1             JSR     WRSTR
+00C0F7  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C0FA  2               ;
 00C0FA  2  A9 55                LDA     #<MESSAGE2      ;
 00C0FC  2  85 41                STA     STRPTR          ;
 00C0FE  2  A9 C3                LDA     #>MESSAGE2      ;
 00C100  2  85 42                STA     STRPTR+1        ;
-00C102  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
+00C102  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
 00C105  2               
 00C105  2  A9 E3                LDA     #>XTIDE_DATA_LO ; GET BASE PORT
-00C107  2  20 84 D0             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C107  2  20 9A D1             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C10A  2  A9 00                LDA     #<XTIDE_DATA_LO ; GET BASE PORT
-00C10C  2  20 84 D0             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C10C  2  20 9A D1             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C10F  2               ;
 00C10F  2  20 4B C1             JSR     XTIDE_PROBE     ; DETECT AN ATA DEVICE, ABORT IF NOT FOUND
 00C112  2  C9 00                CMP     #$00
@@ -538,22 +538,22 @@ Current file: dos65drv.asm
 00C11B  2  85 41                STA     STRPTR          ;
 00C11D  2  A9 C3                LDA     #>MESSAGE3      ;
 00C11F  2  85 42                STA     STRPTR+1        ;
-00C121  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
+00C121  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
 00C124  2  4C 4A C1             JMP     IDE_INITA
 00C127  2               IDE_PRINT_INFO:
-00C127  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C127  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C12A  2  A9 69                LDA     #<MESSAGE4      ;
 00C12C  2  85 41                STA     STRPTR          ;
 00C12E  2  A9 C3                LDA     #>MESSAGE4      ;
 00C130  2  85 42                STA     STRPTR+1        ;
-00C132  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
+00C132  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
 00C135  2  A9 00                LDA     #$00
 00C137  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
 00C13A  2  A9 7B                LDA     #<MESSAGE5      ;
 00C13C  2  85 41                STA     STRPTR          ;
 00C13E  2  A9 C3                LDA     #>MESSAGE5      ;
 00C140  2  85 42                STA     STRPTR+1        ;
-00C142  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
+00C142  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
 00C145  2  A9 01                LDA     #$01
 00C147  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
 00C14A  2               IDE_INITA:
@@ -679,27 +679,27 @@ Current file: dos65drv.asm
 00C1E5  2  85 41                STA     STRPTR          ;
 00C1E7  2  A9 C3                LDA     #>MESSAGE6      ;
 00C1E9  2  85 42                STA     STRPTR+1        ;
-00C1EB  2  20 6F D0             JSR     WRSTR
+00C1EB  2  20 85 D1             JSR     WRSTR
 00C1EE  2  AD 7B 04             LDA     hstbuf+123
-00C1F1  2  20 84 D0             JSR     PRINT_BYTE
+00C1F1  2  20 9A D1             JSR     PRINT_BYTE
 00C1F4  2  AD 7A 04             LDA     hstbuf+122
-00C1F7  2  20 84 D0             JSR     PRINT_BYTE
+00C1F7  2  20 9A D1             JSR     PRINT_BYTE
 00C1FA  2  AD 79 04             LDA     hstbuf+121
-00C1FD  2  20 84 D0             JSR     PRINT_BYTE
+00C1FD  2  20 9A D1             JSR     PRINT_BYTE
 00C200  2  AD 78 04             LDA     hstbuf+120
-00C203  2  20 84 D0             JSR     PRINT_BYTE
+00C203  2  20 9A D1             JSR     PRINT_BYTE
 00C206  2  4C 1A C2             JMP     IDE_READ_INFO_OK
 00C209  2               IDE_READ_INFO_ABORT:
 00C209  2  A9 5C                LDA     #<MESSAGE3      ;
 00C20B  2  85 41                STA     STRPTR          ;
 00C20D  2  A9 C3                LDA     #>MESSAGE3      ;
 00C20F  2  85 42                STA     STRPTR+1        ;
-00C211  2  20 6F D0             JSR     WRSTR           ;DO PROMPT
-00C214  2  20 64 D0             JSR     LFCR            ;AND CRLF
+00C211  2  20 85 D1             JSR     WRSTR           ;DO PROMPT
+00C214  2  20 7A D1             JSR     LFCR            ;AND CRLF
 00C217  2  A9 FF                LDA     #$FF
 00C219  2  60                   RTS                     ;
 00C21A  2               IDE_READ_INFO_OK:
-00C21A  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C21A  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C21D  2  A9 00                LDA     #$00
 00C21F  2  60                   RTS
 00C220  2                       .ENDIF
@@ -939,7 +939,6 @@ Current file: dos65drv.asm
 00C38D  2  30 78                .BYTE   "0x"
 00C38F  2  00                   .BYTE   00
 00C390  2               
-00C390  2               
 00C390  2               ;___IDE_CONVERT_SECTOR_LBA_______________________________________________________________________________
 00C390  2               ;
 00C390  2               ; 	TRANSLATE LBA SECTORS
@@ -1104,6 +1103,24 @@ Current file: dos65drv.asm
 00C45A  2                       JMP     ERROR           ; back to main loop
 00C45A  2               
 00C45A  2               WBOOT:
+00C45A  2                       LDA     #<MESSAGE7      ;
+00C45A  2                       STA     STRPTR          ;
+00C45A  2                       LDA     #>MESSAGE7      ;
+00C45A  2                       STA     STRPTR+1        ;
+00C45A  2                       JSR     OUTSTR
+00C45A  2                       JSR     IOF_CONINW
+00C45A  2                       CMP     #'Y'
+00C45A  2                       BEQ     :+
+00C45A  2               
+00C45A  2                       LDA     #<MESSAGE8      ;
+00C45A  2                       STA     STRPTR          ;
+00C45A  2                       LDA     #>MESSAGE8      ;
+00C45A  2                       STA     STRPTR+1        ;
+00C45A  2                       JSR     OUTSTR
+00C45A  2                       BRK
+00C45A  2               
+00C45A  2               
+00C45A  2               :
 00C45A  2                       JSR     XTIDE_INIT      ; INIT IDE
 00C45A  2                                               ; SETUP LOCATION
 00C45A  2                       LDA     #$00
@@ -1146,7 +1163,24 @@ Current file: dos65drv.asm
 00C45A  2                       LDA     SRC+1
 00C45A  2                       CMP     #$80
 00C45A  2                       BNE     BOOTW1
+00C45A  2               
+00C45A  2                       LDA     #<MESSAGE9      ;
+00C45A  2                       STA     STRPTR          ;
+00C45A  2                       LDA     #>MESSAGE9      ;
+00C45A  2                       STA     STRPTR+1        ;
+00C45A  2                       JSR     OUTSTR
 00C45A  2                       BRK
+00C45A  2               
+00C45A  2               MESSAGE7:
+00C45A  2                       .BYTE   13,10," ARE YOU SURE YOU WANT TO REPLACE BOOT IMAGE?",13,10
+00C45A  2                       .BYTE   " PRESS 'Y' TO CONTINUE",13,10
+00C45A  2                       .BYTE   00
+00C45A  2               MESSAGE8:
+00C45A  2                       .BYTE   " BOOT IMAGE WRITE ABORTED.",13,10
+00C45A  2                       .BYTE   00
+00C45A  2               MESSAGE9:
+00C45A  2                       .BYTE   " BOOT IMAGE WRITTEN.",13,10
+00C45A  2                       .BYTE   00
 00C45A  2               
 00C45A  2                       .ENDIF
 00C45A  2               
@@ -1200,7 +1234,7 @@ Current file: dos65drv.asm
 00C45A  2               
 00C45A  2               
 00C45A  2               CH375INIT:
-00C45A  2  20 64 D0             JSR     LFCR
+00C45A  2  20 7A D1             JSR     LFCR
 00C45D  2  20 C0 C4             JSR     CH_DETECT
 00C460  2  D0 4D                BNE     NOTDETECTED
 00C462  2               
@@ -1208,8 +1242,8 @@ Current file: dos65drv.asm
 00C464  2  85 41                STA     STRPTR          ;
 00C466  2  A9 C7                LDA     #>CHMESSAGE2    ;
 00C468  2  85 42                STA     STRPTR+1        ;
-00C46A  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
-00C46D  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C46A  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
+00C46D  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C470  2               
 00C470  2  20 5C C5             JSR     CH_DISKINIT
 00C473  2  B0 29                BCS     :+
@@ -1218,19 +1252,19 @@ Current file: dos65drv.asm
 00C477  2  85 41                STA     STRPTR          ;
 00C479  2  A9 C7                LDA     #>CHMESSAGE3    ;
 00C47B  2  85 42                STA     STRPTR+1        ;
-00C47D  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
+00C47D  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
 00C480  2               
 00C480  2  AD 00 04             LDA     hstbuf
-00C483  2  20 84 D0             JSR     PRINT_BYTE
+00C483  2  20 9A D1             JSR     PRINT_BYTE
 00C486  2  AD 01 04             LDA     hstbuf+1
-00C489  2  20 84 D0             JSR     PRINT_BYTE
+00C489  2  20 9A D1             JSR     PRINT_BYTE
 00C48C  2  AD 02 04             LDA     hstbuf+2
-00C48F  2  20 84 D0             JSR     PRINT_BYTE
+00C48F  2  20 9A D1             JSR     PRINT_BYTE
 00C492  2  AD 03 04             LDA     hstbuf+3
-00C495  2  20 84 D0             JSR     PRINT_BYTE
+00C495  2  20 9A D1             JSR     PRINT_BYTE
 00C498  2               
 00C498  2               
-00C498  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C498  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C49B  2  A9 00                LDA     #$00
 00C49D  2  60                   RTS
 00C49E  2               :
@@ -1238,8 +1272,8 @@ Current file: dos65drv.asm
 00C4A0  2  85 41                STA     STRPTR          ;
 00C4A2  2  A9 C7                LDA     #>CHMESSAGE5    ;
 00C4A4  2  85 42                STA     STRPTR+1        ;
-00C4A6  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
-00C4A9  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C4A6  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
+00C4A9  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C4AC  2  A9 FF                LDA     #$FF
 00C4AE  2  60                   RTS
 00C4AF  2               NOTDETECTED:
@@ -1247,8 +1281,8 @@ Current file: dos65drv.asm
 00C4B1  2  85 41                STA     STRPTR          ;
 00C4B3  2  A9 C7                LDA     #>CHMESSAGE6    ;
 00C4B5  2  85 42                STA     STRPTR+1        ;
-00C4B7  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
-00C4BA  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C4B7  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
+00C4BA  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C4BD  2  A9 FF                LDA     #$FF
 00C4BF  2  60                   RTS
 00C4C0  2               
@@ -1257,18 +1291,18 @@ Current file: dos65drv.asm
 00C4C2  2  85 41                STA     STRPTR          ;
 00C4C4  2  A9 C7                LDA     #>CHMESSAGE1    ;
 00C4C6  2  85 42                STA     STRPTR+1        ;
-00C4C8  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
-00C4CB  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C4C8  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
+00C4CB  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C4CE  2               
 00C4CE  2  A9 55                LDA     #<MESSAGE2      ;
 00C4D0  2  85 41                STA     STRPTR          ;
 00C4D2  2  A9 C3                LDA     #>MESSAGE2      ;
 00C4D4  2  85 42                STA     STRPTR+1        ;
-00C4D6  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
+00C4D6  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
 00C4D9  2  A9 E2                LDA     #>CH0BASE       ; GET BASE PORT
-00C4DB  2  20 84 D0             JSR     PRINT_BYTE
+00C4DB  2  20 9A D1             JSR     PRINT_BYTE
 00C4DE  2  A9 60                LDA     #<CH0BASE       ; GET BASE PORT
-00C4E0  2  20 84 D0             JSR     PRINT_BYTE
+00C4E0  2  20 9A D1             JSR     PRINT_BYTE
 00C4E3  2               
 00C4E3  2  20 1B C5             JSR     CH_RESET
 00C4E6  2               
@@ -1438,10 +1472,10 @@ Current file: dos65drv.asm
 00C5BA  2  85 41                STA     STRPTR          ;
 00C5BC  2  A9 C7                LDA     #>CHMESSAGE8    ;
 00C5BE  2  85 42                STA     STRPTR+1        ;
-00C5C0  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
+00C5C0  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
 00C5C3  2  68                   PLA
-00C5C4  2  20 84 D0             JSR     PRINT_BYTE
-00C5C7  2  20 64 D0             JSR     LFCR
+00C5C4  2  20 9A D1             JSR     PRINT_BYTE
+00C5C7  2  20 7A D1             JSR     LFCR
 00C5CA  2  4C D4 C5             JMP     CH_DISKINIT_TO
 00C5CD  2               
 00C5CD  2               CHUSB_RESET1B:
@@ -1468,8 +1502,8 @@ Current file: dos65drv.asm
 00C5DD  2  85 41                STA     STRPTR          ;
 00C5DF  2  A9 C7                LDA     #>CHMESSAGE7    ;
 00C5E1  2  85 42                STA     STRPTR+1        ;
-00C5E3  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
-00C5E6  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C5E3  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
+00C5E6  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C5E9  2  68                   PLA
 00C5EA  2  A8                   TAY
 00C5EB  2  68                   PLA
@@ -1755,31 +1789,31 @@ Current file: dos65drv.asm
 00C796  2               ;
 00C796  2               ESPINIT:
 00C796  2               ;
-00C796  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C796  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C799  2  A9 40                LDA     #<ESPMESSAGE1   ;
 00C79B  2  85 41                STA     STRPTR          ;
 00C79D  2  A9 CA                LDA     #>ESPMESSAGE1   ;
 00C79F  2  85 42                STA     STRPTR+1        ;
-00C7A1  2  20 6F D0             JSR     WRSTR
-00C7A4  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C7A1  2  20 85 D1             JSR     WRSTR
+00C7A4  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C7A7  2               ; KEYBOARD INITIALIZATION
 00C7A7  2  A9 55                LDA     #<MESSAGE2      ;
 00C7A9  2  85 41                STA     STRPTR          ;
 00C7AB  2  A9 C3                LDA     #>MESSAGE2      ;
 00C7AD  2  85 42                STA     STRPTR+1        ;
-00C7AF  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
+00C7AF  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
 00C7B2  2  A9 E1                LDA     #>ESP_BASE      ; GET BASE PORT
-00C7B4  2  20 84 D0             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C7B4  2  20 9A D1             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C7B7  2  A9 00                LDA     #<ESP_BASE      ; GET BASE PORT
-00C7B9  2  20 84 D0             JSR     PRINT_BYTE      ; PRINT BASE PORT
-00C7BC  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C7B9  2  20 9A D1             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C7BC  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C7BF  2  20 2E C8             JSR     ESP_RESET0      ;
 00C7C2  2  20 A4 C8             JSR     ESP_RESET1      ;
 00C7C5  2               ;
 00C7C5  2  20 D2 C7             JSR     ESP0_PROBE      ; DETECT ESP0
-00C7C8  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C7C8  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C7CB  2  20 48 C8             JSR     ESP1_PROBE      ; DETECT ESP1
-00C7CE  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00C7CE  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00C7D1  2  60                   RTS                     ; DONE
 00C7D2  2               
 00C7D2  2               
@@ -1789,7 +1823,7 @@ Current file: dos65drv.asm
 00C7D4  2  85 41                STA     STRPTR          ;
 00C7D6  2  A9 CA                LDA     #>ESPMESSAGE2   ;
 00C7D8  2  85 42                STA     STRPTR+1        ;
-00C7DA  2  20 6F D0             JSR     WRSTR
+00C7DA  2  20 85 D1             JSR     WRSTR
 00C7DD  2               
 00C7DD  2  A9 FF                LDA     #$FF            ; ESP IDENTITY PROBE
 00C7DF  2  20 64 C9             JSR     PUTESP0         ; SEND IT
@@ -1827,7 +1861,7 @@ Current file: dos65drv.asm
 00C825  2  85 41                STA     STRPTR          ;
 00C827  2  A9 CA                LDA     #>ESPMESSAGE5   ;
 00C829  2  85 42                STA     STRPTR+1        ;
-00C82B  2  20 6F D0             JSR     WRSTR
+00C82B  2  20 85 D1             JSR     WRSTR
 00C82E  2               
 00C82E  2               ESP_RESET0:
 00C82E  2  A2 20                LDX     #$20
@@ -1846,7 +1880,7 @@ Current file: dos65drv.asm
 00C83E  2  85 41                STA     STRPTR          ;
 00C840  2  A9 CA                LDA     #>ESPMESSAGE4   ;
 00C842  2  85 42                STA     STRPTR+1        ;
-00C844  2  20 6F D0             JSR     WRSTR
+00C844  2  20 85 D1             JSR     WRSTR
 00C847  2  60                   RTS
 00C848  2               
 00C848  2               ;
@@ -1856,7 +1890,7 @@ Current file: dos65drv.asm
 00C84A  2  85 41                STA     STRPTR          ;
 00C84C  2  A9 CA                LDA     #>ESPMESSAGE3   ;
 00C84E  2  85 42                STA     STRPTR+1        ;
-00C850  2  20 6F D0             JSR     WRSTR
+00C850  2  20 85 D1             JSR     WRSTR
 00C853  2               
 00C853  2  A9 FF                LDA     #$FF            ; ESP IDENTITY PROBE
 00C855  2  20 D2 C9             JSR     PUTESP1         ; SEND IT
@@ -1894,7 +1928,7 @@ Current file: dos65drv.asm
 00C89B  2  85 41                STA     STRPTR          ;
 00C89D  2  A9 CA                LDA     #>ESPMESSAGE5   ;
 00C89F  2  85 42                STA     STRPTR+1        ;
-00C8A1  2  20 6F D0             JSR     WRSTR
+00C8A1  2  20 85 D1             JSR     WRSTR
 00C8A4  2               ESP_RESET1:
 00C8A4  2  A2 20                LDX     #$20
 00C8A6  2               :
@@ -2411,24 +2445,24 @@ Current file: dos65drv.asm
 00CA75  2               ;
 00CA75  2               MULTIOINIT:
 00CA75  2               ;
-00CA75  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00CA75  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00CA78  2  A9 3A                LDA     #<MIOMESSAGE1   ;
 00CA7A  2  85 41                STA     STRPTR          ;
 00CA7C  2  A9 CE                LDA     #>MIOMESSAGE1   ;
 00CA7E  2  85 42                STA     STRPTR+1        ;
-00CA80  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
-00CA83  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00CA80  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
+00CA83  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00CA86  2               ; KEYBOARD INITIALIZATION
 00CA86  2  A9 55                LDA     #<MESSAGE2      ;
 00CA88  2  85 41                STA     STRPTR          ;
 00CA8A  2  A9 C3                LDA     #>MESSAGE2      ;
 00CA8C  2  85 42                STA     STRPTR+1        ;
-00CA8E  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
+00CA8E  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
 00CA91  2  A9 E3                LDA     #>MULTIO_BASE   ; GET BASE PORT
-00CA93  2  20 84 D0             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00CA93  2  20 9A D1             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00CA96  2  A9 E0                LDA     #<MULTIO_BASE   ; GET BASE PORT
-00CA98  2  20 84 D0             JSR     PRINT_BYTE      ; PRINT BASE PORT
-00CA9B  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00CA98  2  20 9A D1             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00CA9B  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00CA9E  2               ;
 00CA9E  2  20 C5 CA             JSR     KBD_PROBE       ; DETECT A KEYBOARD
 00CAA1  2               
@@ -2437,8 +2471,8 @@ Current file: dos65drv.asm
 00CAA3  2  85 41                STA     STRPTR          ;
 00CAA5  2  A9 CE                LDA     #>MIOMESSAGE5   ;
 00CAA7  2  85 42                STA     STRPTR+1        ;
-00CAA9  2  20 6F D0             JSR     WRSTR           ; DO PROMPT
-00CAAC  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00CAA9  2  20 85 D1             JSR     WRSTR           ; DO PROMPT
+00CAAC  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00CAAF  2               
 00CAAF  2  A9 00                LDA     #$00
 00CAB1  2  8D F0 E3             STA     LPT_0           ; PORT 0 (DATA)
@@ -2469,8 +2503,8 @@ Current file: dos65drv.asm
 00CAD7  2  85 41                STA     STRPTR          ;
 00CAD9  2  A9 CE                LDA     #>MIOMESSAGE3   ;
 00CADB  2  85 42                STA     STRPTR+1        ;
-00CADD  2  20 6F D0             JSR     WRSTR
-00CAE0  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00CADD  2  20 85 D1             JSR     WRSTR
+00CAE0  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00CAE3  2               ;
 00CAE3  2               KBD_ERROR:
 00CAE3  2  38                   SEC                     ; SET ERROR
@@ -2480,16 +2514,16 @@ Current file: dos65drv.asm
 00CAE7  2  85 41                STA     STRPTR          ;
 00CAE9  2  A9 CE                LDA     #>MIOMESSAGE6   ;
 00CAEB  2  85 42                STA     STRPTR+1        ;
-00CAED  2  20 6F D0             JSR     WRSTR
-00CAF0  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00CAED  2  20 85 D1             JSR     WRSTR
+00CAF0  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00CAF3  2  4C E3 CA             JMP     KBD_ERROR
 00CAF6  2               KBD_TIMEOUT2:
 00CAF6  2  A9 A8                LDA     #<MIOMESSAGE7   ;
 00CAF8  2  85 41                STA     STRPTR          ;
 00CAFA  2  A9 CE                LDA     #>MIOMESSAGE7   ;
 00CAFC  2  85 42                STA     STRPTR+1        ;
-00CAFE  2  20 6F D0             JSR     WRSTR
-00CB01  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00CAFE  2  20 85 D1             JSR     WRSTR
+00CB01  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00CB04  2  4C E3 CA             JMP     KBD_ERROR
 00CB07  2               
 00CB07  2               ;
@@ -2498,8 +2532,8 @@ Current file: dos65drv.asm
 00CB09  2  85 41                STA     STRPTR          ;
 00CB0B  2  A9 CE                LDA     #>MIOMESSAGE4   ;
 00CB0D  2  85 42                STA     STRPTR+1        ;
-00CB0F  2  20 6F D0             JSR     WRSTR
-00CB12  2  20 64 D0             JSR     LFCR            ; AND CRLF
+00CB0F  2  20 85 D1             JSR     WRSTR
+00CB12  2  20 7A D1             JSR     LFCR            ; AND CRLF
 00CB15  2               
 00CB15  2               ;
 00CB15  2  A9 60                LDA     #$60            ; SET COMMAND REGISTER
@@ -3361,82 +3395,279 @@ Current file: dos65drv.asm
 00D04D  2  29 80                AND     #%10000000      ; ISOLATE /BUSY
 00D04F  2  60                   RTS                     ; DONE
 00D050  2               
-00D050  1               
-00D050  1               
-00D050  1               
-00D050  1               
-00D050  1               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
-00D050  1               ;
-00D050  1               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
-00D050  1               ;________________________________________________________________________________________________________________________________
-00D050  1               DFT_CONSOLE:
-00D050  1  8D 62 D0             STA     drvtmp
-00D053  1  A5 3A                LDA     CONSOLE
-00D055  1  18                   CLC
-00D056  1  65 32                ADC     farfunct
-00D058  1  85 32                STA     farfunct
-00D05A  1  68                   PLA
-00D05B  1  68                   PLA
-00D05C  1  AD 62 D0             LDA     drvtmp
-00D05F  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
-00D062  1               drvtmp:
-00D062  1  00                   .BYTE   00
-00D063  1               
-00D063  1               drv_noop:
-00D063  1  60                   RTS
-00D064  1               
-00D064  1               ;------------------------------------------------------------------------
-00D064  1               LFCR:
-00D064  1  A9 0A                LDA     #10
-00D066  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
-00D069  1  A9 0D                LDA     #13
-00D06B  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
-00D06E  1  60                   RTS
-00D06F  1               
-00D06F  1               ;__WRSTR_______________________________________________________
-00D06F  1               ;
-00D06F  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00D06F  1               ;
-00D06F  1               ;______________________________________________________________
-00D06F  1               WRSTR:
-00D06F  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
-00D071  1               OUTSTRLP:
-00D071  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
-00D073  1  C9 00                CMP     #$00            ; IS NULL?
-00D075  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-00D077  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
-00D07A  1  E6 41                INC     STRPTR
-00D07C  1  D0 F3                BNE     OUTSTRLP
-00D07E  1  E6 42                INC     STRPTR+1
-00D080  1  4C 71 D0             JMP     OUTSTRLP        ; DO NEXT CHAR
-00D083  1               ENDOUTSTR:
-00D083  1  60                   RTS                     ; RETURN
-00D084  1               
-00D084  1               PRINT_BYTE:
-00D084  1  8E A9 D0             STX     SAVX            ; save X
-00D087  1  20 94 D0             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
-00D08A  1  20 B5 C0             JSR     WRSER1          ; output upper nybble
-00D08D  1  8A                   TXA                     ; transfer lower to A
-00D08E  1  AE A9 D0             LDX     SAVX            ; restore X
-00D091  1  4C B5 C0             JMP     WRSER1          ; output lower nybble
-00D094  1               ASCTWO:
-00D094  1  48                   PHA                     ; save byte
-00D095  1  20 9E D0             JSR     ASCII           ; do low nybble
-00D098  1  AA                   TAX                     ; save in X
-00D099  1  68                   PLA                     ; restore byte
-00D09A  1  4A                   LSR     A               ; shift upper nybble down
-00D09B  1  4A                   LSR     A
-00D09C  1  4A                   LSR     A
-00D09D  1  4A                   LSR     A
-00D09E  1               ; convert low nybble in A to hex digit
-00D09E  1               ASCII:
-00D09E  1  29 0F                AND     #$0F            ; clear upper nibble
-00D0A0  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
-00D0A2  1  90 02                BCC     ASC1
-00D0A4  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
-00D0A6  1               ASC1:
-00D0A6  1  69 30                ADC     #$30            ; add ascii char 0 to value
-00D0A8  1  60                   RTS
-00D0A9  1               SAVX:
-00D0A9  1  00                   .BYTE   00
-00D0A9  1               
+00D050  1                       .INCLUDE "bios_rtc.asm"
+00D050  2               
+00D050  2               
+00D050  2               ;__RTC DRIVERS___________________________________________________________________________________________________________________
+00D050  2               ;
+00D050  2               ; 	DOS REAL TIME CLOCK drivers
+00D050  2               ;
+00D050  2               ;	Entry points:
+00D050  2               ;		DOSREADRTC   - called to RETURN RTC
+00D050  2               ;________________________________________________________________________________________________________________________________
+00D050  2               ;
+00D050  2               ;*
+00D050  2               ;* HARDWARE I/O ADDRESSES
+00D050  2               ;*
+00D050  2               RTCBASE         = PC6502_IOSPACE+$90;
+00D050  2               
+00D050  2               
+00D050  2               ;__RTC_WRITE____________________________________________________
+00D050  2               ; write a value to the RTC
+00D050  2               ; address in X
+00D050  2               ; value in Y
+00D050  2               ;_______________________________________________________________
+00D050  2               RTC_WRITE:
+00D050  2  E0 07                CPX     #7
+00D052  2  B0 43                BCS     :++
+00D054  2  E0 06                CPX     #6
+00D056  2  D0 01                BNE     :+
+00D058  2  CA                   DEX
+00D059  2               :
+00D059  2  8C 4A D1             STY     RTCWORK
+00D05C  2  8A                   TXA
+00D05D  2  18                   CLC
+00D05E  2  2A                   ROL     A               ; ADDRESS * 2
+00D05F  2  29 0F                AND     #$0F            ; CLEAR UPPER BITS
+00D061  2  AA                   TAX                     ; address in x
+00D062  2  A9 02                LDA     #$02
+00D064  2  8D 9F EF             STA     RTCBASE+$0F
+00D067  2  AD 4A D1             LDA     RTCWORK         ; value in A
+00D06A  2  29 0F                AND     #$0F
+00D06C  2  9D 90 EF             STA     RTCBASE,X       ; SET LOW NIBBLE OF VALUE
+00D06F  2  E8                   INX
+00D070  2  AD 4A D1             LDA     RTCWORK         ; value in A
+00D073  2  29 F0                AND     #$F0
+00D075  2  18                   CLC
+00D076  2  6A                   ROR     A
+00D077  2  6A                   ROR     A
+00D078  2  6A                   ROR     A
+00D079  2  6A                   ROR     A
+00D07A  2  9D 90 EF             STA     RTCBASE,X       ; SET HIGH NIBBLE OF VALUE
+00D07D  2  A9 00                LDA     #$00
+00D07F  2  8D 9D EF             STA     RTCBASE + $0D
+00D082  2  8D 9E EF             STA     RTCBASE + $0E
+00D085  2  A9 01                LDA     #$01
+00D087  2  8D 9F EF             STA     RTCBASE + $0F
+00D08A  2  A9 05                LDA     #$05
+00D08C  2  8D 9F EF             STA     RTCBASE + $0F
+00D08F  2  A9 04                LDA     #$04
+00D091  2  8D 9F EF             STA     RTCBASE + $0F
+00D094  2  A9 00                LDA     #$00
+00D096  2  60                   RTS
+00D097  2               :
+00D097  2  A9 FF                LDA     #$FF
+00D099  2  60                   RTS
+00D09A  2               
+00D09A  2               
+00D09A  2               ;__RTC_READ______________________________________________________
+00D09A  2               ; read a value from the RTC
+00D09A  2               ; address in X
+00D09A  2               ; value in Y
+00D09A  2               ;_______________________________________________________________
+00D09A  2               RTC_READ:
+00D09A  2  E0 06                CPX     #6
+00D09C  2  D0 01                BNE     :+
+00D09E  2  CA                   DEX
+00D09F  2               :
+00D09F  2  8A                   TXA
+00D0A0  2  18                   CLC                     ; CLEAR CARRY
+00D0A1  2  2A                   ROL     A               ; ADDRESS * 2
+00D0A2  2  29 0F                AND     #$0F            ; CLEAR UPPER BITS
+00D0A4  2  AA                   TAX                     ; address in x
+00D0A5  2  BD 90 EF             LDA     RTCBASE,X       ; GET LOW NIBBLE OF VALUE
+00D0A8  2  29 0F                AND     #$0F
+00D0AA  2  8D 4A D1             STA     RTCWORK
+00D0AD  2  E8                   INX
+00D0AE  2  BD 90 EF             LDA     RTCBASE,X       ; GET HIGH NIBBLE OF VALUE
+00D0B1  2  2A                   ROL     A
+00D0B2  2  2A                   ROL     A
+00D0B3  2  2A                   ROL     A
+00D0B4  2  2A                   ROL     A
+00D0B5  2  29 F0                AND     #$F0
+00D0B7  2  0D 4A D1             ORA     RTCWORK         ; return value in a
+00D0BA  2  A8                   TAY
+00D0BB  2  A9 00                LDA     #$00
+00D0BD  2  60                   RTS
+00D0BE  2               
+00D0BE  2               ;_______________________________________________________________
+00D0BE  2               ; function RTC_BEEP
+00D0BE  2               ;
+00D0BE  2               ;_______________________________________________________________
+00D0BE  2               RTC_BEEP:
+00D0BE  2  60                   RTS                     ; NOT SUPPORTED NO HARDWARE
+00D0BF  2               
+00D0BF  2               ;_______________________________________________________________
+00D0BF  2               ; function RTC_BUTTON
+00D0BF  2               ;
+00D0BF  2               ;_______________________________________________________________
+00D0BF  2               RTC_BUTTON:
+00D0BF  2  A9 FF                LDA     #$FF
+00D0C1  2  60                   RTS                     ; NOT SUPPORTED NO HARDWARE
+00D0C2  2               
+00D0C2  2               ;_______________________________________________________________
+00D0C2  2               ; function RTC_LED
+00D0C2  2               ;
+00D0C2  2               ;_______________________________________________________________
+00D0C2  2               RTC_LED:
+00D0C2  2  60                   RTS                     ; NOT SUPPORTED NO HARDWARE
+00D0C3  2               
+00D0C3  2               ;__RTC_INIT________________________________________________________________________________________
+00D0C3  2               ;
+00D0C3  2               ;  INIT AND DISPLAY RTC INFO
+00D0C3  2               ;____________________________________________________________________________________________________
+00D0C3  2               ;
+00D0C3  2               RTC_INIT:
+00D0C3  2  20 7A D1             JSR     LFCR            ; AND CRLF
+00D0C6  2  A9 4B                LDA     #<RTCMESSAGE1   ;
+00D0C8  2  85 41                STA     STRPTR          ;
+00D0CA  2  A9 D1                LDA     #>RTCMESSAGE1   ;
+00D0CC  2  85 42                STA     STRPTR+1        ;
+00D0CE  2  20 85 D1             JSR     WRSTR
+00D0D1  2  20 7A D1             JSR     LFCR            ; AND CRLF
+00D0D4  2  A9 55                LDA     #<MESSAGE2      ;
+00D0D6  2  85 41                STA     STRPTR          ;
+00D0D8  2  A9 C3                LDA     #>MESSAGE2      ;
+00D0DA  2  85 42                STA     STRPTR+1        ;
+00D0DC  2  20 85 D1             JSR     WRSTR
+00D0DF  2  A9 EF                LDA     #>RTCBASE
+00D0E1  2  20 9A D1             JSR     PRINT_BYTE
+00D0E4  2  A9 90                LDA     #<RTCBASE
+00D0E6  2  20 9A D1             JSR     PRINT_BYTE
+00D0E9  2  20 7A D1             JSR     LFCR            ; AND CRLF
+00D0EC  2  A9 50                LDA     #<RTCMESSAGE2   ;
+00D0EE  2  85 41                STA     STRPTR          ;
+00D0F0  2  A9 D1                LDA     #>RTCMESSAGE2   ;
+00D0F2  2  85 42                STA     STRPTR+1        ;
+00D0F4  2  20 85 D1             JSR     WRSTR
+00D0F7  2  A2 02                LDX     #2
+00D0F9  2  20 9A D0             JSR     RTC_READ
+00D0FC  2  98                   TYA
+00D0FD  2  20 9A D1             JSR     PRINT_BYTE
+00D100  2  A9 3A                LDA     #':'
+00D102  2  20 B5 C0             JSR     WRSER1
+00D105  2  A2 01                LDX     #1
+00D107  2  20 9A D0             JSR     RTC_READ
+00D10A  2  98                   TYA
+00D10B  2  20 9A D1             JSR     PRINT_BYTE
+00D10E  2  A9 3A                LDA     #':'
+00D110  2  20 B5 C0             JSR     WRSER1
+00D113  2  A2 00                LDX     #0
+00D115  2  20 9A D0             JSR     RTC_READ
+00D118  2  98                   TYA
+00D119  2  20 9A D1             JSR     PRINT_BYTE
+00D11C  2  A9 20                LDA     #' '
+00D11E  2  20 B5 C0             JSR     WRSER1
+00D121  2  A2 04                LDX     #4
+00D123  2  20 9A D0             JSR     RTC_READ
+00D126  2  98                   TYA
+00D127  2  20 9A D1             JSR     PRINT_BYTE
+00D12A  2  A9 2F                LDA     #'/'
+00D12C  2  20 B5 C0             JSR     WRSER1
+00D12F  2  A2 03                LDX     #3
+00D131  2  20 9A D0             JSR     RTC_READ
+00D134  2  98                   TYA
+00D135  2  20 9A D1             JSR     PRINT_BYTE
+00D138  2  A9 2F                LDA     #'/'
+00D13A  2  20 B5 C0             JSR     WRSER1
+00D13D  2  A2 06                LDX     #6
+00D13F  2  20 9A D0             JSR     RTC_READ
+00D142  2  98                   TYA
+00D143  2  20 9A D1             JSR     PRINT_BYTE
+00D146  2  20 7A D1             JSR     LFCR            ; AND CRLF
+00D149  2  60                   RTS
+00D14A  2               
+00D14A  2               
+00D14A  2               
+00D14A  2               RTCWORK:
+00D14A  2  00                   .BYTE   00
+00D14B  2               
+00D14B  2               
+00D14B  2               RTCMESSAGE1:
+00D14B  2  52 54 43 3A          .BYTE   "RTC:"
+00D14F  2  00                   .BYTE   00
+00D150  2               RTCMESSAGE2:
+00D150  2  20 43 55 52          .BYTE   " CURRENT DATE/TIME:  "
+00D154  2  52 45 4E 54  
+00D158  2  20 44 41 54  
+00D165  2  00                   .BYTE   00
+00D166  2               
+00D166  1               
+00D166  1               
+00D166  1               
+00D166  1               
+00D166  1               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
+00D166  1               ;
+00D166  1               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
+00D166  1               ;________________________________________________________________________________________________________________________________
+00D166  1               DFT_CONSOLE:
+00D166  1  8D 78 D1             STA     drvtmp
+00D169  1  A5 3A                LDA     CONSOLE
+00D16B  1  18                   CLC
+00D16C  1  65 32                ADC     farfunct
+00D16E  1  85 32                STA     farfunct
+00D170  1  68                   PLA
+00D171  1  68                   PLA
+00D172  1  AD 78 D1             LDA     drvtmp
+00D175  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
+00D178  1               drvtmp:
+00D178  1  00                   .BYTE   00
+00D179  1               
+00D179  1               drv_noop:
+00D179  1  60                   RTS
+00D17A  1               
+00D17A  1               ;------------------------------------------------------------------------
+00D17A  1               LFCR:
+00D17A  1  A9 0A                LDA     #10
+00D17C  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
+00D17F  1  A9 0D                LDA     #13
+00D181  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
+00D184  1  60                   RTS
+00D185  1               
+00D185  1               ;__WRSTR_______________________________________________________
+00D185  1               ;
+00D185  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00D185  1               ;
+00D185  1               ;______________________________________________________________
+00D185  1               WRSTR:
+00D185  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+00D187  1               OUTSTRLP:
+00D187  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+00D189  1  C9 00                CMP     #$00            ; IS NULL?
+00D18B  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00D18D  1  20 B5 C0             JSR     WRSER1          ; PRINT CHAR IN ACC
+00D190  1  E6 41                INC     STRPTR
+00D192  1  D0 F3                BNE     OUTSTRLP
+00D194  1  E6 42                INC     STRPTR+1
+00D196  1  4C 87 D1             JMP     OUTSTRLP        ; DO NEXT CHAR
+00D199  1               ENDOUTSTR:
+00D199  1  60                   RTS                     ; RETURN
+00D19A  1               
+00D19A  1               PRINT_BYTE:
+00D19A  1  8E BF D1             STX     SAVX            ; save X
+00D19D  1  20 AA D1             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
+00D1A0  1  20 B5 C0             JSR     WRSER1          ; output upper nybble
+00D1A3  1  8A                   TXA                     ; transfer lower to A
+00D1A4  1  AE BF D1             LDX     SAVX            ; restore X
+00D1A7  1  4C B5 C0             JMP     WRSER1          ; output lower nybble
+00D1AA  1               ASCTWO:
+00D1AA  1  48                   PHA                     ; save byte
+00D1AB  1  20 B4 D1             JSR     ASCII           ; do low nybble
+00D1AE  1  AA                   TAX                     ; save in X
+00D1AF  1  68                   PLA                     ; restore byte
+00D1B0  1  4A                   LSR     A               ; shift upper nybble down
+00D1B1  1  4A                   LSR     A
+00D1B2  1  4A                   LSR     A
+00D1B3  1  4A                   LSR     A
+00D1B4  1               ; convert low nybble in A to hex digit
+00D1B4  1               ASCII:
+00D1B4  1  29 0F                AND     #$0F            ; clear upper nibble
+00D1B6  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
+00D1B8  1  90 02                BCC     ASC1
+00D1BA  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
+00D1BC  1               ASC1:
+00D1BC  1  69 30                ADC     #$30            ; add ascii char 0 to value
+00D1BE  1  60                   RTS
+00D1BF  1               SAVX:
+00D1BF  1  00                   .BYTE   00
+00D1BF  1               
