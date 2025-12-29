@@ -147,31 +147,31 @@ RTC_INIT:
         TYA
         JSR     PRINT_BYTE
         LDA     #':'
-        JSR     WRSER1
+        JSR     DFT_CONSOLE_OUT
         LDX     #1
         JSR     RTC_READ
         TYA
         JSR     PRINT_BYTE
         LDA     #':'
-        JSR     WRSER1
+        JSR     DFT_CONSOLE_OUT
         LDX     #0
         JSR     RTC_READ
         TYA
         JSR     PRINT_BYTE
         LDA     #' '
-        JSR     WRSER1
+        JSR     DFT_CONSOLE_OUT
         LDX     #4
         JSR     RTC_READ
         TYA
         JSR     PRINT_BYTE
         LDA     #'/'
-        JSR     WRSER1
+        JSR     DFT_CONSOLE_OUT
         LDX     #3
         JSR     RTC_READ
         TYA
         JSR     PRINT_BYTE
         LDA     #'/'
-        JSR     WRSER1
+        JSR     DFT_CONSOLE_OUT
         LDX     #6
         JSR     RTC_READ
         TYA

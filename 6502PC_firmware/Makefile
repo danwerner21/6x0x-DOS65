@@ -1,4 +1,4 @@
-all:  	rom.hex dos65drv.s19 pcdos65.s19
+all:  	 testmulti.s19 dos65drv.s19 rom.hex pcdos65.s19
 
 6502PCbios.out: 6502PCbios.asm bios_serial.asm ../supermon/supermon.asm \
 			  bios_pager.asm bios_ide.asm
@@ -16,6 +16,12 @@ bios_ch375.out: bios_ch375.asm
 	ca65 bios_ch375.asm -l bios_ch375.lst
 	ld65 bios_ch375.o -vm -v -m bios_ch375.map -C dos65.cfg -o bios_ch375.out
 
+testmulti.out: testmulti.asm bios_multi.asm
+	ca65 testmulti.asm -l testmulti.lst
+	ld65 testmulti.o -vm -v -m testmulti.map -C dos65.cfg -o testmulti.out
+
+
+
 rom.hex: 6502PCbios.out bios_ch375.asm bios_ide.asm
 	srec_cat  6502PCbios.out -binary -exclude 0x0000 0xEF00 -offset -0x8F00 -o rom.h1  -intel -address-length=2 --Data_Only
 	srec_cat  6502PCbiosesp.out -binary -exclude 0x0000 0xEF00 -offset -0x7F00 -o rom.h2  -intel -address-length=2
@@ -26,6 +32,10 @@ rom.hex: 6502PCbios.out bios_ch375.asm bios_ide.asm
 
 dos65drv.s19: dos65drv.out
 	srec_cat  dos65drv.out  -binary -offset 0x100 -exclude 0x0000 0xC000 -o dos65drv.s19 --Data-Only
+
+testmulti.s19: testmulti.out
+	srec_cat  testmulti.out  -binary -offset 0x900 -exclude 0x0000 0x1000  -o testmulti.s19 --Data-Only
+	sed -i -e '$$aS9' testmulti.s19
 
 pcdos65.s19: loader.asm ../dos65_os/dos65_pc6502.s19 dos65drv.s19
 	ca65 loader.asm -l loader.lst

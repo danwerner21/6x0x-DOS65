@@ -328,6 +328,7 @@ KBD_GETDATA1:
         TAY
         PLA
         TAX
+KBD_GETDATA1A:
         LDA     KBD_DAT         ; GET DATA PORT
         CLC                     ; SET FLAGS
         RTS
@@ -340,7 +341,7 @@ KBD_GETDATAX:
         LDA     KBD_ST          ; STATUS PORT
         AND     #$01            ; ISOLATE INPUT PENDING BIT
         CMP     #$00
-        BNE     KBD_GETDATA1    ; BYTE PENDING, GO GET IT
+        BNE     KBD_GETDATA1A   ; BYTE PENDING, GO GET IT
         LDA     #$00
         SEC                     ; NO DATA, RETURN ZERO
         RTS
@@ -357,7 +358,7 @@ KBD_RESET:
         LDY     #$F1            ; SETUP LOOP COUNTER
 KBD_RESET0:
         JSR     KBD_GETDATA     ; TRY TO GET THE RESPONSE
-        BNE     KBD_RESET1      ; GOT A BYTE?  IF SO, GET OUT OF LOOP
+        BCC     KBD_RESET1      ; GOT A BYTE?  IF SO, GET OUT OF LOOP
         DEX
         CPX     #$00
         BNE     KBD_RESET0      ; LOOP TILL COUNTER EXHAUSTED
@@ -656,10 +657,9 @@ KBD_DEC5D:
 KBD_DEC6:                       ; HANDLE MODIFIER KEYS
         LDA     KBD_KEYCODE     ; MAKE SURE WE HAVE KEYCODE
         CMP     #$B8            ; END OF MODIFIER KEYS
-        BCS     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
+        BCS     KBD_DEC7         ; BYPASS MODIFIER KEY CHECKING
         CMP     #$B0            ; START OF MODIFIER KEYS
         BCC     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
-
         LDX     #4              ; LOOP COUNTER TO LOOP THRU 4 MODIFIER BITS
         SEC
         SBC     #$AF            ; SETUP A TO DECREMENT THROUGH MODIFIER VALUES
@@ -683,9 +683,9 @@ KBD_DEC6B:
 
 KBD_DEC6C:
         LDX     #1              ; POINT TO RIGHT STATE BYTE
-        JMP     KBD_DEC6D       ; CONTINUE
 
 KBD_DEC6D:                      ; BRANCH BASED ON WHETHER THIS IS A MAKE OR BREAK EVENT
+        STA     TMPKEY
         LDA     KBD_STATUS      ; GET STATUS FLAGS
         AND     #KBD_BREAK      ; BREAK EVENT?
         BEQ     KBD_DEC6E       ; NO, HANDLE A MODIFIER KEY MAKE EVENT

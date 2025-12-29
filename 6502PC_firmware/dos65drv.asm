@@ -158,12 +158,19 @@ drvtmp:
 drv_noop:
         RTS
 
+DFT_CONSOLE_OUT:
+        pha
+        LDA    CONSOLE
+        sta    farfunct
+        pla
+        JMP    FUNCTION_DISPATCHER1
+
 ;------------------------------------------------------------------------
 LFCR:
         LDA     #10
-        JSR     WRSER1          ; PRINT CHAR IN ACC
+        JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
         LDA     #13
-        JSR     WRSER1          ; PRINT CHAR IN ACC
+        JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
         RTS
 
 ;__WRSTR_______________________________________________________
@@ -177,7 +184,7 @@ OUTSTRLP:
         LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
         CMP     #$00            ; IS NULL?
         BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-        JSR     WRSER1          ; PRINT CHAR IN ACC
+        JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
         INC     STRPTR
         BNE     OUTSTRLP
         INC     STRPTR+1
@@ -188,10 +195,10 @@ ENDOUTSTR:
 PRINT_BYTE:
         STX     SAVX            ; save X
         JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
-        JSR     WRSER1          ; output upper nybble
+        JSR     DFT_CONSOLE_OUT ; output upper nybble
         TXA                     ; transfer lower to A
         LDX     SAVX            ; restore X
-        JMP     WRSER1          ; output lower nybble
+        JMP     DFT_CONSOLE_OUT ; output lower nybble
 ASCTWO:
         PHA                     ; save byte
         JSR     ASCII           ; do low nybble

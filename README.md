@@ -11,9 +11,7 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. add console boot support for 6502PC
-1. ADD BOOT WRITE TO 6502PC BIOS
-1. TEST MULTI IO PS2 SUPPORT (INIT BUG?)
+1. TEST MULTI IO PS2 SUPPORT  - LEDS NOT CORRECT ON STARTUP
 1. UPDATE docs for 6502PC
 1. Make assign system independent
 1. Make format system independent
@@ -22,7 +20,6 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. Add RTC support for NHYODYNE
 1. Add ROM support for NHYODYNE
 1. ADD IEC SUPPORT
-
 
 1. Add Dbasic Graphics support for 6502PC
 1. Clean Up SEDIT bugs
