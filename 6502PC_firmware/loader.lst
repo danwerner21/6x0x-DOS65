@@ -52,8 +52,8 @@ Current file: loader.asm
 000824  1  D0 02                BNE     :+
 000826  1  E6 23                INC     POINTER1+1
 000828  1               :
-000828  1  A5 21                LDA     POINTER+1
-00082A  1  C9 40                CMP     #$40
+000828  1  A5 23                LDA     POINTER1+1
+00082A  1  C9 E0                CMP     #$E0
 00082C  1  D0 EA                BNE     LOOP1
 00082E  1               ;       set task to 01
 00082E  1               ;
@@ -80,8 +80,8 @@ Current file: loader.asm
 00084D  1  D0 02                BNE     :+
 00084F  1  E6 23                INC     POINTER1+1
 000851  1               :
-000851  1  A5 21                LDA     POINTER+1
-000853  1  C9 60                CMP     #$60
+000851  1  A5 23                LDA     POINTER1+1
+000853  1  C9 E0                CMP     #$E0
 000855  1  D0 EA                BNE     LOOP2
 000857  1               
 000857  1  A9 00                LDA     #$00

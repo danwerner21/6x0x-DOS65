@@ -143,7 +143,7 @@ ERROR:
 ; -----------------------------------------------------------------------------
 ; dispatch command
 S2:
-        CPX     #$0E            ; next 4 commands are base conversions
+        CPX     #$10            ; next 4 commands are base conversions
         BCS     CNVLNK          ;   which are handled by the same subroutine
         TXA                     ; remaining commands dispatch through vector table
         ASL     A               ; multiply index of command by 2

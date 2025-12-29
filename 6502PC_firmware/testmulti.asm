@@ -9,22 +9,36 @@ UART1DATA       = PC6502_IOSPACE+$84; SERIAL PORT 1 (I/O Card)
 UART1STATUS     = PC6502_IOSPACE+$85; SERIAL PORT 1 (I/O Card)
 UART1COMMAND    = PC6502_IOSPACE+$86; SERIAL PORT 1 (I/O Card)
 UART1CONTROL    = PC6502_IOSPACE+$87; SERIAL PORT 1 (I/O Card)
+
+PC6502_ACT_TASK = $EFE0
+PC6502_MMU_ENA  = $EFE2
 ;
 ;
         .SEGMENT "TEA"
         .ORG    $1000
 ;
 ;
+        LDA     #$00
+        STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
+        LDA     #$01
+        STA     PC6502_MMU_ENA  ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
+
+
 ;
         jsr     MULTIOINIT
 
 :
         JSR     KBD_GETKEY
+        CMP     #27
+        BEQ     :+
         CMP     #$FF
         BEQ     :-
+        PHA
         JSR     PRINT_BYTE
+        PLA
+        JSR     DFT_CONSOLE_OUT
         JMP     :-
-
+:
         BRK
 
         ;__MACRO___________________________________________________________________________________________________________________

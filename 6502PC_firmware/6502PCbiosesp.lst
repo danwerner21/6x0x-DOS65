@@ -424,7 +424,7 @@ Current file: 6502PCbios.asm
 00F0E1  2               ; -----------------------------------------------------------------------------
 00F0E1  2               ; dispatch command
 00F0E1  2               S2:
-00F0E1  2  E0 0E                CPX     #$0E            ; next 4 commands are base conversions
+00F0E1  2  E0 10                CPX     #$10            ; next 4 commands are base conversions
 00F0E3  2  B0 0E                BCS     CNVLNK          ;   which are handled by the same subroutine
 00F0E5  2  8A                   TXA                     ; remaining commands dispatch through vector table
 00F0E6  2  0A                   ASL     A               ; multiply index of command by 2

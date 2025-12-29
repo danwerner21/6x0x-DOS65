@@ -48,8 +48,8 @@ LOOP1:
         BNE     :+
         INC     POINTER1+1
 :
-        LDA     POINTER+1
-        CMP     #$40
+        LDA     POINTER1+1
+        CMP     #$E0
         BNE     LOOP1
 ;       set task to 01
 ;
@@ -76,8 +76,8 @@ LOOP2:
         BNE     :+
         INC     POINTER1+1
 :
-        LDA     POINTER+1
-        CMP     #$60
+        LDA     POINTER1+1
+        CMP     #$E0
         BNE     LOOP2
 
         LDA     #$00

@@ -11,7 +11,6 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. TEST MULTI IO PS2 SUPPORT  - LEDS NOT CORRECT ON STARTUP
 1. UPDATE docs for 6502PC
 1. Make assign system independent
 1. Make format system independent
@@ -40,7 +39,6 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. RAMDISK support FOR 6502PC
 
 1. IO ASSIGNMENT?
-1. prnwrt (SERIAL, ETH,  OR PARALLEL SUPPORT)
 1. punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
 1. rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
 
