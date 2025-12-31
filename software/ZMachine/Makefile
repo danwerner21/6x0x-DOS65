@@ -30,6 +30,12 @@ zip.com: zip.out
 	cpmcp -f wbw_hd512 ../../bin/duodyne02/hd512_duodyne.img  ziptest.z3 0:ziptest.z3
 	@cpmrm -f wbw_hd512 ../../bin/duodyne02/hd512_duodyne.img zork1.z3
 	cpmcp -f wbw_hd512 ../../bin/duodyne02/hd512_duodyne.img  zork1.z3 0:zork1.z3
+	@cpmrm -f wbw_hd512 ../../bin/6502PC/DOS65_6502PC.IMG 0:zip.com
+	cpmcp -f wbw_hd512 ../../bin/6502PC/DOS65_6502PC.IMG  zip.com 0:zip.com
+	@cpmrm -f wbw_hd512 ../../bin/6502PC/DOS65_6502PC.IMG 0:zork1.z3
+	cpmcp -f wbw_hd512 ../../bin/6502PC/DOS65_6502PC.IMG  zork1.z3 0:zork1.z3
+	@cpmrm -f wbw_hd512 ../../bin/6502PC/DOS65_6502PC.IMG 0:ziptest.z3
+	cpmcp -f wbw_hd512 ../../bin/6502PC/DOS65_6502PC.IMG  ziptest.z3 0:ziptest.z3
 
 zip816.com: zip816.out
 	srec_cat  zip816.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  zip816.s19  -data-only

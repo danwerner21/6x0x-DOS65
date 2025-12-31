@@ -11,15 +11,6 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. UPDATE docs for 6502PC
-1. Make assign system independent
-1. Make format system independent
-1. re-test entire system for all targets
-1. UPDATE docs FOR NHYODYNE
-1. Add RTC support for NHYODYNE
-1. Add ROM support for NHYODYNE
-1. ADD IEC SUPPORT
-
 1. Add Dbasic Graphics support for 6502PC
 1. Clean Up SEDIT bugs
 1. ADD A NEW CLEAR DIRECTORY PROGRAM
@@ -38,6 +29,15 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 1. MD support FOR 6X0X
 1. RAMDISK support FOR 6502PC
 
+1. Make format system independent
+1. re-test entire system for all targets
+1. build image files for all targets
+1. Add disk images for all systems and Clean up docs
+1. Add RTC support for NHYODYNE
+1. Add ROM support for NHYODYNE
+1. ADD IEC SUPPORT
+
+
 1. IO ASSIGNMENT?
 1. punwrt (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
 1. rdrinp (SERIAL, ETH,  OR CASSETTE SUPPORT) s19?
@@ -55,20 +55,14 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 ### REQUIRED FOR OPERATION
 
-1. 6x0x WITH A 6502 PROCESSOR INSTALLED
-1. PC Connected to serial port (P31) of 6x0x
-1. SD card (>32mb)
+1. 6502PC, Duodyne, Nhyodyne, or 6x0x WITH A 6502 or 65816  PROCESSOR INSTALLED, 
+1. Supported console 
+1. Supported fixed storage 
 
-
-The following pieces of optional equipment are supported:
- *  ECB backplane -- to fit in an ATX case, see the specially designed backplane at XXXX))
- *  DSKY [V1](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dsky:start) or [V2](https://retrobrewcomputers.org/doku.php?id=boards:ecb:dskyng)
- *  [Disk Controller V3](https://retrobrewcomputers.org/doku.php?id=boards:ecb:diskio-v3:start)
-
-See XXXX for more information.
 
 
 ### Jumper Settings
+For the 6x0x
 See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on setting the jumpers for your particular hardware configuration.   Note that as this version of DOS/65 uses the MMU, it is important that:
  * there can be is no jumper on K17
  * XJ6 must be is jumpered from 1 to 3 (no pin 2)
@@ -77,14 +71,13 @@ See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?
 
  Also, to utilize floppy drives with DOS/65 the CPU must be running at 2Mhz or better.
 
-
-### Building the system
-See the Retrobrew computers Wiki [here](https://retrobrewcomputers.org/doku.php?id=boards:sbc:6x0x-atx-6u:start) for instructions on how to construct the 6x0x PCB.
+For the other platforms, see the appropriate hardware documendation
 
 ### BRINGING UP THE SYSTEM
 #### Program the rom image on to EPROM or EEPROM from the bin folder in this repo
-The default build ROM.HEX file can be programmed into your selected ROM chip type and should provide sane defaults for
-the 6x0x SBC.  See the "Building a Custom ROM Image" section for details on what configuration options are available and how to build a custom ROM image.
+The default build ROM.HEX file in the bin folders for each system can be programmed into your selected ROM chip type and should provide sane defaults.
+
+See the "Building a Custom ROM Image" section for details on what configuration options are available and how to build a custom ROM image.
 
 Selection and use of a suitable EPROM programmer is required and beyond the scope of this document.
 
@@ -106,8 +99,6 @@ For #2 or #3, you must download the Propeller Tool from Parallax (free). This to
 * Use File → Open… to select and open ParPortProp.eeprom
 * Choose “Load EEPROM” from the subsequent “Object Info” dialog box.
 
-#### Power on system
-If the system is running properly, you should be greeted with the 6x0x power on screen on your VGA monitor.
 
 ```
         RetroBrew Computers 6x0x
@@ -137,13 +128,14 @@ To do this type:
 >003A 04
 ```
 at the monitor prompt, then you can continue to interact with the 6x0x system using a terminal program on your PC attached to the 6x0x SBC on the Primary serial port using either:
-
 * P25, TTL levels serial, pin 1 = lower left, above pin 16 of left MAX232
 * P31, RS232 levels serial, pin 1 = lower left, above pin 9 of left MAX232
 
 
 #### Clear the Boot Device
 DOS/65 is a bit sensitive to garbage that is in the boot and directory areas of it's storage devices.  Therefore it is important to have a way to clear these areas.   The CLRDIR program included in this repo provides a program to accomplish this task.
+
+You can skip this step (and all of the OS load steps) if you imaged your media with one of the predefined images that are included in the BIN folders.  If you use a disk image, just type "B <ENTER>" at the prompt to boot your system.
 
 To load the clrdir program into RAM, type:
 ```
@@ -163,7 +155,7 @@ Prior to starting DOS/65 with an attached SD card or IDE device it is important 
 This version supports the ROMWBW concept of "Slices" to allow large drives to be partitioned off to allow DOS/65 to make use of a much larger device.   See the "Building a Custom ROM Image" section of this document for more information.  For now, it is only important to clear the first few tracks of the device (eventually it will be important to ensure that you have cleared the first few tracks of each Slice).   More information on slices can be found in the RomWBW documentation.
 
 
-#### load the OS into RAM
+#### load the OS into RAM (6x0x)
 To load the OS image into RAM, at the 6x0x “.” prompt type:
 ```
 L <press the enter key>
@@ -186,7 +178,7 @@ A>
 
 CONGRATULATIONS! Your 6x0x SBC is now running DOS/65.   You should be able to see your SD card as drive "A" and can now run any of the internal DOS commands.
 
-#### Save the running OS in RAM on to the boot area of the SD card
+#### Save the running OS in RAM on to the boot area of the SD card (6x0x)
 The next steps we need to accomplish is to load a few key programs on to the SD card, and save the OS into the boot area of the SD card to allow us to boot the system without an attached PC.
 
 We want to begin by loading a DOS/65 program that will access the BIOS S19 file loader.
@@ -238,10 +230,29 @@ S
 ```
 BOOT 0
 ```
-From the system monitor's "." prompt.
+From the system monitor's prompt.
 
 
- . . .  and finally . . .
+#### load the OS into RAM (Others)
+To load the OS image into RAM, at the prompt type:
+```
+L <press the enter key>
+```
+Just like with the clrdir.s19 load, the system will appear to freeze. Now do a file dump of the “pcdos65.s19” (for the 6502PC . ) from the bin folder of this repo . .  and just like before it is a good idea to hit "enter" after any of the file transmissions referenced in this document complete, just to be sure you have a clean prompt with no extra characters.
+
+Once the load is completed type:
+```
+W <press the enter key>
+```
+
+This will write the DOS/65 image to disk. then type:
+```
+B <press the enter key>
+```
+to boot the system.
+ 
+
+ 
 ##### Load XMR
  On the 6x0x “A>” prompt type:
 ```

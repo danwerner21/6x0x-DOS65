@@ -1,5 +1,5 @@
 
-all:  	zloader.bin dos65.com dos65drv.sys dos65drv.rom
+all:  	zloader.bin dos65.com dos65drv.sys dos65drv.rom format.com
 
 zloader.bin: zloader.asm
 	z80asm -b -l -m zloader.asm  2> zloader.err
@@ -45,6 +45,10 @@ dos65drv.sys: dos65drv.out
 dos65drv.rom: dos65drvr.out
 	srec_cat  dos65drvr.out -binary -exclude 0x0000 0x8800 -o  dos65drvr.s19  -data-only
 	srec_cat  dos65drvr.s19   -offset 0x060000 -o dos65drv.rom   -data-only
+
+format.out: format.asm
+	ca65 --cpu 6502 format.asm -l format.lst
+	ld65 format.o  -m format.map -C dos65.cfg -o format.out
 
 rom.bin: rom.asm dos65drv.rom  ../supermon/supermon.asm dospager.asm ../dos65_os/dosdefn.asm
 	ca65 -D USEROM=1 rom.asm -l rom.lst
