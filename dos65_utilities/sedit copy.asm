@@ -669,10 +669,6 @@ DELETECHAR2:
         LDA     #$00
         STA     (TMPPOS),Y      ;
 
-; FAST DISPLAY UPDATE: USE ANSI DELETE-CHAR INSTEAD OF REDRAWING WHOLE LINE
-        LDA     CSRPOSX         ; remember starting column to avoid wrapping on the short redraw
-        STA     DELETECHARTMP
-
         LDA     CSRPOSX         ;
         PHA                     ;
         LDA     CSRPOSY         ;
@@ -681,40 +677,23 @@ DELETECHAR2:
         PHA                     ;
         LDA     EDTPOS+1        ;
         PHA                     ;
-
-; delete char at cursor (terminal shifts remainder left)
-        LDA     #<DELCHARSEQ
-        LDY     #>DELCHARSEQ
-        LDX     #9
-        JSR     PEM
-
-; redraw a short tail (up to 16 chars, stop at CR, stay on this line)
-        LDA     #MAXCOL-1
-        SEC
-        SBC     DELETECHARTMP    ; remaining cols before wrap
-        STA     TEMP1
-        LDY     #$00
-        LDX     #16             ; limit redraw length
+        LDY     #$00            ;
 DELETECHAR4:
-        LDA     (EDTPOS),Y
-        CMP     #13
-        BEQ     DELETECHAR4B     ; stop at CR
-        TYA
-        CMP     TEMP1
-        BCS     DELETECHAR4B     ; don't wrap line
-        JSR     TOCONSOLE
-        INY
-        DEX
-        BNE     DELETECHAR4
-DELETECHAR4B:
+        LDA     (EDTPOS),Y      ;
+        PHA                     ;
+        JSR     TOCONSOLE       ;
+        JSR     INCEDTPOS       ;
+        PLA                     ;
+        CMP     #13             ; HAVE WE REACHED THE END OF THE ROW?
+        BNE     DELETECHAR4     ; NO
 
-; clean the rest of the line to avoid artifacts
-        LDA     #<ERASEEOLSEQ
-        LDY     #>ERASEEOLSEQ
-        LDX     #9
-        JSR     PEM
-
-; restore cursor/buffer state
+        LDA     #$00            ; BLOT OUT THE OLD END OF LINE CHAR
+        JSR     TOCONSOLE       ;
+        LDA     CSRPOSX         ;
+        CMP     #01             ; IF WE STAYED ON THE SAME LINE, DO NOTHING
+        BNE     DELETECHAR5     ;
+        JSR     DELETELINE      ;
+DELETECHAR5:
         PLA                     ;
         STA     EDTPOS+1        ;
         PLA                     ;
@@ -1483,12 +1462,6 @@ TOCONSOLE2:
 
 PRINTCR:
         .BYTE   $1B,'[','7','m','<',$1B,'[','0','m','$'
-
-DELCHARSEQ:
-        .BYTE   $1B,'[','P','$'            ; ANSI delete char
-
-ERASEEOLSEQ:
-        .BYTE   $1B,'[','K','$'            ; ANSI erase to end of line
 
 
 ;__READKB________________________________________________________________________________________________________________________

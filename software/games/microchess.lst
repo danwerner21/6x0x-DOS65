@@ -1,0 +1,885 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : microchess.asm
+Current file: microchess.asm
+
+000000r 1               ;***********************************************************************
+000000r 1               ;
+000000r 1               ;  MicroChess (c) 1996-2002 Peter Jennings, peterj@benlo.com
+000000r 1               ;
+000000r 1               ;***********************************************************************
+000000r 1               ; I have been given permission to distribute this program by the
+000000r 1               ; author and copyright holder, Peter Jennings.  Please get his
+000000r 1               ; permission if you wish to re-distribute a modified copy of
+000000r 1               ; this file to others.  He specifically requested that his
+000000r 1               ; copyright notice be included in the source and binary images.
+000000r 1               ; Thanks!
+000000r 1               ;
+000000r 1               ; modified by Daryl Rictor to work over a serial terminal connection, August 2002.
+000000r 1               ; modified by Dan Werner to run in DOS/65 December 2025
+000000r 1               ;
+000000r 1               DFLFCB          = $107          ;DEFAULT FCB
+000000r 1               PEM             = $103          ;PEM ENTRY
+000000r 1               BOOT            = $100          ;WARM BOOT
+000000r 1               TEA             = $800          ;EXECUTION ORG
+000000r 1               CCMLNG          = 2048          ;CCM LENGTH
+000000r 1               ; page zero variables
+000000r 1               ;
+000000r 1               BOARD   =	$50
+000000r 1               BK      =	$60
+000000r 1               PIECE   =	$B0
+000000r 1               SQUARE  =	$B1
+000000r 1               SP2     =	$B2
+000000r 1               SP1     =	$B3
+000000r 1               INCHEK  =	$B4
+000000r 1               STATE   =	$B5
+000000r 1               MOVEN   =	$B6
+000000r 1               REV	=       $B7
+000000r 1               OMOVE   =	$DC
+000000r 1               WCAP0   =	$DD
+000000r 1               COUNT   =	$DE
+000000r 1               BCAP2   =	$DE
+000000r 1               WCAP2   =	$DF
+000000r 1               BCAP1   =	$E0
+000000r 1               WCAP1   =	$E1
+000000r 1               BCAP0   =	$E2
+000000r 1               MOB     =	$E3
+000000r 1               MAXC    =	$E4
+000000r 1               CC      =	$E5
+000000r 1               PCAP    =	$E6
+000000r 1               BMOB    =	$E3
+000000r 1               BMAXC   =	$E4
+000000r 1               BMCC    =	$E5 		; was BCC (TASS doesn't like it as a label)
+000000r 1               BMAXP   =	$E6
+000000r 1               XMAXC   =	$E8
+000000r 1               WMOB    =	$EB
+000000r 1               WMAXC   =	$EC
+000000r 1               WCC     =	$ED
+000000r 1               WMAXP   =	$EE
+000000r 1               PMOB    =	$EF
+000000r 1               PMAXC   =	$F0
+000000r 1               PCC     =	$F1
+000000r 1               PCP     =	$F2
+000000r 1               OLDKY   =	$F3
+000000r 1               BESTP   =	$FB
+000000r 1               BESTV   =	$FA
+000000r 1               BESTM   =	$F9
+000000r 1               DIS1    =	$FB
+000000r 1               DIS2    =	$FA
+000000r 1               DIS3    =	$F9
+000000r 1               temp    =       $FC
+000000r 1               ;
+000000r 1               ;
+000000r 1               ;
+000000r 1                       .SEGMENT "TEA"
+000000r 1                       .ORG    $0800
+000800  1               
+000800  1  A9 00        		LDA     #$00		; REVERSE TOGGLE
+000802  1  85 B7        		STA     REV
+000804  1  D8           CHESS:		CLD			; INITIALIZE
+000805  1  A2 FF        		LDX	#$FF		; TWO STACKS
+000807  1  9A           		TXS
+000808  1  A2 C8        		LDX	#$C8
+00080A  1  86 B2        		STX	SP2
+00080C  1               ;
+00080C  1               ;       ROUTINES TO LIGHT LED
+00080C  1               ;       DISPLAY AND GET KEY
+00080C  1               ;       FROM KEYBOARD
+00080C  1               ;
+00080C  1  20 74 0B     OUT:		JSR	POUT		; DISPLAY AND
+00080F  1  20 45 0C     		JSR	KIN		; GET INPUT   *** my routine waits for a keypress
+000812  1               ;		CMP	OLDKY		; KEY IN ACC  *** no need to debounce
+000812  1               ;		BEQ	OUT		; (DEBOUNCE)
+000812  1               ;		STA	OLDKY
+000812  1               ;
+000812  1  C9 43        		CMP	#$43		; [C]
+000814  1  D0 12        		BNE	NOSET		; SET UP
+000816  1  A2 1F        		LDX	#$1F		; BOARD
+000818  1  BD 1E 0D     WHSET:		LDA	SETW,X		; FROM
+00081B  1  95 50        		STA	BOARD,X		; SETW
+00081D  1  CA           		DEX
+00081E  1  10 F8        		BPL	WHSET
+000820  1  A2 1B        		LDX	#$1B		; *ADDED
+000822  1  86 DC        		STX	OMOVE		; INITS TO $FF
+000824  1  A9 CC        		LDA	#$CC		; Display CCC
+000826  1  D0 19        		BNE	CLDSP
+000828  1               ;
+000828  1  C9 45        NOSET:		CMP	#$45		; [E]
+00082A  1  D0 0E        		BNE	NOREV		; REVERSE
+00082C  1  20 BD 09     		JSR	REVERSE        	; BOARD IS
+00082F  1  38           		SEC
+000830  1  A9 01        		LDA	#$01
+000832  1  E5 B7        		SBC	REV
+000834  1  85 B7        		STA	REV		; TOGGLE REV FLAG
+000836  1  A9 EE        		LDA	#$EE            ; IS
+000838  1  D0 07        		BNE	CLDSP
+00083A  1               ;
+00083A  1  C9 40        NOREV:		CMP	#$40			; [P]
+00083C  1  D0 0B        		BNE	NOGO           	; PLAY CHESS
+00083E  1  20 B1 0A     		JSR	GO
+000841  1  85 FB        CLDSP:		STA	DIS1          	; DISPLAY
+000843  1  85 FA        		STA	DIS2         	; ACROSS
+000845  1  85 F9        		STA	DIS3          	; DISPLAY
+000847  1  D0 BB        		BNE	CHESS
+000849  1               ;
+000849  1  C9 0D        NOGO:		CMP	#$0D            ; [Enter]
+00084B  1  D0 06        		BNE	NOMV          	; MOVE MAN
+00084D  1  20 57 0A     		JSR	MOVE          	; AS ENTERED
+000850  1  4C F9 08     		JMP	DISP
+000853  1  C9 41        NOMV:		CMP     #$41		; [Q] ***Added to allow game exit***
+000855  1  F0 03        		BEQ     DONE		; quit the game, exit back to system.
+000857  1  4C F2 08     		JMP	INPUT		; process move
+00085A  1  A2 00        DONE:		LDX     #$00
+00085C  1  4C 03 01                     JMP     PEM
+00085F  1               ;
+00085F  1               ;       THE ROUTINE JANUS DIRECTS THE
+00085F  1               ;       ANALYSIS BY DETERMINING WHAT
+00085F  1               ;       SHOULD OCCUR AFTER EACH MOVE
+00085F  1               ;       GENERATED BY GNM
+00085F  1               ;
+00085F  1               ;
+00085F  1               ;
+00085F  1  A6 B5        JANUS:		LDX	STATE
+000861  1  30 59        		BMI	NOCOUNT
+000863  1               ;
+000863  1               ;       THIS ROUTINE COUNTS OCCURRENCES
+000863  1               ;       IT DEPENDS UPON STATE TO INDEX
+000863  1               ;       THE CORRECT COUNTERS
+000863  1               ;
+000863  1  A5 B0        COUNTS:		LDA	PIECE
+000865  1  F0 08        		BEQ	OVER           	; IF STATE=8
+000867  1  E0 08        		CPX 	#$08           	; DO NOT COUNT
+000869  1  D0 04        		BNE	OVER          	; BLK MAX CAP
+00086B  1  C5 E6        		CMP	BMAXP        	; MOVES FOR
+00086D  1  F0 2E        		BEQ	XRT           	; WHITE
+00086F  1               ;
+00086F  1  F6 E3        OVER:		INC	MOB,X          	; MOBILITY
+000871  1  C9 01        		CMP 	#$01           	;  + QUEEN
+000873  1  D0 02        		BNE	NOQ           	; FOR TWO
+000875  1  F6 E3        		INC	MOB,X
+000877  1               ;
+000877  1  50 1E        NOQ:		BVC	NOCAP
+000879  1  A0 0F        		LDY	#$0F           	; CALCULATE
+00087B  1  A5 B1        		LDA	SQUARE       	; POINTS
+00087D  1  D9 60 00     ELOOP:		CMP	BK,Y           	; CAPTURED
+000880  1  F0 03        		BEQ	FOUN          	; BY THIS
+000882  1  88           		DEY			; MOVE
+000883  1  10 F8        		BPL	ELOOP
+000885  1  B9 4F 0D     FOUN:		LDA	POINTS,Y
+000888  1  D5 E4        		CMP	MAXC,X
+00088A  1  90 04        		BCC	LESS          	; SAVE IF
+00088C  1  94 E6        		STY	PCAP,X         	; BEST THIS
+00088E  1  95 E4        		STA	MAXC,X         	; STATE
+000890  1               ;
+000890  1  18           LESS:		CLC
+000891  1  08           		PHP			; ADD TO
+000892  1  75 E5        		ADC	CC,X           	; CAPTURE
+000894  1  95 E5        		STA	CC,X           	; COUNTS
+000896  1  28           		PLP
+000897  1               ;
+000897  1  E0 04        NOCAP:		CPX	#$04
+000899  1  F0 03        		BEQ	ON4
+00089B  1  30 2E        		BMI	TREE          	;(=00 ONLY)
+00089D  1  60           XRT:		RTS
+00089E  1               ;
+00089E  1               ;      GENERATE FURTHER MOVES FOR COUNT
+00089E  1               ;      AND ANALYSIS
+00089E  1               ;
+00089E  1  A5 E8        ON4:		LDA	XMAXC        	; SAVE ACTUAL
+0008A0  1  85 DD        		STA	WCAP0         	; CAPTURE
+0008A2  1  A9 00        		LDA	#$00           	; STATE=0
+0008A4  1  85 B5        		STA	STATE
+0008A6  1  20 57 0A     		JSR	MOVE          	; GENERATE
+0008A9  1  20 BD 09     		JSR	REVERSE       	; IMMEDIATE
+0008AC  1  20 0B 09     		JSR	GNMZ         	; REPLY MOVES
+0008AF  1  20 BD 09     		JSR	REVERSE
+0008B2  1               ;
+0008B2  1  A9 08        		LDA	#$08       	; STATE=8
+0008B4  1  85 B5        		STA	STATE        	; GENERATE
+0008B6  1               ;		JSR	OHM          	; CONTINUATION
+0008B6  1  20 3D 0A     		JSR	UMOVE         	; MOVES
+0008B9  1               ;
+0008B9  1  4C 0E 0B     		JMP	STRATGY       	; FINAL EVALUATION
+0008BC  1  E0 F9        NOCOUNT:	CPX	#$F9
+0008BE  1  D0 0B        		BNE	TREE
+0008C0  1               ;
+0008C0  1               ;      DETERMINE IF THE KING CAN BE
+0008C0  1               ;      TAKEN, USED BY CHKCHK
+0008C0  1               ;
+0008C0  1  A5 60        		LDA	BK           	; IS KING
+0008C2  1  C5 B1        		CMP	SQUARE       	; IN CHECK?
+0008C4  1  D0 04        		BNE	RETJ          	; SET INCHEK=0
+0008C6  1  A9 00        		LDA	#$00           	; IF IT IS
+0008C8  1  85 B4        		STA	INCHEK
+0008CA  1  60           RETJ:		RTS
+0008CB  1               ;
+0008CB  1               ;      IF A PIECE HAS BEEN CAPTURED BY
+0008CB  1               ;      A TRIAL MOVE, GENERATE REPLIES &
+0008CB  1               ;      EVALUATE THE EXCHANGE GAIN/LOSS
+0008CB  1               ;
+0008CB  1  50 FD        TREE:		BVC	RETJ          	; NO CAP
+0008CD  1  A0 07        		LDY	#$07           	; (PIECES)
+0008CF  1  A5 B1        		LDA	SQUARE
+0008D1  1  D9 60 00     LOOPX:		CMP	BK,Y
+0008D4  1  F0 05        		BEQ	FOUNX
+0008D6  1  88           		DEY
+0008D7  1  F0 F1        		BEQ	RETJ          	; (KING)
+0008D9  1  10 F6        		BPL	LOOPX         	; SAVE
+0008DB  1  B9 4F 0D     FOUNX:		LDA	POINTS,Y       	; BEST CAP
+0008DE  1  D5 E2        		CMP	BCAP0,X        	; AT THIS
+0008E0  1  90 02        		BCC	NOMAX         	; LEVEL
+0008E2  1  95 E2        		STA	BCAP0,X
+0008E4  1  C6 B5        NOMAX:		DEC	STATE
+0008E6  1  A9 FB        		LDA	#$FB           	; IF STATE=FB
+0008E8  1  C5 B5        		CMP	STATE        	; TIME TO TURN
+0008EA  1  F0 03        		BEQ	UPTREE        	; AROUND
+0008EC  1  20 31 0A     		JSR	GENRM         	; GENERATE FURTHER
+0008EF  1  E6 B5        UPTREE:		INC	STATE        	; CAPTURES
+0008F1  1  60           		RTS
+0008F2  1               ;
+0008F2  1               ;      THE PLAYER'S MOVE IS INPUT
+0008F2  1               ;
+0008F2  1  C9 08        INPUT:		CMP	#$08           	; NOT A LEGAL
+0008F4  1  B0 12        		BCS	ERROR      	; SQUARE #
+0008F6  1  20 FE 0A     		JSR	DISMV
+0008F9  1  A2 1F        DISP:		LDX	#$1F
+0008FB  1  B5 50        SEARCH:		LDA	BOARD,X
+0008FD  1  C5 FA        		CMP	DIS2
+0008FF  1  F0 03        		BEQ	HERE          	; DISPLAY
+000901  1  CA           		DEX			; PIECE AT
+000902  1  10 F7        		BPL	SEARCH        	; FROM
+000904  1  86 FB        HERE:		STX	DIS1         	; SQUARE
+000906  1  86 B0        		STX	PIECE
+000908  1  4C 04 08     ERROR:		JMP	CHESS
+00090B  1               ;
+00090B  1               ;      GENERATE ALL MOVES FOR ONE
+00090B  1               ;      SIDE, CALL JANUS AFTER EACH
+00090B  1               ;      ONE FOR NEXT STE?
+00090B  1               ;
+00090B  1               ;
+00090B  1  A2 10        GNMZ:		LDX	#$10            ; CLEAR
+00090D  1  A9 00        GNMX:		LDA	#$00            ; COUNTERS
+00090F  1  95 DE        CLEAR:		STA	COUNT,X
+000911  1  CA           		DEX
+000912  1  10 FB        		BPL	CLEAR
+000914  1               ;
+000914  1  A9 10        GNM:		LDA	#$10            ; SET UP
+000916  1  85 B0        		STA	PIECE        	; PIECE
+000918  1  C6 B0        NEWP:		DEC	PIECE        	; NEW PIECE
+00091A  1  10 01        		BPL	NEX           	; ALL DONE?
+00091C  1  60           		RTS			; #NAME?
+00091D  1               ;
+00091D  1  20 2A 0A     NEX:		JSR	RESET        	; READY
+000920  1  A4 B0        		LDY	PIECE        	; GET PIECE
+000922  1  A2 08        		LDX	#$08
+000924  1  86 B6        		STX	MOVEN        	; COMMON START
+000926  1  C0 08        		CPY	#$08            ; WHAT IS IT?
+000928  1  10 41        		BPL	PAWN          	; PAWN
+00092A  1  C0 06        		CPY	#$06
+00092C  1  10 2E        		BPL	KNIGHT        	; KNIGHT
+00092E  1  C0 04        		CPY	#$04
+000930  1  10 1F        		BPL	BISHOP       	; BISHOP
+000932  1  C0 01        		CPY	#$01
+000934  1  F0 09        		BEQ	QUEEN         	; QUEEN
+000936  1  10 0E        		BPL	ROOK          	; ROOK
+000938  1               ;
+000938  1  20 99 09     KING:		JSR	SNGMV         	; MUST BE KING!
+00093B  1  D0 FB        		BNE	KING          	; MOVES
+00093D  1  F0 D9        		BEQ	NEWP          	; 8 TO 1
+00093F  1  20 A7 09     QUEEN:		JSR	LINE
+000942  1  D0 FB        		BNE	QUEEN         	; MOVES
+000944  1  F0 D2        		BEQ	NEWP          	; 8 TO 1
+000946  1               ;
+000946  1  A2 04        ROOK:		LDX	#$04
+000948  1  86 B6        		STX	MOVEN        	; MOVES
+00094A  1  20 A7 09     AGNR:		JSR	LINE          	; 4 TO 1
+00094D  1  D0 FB        		BNE	AGNR
+00094F  1  F0 C7        		BEQ	NEWP
+000951  1               ;
+000951  1  20 A7 09     BISHOP:		JSR	LINE
+000954  1  A5 B6        		LDA	MOVEN        	; MOVES
+000956  1  C9 04        		CMP	#$04           	; 8 TO 5
+000958  1  D0 F7        		BNE	BISHOP
+00095A  1  F0 BC        		BEQ	NEWP
+00095C  1               ;
+00095C  1  A2 10        KNIGHT:		LDX	#$10
+00095E  1  86 B6        		STX	MOVEN        	; MOVES
+000960  1  20 99 09     AGNN:		JSR	SNGMV         	; 16 TO 9
+000963  1  A5 B6        		LDA	MOVEN
+000965  1  C9 08        		CMP	#$08
+000967  1  D0 F7        		BNE	AGNN
+000969  1  F0 AD        		BEQ	NEWP
+00096B  1               ;
+00096B  1  A2 06        PAWN:		LDX	#$06
+00096D  1  86 B6        		STX	MOVEN
+00096F  1  20 D5 09     P1:		JSR	CMOVE         	; RIGHT CAP?
+000972  1  50 05        		BVC	P2
+000974  1  30 03        		BMI	P2
+000976  1  20 5F 08     		JSR	JANUS         	; YES
+000979  1  20 2A 0A     P2:		JSR	RESET
+00097C  1  C6 B6        		DEC	MOVEN        	; LEFT CAP?
+00097E  1  A5 B6        		LDA	MOVEN
+000980  1  C9 05        		CMP	#$05
+000982  1  F0 EB        		BEQ	P1
+000984  1  20 D5 09     P3:		JSR	CMOVE         	; AHEAD
+000987  1  70 8F        		BVS	NEWP          	; ILLEGAL
+000989  1  30 8D        		BMI	NEWP
+00098B  1  20 5F 08     		JSR	JANUS
+00098E  1  A5 B1        		LDA	SQUARE       	; GETS TO
+000990  1  29 F0        		AND	#$F0           	; 3RD RANK?
+000992  1  C9 20        		CMP	#$20
+000994  1  F0 EE        		BEQ	P3            	; DO DOUBLE
+000996  1  4C 18 09     		JMP	NEWP
+000999  1               ;
+000999  1               ;      CALCULATE SINGLE STEP MOVES
+000999  1               ;      FOR K,N
+000999  1               ;
+000999  1  20 D5 09     SNGMV:		JSR	CMOVE        	; CALC MOVE
+00099C  1  30 03        		BMI	ILL1           	; -IF LEGAL
+00099E  1  20 5F 08     		JSR	JANUS           ; -EVALUATE
+0009A1  1  20 2A 0A     ILL1:		JSR	RESET
+0009A4  1  C6 B6        		DEC	MOVEN
+0009A6  1  60           		RTS
+0009A7  1               ;
+0009A7  1               ;     CALCULATE ALL MOVES DOWN A
+0009A7  1               ;     STRAIGHT LINE FOR Q,B,R
+0009A7  1               ;
+0009A7  1  20 D5 09     LINE:		JSR	CMOVE         	; CALC MOVE
+0009AA  1  90 02        		BCC	OVL            	; NO CHK
+0009AC  1  50 F9        		BVC	LINE		; NOCAP
+0009AE  1  30 07        OVL:		BMI	ILL             ; RETURN
+0009B0  1  08           		PHP
+0009B1  1  20 5F 08     		JSR	JANUS         	; EVALUATE POSN
+0009B4  1  28           		PLP
+0009B5  1  50 F0        		BVC	LINE          	; NOT A CAP
+0009B7  1  20 2A 0A     ILL:		JSR	RESET         	; LINE STOPPED
+0009BA  1  C6 B6        		DEC	MOVEN         	; NEXT DIR
+0009BC  1  60           		RTS
+0009BD  1               ;
+0009BD  1               ;      EXCHANGE SIDES FOR REPLY
+0009BD  1               ;      ANALYSIS
+0009BD  1               ;
+0009BD  1  A2 0F        REVERSE:		LDX	#$0F
+0009BF  1  38           ETC:		SEC
+0009C0  1  B4 60        		LDY	BK,X           	; SUBTRACT
+0009C2  1  A9 77        		LDA 	#$77           	; POSITION
+0009C4  1  F5 50        		SBC  	BOARD,X        	; FROM 77
+0009C6  1  95 60        		STA  	BK,X
+0009C8  1  94 50        		STY  	BOARD,X         ; AND
+0009CA  1  38           		SEC
+0009CB  1  A9 77        		LDA	#$77           	; EXCHANGE
+0009CD  1  F5 50        		SBC 	BOARD,X        	; PIECES
+0009CF  1  95 50        		STA  	BOARD,X
+0009D1  1  CA           		DEX
+0009D2  1  10 EB        		BPL   	ETC
+0009D4  1  60           		RTS
+0009D5  1               ;
+0009D5  1               ;        CMOVE CALCULATES THE TO SQUARE
+0009D5  1               ;        USING SQUARE AND THE MOVE
+0009D5  1               ;       TABLE  FLAGS SET AS FOLLOWS:
+0009D5  1               ;       N#NAME?	MOVE
+0009D5  1               ;       V#NAME?	(LEGAL UNLESS IN CR)
+0009D5  1               ;       C#NAME?	BECAUSE OF CHECK
+0009D5  1               ;       [MY &THANKS TO JIM BUTTERFIELD
+0009D5  1               ;        WHO WROTE THIS MORE EFFICIENT
+0009D5  1               ;        VERSION OF CMOVE)
+0009D5  1               ;
+0009D5  1  A5 B1        CMOVE:		LDA	SQUARE       	; GET SQUARE
+0009D7  1  A6 B6        		LDX	MOVEN       	; MOVE POINTER
+0009D9  1  18           		CLC
+0009DA  1  7D 3E 0D     		ADC	MOVEX,X        	; MOVE LIST
+0009DD  1  85 B1        		STA	SQUARE       	; NEW POS'N
+0009DF  1  29 88        		AND	#$88
+0009E1  1  D0 42        		BNE	ILLEGAL       	; OFF BOARD
+0009E3  1  A5 B1        		LDA	SQUARE
+0009E5  1               ;
+0009E5  1  A2 20        		LDX	#$20
+0009E7  1  CA           LOOP:		DEX			; IS TO
+0009E8  1  30 0E        		BMI	NO            	; SQUARE
+0009EA  1  D5 50        		CMP  	BOARD,X        	; OCCUPIED?
+0009EC  1  D0 F9        		BNE   	LOOP
+0009EE  1               ;
+0009EE  1  E0 10        		CPX	#$10            ; BY SELF?
+0009F0  1  30 33        		BMI   	ILLEGAL
+0009F2  1               ;
+0009F2  1  A9 7F        		LDA	#$7F		; MUST BE CAP!
+0009F4  1  69 01        		ADC	#$01            ; SET V FLAG
+0009F6  1  70 01        		BVS   	SPX 	        ; (JMP)
+0009F8  1               ;
+0009F8  1  B8           NO:		CLV			; NO CAPTURE
+0009F9  1               ;
+0009F9  1  A5 B5        SPX:		LDA  	STATE         	; SHOULD WE
+0009FB  1  30 24        		BMI   	RETL           	; DO THE
+0009FD  1  C9 08        		CMP	#$08 	        ; CHECK CHECK?
+0009FF  1  10 20        		BPL  	RETL
+000A01  1               ;
+000A01  1               ;        CHKCHK REVERSES SIDES
+000A01  1               ;       AND LOOKS FOR A KING
+000A01  1               ;       CAPTURE TO INDICATE
+000A01  1               ;       ILLEGAL MOVE BECAUSE OF
+000A01  1               ;       CHECK  SINCE THIS IS
+000A01  1               ;       TIME CONSUMING, IT IS NOT
+000A01  1               ;       ALWAYS DONE
+000A01  1               ;
+000A01  1  48           CHKCHK:	PHA				; STATE  #392
+000A02  1  08           		PHP
+000A03  1  A9 F9        		LDA	#$F9
+000A05  1  85 B5        		STA	STATE         	; GENERATE
+000A07  1  85 B4        		STA	INCHEK        	; ALL REPLY
+000A09  1  20 57 0A     		JSR	MOVE          	; MOVES TO
+000A0C  1  20 BD 09     		JSR	REVERSE       	; SEE IF KING
+000A0F  1  20 14 09     		JSR	GNM           	; IS IN
+000A12  1  20 3A 0A     		JSR	RUM           	; CHECK
+000A15  1  28           		PLP
+000A16  1  68           		PLA
+000A17  1  85 B5        		STA	STATE
+000A19  1  A5 B4        		LDA	INCHEK
+000A1B  1  30 04        		BMI	RETL           	; NO - SAFE
+000A1D  1  38           		SEC			; YES - IN CHK
+000A1E  1  A9 FF        		LDA	#$FF
+000A20  1  60           		RTS
+000A21  1               ;
+000A21  1  18           RETL:		CLC			; LEGAL
+000A22  1  A9 00        		LDA	#$00            ; RETURN
+000A24  1  60           		RTS
+000A25  1               ;
+000A25  1  A9 FF        ILLEGAL:	LDA	#$FF
+000A27  1  18           		CLC			; ILLEGAL
+000A28  1  B8           		CLV			; RETURN
+000A29  1  60           		RTS
+000A2A  1               ;
+000A2A  1               ;       REPLACE PIECE ON CORRECT SQUARE
+000A2A  1               ;
+000A2A  1  A6 B0        RESET:		LDX	PIECE      	; GET LOGAT
+000A2C  1  B5 50        		LDA	BOARD,X        	; FOR PIECE
+000A2E  1  85 B1        		STA	SQUARE       	; FROM BOARD
+000A30  1  60           		RTS
+000A31  1               ;
+000A31  1               ;
+000A31  1               ;
+000A31  1  20 57 0A     GENRM:		JSR	MOVE          	; MAKE MOVE
+000A34  1  20 BD 09     GENR2:		JSR	REVERSE      	; REVERSE BOARD
+000A37  1  20 14 09     		JSR	GNM          	; GENERATE MOVES
+000A3A  1  20 BD 09     RUM:		JSR	REVERSE   	; REVERSE BACK
+000A3D  1               ;
+000A3D  1               ;       ROUTINE TO UNMAKE A MOVE MADE BY
+000A3D  1               ;	  MOVE
+000A3D  1               ;
+000A3D  1  BA           UMOVE:		TSX			; UNMAKE MOVE
+000A3E  1  86 B3        		STX	SP1
+000A40  1  A6 B2        		LDX	SP2           	; EXCHANGE
+000A42  1  9A           		TXS			; STACKS
+000A43  1  68           		PLA			; MOVEN
+000A44  1  85 B6        		STA	MOVEN
+000A46  1  68           		PLA			; CAPTURED
+000A47  1  85 B0        		STA	PIECE        	; PIECE
+000A49  1  AA           		TAX
+000A4A  1  68           		PLA			; FROM SQUARE
+000A4B  1  95 50        		STA	BOARD,X
+000A4D  1  68           		PLA			; PIECE
+000A4E  1  AA           		TAX
+000A4F  1  68           		PLA			; TO SOUARE
+000A50  1  85 B1        		STA	SQUARE
+000A52  1  95 50        		STA	BOARD,X
+000A54  1  4C 7C 0A     		JMP	STRV
+000A57  1               ;
+000A57  1               ;       THIS ROUTINE MOVES PIECE
+000A57  1               ;       TO SQUARE, PARAMETERS
+000A57  1               ;       ARE SAVED IN A STACK TO UNMAKE
+000A57  1               ;       THE MOVE LATER
+000A57  1               ;
+000A57  1  BA           MOVE:		TSX
+000A58  1  86 B3        		STX	SP1          	; SWITCH
+000A5A  1  A6 B2        		LDX	SP2          	; STACKS
+000A5C  1  9A           		TXS
+000A5D  1  A5 B1        		LDA	SQUARE
+000A5F  1  48           		PHA			; TO SQUARE
+000A60  1  A8           		TAY
+000A61  1  A2 1F        		LDX	#$1F
+000A63  1  D5 50        CHECK:		CMP	BOARD,X        	; CHECK FOR
+000A65  1  F0 03        		BEQ	TAKE          	; CAPTURE
+000A67  1  CA           		DEX
+000A68  1  10 F9        		BPL	CHECK
+000A6A  1  A9 CC        TAKE:		LDA	#$CC
+000A6C  1  95 50        		STA	BOARD,X
+000A6E  1  8A           		TXA			; CAPTURED
+000A6F  1  48           		PHA			; PIECE
+000A70  1  A6 B0        		LDX	PIECE
+000A72  1  B5 50        		LDA	BOARD,X
+000A74  1  94 50        		STY	BOARD,X        	; FROM
+000A76  1  48           		PHA			; SQUARE
+000A77  1  8A           		TXA
+000A78  1  48           		PHA			; PIECE
+000A79  1  A5 B6        		LDA	MOVEN
+000A7B  1  48           		PHA			; MOVEN
+000A7C  1  BA           STRV:		TSX
+000A7D  1  86 B2        		STX	SP2           	; SWITCH
+000A7F  1  A6 B3        		LDX	SP1           	; STACKS
+000A81  1  9A           		TXS			; BACK
+000A82  1  60           		RTS
+000A83  1               ;
+000A83  1               ;       CONTINUATION OF SUB STRATGY
+000A83  1               ;       -CHECKS FOR CHECK OR CHECKMATE
+000A83  1               ;       AND ASSIGNS VALUE TO MOVE
+000A83  1               ;
+000A83  1  A4 E4        CKMATE:	LDY	BMAXC         		; CAN BLK CAP
+000A85  1  EC 4F 0D     		CPX	POINTS       	; MY KING?
+000A88  1  D0 04        		BNE	NOCHEK
+000A8A  1  A9 00        		LDA	#$00           	; GULP!
+000A8C  1  F0 0A        		BEQ	RETV          	; DUMB MOVE!
+000A8E  1               ;
+000A8E  1  A6 E3        NOCHEK:	LDX	BMOB         		; IS BLACK
+000A90  1  D0 06        		BNE	RETV          	; UNABLE TO
+000A92  1  A6 EE        		LDX	WMAXP        	; MOVE AND
+000A94  1  D0 02        		BNE	RETV          	; KING IN CH?
+000A96  1  A9 FF        		LDA	#$FF           	; YES! MATE
+000A98  1               ;
+000A98  1  A2 04        RETV:		LDX	#$04            ; RESTORE
+000A9A  1  86 B5        		STX	STATE        	; STATE=4
+000A9C  1               ;
+000A9C  1               ;       THE VALUE OF THE MOVE (IN ACCU)
+000A9C  1               ;       IS COMPARED TO THE BEST MOVE AND
+000A9C  1               ;       REPLACES IT IF IT IS BETTER
+000A9C  1               ;
+000A9C  1  C5 FA        PUSH:		CMP	BESTV         	; IS THIS BEST
+000A9E  1  90 0C        		BCC	RETP          	; MOVE SO FAR?
+000AA0  1  F0 0A        		BEQ	RETP
+000AA2  1  85 FA        		STA	BESTV        	; YES!
+000AA4  1  A5 B0        		LDA	PIECE        	; SAVE IT
+000AA6  1  85 FB        		STA	BESTP
+000AA8  1  A5 B1        		LDA	SQUARE
+000AAA  1  85 F9        		STA	BESTM        	; FLASH DISPLAY
+000AAC  1  A9 2E        RETP:		LDA	#'.'		; print ... instead of flashing disp
+000AAE  1  4C 5D 0C     		Jmp	syschout	; print . and return
+000AB1  1               ;
+000AB1  1               ;       MAIN PROGRAM TO PLAY CHESS
+000AB1  1               ;       PLAY FROM OPENING OR THINK
+000AB1  1               ;
+000AB1  1  A6 DC        GO:		LDX	OMOVE        	; OPENING?
+000AB3  1  30 1C        		BMI	NOOPEN          ; -NO   *ADD CHANGE FROM BPL
+000AB5  1  A5 F9        		LDA	DIS3         	; -YES WAS
+000AB7  1  DD 5F 0D     		CMP	OPNING,X        ; OPPONENT'S
+000ABA  1  D0 11        		BNE	END            	; MOVE OK?
+000ABC  1  CA           		DEX
+000ABD  1  BD 5F 0D     		LDA	OPNING,X       	; GET NEXT
+000AC0  1  85 FB        		STA	DIS1         	; CANNED
+000AC2  1  CA           		DEX			; OPENING MOVE
+000AC3  1  BD 5F 0D     		LDA	OPNING,X
+000AC6  1  85 F9        		STA	DIS3         	; DISPLAY IT
+000AC8  1  CA           		DEX
+000AC9  1  86 DC        		STX	OMOVE        	; MOVE IT
+000ACB  1  D0 1C        		BNE	MV2            	; (JMP)
+000ACD  1               ;
+000ACD  1  A9 FF        END:		LDA     #$FF		; *ADD - STOP CANNED MOVES
+000ACF  1  85 DC        		STA	OMOVE        	; FLAG OPENING
+000AD1  1  A2 0C        NOOPEN:	LDX	#$0C            	; FINISHED
+000AD3  1  86 B5        		STX	STATE        	; STATE=C
+000AD5  1  86 FA        		STX	BESTV        	; CLEAR BESTV
+000AD7  1  A2 14        		LDX	#$14           	; GENERATE P
+000AD9  1  20 0D 09     		JSR	GNMX          	; MOVES
+000ADC  1               ;
+000ADC  1  A2 04        		LDX	#$04           	; STATE=4
+000ADE  1  86 B5        		STX	STATE        	; GENERATE AND
+000AE0  1  20 0B 09     		JSR	GNMZ          	; TEST AVAILABLE
+000AE3  1               ;
+000AE3  1               ;	MOVES
+000AE3  1               ;
+000AE3  1  A6 FA        		LDX	BESTV        	; GET BEST MOVE
+000AE5  1  E0 0F        		CPX	#$0F           	; IF NONE
+000AE7  1  90 12        		BCC	MATE          	; OH OH!
+000AE9  1               ;
+000AE9  1  A6 FB        MV2:		LDX	BESTP        	; MOVE
+000AEB  1  B5 50        		LDA	BOARD,X         ; THE
+000AED  1  85 FA        		STA	BESTV        	; BEST
+000AEF  1  86 B0        		STX	PIECE        	; MOVE
+000AF1  1  A5 F9        		LDA	BESTM
+000AF3  1  85 B1        		STA	SQUARE       	; AND DISPLAY
+000AF5  1  20 57 0A     		JSR	MOVE           	; IT
+000AF8  1  4C 04 08     		JMP	CHESS
+000AFB  1               ;
+000AFB  1  A9 FF        MATE:		LDA	#$FF           	; RESIGN
+000AFD  1  60           		RTS			; OR STALEMATE
+000AFE  1               ;
+000AFE  1               ;       SUBROUTINE TO ENTER THE
+000AFE  1               ;       PLAYER'S MOVE
+000AFE  1               ;
+000AFE  1  A2 04        DISMV:		LDX	#$04           	; ROTATE
+000B00  1  06 F9        DROL:		ASL	DIS3          	; KEY
+000B02  1  26 FA        		ROL	DIS2         	; INTO
+000B04  1  CA           		DEX			; DISPLAY
+000B05  1  D0 F9        		BNE	DROL		;
+000B07  1  05 F9        		ORA	DIS3
+000B09  1  85 F9        		STA	DIS3
+000B0B  1  85 B1        		STA	SQUARE
+000B0D  1  60           		RTS
+000B0E  1               ;
+000B0E  1               ;       THE FOLLOWING SUBROUTINE ASSIGNS
+000B0E  1               ;       A VALUE TO THE MOVE UNDER
+000B0E  1               ;       CONSIDERATION AND RETURNS IT IN
+000B0E  1               ;	THE ACCUMULATOR
+000B0E  1               ;
+000B0E  1               
+000B0E  1  18           STRATGY:	CLC
+000B0F  1  A9 80        		LDA	#$80
+000B11  1  65 EB        		ADC	WMOB         	; PARAMETERS
+000B13  1  65 EC        		ADC	WMAXC        	; WITH WHEIGHT
+000B15  1  65 ED        		ADC	WCC          	; OF O25
+000B17  1  65 E1        		ADC	WCAP1
+000B19  1  65 DF        		ADC	WCAP2
+000B1B  1  38           		SEC
+000B1C  1  E5 F0        		SBC	PMAXC
+000B1E  1  E5 F1        		SBC	PCC
+000B20  1  E5 E2        		SBC	BCAP0
+000B22  1  E5 E0        		SBC	BCAP1
+000B24  1  E5 DE        		SBC	BCAP2
+000B26  1  E5 EF        		SBC	PMOB
+000B28  1  E5 E3        		SBC	BMOB
+000B2A  1  B0 02        		BCS	POS           	; UNDERFLOW
+000B2C  1  A9 00        		LDA	#$00           	; PREVENTION
+000B2E  1  4A           POS:		LSR
+000B2F  1  18           		CLC			; **************
+000B30  1  69 40        		ADC	#$40
+000B32  1  65 EC        		ADC	WMAXC       	; PARAMETERS
+000B34  1  65 ED        		ADC	WCC         	; WITH WEIGHT
+000B36  1  38           		SEC			; OF 05
+000B37  1  E5 E4        		SBC	BMAXC
+000B39  1  4A           		LSR			; **************
+000B3A  1  18           		CLC
+000B3B  1  69 90        		ADC	#$90
+000B3D  1  65 DD        		ADC	WCAP0       	; PARAMETERS
+000B3F  1  65 DD        		ADC	WCAP0       	; WITH WEIGHT
+000B41  1  65 DD        		ADC	WCAP0       	; OF 10
+000B43  1  65 DD        		ADC	WCAP0
+000B45  1  65 E1        		ADC	WCAP1
+000B47  1  38           		SEC			; [UNDER OR OVER-
+000B48  1  E5 E4        		SBC	BMAXC        	; FLOW MAY OCCUR
+000B4A  1  E5 E4        		SBC	BMAXC        	; FROM THIS
+000B4C  1  E5 E5        		SBC	BMCC          	; SECTION]
+000B4E  1  E5 E5        		SBC	BMCC
+000B50  1  E5 E0        		SBC	BCAP1
+000B52  1  A6 B1        		LDX	SQUARE      	; ***************
+000B54  1  E0 33        		CPX	#$33
+000B56  1  F0 16        		BEQ	POSN         	; POSITION
+000B58  1  E0 34        		CPX	#$34           	; BONUS FOR
+000B5A  1  F0 12        		BEQ	POSN         	; MOVE TO
+000B5C  1  E0 22        		CPX	#$22           	; CENTRE
+000B5E  1  F0 0E        		BEQ	POSN           	; OR
+000B60  1  E0 25        		CPX	#$25           	; OUT OF
+000B62  1  F0 0A        		BEQ	POSN         	; BACK RANK
+000B64  1  A6 B0        		LDX	PIECE
+000B66  1  F0 09        		BEQ	NOPOSN
+000B68  1  B4 50        		LDY	BOARD,X
+000B6A  1  C0 10        		CPY	#$10
+000B6C  1  10 03        		BPL	NOPOSN
+000B6E  1  18           POSN:		CLC
+000B6F  1  69 02        		ADC	#$02
+000B71  1  4C 83 0A     NOPOSN:	JMP	CKMATE       		; CONTINUE
+000B74  1               
+000B74  1               
+000B74  1               ;-----------------------------------------------------------------
+000B74  1               ; The following routines were added to allow text-based board
+000B74  1               ; display over a standard RS-232 port.
+000B74  1               ;
+000B74  1  20 13 0C     POUT:        	jsr 	POUT9		; print CRLF
+000B77  1  20 37 0C     		jsr     POUT13		; print copyright
+000B7A  1  20 1E 0C     		JSR	POUT10		; print column labels
+000B7D  1  A0 00        		LDY   	#$00		; init board location
+000B7F  1  20 E5 0B     		JSR	POUT5		; print board horz edge
+000B82  1  A9 7C        POUT1:		lDA   	#'|'		; print vert edge
+000B84  1  20 5D 0C     		JSR   	syschout	; PRINT ONE ASCII CHR - SPACE
+000B87  1  A2 1F        		LDX   	#$1F
+000B89  1  98           POUT2:		TYA			; scan the pieces for a location match
+000B8A  1  D5 50                    	CMP	BOARD,X		; match found?
+000B8C  1  F0 40                    	BEQ   	POUT4		; yes; print the piece's color and type
+000B8E  1  CA                       	DEX			; no
+000B8F  1  10 F8                    	BPL	POUT2		; if not the last piece, try again
+000B91  1  98           		tya			; empty square
+000B92  1  29 01        		and	#$01		; odd or even column?
+000B94  1  85 FC        		sta   	temp		; save it
+000B96  1  98           		tya  			; is the row odd or even
+000B97  1  4A           		lsr			; shift column right 4 spaces
+000B98  1  4A           		lsr			;
+000B99  1  4A           		lsr			;
+000B9A  1  4A           		lsr			;
+000B9B  1  29 01        		and   	#$01		; strip LSB
+000B9D  1  18           		clc			;
+000B9E  1  65 FC        		adc   	temp		; combine row & col to determine square color
+000BA0  1  29 01        		and   	#$01		; is board square white or blk?
+000BA2  1  D0 03        		bne	POUT25 		; white, print space
+000BA4  1  A9 2A        		lda   	#'*'		; black, print *
+000BA6  1  2C           		.byte	$2c		; used to skip over LDA #$20
+000BA7  1  A9 20        POUT25:		LDA   	#$20		; ASCII space
+000BA9  1  20 5D 0C     		JSR   	syschout	; PRINT ONE ASCII CHR - SPACE
+000BAC  1  20 5D 0C     		JSR   	syschout	; PRINT ONE ASCII CHR - SPACE
+000BAF  1  C8           POUT3:		INY			;
+000BB0  1  98           	        TYA			; get row number
+000BB1  1  29 08                    	AND   	#$08		; have we completed the row?
+000BB3  1  F0 CD                    	BEQ   	POUT1		; no, do next column
+000BB5  1  A9 7C        		LDA   	#'|'		; yes, put the right edge on
+000BB7  1  20 5D 0C     		JSR   	syschout	; PRINT ONE ASCII CHR - |
+000BBA  1  20 30 0C     		jsr	POUT12		; print row number
+000BBD  1  20 13 0C     		JSR   	POUT9		; print CRLF
+000BC0  1  20 E5 0B                 	JSR   	POUT5		; print bottom edge of board
+000BC3  1  18           		CLC			;
+000BC4  1  98           		TYA			;
+000BC5  1  69 08        		ADC	#$08		; point y to beginning of next row
+000BC7  1  A8           		TAY			;
+000BC8  1  C0 80        		CPY   	#$80		; was that the last row?
+000BCA  1  F0 2B        		BEQ   	POUT8		; yes, print the LED values
+000BCC  1  D0 B4        		BNE   	POUT1		; no, do new row
+000BCE  1               
+000BCE  1  A5 B7        POUT4:		LDA   	REV		; print piece's color & type
+000BD0  1  F0 05        		BEQ   	POUT41		;
+000BD2  1  BD DD 0C     		LDA	cpl+16,X	;
+000BD5  1  D0 03        		BNE	POUT42		;
+000BD7  1  BD CD 0C     POUT41:		LDA   	cpl,x		;
+000BDA  1  20 5D 0C     POUT42:		JSR	syschout	;
+000BDD  1  BD FD 0C     		lda	cph,x		;
+000BE0  1  20 5D 0C     		jsr   	syschout	;
+000BE3  1  D0 CA        		BNE	POUT3		; branch always
+000BE5  1               
+000BE5  1  8A           POUT5:       	TXA			; print "-----...-----"
+000BE6  1  48           		PHA
+000BE7  1  A2 19        		LDX	#$19
+000BE9  1  A9 2D        		LDA	#'-'
+000BEB  1  20 5D 0C     POUT6:		JSR   	syschout	; PRINT ONE ASCII CHR - "-"
+000BEE  1  CA           		DEX
+000BEF  1  D0 FA        		BNE	POUT6
+000BF1  1  68           		PLA
+000BF2  1  AA           		TAX
+000BF3  1  20 13 0C     		JSR	POUT9
+000BF6  1  60           		RTS
+000BF7  1               
+000BF7  1  20 1E 0C     POUT8:		jsr	POUT10		;
+000BFA  1  A5 FB        		LDA   	$FB
+000BFC  1  20 69 0C     		JSR   	syshexout	; PRINT 1 BYTE AS 2 HEX CHRS
+000BFF  1  A9 20                	LDA   	#$20
+000C01  1  20 5D 0C     		JSR   	syschout	; PRINT ONE ASCII CHR - SPACE
+000C04  1  A5 FA                	LDA   	$FA
+000C06  1  20 69 0C     		JSR   	syshexout	; PRINT 1 BYTE AS 2 HEX CHRS
+000C09  1  A9 20                	LDA   	#$20
+000C0B  1  20 5D 0C     		JSR   	syschout	; PRINT ONE ASCII CHR - SPACE
+000C0E  1  A5 F9                	LDA   	$F9
+000C10  1  20 69 0C     		JSR   	syshexout	; PRINT 1 BYTE AS 2 HEX CHRS
+000C13  1               
+000C13  1  A9 0D        POUT9:      	LDA   	#$0D
+000C15  1  20 5D 0C     		JSR   	syschout	; PRINT ONE ASCII CHR - CR
+000C18  1  A9 0A                	LDA   	#$0A
+000C1A  1  20 5D 0C     		JSR   	syschout	; PRINT ONE ASCII CHR - LF
+000C1D  1  60                           RTS
+000C1E  1               
+000C1E  1  A2 00        POUT10:		ldx   	#$00		; print the column labels
+000C20  1  A9 20        POUT11:		lda	#$20		; 00 01 02 03 ... 07
+000C22  1  20 5D 0C     		jsr   	syschout
+000C25  1  8A           		txa
+000C26  1  20 69 0C     		jsr	syshexout
+000C29  1  E8           		INX
+000C2A  1  E0 08        		CPX   	#$08
+000C2C  1  D0 F2        		BNE	POUT11
+000C2E  1  F0 E3        		BEQ	POUT9
+000C30  1  98           POUT12:		TYA
+000C31  1  29 70        		and 	#$70
+000C33  1  20 69 0C     		JSR 	syshexout
+000C36  1  60           		rts
+000C37  1               
+000C37  1  A2 00        POUT13:		ldx   	#$00		; Print the copyright banner
+000C39  1  BD 92 0C     POUT14:		lda   	banner,x
+000C3C  1  F0 06        		beq   	POUT15
+000C3E  1  20 5D 0C     		jsr   	syschout
+000C41  1  E8           		inx
+000C42  1  D0 F5        		bne   	POUT14
+000C44  1  60           POUT15:		rts
+000C45  1               
+000C45  1  A9 3F        KIN:        	LDA   	#'?'
+000C47  1  20 5D 0C     		JSR   	syschout	; PRINT ONE ASCII CHR - ?
+000C4A  1  20 50 0C     		JSR   	syskin		; GET A KEYSTROKE FROM SYSTEM
+000C4D  1  29 4F                    	AND   	#$4F            ; MASK 0-7, AND ALPHA'S
+000C4F  1  60                       	RTS
+000C50  1               ;
+000C50  1               ; I/O Support Routines
+000C50  1               ; input chr (waiting)
+000C50  1               ;
+000C50  1               syskin:
+000C50  1  8E 5C 0C                     stx     tmpx
+000C53  1  A2 01                        LDX     #1              ;
+000C55  1  20 03 01                     JSR     PEM             ;
+000C58  1  AE 5C 0C                     ldx     tmpx
+000C5B  1  60                           rts
+000C5C  1  00           tmpx:           .byte 0
+000C5D  1               ;
+000C5D  1               ; output to OutPut Port
+000C5D  1               ;
+000C5D  1               syschout:
+000C5D  1  8E 5C 0C                     stx     tmpx
+000C60  1  A2 02                        LDX     #2              ;
+000C62  1  20 03 01                     JSR     PEM             ;
+000C65  1  AE 5C 0C                     ldx     tmpx
+000C68  1  60                           rts
+000C69  1               
+000C69  1               
+000C69  1  48           syshexout:      PHA                     ;  prints AA hex digits
+000C6A  1  4A                          LSR                     ;  MOVE UPPER NIBBLE TO LOWER
+000C6B  1  4A                          LSR                     ;
+000C6C  1  4A                          LSR                     ;
+000C6D  1  4A                          LSR                     ;
+000C6E  1  20 72 0C                    JSR   PrintDig          ;
+000C71  1  68                          PLA                     ;
+000C72  1  8C 81 0C     PrintDig:      STY   TMPY              ;  prints A hex nibble (low 4 bits)
+000C75  1  29 0F                       AND   #$0F              ;
+000C77  1  A8                          TAY                     ;
+000C78  1  B9 82 0C                    LDA   Hexdigdata,Y      ;
+000C7B  1  AC 81 0C                    ldy      TMPY                    ;
+000C7E  1  4C 5D 0C                    jmp   syschout          ;
+000C81  1               
+000C81  1               
+000C81  1  00           TMPY:           .byte 00
+000C82  1  30 31 32 33  Hexdigdata:	.byte	"0123456789ABCDEF"
+000C86  1  34 35 36 37  
+000C8A  1  38 39 41 42  
+000C92  1  4D 69 63 72  banner:		.byte	"MicroChess (c) 1996-2002 Peter Jennings,peterj@benlo.com"
+000C96  1  6F 43 68 65  
+000C9A  1  73 73 20 28  
+000CCA  1  0D 0A 00     		.byte	$0d, $0a, $00
+000CCD  1  57 57 57 57  cpl:		.byte	"WWWWWWWWWWWWWWWWBBBBBBBBBBBBBBBBWWWWWWWWWWWWWWWW"
+000CD1  1  57 57 57 57  
+000CD5  1  57 57 57 57  
+000CFD  1  4B 51 43 43  cph:		.byte	"KQCCBBRRPPPPPPPPKQCCBBRRPPPPPPPP"
+000D01  1  42 42 52 52  
+000D05  1  50 50 50 50  
+000D1D  1  00           		.byte	$00
+000D1E  1               ;
+000D1E  1               ; end of added code
+000D1E  1               ;
+000D1E  1               ; BLOCK DATA
+000D1E  1               
+000D1E  1  03 04 00 07  SETW:		.byte 	$03, $04, $00, $07, $02, $05, $01, $06
+000D22  1  02 05 01 06  
+000D26  1  10 17 11 16          	.byte 	$10, $17, $11, $16, $12, $15, $14, $13
+000D2A  1  12 15 14 13  
+000D2E  1  73 74 70 77          	.byte 	$73, $74, $70, $77, $72, $75, $71, $76
+000D32  1  72 75 71 76  
+000D36  1  60 67 61 66  	 	.byte	$60, $67, $61, $66, $62, $65, $64, $63
+000D3A  1  62 65 64 63  
+000D3E  1               
+000D3E  1  00 F0 FF 01  MOVEX:   	.byte 	$00, $F0, $FF, $01, $10, $11, $0F, $EF, $F1
+000D42  1  10 11 0F EF  
+000D46  1  F1           
+000D47  1  DF E1 EE F2  		.byte	$DF, $E1, $EE, $F2, $12, $0E, $1F, $21
+000D4B  1  12 0E 1F 21  
+000D4F  1               
+000D4F  1  0B 0A 06 06  POINTS:  	.byte 	$0B, $0A, $06, $06, $04, $04, $04, $04
+000D53  1  04 04 04 04  
+000D57  1  02 02 02 02  		.byte 	$02, $02, $02, $02, $02, $02, $02, $02
+000D5B  1  02 02 02 02  
+000D5F  1               
+000D5F  1  99 25 0B 25  OPNING:  	.byte 	$99, $25, $0B, $25, $01, $00, $33, $25
+000D63  1  01 00 33 25  
+000D67  1  07 36 34 0D  		.byte	$07, $36, $34, $0D, $34, $34, $0E, $52
+000D6B  1  34 34 0E 52  
+000D6F  1  25 0D 45 35          	.byte 	$25, $0D, $45, $35, $04, $55, $22, $06
+000D73  1  04 55 22 06  
+000D77  1  43 33 0F CC  		.byte	$43, $33, $0F, $CC
+000D7B  1               
+000D7B  1               ;
+000D7B  1               ;
+000D7B  1               ; end of file
+000D7B  1               

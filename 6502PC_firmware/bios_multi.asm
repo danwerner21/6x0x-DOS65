@@ -116,6 +116,8 @@ KBD_TEMP:
 ;     | 0     | 0     | 0     | 0     | 0     | 0     | SERDTA| SERCLK|
 ;     +-------+-------+-------+-------+-------+-------+-------+-------+
 ;
+
+        .IFNDEF PC6502BIOS
 ;__________________________________________________________________________________________________
 ; MULTI IO INITIALIZATION
 ;__________________________________________________________________________________________________
@@ -230,8 +232,34 @@ KBD_TIMEOUT2:
 
         CLC                     ; SIGNAL SUCCESS
         RTS
+        .ENDIF
+        .IFDEF PC6502BIOS
+MULTIOINIT:
+        LDA     #$AA            ; CONTROLLER SELF TEST
+        JSR     KBD_PUTCMD      ; SEND IT
+        BCS     :+
+        JSR     KBD_GETDATA     ; CONTROLLER SHOULD RESPOND WITH $55 (ACK)
+        BCS     :+
+;
+        CMP     #$55            ; IS IT THERE?
+        BNE     :+              ; IF SO, CONTINUE
+        LDA     #$60            ; SET COMMAND REGISTER
+        JSR     KBD_PUTCMD      ; SEND IT
+        BCS     :+
+        LDA     #$20            ; XLAT DISABLED, MOUSE DISABLED, NO INTS
+        JSR     KBD_PUTDATA     ; SEND IT
+        BCS     :+
 
+        JSR     KBD_GETDATA     ; GOBBLE UP $AA FROM POWER UP, AS NEEDED
+        BCS     :+
 
+        JSR     KBD_RESET       ; RESET THE KEYBOARD
+        JSR     LDELAY          ; WAIT A BIT
+        JSR     KBD_SETLEDS     ; UPDATE LEDS BASED ON CURRENT TOGGLE STATE BITS
+        JSR     KBD_SETRPT      ; UPDATE REPEAT RATE BASED ON CURRENT SETTING
+:
+        RTS
+        .ENDIF
 ;
 ;__________________________________________________________________________________________________
 ; HARDWARE INTERFACE
@@ -449,6 +477,36 @@ KBD_GETKEY:
         PLA
         CLC
         RTS
+
+;__GETKEYB_________________________________________________________________________________________
+; Get char from Keyboard, return in A (blocking)
+;__________________________________________________________________________________________________
+KBD_GETKEYB:
+:
+        JSR     KBD_DECODE
+        BCS     :-
+        LDA     KBD_KEYCODE
+        PHA
+        LDA     KBD_STATUS
+        AND     #$7F
+        STA     KBD_STATUS
+        PLA
+        CLC
+        RTS
+
+;__GETSTATUS_______________________________________________________________________________________
+; Get Keyboard status
+;__________________________________________________________________________________________________
+KBD_GETSTATUS:
+        LDA     KBD_STATUS      ; GET CURRENT STATUS
+        AND     #KBD_KEYRDY     ; ISOLATE KEY READY FLAG
+        BEQ     :+
+        LDA     #$00
+        RTS
+:
+        LDA     #$FF
+        RTS
+
 
 ;
 ;__________________________________________________________________________________________________
@@ -874,6 +932,8 @@ LDELAY:
         PLA
         RTS
 
+
+        .IFNDEF PC6502BIOS
 ;
 ; DRIVER DATA
 ;__________________________________________________________________________________________________
@@ -897,7 +957,7 @@ MIOMESSAGE6:
 MIOMESSAGE7:
         .BYTE   "  KBD: VT82C42 READ TIMEOUT."
         .BYTE   00
-
+        .ENDIF
 ;
 ; MAPPING
 ;__________________________________________________________________________________________________

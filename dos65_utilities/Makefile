@@ -438,6 +438,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/writeos.asm writeos.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/rtc.asm rtc.asm
 
+
 clean:
 	@rm -f *.o
 	@rm -f *.out

@@ -2,7 +2,7 @@ ca65 V2.18 - Ubuntu 2.19-1
 Main file   : 6502PCbios.asm
 Current file: 6502PCbios.asm
 
-000000r 1               
+000000r 1
 000000r 1               ;__6502PCbios________________________________________________________________________________________
 000000r 1               ;
 000000r 1               ;	BIOS for the 6502 PC ATX SBC
@@ -12,7 +12,7 @@ Current file: 6502PCbios.asm
 000000r 1               ;       Port to 6502PC: Dan Werner -- 12/6/2025
 000000r 1               ;
 000000r 1               ; ** NOTE THAT THIS BIOS NEEDS PAGED MEMORY TO OPERATE
-000000r 1               
+000000r 1
 000000r 1                       .INCLUDE "bios_defines.asm"
 000000r 2               ;__________________________________________________________________________________________________
 000000r 2               ;
@@ -23,14 +23,14 @@ Current file: 6502PCbios.asm
 000000r 2               PC6502_IOSPACE   = $EF00
 000000r 2               PC6502_SHADOW_ROM = $F000
 000000r 2               FUNCTION_DISPATCHER = $C000
-000000r 2               
+000000r 2
 000000r 2               ; PAGER
 000000r 2               PC6502_ACT_TASK  = PC6502_IOSPACE+$E0
 000000r 2               PC6502_MAP_SETUP = PC6502_IOSPACE+$E1
 000000r 2               PC6502_MMU_ENA   = PC6502_IOSPACE+$E2
 000000r 2               PC6502_MAP_SPACE = PC6502_IOSPACE+$D0
-000000r 2               
-000000r 2               
+000000r 2
+000000r 2
 000000r 2               ;
 000000r 2               ;
 000000r 2               ;__________________________________________________________________________________________________
@@ -39,14 +39,14 @@ Current file: 6502PCbios.asm
 000000r 2               ;__________________________________________________________________________________________________
 000000r 2               ;ZERO PAGE	ADDRESS			; FUNCTION
 000000r 2               XTIDETIMEOUT    = $F0
-000000r 2               
+000000r 2
 000000r 2               ;
 000000r 2               ; DRIVER WORKING STORAGE
 000000r 2               ;
 000000r 2               FLATCH_STORE    = $02FD         ;
 000000r 2               PPIDETIMEOUT    = $02FE         ; (word)
 000000r 2               INBUFFER        = $0300         ;
-000000r 2               
+000000r 2
 000000r 1                       .INCLUDE "../dos65_os/dosdefn.asm"; base addresses and definitions
 000000r 2               ;________________________________________________________________________________________________________________________________
 000000r 2               ;
@@ -54,7 +54,7 @@ Current file: 6502PCbios.asm
 000000r 2               ;
 000000r 2               ;  DWERNER 04/24/2022 	Initial
 000000r 2               ;________________________________________________________________________________________________________________________________
-000000r 2               
+000000r 2
 000000r 2               ;base addresses and definitions
 000000r 2               btejmp          = $0100         ; warm boot jump
 000000r 2               pemjmp          = $0103         ; jump to pem
@@ -70,8 +70,8 @@ Current file: 6502PCbios.asm
 000000r 2               ;
 000000r 2               ; DRIVER WORKING STORAGE
 000000r 2               ;
-000000r 2               
-000000r 2               
+000000r 2
+000000r 2
 000000r 2               DSKY_BUF        = $0600         ; Eight Bytes DSKY display buffer
 000000r 2               DSKY_BUFLEN     = 8             ;
 000000r 2               DSKY_HEXBUF     = $0608         ; Four Bytes DSKY hex buffer
@@ -103,21 +103,21 @@ Current file: 6502PCbios.asm
 000000r 2               Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
 000000r 2               Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 000000r 2               Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
-000000r 2               
+000000r 2
 000000r 2               tea             = $800          ;tea start
-000000r 2               
+000000r 2
 000000r 2               ;zero page for setup
 000000r 2               addinp          = $02           ;initialized to a,y
 000000r 2               bufadd          = $04           ;buffer address
 000000r 2               alcpnt          = $06           ;allocation map pointer
 000000r 2               chkpnt          = $08           ;checksum map pointer
 000000r 2               numvar          = 8             ;eight bytes
-000000r 2               
-000000r 2               
+000000r 2
+000000r 2
 000000r 2               msgptr          = chkpnt+2      ;message pointer
 000000r 2               movptr          = msgptr        ;and move pointer
 000000r 2               dcbloc          = msgptr+2      ;pointer to dcb
-000000r 2               
+000000r 2
 000000r 2               dcbpc           = $2C           ;pointer to DCB table
 000000r 2               dskcfpc         = $2E           ;pointer to disk configuration table
 000000r 2               cmdlnp          = $30           ;pointer to command line buffer
@@ -131,22 +131,22 @@ Current file: 6502PCbios.asm
 000000r 2               TEMPWORD2       = $3F           ;
 000000r 2               STRPTR          = $41           ;
 000000r 2               DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
-000000r 2               
-000000r 2               
+000000r 2
+000000r 2
 000000r 2               DO_FARCALL      = $FFF0
-000000r 2               
+000000r 2
 000000r 2               ;page zero and system ram assignments
 000000r 2               DEST            = $EC           ;pointer for OutMsg
 000000r 2               SRC             = $EE           ;pointer for OutMsg
 000000r 2               OUTMSG_W        = $F0           ;pointer for OutMsg
 000000r 2               dmaadr          = $f4           ;pointer for r/w
-000000r 2               
-000000r 2               
+000000r 2
+000000r 2
 000000r 2               ;pem constants on entry to write
 000000r 2               wrall           = 0             ;write to allocated
 000000r 2               wrdir           = 1             ;write to directory
 000000r 2               wrual           = 2             ;write to unallocated
-000000r 2               
+000000r 2
 000000r 2               ;fixed parameters
 000000r 2               lf              = $a            ;linefeeed
 000000r 2               cr              = $d            ;return
@@ -163,30 +163,30 @@ Current file: 6502PCbios.asm
 000000r 2               delete          = $08           ;delete character
 000000r 2               numcmd          = 36            ;number commands
 000000r 2               DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
-000000r 2               
-000000r 2               
+000000r 2
+000000r 2
 000000r 2                       .IFDEF  RBC6X0X
 000000r 2                       .DEFINE COMSUFFIX "COM"
 000000r 2                       .ENDIF
-000000r 2               
+000000r 2
 000000r 2                       .IFDEF  PC6502
 000000r 2                       .DEFINE COMSUFFIX "COM"
 000000r 2                       .ENDIF
-000000r 2               
+000000r 2
 000000r 2                       .IFDEF  NHYODYNE
 000000r 2                       .DEFINE COMSUFFIX "CO6"
 000000r 2                       .ENDIF
-000000r 2               
+000000r 2
 000000r 2               DEBUG           = 0
 000000r 2               BANKED_DRIVER_DISPATCHER=$8800
-000000r 2               
-000000r 1               
+000000r 2
+000000r 1
 000000r 1               STARTOS         = $B800
-000000r 1               
+000000r 1
 000000r 1                       .SEGMENT "TROM"
 000000r 1                       .ORG    $F000
-00F000  1               
-00F000  1               
+00F000  1
+00F000  1
 00F000  1               ;__COLD_START___________________________________________________
 00F000  1               ;
 00F000  1               ; PERFORM SYSTEM COLD INIT
@@ -226,10 +226,10 @@ Current file: 6502PCbios.asm
 00F024  1               ;
 00F024  1               ;       INIT PAGING
 00F024  1  20 E1 FD             JSR     INITPAGES       ;
-00F027  1               
+00F027  1
 00F027  1               ;	INIT HARDWARE
 00F027  1  20 BF F9             JSR     SERIALINIT
-00F02A  1               
+00F02A  1
 00F02A  1  20 1F FE             JSR     PAGE_ENTER
 00F02D  1  A9 74                LDA     #<STARTUP       ; OUTPUT STARTUP STRING
 00F02F  1  85 41                STA     STRPTR          ;
@@ -237,13 +237,13 @@ Current file: 6502PCbios.asm
 00F033  1  85 42                STA     STRPTR+1        ;
 00F035  1  20 57 FE             JSR     OUTSTR          ;
 00F038  1  20 17 FE             JSR     PAGE_EXIT
-00F03B  1               
-00F03B  1               
+00F03B  1
+00F03B  1
 00F03B  1  A9 00                LDA     #$00            ;
 00F03D  1  8D 00 03             STA     INBUFFER        ; MAKE SURE INPUT BUFFER IS EMPTY
-00F040  1               
+00F040  1
 00F040  1  00                   BRK                     ; PERFORM BRK (START MONITOR)
-00F041  1               
+00F041  1
 00F041  1               ;__IRQROUTINE___________________________________________________
 00F041  1               ;
 00F041  1               ; HANDLE INTERRUPT PROCESING
@@ -252,7 +252,7 @@ Current file: 6502PCbios.asm
 00F041  1               IRQROUTINE:
 00F041  1  58                   CLI                     ; ENABLE INTERRUPTS AGAIN
 00F042  1  40                   RTI
-00F043  1               
+00F043  1
 00F043  1               ;__INTERRUPT____________________________________________________
 00F043  1               ;
 00F043  1               ; HANDLE IRQ INTERRUPT AND DETERMINE IF IT IS A BRK OR AN IRQ
@@ -274,16 +274,16 @@ Current file: 6502PCbios.asm
 00F054  1  98                   TYA
 00F055  1  48                   PHA
 00F056  1  4C 5C F0             JMP     BRKROUTINE      ; MONITOR BRK ROUTINE
-00F059  1               
+00F059  1
 00F059  1               NINTERRUPT:
 00F059  1  6C 37 00             JMP     (NMIVECTOR)     ; LET USER ROUTINE HAVE IT (USER DEFINED NMI)
-00F05C  1               
+00F05C  1
 00F05C  1                       .INCLUDE "../supermon/supermon.asm"
 00F05C  2               ; ********************************
 00F05C  2               ; * SUPERMON+ 64 JIM BUTTERFIELD *
 00F05C  2               ; * V1.2   AUGUST 20 1985        *
 00F05C  2               ; ********************************
-00F05C  2               
+00F05C  2
 00F05C  2               ; Reformatted and annotated in late 2016/early 2017 by J.B. Langston.
 00F05C  2               ; Modified for Nhyodyne/Retrobrew 3/12/2023 D. Werner
 00F05C  2               ;
@@ -293,10 +293,10 @@ Current file: 6502PCbios.asm
 00F05C  2               ; temporary pointers
 00F05C  2               TMP0            = $C1           ; used to return input, often holds end address
 00F05C  2               TMP2            = $C3           ; usually holds start address
-00F05C  2               
+00F05C  2
 00F05C  2               ; these 7 locations are used to store the registers when
 00F05C  2               ; entering the monitor and restore them when exiting.
-00F05C  2               
+00F05C  2
 00F05C  2               PCH             = $B0           ; program counter high byte
 00F05C  2               PCL             = $B1           ; program counter low byte
 00F05C  2               SR              = $B2           ; status register
@@ -311,7 +311,7 @@ Current file: 6502PCbios.asm
 00F05C  2               CKSM            = $BC           ; S19 loader checksum store
 00F05C  2               LOADADR         = $BD           ; S19 load address
 00F05C  2               LOADWRK         = $BF           ; S19 load work
-00F05C  2               
+00F05C  2
 00F05C  2               ;-----------------------------------------------------------------------------
 00F05C  2               ; variables
 00F05C  2               ACMD            = $C5           ; addressing command
@@ -330,8 +330,8 @@ Current file: 6502PCbios.asm
 00F05C  2               ESTAGE          = $DA+30        ; end of 30 byte staging buffer for filename, search, etc.
 00F05C  2               INBUFF          = $0400
 00F05C  2               CHROUT          = IOF_OUTCH
-00F05C  2               
-00F05C  2               
+00F05C  2
+00F05C  2
 00F05C  2               ; -----------------------------------------------------------------------------
 00F05C  2               ; BRK handler
 00F05C  2               BRKROUTINE:
@@ -346,7 +346,7 @@ Current file: 6502PCbios.asm
 00F065  2  BA                   TSX                     ; store stack pointer in memory
 00F066  2  86 B6                STX     SP
 00F068  2  58                   CLI                     ; enable interupts
-00F069  2               
+00F069  2
 00F069  2               ; -----------------------------------------------------------------------------
 00F069  2               ; display registers [R]
 00F069  2               DSPLYR:
@@ -365,7 +365,7 @@ Current file: 6502PCbios.asm
 00F085  2  C8                   INY
 00F086  2  C0 07                CPY     #7              ; there are a total of 5 registers to print
 00F088  2  90 F5                BCC     DISJ
-00F08A  2               
+00F08A  2
 00F08A  2               ; -----------------------------------------------------------------------------
 00F08A  2               ; main loop
 00F08A  2               STRT:
@@ -374,7 +374,7 @@ Current file: 6502PCbios.asm
 00F08F  2  86 B9                STX     CHRPNT
 00F091  2               SMOVE:
 00F091  2  20 4B FE             JSR     IOF_CONINW      ; CHRIN kernal call to input a character
-00F094  2               
+00F094  2
 00F094  2  C9 08                CMP     #$08            ; IS BACKSPACE?
 00F096  2  D0 1A                BNE     :+              ; NO, SKUP BACKSPACE RTN
 00F098  2  E0 00                CPX     #$00            ; IS INDEX =0 ?
@@ -384,14 +384,14 @@ Current file: 6502PCbios.asm
 00F0A1  2  20 30 FE             JSR     IOF_OUTCH       ; SPACE ON SCREEN
 00F0A4  2  A9 08                LDA     #$08
 00F0A6  2  20 30 FE             JSR     IOF_OUTCH       ; BACK UP CURSOR
-00F0A9  2               
+00F0A9  2
 00F0A9  2  A9 00                LDA     #0
 00F0AB  2  9D 00 04             STA     INBUFF,X        ; store in input buffer
 00F0AE  2  CA                   DEX
 00F0AF  2  4C 91 F0             JMP     SMOVE
 00F0B2  2               :
 00F0B2  2  20 30 FE             JSR     IOF_OUTCH       ; OUTPUT CHAR TO SCREEN
-00F0B5  2               
+00F0B5  2
 00F0B5  2  9D 00 04             STA     INBUFF,X        ; store in input buffer
 00F0B8  2  E8                   INX
 00F0B9  2  E0 00                CPX     #00             ; error if buffer is full
@@ -413,14 +413,14 @@ Current file: 6502PCbios.asm
 00F0D6  2  CA                   DEX                     ; no match, check next command
 00F0D7  2  10 F8                BPL     S1              ; keep trying until we've checked them all
 00F0D9  2                                               ; then fall through to error handler
-00F0D9  2               
+00F0D9  2
 00F0D9  2               ; -----------------------------------------------------------------------------
 00F0D9  2               ; handle error
 00F0D9  2               ERROR:
 00F0D9  2  A0 1E                LDY     #MSG3-MSGBAS    ; display "?" to indicate error and go to new line
 00F0DB  2  20 D3 F7             JSR     SNDMSG
 00F0DE  2  4C 8A F0             JMP     STRT            ; back to main loop
-00F0E1  2               
+00F0E1  2
 00F0E1  2               ; -----------------------------------------------------------------------------
 00F0E1  2               ; dispatch command
 00F0E1  2               S2:
@@ -436,8 +436,8 @@ Current file: 6502PCbios.asm
 00F0F0  2  4C 79 F5             JMP     GETPAR          ; get the first parameter for the command
 00F0F3  2               CNVLNK:
 00F0F3  2  4C 14 F7             JMP     CONVRT          ; handle base conversion
-00F0F6  2               
-00F0F6  2               
+00F0F6  2
+00F0F6  2
 00F0F6  2               ; -----------------------------------------------------------------------------
 00F0F6  2               ; display memory [M]
 00F0F6  2               DSPLYM:
@@ -470,7 +470,7 @@ Current file: 6502PCbios.asm
 00F126  2  4C 8A F0             JMP     STRT            ; back to main loop
 00F129  2               MERROR:
 00F129  2  4C D9 F0             JMP     ERROR           ; handle error
-00F12C  2               
+00F12C  2
 00F12C  2               ; -----------------------------------------------------------------------------
 00F12C  2               ; alter registers [;]
 00F12C  2               ALTR:
@@ -486,7 +486,7 @@ Current file: 6502PCbios.asm
 00F13E  2  90 F1                BCC     ALTR1           ; if not, get next
 00F140  2               ALTRX:
 00F140  2  4C 8A F0             JMP     STRT            ; back to main loop
-00F143  2               
+00F143  2
 00F143  2               ; -----------------------------------------------------------------------------
 00F143  2               ; alter memory [>]
 00F143  2               ALTM:
@@ -506,7 +506,7 @@ Current file: 6502PCbios.asm
 00F15A  2  20 30 FE             JSR     CHROUT
 00F15D  2  20 8D F1             JSR     DISPMEM         ; re-display line to make ascii match hex
 00F160  2  4C 8A F0             JMP     STRT            ; back to main loop
-00F163  2               
+00F163  2
 00F163  2               ; -----------------------------------------------------------------------------
 00F163  2               ; goto (run) [G]
 00F163  2               GOTO:
@@ -525,7 +525,7 @@ Current file: 6502PCbios.asm
 00F175  2  A6 B4                LDX     XR              ; load X from memory
 00F177  2  A4 B5                LDY     YR              ; load Y from memory
 00F179  2  40                   RTI                     ; return from interrupt (pops PC and SR)
-00F17A  2               
+00F17A  2
 00F17A  2               ; jump to subroutine [J]
 00F17A  2               JSUB:
 00F17A  2  A6 B6                LDX     SP              ; load stack pointer from memory
@@ -538,7 +538,7 @@ Current file: 6502PCbios.asm
 00F187  2  68                   PLA                     ; pull processor status into A
 00F188  2  85 B2                STA     SR              ; save processor status to memory
 00F18A  2  4C 69 F0             JMP     DSPLYR          ; display registers
-00F18D  2               
+00F18D  2
 00F18D  2               ; -----------------------------------------------------------------------------
 00F18D  2               ; display 8 bytes of memory
 00F18D  2               DISPMEM:
@@ -573,13 +573,13 @@ Current file: 6502PCbios.asm
 00F1C0  2  C0 08                CPY     #8              ; have we output 8 bytes yet?
 00F1C2  2  90 EC                BCC     DCHAR           ; if not, output next byte
 00F1C4  2  60                   RTS
-00F1C5  2               
+00F1C5  2
 00F1C5  2               ; -----------------------------------------------------------------------------
 00F1C5  2               ; compare memory [C]
 00F1C5  2               COMPAR:
 00F1C5  2  A9 00                LDA     #0              ; bit 7 clear signals compare
 00F1C7  2  2C                   .BYTE   $2C             ; absolute BIT opcode consumes next word (LDA #$80)
-00F1C8  2               
+00F1C8  2
 00F1C8  2               ; transfer memory [T]
 00F1C8  2               TRANS:
 00F1C8  2  A9 80                LDA     #$80            ; bit 7 set signals transfer
@@ -650,7 +650,7 @@ Current file: 6502PCbios.asm
 00F23B  2  B0 CC                BCS     TCLOOP          ; loop until length is 0
 00F23D  2               TEXIT:
 00F23D  2  4C 8A F0             JMP     STRT            ; back to main loop
-00F240  2               
+00F240  2
 00F240  2               ; -----------------------------------------------------------------------------
 00F240  2               ; hunt memory [H]
 00F240  2               HUNT:
@@ -704,8 +704,8 @@ Current file: 6502PCbios.asm
 00F299  2  4C 8A F0             JMP     STRT            ; back to main loop
 00F29C  2               HERROR:
 00F29C  2  4C D9 F0             JMP     ERROR           ; handle error
-00F29F  2               
-00F29F  2               
+00F29F  2
+00F29F  2
 00F29F  2               ; -----------------------------------------------------------------------------
 00F29F  2               ; fill memory [F]
 00F29F  2               FILL:
@@ -750,8 +750,8 @@ Current file: 6502PCbios.asm
 00F2C7  2               WBOOT:
 00F2C7  2                       JMP     ERROR           ; back to main loop
 00F2C7  2                       .endif
-00F2C7  2               
-00F2C7  2               
+00F2C7  2
+00F2C7  2
 00F2C7  2               ; -----------------------------------------------------------------------------
 00F2C7  2               ; assemble [A.]
 00F2C7  2               ; read in mnemonic
@@ -776,7 +776,7 @@ Current file: 6502PCbios.asm
 00F2E4  2  E8                   INX
 00F2E5  2  E0 03                CPX     #3              ; have we read 3 characters yet?
 00F2E7  2  D0 EC                BNE     AGET2           ; if not, get next character
-00F2E9  2               
+00F2E9  2
 00F2E9  2               ; compress mnemonic into two bytes
 00F2E9  2               ASQEEZ:
 00F2E9  2  CA                   DEX                     ; move to previous char
@@ -794,7 +794,7 @@ Current file: 6502PCbios.asm
 00F2FB  2  F0 EC                BEQ     ASQEEZ          ; unconditional branch to handle next char
 00F2FD  2               AERROR:
 00F2FD  2  4C D9 F0             JMP     ERROR           ; handle error
-00F300  2               
+00F300  2
 00F300  2               ; parse operand
 00F300  2               AOPRND:
 00F300  2  A2 02                LDX     #2              ; mnemonic is in first two bytes so start at third
@@ -836,7 +836,7 @@ Current file: 6502PCbios.asm
 00F33A  2  E0 0A                CPX     #U0AAE-U0AA0    ; is instruction buffer full?
 00F33C  2  90 C4                BCC     ASCAN           ; if not, keep scanning
 00F33E  2  B0 BD                BCS     AERROR          ; error if buffer is full
-00F340  2               
+00F340  2
 00F340  2               ; find matching opcode
 00F340  2               AESCAN:
 00F340  2  86 B7                STX     STORE           ; save number of bytes in assembly buffer
@@ -890,7 +890,7 @@ Current file: 6502PCbios.asm
 00F397  2  C5 BB                CMP     U9F             ; more bytes left to check?
 00F399  2  F0 03                BEQ     ABRAN           ; if not, we've found a match; build instruction
 00F39B  2  4C 4F F4             JMP     BUMPOP          ; if so, this opcode doesn't match; try the next
-00F39E  2               
+00F39E  2
 00F39E  2               ; convert branches to relative address
 00F39E  2               ABRAN:
 00F39E  2  A4 C6                LDY     LENGTH          ; get number of bytes in operand
@@ -923,7 +923,7 @@ Current file: 6502PCbios.asm
 00F3C8  2  8A                   TXA
 00F3C9  2  A4 C6                LDY     LENGTH          ; load length of operand
 00F3CB  2  D0 03                BNE     OBJP2           ; don't use the absolute address
-00F3CD  2               
+00F3CD  2
 00F3CD  2               ; assemble machine code
 00F3CD  2               OBJPUT:
 00F3CD  2  B9 C0 00             LDA     TMP0-1,Y        ; get the operand
@@ -977,7 +977,7 @@ Current file: 6502PCbios.asm
 00F43C  2  4C 91 F0             JMP     SMOVE           ; back to main loop
 00F43F  2               SERROR:
 00F43F  2  4C D9 F0             JMP     ERROR           ; handle error
-00F442  2               
+00F442  2
 00F442  2               ; check characters in operand
 00F442  2               CHEK2B:
 00F442  2  20 45 F4             JSR     CHEKOP          ; check two bytes against value in accumulator
@@ -996,7 +996,7 @@ Current file: 6502PCbios.asm
 00F456  2  E6 BB                INC     U9F             ; opcode matches so far; check the next criteria
 00F458  2  A6 CA                LDX     SAVX            ; restore X
 00F45A  2  60                   RTS
-00F45B  2               
+00F45B  2
 00F45B  2               ; -----------------------------------------------------------------------------
 00F45B  2               ; disassemble [D]
 00F45B  2               DISASS:
@@ -1026,12 +1026,12 @@ Current file: 6502PCbios.asm
 00F489  2  4C 8A F0             JMP     STRT            ; back to mainloop
 00F48C  2               DERROR:
 00F48C  2  4C D9 F0             JMP     ERROR
-00F48F  2               
+00F48F  2
 00F48F  2               DSOUT1:
 00F48F  2  A9 2E                LDA     #'.'            ; output ". " prefix to allow edit and reassemble
 00F491  2  20 30 FE             JSR     CHROUT
 00F494  2  20 3D F6             JSR     SPACE
-00F497  2               
+00F497  2
 00F497  2               DISLIN:
 00F497  2  20 30 F6             JSR     SHOWAD          ; show the address of the instruction
 00F49A  2  20 3D F6             JSR     SPACE           ; insert a space
@@ -1052,7 +1052,7 @@ Current file: 6502PCbios.asm
 00F4B7  2               DSHEX:
 00F4B7  2  B1 C3                LDA     (TMP2),Y        ; show hex for byte
 00F4B9  2  20 3A F6             JSR     WRBYTE
-00F4BC  2               
+00F4BC  2
 00F4BC  2               NXBYT:
 00F4BC  2  C8                   INY                     ; next byte
 00F4BD  2  C0 03                CPY     #3              ; have we output 3 bytes yet?
@@ -1096,7 +1096,7 @@ Current file: 6502PCbios.asm
 00F4FF  2  E8                   INX                     ; increment high byte
 00F500  2               RELEND:
 00F500  2  4C 34 F6             JMP     WRADDR          ; print address
-00F503  2               
+00F503  2
 00F503  2               UB64D:
 00F503  2  A6 C4                LDX     TMP2+1          ; get high byte of current address
 00F505  2  A8                   TAY                     ; is relative address positive or negative?
@@ -1108,10 +1108,10 @@ Current file: 6502PCbios.asm
 00F50D  2  E8                   INX                     ; if there's a carry, increment the high byte
 00F50E  2               RELC3:
 00F50E  2  60                   RTS
-00F50F  2               
+00F50F  2
 00F50F  2               ; -----------------------------------------------------------------------------
 00F50F  2               ; get opcode mode and length
-00F50F  2               
+00F50F  2
 00F50F  2               ; Note: the labels are different, but the code of this subroutine is almost
 00F50F  2               ; identical to the INSDS2 subroutine of the Apple Mini-Assembler on page 78 of
 00F50F  2               ; the Apple II Red Book. I'm not sure exactly where this code originated
@@ -1119,7 +1119,7 @@ Current file: 6502PCbios.asm
 00F50F  2               ; Mini-Asssembler share a common heritage.  The comments showing the way the
 00F50F  2               ; opcodes are transformed into indexes for the mnemonic lookup table come
 00F50F  2               ; from the Mini-Assembler source.
-00F50F  2               
+00F50F  2
 00F50F  2               INSTXX:
 00F50F  2  A8                   TAY                     ; stash opcode in accumulator in Y for later
 00F510  2  4A                   LSR     A               ; is opcode even or odd?
@@ -1172,7 +1172,7 @@ Current file: 6502PCbios.asm
 00F551  2  88                   DEY
 00F552  2  D0 F2                BNE     GTFM2
 00F554  2  60                   RTS
-00F555  2               
+00F555  2
 00F555  2               ; -----------------------------------------------------------------------------
 00F555  2               ; extract and print packed mnemonics
 00F555  2               PROPXX:
@@ -1195,7 +1195,7 @@ Current file: 6502PCbios.asm
 00F571  2  CA                   DEX                     ; next letter
 00F572  2  D0 EC                BNE     PRMN1           ; loop until all 3 letters are output
 00F574  2  4C 3D F6             JMP     SPACE           ; output space
-00F577  2               
+00F577  2
 00F577  2               ; -----------------------------------------------------------------------------
 00F577  2               ; read parameters
 00F577  2               RDPAR:
@@ -1225,7 +1225,7 @@ Current file: 6502PCbios.asm
 00F59A  2  18                   CLC                     ; clear carry to indicate paremeter returned
 00F59B  2  A5 CB                LDA     DIGCNT          ; return number of digits in A
 00F59D  2  60                   RTS                     ; return to address pushed from vector table
-00F59E  2               
+00F59E  2
 00F59E  2               ; -----------------------------------------------------------------------------
 00F59E  2               ; read a value in the specified base
 00F59E  2               RDVAL:
@@ -1321,26 +1321,26 @@ Current file: 6502PCbios.asm
 00F62C  2  AA                   TAX
 00F62D  2  A5 CB                LDA     DIGCNT          ; return number of digits in A
 00F62F  2  60                   RTS
-00F630  2               
+00F630  2
 00F630  2               ; -----------------------------------------------------------------------------
 00F630  2               ; print address
 00F630  2               SHOWAD:
 00F630  2  A5 C3                LDA     TMP2
 00F632  2  A6 C4                LDX     TMP2+1
-00F634  2               
+00F634  2
 00F634  2               WRADDR:
 00F634  2  48                   PHA                     ; save low byte
 00F635  2  8A                   TXA                     ; put high byte in A
 00F636  2  20 5A F6             JSR     WRTWO           ; output high byte
 00F639  2  68                   PLA                     ; restore low byte
-00F63A  2               
+00F63A  2
 00F63A  2               WRBYTE:
 00F63A  2  20 5A F6             JSR     WRTWO           ; output byte in A
-00F63D  2               
+00F63D  2
 00F63D  2               SPACE:
 00F63D  2  A9 20                LDA     #$20            ; output space
 00F63F  2  D0 0B                BNE     FLIP
-00F641  2               
+00F641  2
 00F641  2               CHOUT:
 00F641  2  C9 0D                CMP     #$0D            ; output char with special handling of CR
 00F643  2  D0 07                BNE     FLIP
@@ -1350,13 +1350,13 @@ Current file: 6502PCbios.asm
 00F64A  2  A9 0A                LDA     #$0A            ; output LF
 00F64C  2               FLIP:
 00F64C  2  4C 30 FE             JMP     CHROUT
-00F64F  2               
+00F64F  2
 00F64F  2               FRESH:
 00F64F  2  20 45 F6             JSR     CRLF            ; output CR
 00F652  2  A9 20                LDA     #$20            ; load space in A
 00F654  2  20 30 FE             JSR     CHROUT
 00F657  2  4C C3 F7             JMP     SNCLR
-00F65A  2               
+00F65A  2
 00F65A  2               ; -----------------------------------------------------------------------------
 00F65A  2               ; output two hex digits for byte
 00F65A  2               WRTWO:
@@ -1366,7 +1366,7 @@ Current file: 6502PCbios.asm
 00F662  2  8A                   TXA                     ; transfer lower to A
 00F663  2  A6 CA                LDX     SAVX            ; restore X
 00F665  2  4C 30 FE             JMP     CHROUT          ; output lower nybble
-00F668  2               
+00F668  2
 00F668  2               ; -----------------------------------------------------------------------------
 00F668  2               ; convert byte in A to hex digits
 00F668  2               ASCTWO:
@@ -1378,7 +1378,7 @@ Current file: 6502PCbios.asm
 00F66F  2  4A                   LSR     A
 00F670  2  4A                   LSR     A
 00F671  2  4A                   LSR     A
-00F672  2               
+00F672  2
 00F672  2               ; convert low nybble in A to hex digit
 00F672  2               ASCII:
 00F672  2  29 0F                AND     #$0F            ; clear upper nibble
@@ -1388,12 +1388,12 @@ Current file: 6502PCbios.asm
 00F67A  2               ASC1:
 00F67A  2  69 30                ADC     #$30            ; add ascii char 0 to value
 00F67C  2  60                   RTS
-00F67D  2               
+00F67D  2
 00F67D  2               ; -----------------------------------------------------------------------------
 00F67D  2               ; get prev char from input buffer
 00F67D  2               GOTCHR:
 00F67D  2  C6 B9                DEC     CHRPNT
-00F67F  2               
+00F67F  2
 00F67F  2               ; get next char from input buffer
 00F67F  2               GETCHR:
 00F67F  2  86 CA                STX     SAVX
@@ -1409,7 +1409,7 @@ Current file: 6502PCbios.asm
 00F691  2  A6 CA                LDX     SAVX
 00F693  2  28                   PLP                     ; Z flag will signal last character
 00F694  2  60                   RTS
-00F695  2               
+00F695  2
 00F695  2               ; -----------------------------------------------------------------------------
 00F695  2               ; copy TMP0 to TMP2
 00F695  2               COPY12:
@@ -1418,7 +1418,7 @@ Current file: 6502PCbios.asm
 00F699  2  A5 C2                LDA     TMP0+1          ; high byte
 00F69B  2  85 C4                STA     TMP2+1
 00F69D  2  60                   RTS
-00F69E  2               
+00F69E  2
 00F69E  2               ; -----------------------------------------------------------------------------
 00F69E  2               ; subtract TMP2 from TMP0
 00F69E  2               SUB12:
@@ -1430,7 +1430,7 @@ Current file: 6502PCbios.asm
 00F6A7  2  E5 C4                SBC     TMP2+1          ; subtract high byte
 00F6A9  2  85 C2                STA     TMP0+1
 00F6AB  2  60                   RTS
-00F6AC  2               
+00F6AC  2
 00F6AC  2               ; -----------------------------------------------------------------------------
 00F6AC  2               ; subtract from TMP0
 00F6AC  2               SUBA1:
@@ -1445,7 +1445,7 @@ Current file: 6502PCbios.asm
 00F6B9  2  E9 00                SBC     #0
 00F6BB  2  85 C2                STA     TMP0+1
 00F6BD  2  60                   RTS
-00F6BE  2               
+00F6BE  2
 00F6BE  2               ; -----------------------------------------------------------------------------
 00F6BE  2               ; subtract 1 from STORE
 00F6BE  2               SUB13:
@@ -1457,7 +1457,7 @@ Current file: 6502PCbios.asm
 00F6C7  2  E9 00                SBC     #0              ; borrow from high byte
 00F6C9  2  85 B8                STA     STORE+1
 00F6CB  2  60                   RTS
-00F6CC  2               
+00F6CC  2
 00F6CC  2               ; -----------------------------------------------------------------------------
 00F6CC  2               ; add to TMP2
 00F6CC  2               ADDA2:
@@ -1470,7 +1470,7 @@ Current file: 6502PCbios.asm
 00F6D5  2  E6 C4                INC     TMP2+1          ; carry to high byte
 00F6D7  2               BUMPEX:
 00F6D7  2  60                   RTS
-00F6D8  2               
+00F6D8  2
 00F6D8  2               ; -----------------------------------------------------------------------------
 00F6D8  2               ; subtract 1 from TMP2
 00F6D8  2               SUB21:
@@ -1482,7 +1482,7 @@ Current file: 6502PCbios.asm
 00F6E1  2  E9 00                SBC     #0
 00F6E3  2  85 C4                STA     TMP2+1
 00F6E5  2  60                   RTS
-00F6E6  2               
+00F6E6  2
 00F6E6  2               ; -----------------------------------------------------------------------------
 00F6E6  2               ; copy TMP0 to PC
 00F6E6  2               COPY1P:
@@ -1493,7 +1493,7 @@ Current file: 6502PCbios.asm
 00F6EE  2  84 B0                STY     PCH
 00F6F0  2               CPY1PX:
 00F6F0  2  60                   RTS
-00F6F1  2               
+00F6F1  2
 00F6F1  2               ; -----------------------------------------------------------------------------
 00F6F1  2               ; get start/end addresses and calc difference
 00F6F1  2               GETDIF:
@@ -1516,7 +1516,7 @@ Current file: 6502PCbios.asm
 00F712  2               GDIFX:
 00F712  2  38                   SEC                     ; set carry to indicate error
 00F713  2  60                   RTS
-00F714  2               
+00F714  2
 00F714  2               ; -----------------------------------------------------------------------------
 00F714  2               ; convert base [$+&%]
 00F714  2               CONVRT:
@@ -1550,10 +1550,10 @@ Current file: 6502PCbios.asm
 00F757  2  A0 00                LDY     #0              ; bits per digit - 1
 00F759  2  20 84 F7             JSR     PRINUM          ; output number
 00F75C  2  4C 8A F0             JMP     STRT            ; back to mainloop
-00F75F  2               
+00F75F  2
 00F75F  2               ; -----------------------------------------------------------------------------
 00F75F  2               ; convert binary to BCD
-00F75F  2               
+00F75F  2
 00F75F  2               CVTDEC:
 00F75F  2  20 95 F6             JSR     COPY12          ; copy value from TMP0 to TMP2
 00F762  2  A9 00                LDA     #0
@@ -1580,7 +1580,7 @@ Current file: 6502PCbios.asm
 00F780  2  D0 EE                BNE     DECML2          ; loop until all bits processed
 00F782  2  28                   PLP                     ; restore processor status
 00F783  2  60                   RTS
-00F784  2               
+00F784  2
 00F784  2               ; load the input value and fall through to print it
 00F784  2               PRINUM:
 00F784  2  48                   PHA                     ; save accumulator
@@ -1591,7 +1591,7 @@ Current file: 6502PCbios.asm
 00F78D  2  A9 00                LDA     #0              ; clear overflow byte in work buffer
 00F78F  2  85 D0                STA     U0AA0
 00F791  2  68                   PLA                     ; restore accumulator
-00F792  2               
+00F792  2
 00F792  2               ; print number in specified base without leading zeros
 00F792  2               NMPRNT:
 00F792  2  85 CB                STA     DIGCNT          ; number of digits in accumulator
@@ -1620,8 +1620,8 @@ Current file: 6502PCbios.asm
 00F7B6  2  CA                   DEX                     ; decrement number of leading zeros
 00F7B7  2  D0 DD                BNE     DIGOUT          ; next digit
 00F7B9  2  60                   RTS
-00F7BA  2               
-00F7BA  2               
+00F7BA  2
+00F7BA  2
 00F7BA  2               ; -----------------------------------------------------------------------------
 00F7BA  2               ; print and clear routines
 00F7BA  2               CLINE:
@@ -1639,7 +1639,7 @@ Current file: 6502PCbios.asm
 00F7CD  2  A9 0D                LDA     #13             ; output CR
 00F7CF  2  20 30 FE             JSR     CHROUT          ; send CR
 00F7D2  2  60                   RTS
-00F7D3  2               
+00F7D3  2
 00F7D3  2               ; -----------------------------------------------------------------------------
 00F7D3  2               ; display message from table
 00F7D3  2               SNDMSG:
@@ -1651,7 +1651,7 @@ Current file: 6502PCbios.asm
 00F7DD  2  28                   PLP
 00F7DE  2  10 F3                BPL     SNDMSG          ; loop until high bit is set
 00F7E0  2  60                   RTS
-00F7E1  2               
+00F7E1  2
 00F7E1  2               ; -----------------------------------------------------------------------------
 00F7E1  2               ; check for stop key
 00F7E1  2               STOP:
@@ -1663,7 +1663,7 @@ Current file: 6502PCbios.asm
 00F7EB  2               :
 00F7EB  2  A9 00                LDA     #$00
 00F7ED  2  60                   RTS
-00F7EE  2               
+00F7EE  2
 00F7EE  2               ; -----------------------------------------------------------------------------
 00F7EE  2               ; LOAD A MOTOROLA FORMATTED HEX FILE
 00F7EE  2               LOADS19:
@@ -1693,7 +1693,7 @@ Current file: 6502PCbios.asm
 00F81F  2  D0 EF                BNE     LOAD11          ; NOT ZERO?, LOOP
 00F821  2  E6 BE                INC     LOADADR+1       ; ZERO, INC HIGH BYTE
 00F823  2  4C 10 F8             JMP     LOAD11          ;
-00F826  2               
+00F826  2
 00F826  2               LOAD15:
 00F826  2  E6 BC                INC     CKSM            ;
 00F828  2  F0 C4                BEQ     LOADS19         ;
@@ -1743,42 +1743,42 @@ Current file: 6502PCbios.asm
 00F868  2               LOAD:
 00F868  2  20 EE F7             JSR     LOADS19
 00F86B  2  4C 8A F0             JMP     STRT            ; back to main loop
-00F86E  2               
-00F86E  2               
+00F86E  2
+00F86E  2
 00F86E  2               ; -----------------------------------------------------------------------------
 00F86E  2               ; message table; last character has high bit set
 00F86E  2               MSGBAS:
-00F86E  2               
+00F86E  2
 00F86E  2               MSG2:
 00F86E  2  0D                   .BYTE   $0D             ; header for registers
 00F86F  2  20 20 20 50          .BYTE   "   PC  SR AC XR YR SP   V1.2"
-00F873  2  43 20 20 53  
-00F877  2  52 20 41 43  
+00F873  2  43 20 20 53
+00F877  2  52 20 41 43
 00F88B  2  8D                   .BYTE   $0D+$80
 00F88C  2               MSG3:
 00F88C  2  20 BF                .BYTE   $20,$3F+$80     ; syntax error: move right, display "?"
 00F88E  2               MSG4:
 00F88E  2  2E 2E 53 59          .BYTE   "..SYS"         ; SYS call to enter monitor
-00F892  2  53           
+00F892  2  53
 00F893  2  A0                   .BYTE   $20+$80
 00F894  2               MSG5:
 00F894  2  3A A0                .BYTE   $3A,$20+$80     ; ":" then RVS ON for memory ASCII dump
 00F896  2               MSG6:
 00F896  2  20 45 52 52          .BYTE   " ERRO"         ; I/O error: display " ERROR"
-00F89A  2  4F           
+00F89A  2  4F
 00F89B  2  D2                   .BYTE   'R'+$80
 00F89C  2               MSG7:
 00F89C  2  41 A0                .BYTE   $41,$20+$80     ; assemble next instruction: "A " + addr
 00F89E  2               MSG8:
 00F89E  2  20 20                .BYTE   "  "            ; pad non-existent byte: skip 3 spaces
 00F8A0  2  A0                   .BYTE   $20+$80
-00F8A1  2               
+00F8A1  2
 00F8A1  2               ; -----------------------------------------------------------------------------
 00F8A1  2               ; addressing mode table - nybbles provide index into MODE2 table
 00F8A1  2               ; for opcodes XXXXXXY0, use XXXXXX as index into table
 00F8A1  2               ; for opcodes WWWXXY01  use $40 + XX as index into table
 00F8A1  2               ; use right nybble if Y=0; use left nybble if Y=1
-00F8A1  2               
+00F8A1  2
 00F8A1  2               MODE:
 00F8A1  2  40 02 45 03          .BYTE   $40,$02,$45,$03 ; even opcodes
 00F8A5  2  D0 08 40 09          .BYTE   $D0,$08,$40,$09
@@ -1797,14 +1797,14 @@ Current file: 6502PCbios.asm
 00F8D9  2  10 22 44 33          .BYTE   $10,$22,$44,$33
 00F8DD  2  D0 08 40 09          .BYTE   $D0,$08,$40,$09
 00F8E1  2  62 13 78 A9          .BYTE   $62,$13,$78,$A9 ; opcodes ending in 01
-00F8E5  2               
+00F8E5  2
 00F8E5  2               ; addressing mode format definitions indexed by nybbles from MODE table
-00F8E5  2               
+00F8E5  2
 00F8E5  2               ; left 6 bits define which characters appear in the assembly operand
 00F8E5  2               ; left 3 bits are before the address; next 3 bits are after
-00F8E5  2               
+00F8E5  2
 00F8E5  2               ; right-most 2 bits define length of binary operand
-00F8E5  2               
+00F8E5  2
 00F8E5  2               ; index               654 321
 00F8E5  2               ; 1st character       $(# ,),
 00F8E5  2               ; 2nd character        $$ X Y    length  format      idx mode
@@ -1823,23 +1823,23 @@ Current file: 6502PCbios.asm
 00F8F0  2  4A                   .BYTE   $4A             ; 010 010    10      ($0000)     B   indirect
 00F8F1  2  85                   .BYTE   $85             ; 100 001    01      $00,Y       C   zero-page,Y
 00F8F2  2  9D                   .BYTE   $9D             ; 100 111    01      $0000*      D   relative
-00F8F3  2               
+00F8F3  2
 00F8F3  2               ; * relative is special-cased so format bits don't match
-00F8F3  2               
-00F8F3  2               
+00F8F3  2
+00F8F3  2
 00F8F3  2               ; character lookup tables for the format definitions in MODE2
-00F8F3  2               
+00F8F3  2
 00F8F3  2               CHAR1:
 00F8F3  2  2C 29 2C             .BYTE   $2C,$29,$2C     ; ","  ")"  ","
 00F8F6  2  23 28 24             .BYTE   $23,$28,$24     ; "#"  "("  "$"
-00F8F9  2               
+00F8F9  2
 00F8F9  2               CHAR2:
 00F8F9  2  59 00 58             .BYTE   $59,$00,$58     ; "Y"   0   "X"
 00F8FC  2  24 24 00             .BYTE   $24,$24,$00     ; "$"  "$"   0
-00F8FF  2               
+00F8FF  2
 00F8FF  2               ; -----------------------------------------------------------------------------
 00F8FF  2               ; 3-letter mnemonics packed into two bytes (5 bits per letter)
-00F8FF  2               
+00F8FF  2
 00F8FF  2               ; left 8 bits
 00F8FF  2               ; XXXXX000 opcodes
 00F8FF  2               MNEML:
@@ -1863,7 +1863,7 @@ Current file: 6502PCbios.asm
 00F937  2               ; XXXYYY01 opcodes
 00F937  2  84 13 34 11          .BYTE   $84,$13,$34,$11 ; ORA AND EOR ADC
 00F93B  2  A5 69 23 A0          .BYTE   $A5,$69,$23,$A0 ; STA LDA CMP SBC
-00F93F  2               
+00F93F  2
 00F93F  2               ; right 7 bits, left justified
 00F93F  2               ; XXXXX000 opcodes
 00F93F  2               MNEMR:
@@ -1888,36 +1888,36 @@ Current file: 6502PCbios.asm
 00F977  2  C4 CA 26 48          .BYTE   $C4,$CA,$26,$48 ; ORA AND EOR ADC
 00F97B  2  44 44 A2 C8          .BYTE   $44,$44,$A2,$C8 ; STA LDA CMP SBC
 00F97F  2  0D 20 20 20          .BYTE   $0D,$20,$20,$20
-00F983  2               
+00F983  2
 00F983  2               ; -----------------------------------------------------------------------------
 00F983  2               ; single-character commands
 00F983  2               KEYW:
 00F983  2  41 42 43 44          .BYTE   "ABCDFGHJLMRTW.>;"
-00F987  2  46 47 48 4A  
-00F98B  2  4C 4D 52 54  
+00F987  2  46 47 48 4A
+00F98B  2  4C 4D 52 54
 00F993  2               HIKEY:
 00F993  2  24 2B 26 25          .BYTE   "$+&%"
 00F997  2               KEYTOP:
-00F997  2               
-00F997  2               
+00F997  2
+00F997  2
 00F997  2               ; vectors corresponding to commands above
 00F997  2               KADDR:
 00F997  2  C9 F2 99 FB          .WORD   ASSEM-1,BOOT-1,COMPAR-1,DISASS-1
-00F99B  2  C4 F1 5A F4  
+00F99B  2  C4 F1 5A F4
 00F99F  2  9E F2 62 F1          .WORD   FILL-1,GOTO-1,HUNT-1,JSUB-1
-00F9A3  2  3F F2 79 F1  
+00F9A3  2  3F F2 79 F1
 00F9A7  2  67 F8 F5 F0          .WORD   LOAD-1,DSPLYM-1,DSPLYR-1,TRANS-1,WBOOT-1
-00F9AB  2  68 F0 C7 F1  
-00F9AF  2  EA FB        
+00F9AB  2  68 F0 C7 F1
+00F9AF  2  EA FB
 00F9B1  2  C9 F2 42 F1          .WORD   ASSEM-1,ALTM-1,ALTR-1
-00F9B5  2  2B F1        
-00F9B7  2               
+00F9B5  2  2B F1
+00F9B7  2
 00F9B7  2               ; -----------------------------------------------------------------------------
 00F9B7  2               MODTAB:
 00F9B7  2  10 0A 08 02          .BYTE   $10,$0A,$08,02  ; modulo number systems
 00F9BB  2               LENTAB:
 00F9BB  2  04 03 03 01          .BYTE   $04,$03,$03,$01 ; bits per digit
-00F9BF  2               
+00F9BF  2
 00F9BF  1                       .INCLUDE "bios_serial.asm"
 00F9BF  2               ;__SERIAL DRIVERS________________________________________________________________________________________________________________
 00F9BF  2               ;
@@ -1931,18 +1931,18 @@ Current file: 6502PCbios.asm
 00F9BF  2               ;		SERIALSTATUS- GET UART STATUS
 00F9BF  2               ;________________________________________________________________________________________________________________________________
 00F9BF  2               ;
-00F9BF  2               
-00F9BF  2               
+00F9BF  2
+00F9BF  2
 00F9BF  2               ;*
 00F9BF  2               ;* HARDWARE I/O ADDRESSES
 00F9BF  2               ;*
-00F9BF  2               
+00F9BF  2
 00F9BF  2               UART1DATA       = PC6502_IOSPACE+$84; SERIAL PORT 1 (I/O Card)
 00F9BF  2               UART1STATUS     = PC6502_IOSPACE+$85; SERIAL PORT 1 (I/O Card)
 00F9BF  2               UART1COMMAND    = PC6502_IOSPACE+$86; SERIAL PORT 1 (I/O Card)
 00F9BF  2               UART1CONTROL    = PC6502_IOSPACE+$87; SERIAL PORT 1 (I/O Card)
-00F9BF  2               
-00F9BF  2               
+00F9BF  2
+00F9BF  2
 00F9BF  2               ;Command Register
 00F9BF  2               ;No bit is affected by a software reset, however, all bits are set to zero on a hardware reset.
 00F9BF  2               ;Bit 7 6 5  configuration
@@ -2001,9 +2001,9 @@ Current file: 6502PCbios.asm
 00F9BF  2               ;    1 1 0 1  7200 bps
 00F9BF  2               ;    1 1 1 0  9600 bps
 00F9BF  2               ;    1 1 1 1  19200 bps
-00F9BF  2               
-00F9BF  2               
-00F9BF  2               
+00F9BF  2
+00F9BF  2
+00F9BF  2
 00F9BF  2               ;__SERIALINIT____________________________________________________________________________________________________________________
 00F9BF  2               ;
 00F9BF  2               ;	INITIALIZE SERIAL PORTS
@@ -2017,9 +2017,9 @@ Current file: 6502PCbios.asm
 00F9C9  2  A9 1E                LDA     #$1E            ; 9600, 8 BITS, NO PARITY, 1 STOP BIT
 00F9CB  2  8D 87 EF             STA     UART1CONTROL    ;
 00F9CE  2  60                   RTS
-00F9CF  2               
-00F9CF  2               
-00F9CF  2               
+00F9CF  2
+00F9CF  2
+00F9CF  2
 00F9CF  2               ;__WRSER1________________________________________________________________________________________________________________________
 00F9CF  2               ;
 00F9CF  2               ;	WRITE CHARACTER(A) TO UART
@@ -2034,7 +2034,7 @@ Current file: 6502PCbios.asm
 00F9D7  2  68                   PLA
 00F9D8  2  8D 84 EF             STA     UART1DATA       ; WRITE DATA
 00F9DB  2  60                   RTS
-00F9DC  2               
+00F9DC  2
 00F9DC  2               ;__RDSER1________________________________________________________________________________________________________________________
 00F9DC  2               ;
 00F9DC  2               ;	READ CHARACTER FROM UART TO (A)
@@ -2049,7 +2049,7 @@ Current file: 6502PCbios.asm
 00F9E7  2               RDSER1N:
 00F9E7  2  A9 00                LDA     #$00            ;
 00F9E9  2  60                   RTS                     ;
-00F9EA  2               
+00F9EA  2
 00F9EA  2               ;__RDSER1W_______________________________________________________________________________________________________________________
 00F9EA  2               ;
 00F9EA  2               ;	READ CHARACTER FROM UART TO (A) - WAIT FOR CHAR
@@ -2061,7 +2061,7 @@ Current file: 6502PCbios.asm
 00F9EF  2  F0 F9                BEQ     RDSER1W
 00F9F1  2  29 7F                AND     #$7F
 00F9F3  2  60                   RTS
-00F9F4  2               
+00F9F4  2
 00F9F4  2               ;__SERIALSTATUS__________________________________________________________________________________________________________________
 00F9F4  2               ;
 00F9F4  2               ;	READ UARD STATUS
@@ -2076,7 +2076,7 @@ Current file: 6502PCbios.asm
 00F9FE  2               RDSTAT1:
 00F9FE  2  A9 FF                LDA     #$FF            ; DATA CHAR
 00FA00  2  60                   RTS
-00FA01  2               
+00FA01  2
 00FA01  1                       .INCLUDE "bios_ide.asm"
 00FA01  2               ;__IDE DRIVERS___________________________________________________________________________________________________________________
 00FA01  2               ;
@@ -2089,7 +2089,7 @@ Current file: 6502PCbios.asm
 00FA01  2               ;________________________________________________________________________________________________________________________________
 00FA01  2               ;
 00FA01  2               PC6502_IO       = $E000
-00FA01  2               
+00FA01  2
 00FA01  2               XTIDE_DATA_LO   = PC6502_IO+$300
 00FA01  2               XTIDE_DATA_HI   = PC6502_IO+$301
 00FA01  2               XTIDE_ERR       = PC6502_IO+$302
@@ -2101,10 +2101,10 @@ Current file: 6502PCbios.asm
 00FA01  2               XTIDE_DEVICE    = PC6502_IO+$30C
 00FA01  2               XTIDE_COMMAND   = PC6502_IO+$30E
 00FA01  2               XTIDE_STATUS    = PC6502_IO+$30E
-00FA01  2               
-00FA01  2               
-00FA01  2               
-00FA01  2               
+00FA01  2
+00FA01  2
+00FA01  2
+00FA01  2
 00FA01  2               ;IDE COMMAND CONSTANTS.  THESE SHOULD NEVER CHANGE.
 00FA01  2               XTIDE_CMD_RECAL = $10
 00FA01  2               XTIDE_CMD_READ  = $20
@@ -2114,9 +2114,9 @@ Current file: 6502PCbios.asm
 00FA01  2               XTIDE_CMD_FEAT  = $EF
 00FA01  2               XTIDE_CMD_SPINDOWN = $E0
 00FA01  2               XTIDE_CMD_SPINUP = $E1
-00FA01  2               
-00FA01  2               
-00FA01  2               
+00FA01  2
+00FA01  2
+00FA01  2
 00FA01  2                       .IFDEF  PC6502BIOS
 00FA01  2               XTIDE_INIT:
 00FA01  2               ; RESET PORTS
@@ -2127,7 +2127,7 @@ Current file: 6502PCbios.asm
 00FA08  2  E8                   INX
 00FA09  2  E0 31                CPX     #$31
 00FA0B  2  D0 F8                BNE     :-
-00FA0D  2               
+00FA0D  2
 00FA0D  2  A2 00                LDX     #$00
 00FA0F  2  A9 00                LDA     #$00
 00FA11  2               :
@@ -2138,11 +2138,11 @@ Current file: 6502PCbios.asm
 00FA19  2  20 33 FA             JSR     XTIDE_PROBE
 00FA1C  2  A9 E0                LDA     #$E0            ; E0=MST  F0=SLV
 00FA1E  2  8D 0C E3             STA     XTIDE_DEVICE
-00FA21  2               
+00FA21  2
 00FA21  2  20 B4 FA             JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
 00FA24  2  C9 00                CMP     #$00
 00FA26  2  D0 0A                BNE     :+
-00FA28  2               
+00FA28  2
 00FA28  2  A9 01                LDA     #$01            ; ENABLE 8-BIT MODE (XT-CF-LITE)
 00FA2A  2  8D 02 E3             STA     XTIDE_FECODE
 00FA2D  2  A9 EF                LDA     #XTIDE_CMD_FEAT
@@ -2150,14 +2150,14 @@ Current file: 6502PCbios.asm
 00FA32  2               :
 00FA32  2  60                   RTS
 00FA33  2                       .ENDIF
-00FA33  2               
-00FA33  2               
+00FA33  2
+00FA33  2
 00FA33  2                       .IFNDEF PC6502BIOS
 00FA33  2               XTIDETIMEOUT:
 00FA33  2                       .BYTE   $00,$00
-00FA33  2               
-00FA33  2               
-00FA33  2               
+00FA33  2
+00FA33  2
+00FA33  2
 00FA33  2               ;__XTIDE_INIT________________________________________________________________________________________
 00FA33  2               ;
 00FA33  2               ;  INIT AND DISPLAY IDE INFO
@@ -2177,7 +2177,7 @@ Current file: 6502PCbios.asm
 00FA33  2                       LDA     #>MESSAGE2      ;
 00FA33  2                       STA     STRPTR+1        ;
 00FA33  2                       JSR     WRSTR           ; DO PROMPT
-00FA33  2               
+00FA33  2
 00FA33  2                       LDA     #>XTIDE_DATA_LO ; GET BASE PORT
 00FA33  2                       JSR     PRINT_BYTE      ; PRINT BASE PORT
 00FA33  2                       LDA     #<XTIDE_DATA_LO ; GET BASE PORT
@@ -2229,7 +2229,7 @@ Current file: 6502PCbios.asm
 00FA3A  2  E8                   INX
 00FA3B  2  E0 31                CPX     #$31
 00FA3D  2  D0 F8                BNE     :-
-00FA3F  2               
+00FA3F  2
 00FA3F  2  A2 00                LDX     #$00
 00FA41  2  A9 00                LDA     #$00
 00FA43  2               :
@@ -2280,7 +2280,7 @@ Current file: 6502PCbios.asm
 00FA92  2               XTIDE_PROBE_SUCCESS:
 00FA92  2  A9 00                LDA     #$00
 00FA94  2  60                   RTS                     ; DONE, NOTE THAT A=0 AND Z IS SET
-00FA95  2               
+00FA95  2
 00FA95  2                       .IFNDEF PC6502BIOS
 00FA95  2               ;*__IDE_READ_INFO___________________________________________________________________________________
 00FA95  2               ;*
@@ -2297,16 +2297,16 @@ Current file: 6502PCbios.asm
 00FA95  2                       ASL     A               ;
 00FA95  2                       ORA     #$E0            ; E0=MST  F0=SLV
 00FA95  2                       STA     XTIDE_DEVICE
-00FA95  2               
+00FA95  2
 00FA95  2                       JSR     IDE_WAIT_NOT_BUSY;MAKE SURE DRIVE IS READY
 00FA95  2                       CMP     #$00
 00FA95  2                       BNE     IDE_READ_INFO_ABORT
-00FA95  2               
+00FA95  2
 00FA95  2                       LDA     #$01            ; ENABLE 8-BIT MODE (XT-CF-LITE)
 00FA95  2                       STA     XTIDE_FECODE
 00FA95  2                       LDA     #XTIDE_CMD_FEAT
 00FA95  2                       STA     XTIDE_COMMAND
-00FA95  2               
+00FA95  2
 00FA95  2                       NOP                     ; TINY DELAY, JUST IN CASE
 00FA95  2                       NOP
 00FA95  2                       NOP
@@ -2318,17 +2318,17 @@ Current file: 6502PCbios.asm
 00FA95  2                       NOP
 00FA95  2                       NOP
 00FA95  2                       NOP
-00FA95  2               
-00FA95  2               
+00FA95  2
+00FA95  2
 00FA95  2                       LDA     #XTIDE_CMD_ID   ; ID COMMAND
 00FA95  2                       STA     XTIDE_COMMAND
-00FA95  2               
+00FA95  2
 00FA95  2                       JSR     IDE_WAIT_DRQ    ;WAIT UNTIL IT'S GOT THE DATA
 00FA95  2                       CMP     #$00
 00FA95  2                       BNE     IDE_READ_INFO_ABORT
-00FA95  2               
+00FA95  2
 00FA95  2                       JSR     IDE_READ_BUFFER ; GRAB THE 256 WORDS FROM THE BUFFER
-00FA95  2               
+00FA95  2
 00FA95  2                       LDA     #<MESSAGE6      ;
 00FA95  2                       STA     STRPTR          ;
 00FA95  2                       LDA     #>MESSAGE6      ;
@@ -2357,8 +2357,8 @@ Current file: 6502PCbios.asm
 00FA95  2                       LDA     #$00
 00FA95  2                       RTS
 00FA95  2                       .ENDIF
-00FA95  2               
-00FA95  2               
+00FA95  2
+00FA95  2
 00FA95  2               ;*__IDE_READ_SECTOR___________________________________________________________________________________
 00FA95  2               ;*
 00FA95  2               ;*  READ IDE SECTOR (IN LBA) INTO BUFFER
@@ -2390,7 +2390,7 @@ Current file: 6502PCbios.asm
 00FA9C  2  20 74 FB             JSR     IDE_SETUP_LBA   ;TELL IT WHICH SECTOR WE WANT
 00FA9F  2  A9 20                LDA     #XTIDE_CMD_READ
 00FAA1  2  8D 0E E3             STA     XTIDE_COMMAND
-00FAA4  2               
+00FAA4  2
 00FAA4  2  20 DD FA             JSR     IDE_WAIT_DRQ    ; WAIT UNTIL IT'S GOT THE DATA
 00FAA7  2  C9 00                CMP     #$00
 00FAA9  2  D0 06                BNE     IDE_READ_SECTOR_ERROR; IF TIMEOUT, REPORT NO IDE PRESENT
@@ -2403,14 +2403,14 @@ Current file: 6502PCbios.asm
 00FAAE  2                       LDA     debcylm         ;
 00FAAE  2                       STA     Cdebcylm        ;
 00FAAE  2                       .ENDIF
-00FAAE  2               
+00FAAE  2
 00FAAE  2  A9 00                LDA     #$00            ; ZERO = 1 ON RETURN = OPERATION OK
 00FAB0  2  60                   RTS
 00FAB1  2               IDE_READ_SECTOR_ERROR:
 00FAB1  2  A9 FF                LDA     #$FF            ; ZERO = 1 ON RETURN = OPERATION OK
 00FAB3  2  60                   RTS
-00FAB4  2               
-00FAB4  2               
+00FAB4  2
+00FAB4  2
 00FAB4  2               ;*__IDE_WAIT_NOT_BUSY_______________________________________________________________________________
 00FAB4  2               ;*
 00FAB4  2               ;*  WAIT FOR IDE CHANNEL TO BECOME READY
@@ -2446,7 +2446,7 @@ Current file: 6502PCbios.asm
 00FAD9  2  AA                   TAX
 00FADA  2  A9 00                LDA     #$00
 00FADC  2  60                   RTS
-00FADD  2               
+00FADD  2
 00FADD  2               ;*__IDE_WAIT_DRQ______________________________________________________________________________________
 00FADD  2               ;*
 00FADD  2               ;*	WAIT FOR THE DRIVE TO BE READY TO TRANSFER DATA.
@@ -2474,8 +2474,8 @@ Current file: 6502PCbios.asm
 00FAFD  2               IDE_WAIT_DRQ2:
 00FAFD  2  A9 00                LDA     #$00
 00FAFF  2  60                   RTS
-00FB00  2               
-00FB00  2               
+00FB00  2
+00FB00  2
 00FB00  2               ;*__IDE_READ_BUFFER___________________________________________________________________________________
 00FB00  2               ;*
 00FB00  2               ;*  READ IDE BUFFER LITTLE ENDIAN
@@ -2503,7 +2503,7 @@ Current file: 6502PCbios.asm
 00FB22  2  C0 00                CPY     #$00            ;
 00FB24  2  D0 EE                BNE     :-              ;
 00FB26  2  60                   RTS                     ;
-00FB27  2               
+00FB27  2
 00FB27  2               ;*__IDE_WRITE_SECTOR__________________________________________________________________________________
 00FB27  2               ;*
 00FB27  2               ;*  WRITE IDE SECTOR (IN LBA) FROM BUFFER
@@ -2537,7 +2537,7 @@ Current file: 6502PCbios.asm
 00FB4A  2               IDE_WRITE_SECTOR_ERROR:
 00FB4A  2  A9 FF                LDA     #$FF
 00FB4C  2  60                   RTS
-00FB4D  2               
+00FB4D  2
 00FB4D  2               ;*__IDE_WRITE_BUFFER___________________________________________________________________________________
 00FB4D  2               ;*
 00FB4D  2               ;*  WRITE IDE BUFFER LITTLE ENDIAN
@@ -2564,7 +2564,7 @@ Current file: 6502PCbios.asm
 00FB6F  2  C0 00                CPY     #$00            ;
 00FB71  2  D0 EE                BNE     :-              ;
 00FB73  2  60                   RTS                     ;
-00FB74  2               
+00FB74  2
 00FB74  2                       .IFNDEF PC6502BIOS
 00FB74  2               MESSAGE1:
 00FB74  2                       .BYTE   "XT-IDE:"
@@ -2584,7 +2584,7 @@ Current file: 6502PCbios.asm
 00FB74  2               MESSAGE6:
 00FB74  2                       .BYTE   "0x"
 00FB74  2                       .BYTE   00
-00FB74  2               
+00FB74  2
 00FB74  2               ;___IDE_CONVERT_SECTOR_LBA_______________________________________________________________________________
 00FB74  2               ;
 00FB74  2               ; 	TRANSLATE LBA SECTORS
@@ -2605,7 +2605,7 @@ Current file: 6502PCbios.asm
 00FB74  2                       TXA                     ; GET HEAD BACK
 00FB74  2                       ORA     debsehd
 00FB74  2                       STA     debsehd         ; STORE IN SECTOR/HEAD
-00FB74  2               
+00FB74  2
 00FB74  2                       LDA     sektrk
 00FB74  2                       STA     debcyll         ; STORE IN TRACK (lsb)
 00FB74  2                       LDA     sektrk+1
@@ -2617,21 +2617,21 @@ Current file: 6502PCbios.asm
 00FB74  2                       LDA     debcyll
 00FB74  2                       ROR     A
 00FB74  2                       STA     debcyll
-00FB74  2               
+00FB74  2
 00FB74  2                       LDA     debcylm
 00FB74  2                       LSR     A
 00FB74  2                       STA     debcylm
 00FB74  2                       LDA     debcyll
 00FB74  2                       ROR     A
 00FB74  2                       STA     debcyll
-00FB74  2               
+00FB74  2
 00FB74  2                       LDA     debcylm
 00FB74  2                       LSR     A
 00FB74  2                       STA     debcylm
 00FB74  2                       LDA     debcyll
 00FB74  2                       ROR     A
 00FB74  2                       STA     debcyll
-00FB74  2               
+00FB74  2
 00FB74  2                       LDA     debcylm
 00FB74  2                       LSR     A
 00FB74  2                       STA     debcylm
@@ -2653,7 +2653,7 @@ Current file: 6502PCbios.asm
 00FB74  2                       ROR     slicetmp
 00FB74  2                       ROR     slicetmp+1
 00FB74  2                       ROR     slicetmp
-00FB74  2               
+00FB74  2
 00FB74  2                       LDA     dskcfg,X        ; GET SLICE#
 00FB74  2                       CLC
 00FB74  2                       ADC     slicetmp
@@ -2661,7 +2661,7 @@ Current file: 6502PCbios.asm
 00FB74  2                       LDA     #$00            ; LOGIC ERROR FOR SLICES THAT CARRY?
 00FB74  2                       ADC     slicetmp+1      ;
 00FB74  2                       STA     slicetmp+1      ;
-00FB74  2               
+00FB74  2
 00FB74  2               ; ADD SLICE OFFSET TO TRACK #
 00FB74  2                       LDA     slicetmp
 00FB74  2                       ADC     debcyll
@@ -2670,9 +2670,9 @@ Current file: 6502PCbios.asm
 00FB74  2                       ADC     debcylm         ; add the MSBs using carry from
 00FB74  2                       STA     debcylm         ; the previous calculation
 00FB74  2                       RTS
-00FB74  2               
+00FB74  2
 00FB74  2                       .ENDIF
-00FB74  2               
+00FB74  2
 00FB74  2               ;*__IDE_SETUP_LBA_____________________________________________________________________________________
 00FB74  2               ;*
 00FB74  2               ;*  SETUP LBA DATA
@@ -2687,20 +2687,20 @@ Current file: 6502PCbios.asm
 00FB7C  2  0A                   ASL     a               ;
 00FB7D  2  09 E0                ORA     #$E0            ; E0=MST  F0=SLV
 00FB7F  2  8D 0C E3             STA     XTIDE_DEVICE
-00FB82  2               
+00FB82  2
 00FB82  2  AD 11 06             LDA     debcylm
 00FB85  2  8D 0A E3             STA     XTIDE_LBAHI
-00FB88  2               
+00FB88  2
 00FB88  2  AD 10 06             LDA     debcyll
 00FB8B  2  8D 08 E3             STA     XTIDE_LBAMID
-00FB8E  2               
+00FB8E  2
 00FB8E  2  AD 12 06             LDA     debsehd
 00FB91  2  8D 06 E3             STA     XTIDE_LBALOW
-00FB94  2               
+00FB94  2
 00FB94  2  A9 01                LDA     #$01
 00FB96  2  8D 04 E3             STA     XTIDE_SEC_CNT
 00FB99  2  60                   RTS
-00FB9A  2               
+00FB9A  2
 00FB9A  2                       .IFDEF  PC6502BIOS
 00FB9A  2               ; Boot System [B]
 00FB9A  2               BOOT:
@@ -2717,7 +2717,7 @@ Current file: 6502PCbios.asm
 00FBB1  2  85 EF                STA     SRC+1
 00FBB3  2  A9 08                LDA     #$08
 00FBB5  2  85 ED                STA     DEST+1
-00FBB7  2               
+00FBB7  2
 00FBB7  2               BOOT1:
 00FBB7  2  20 95 FA             JSR     IDE_READ_SECTOR ; READ THE SECTOR
 00FBBA  2  C9 00                CMP     #$00
@@ -2747,7 +2747,7 @@ Current file: 6502PCbios.asm
 00FBE5  2  4C 00 08             JMP     $0800
 00FBE8  2               BOOTX:
 00FBE8  2  4C D9 F0             JMP     ERROR           ; back to main loop
-00FBEB  2               
+00FBEB  2
 00FBEB  2               WBOOT:
 00FBEB  2  A9 60                LDA     #<MESSAGE7      ;
 00FBED  2  85 41                STA     STRPTR          ;
@@ -2757,15 +2757,15 @@ Current file: 6502PCbios.asm
 00FBF6  2  20 4B FE             JSR     IOF_CONINW
 00FBF9  2  C9 59                CMP     #'Y'
 00FBFB  2  F0 0C                BEQ     :+
-00FBFD  2               
+00FBFD  2
 00FBFD  2  A9 AA                LDA     #<MESSAGE8      ;
 00FBFF  2  85 41                STA     STRPTR          ;
 00FC01  2  A9 FC                LDA     #>MESSAGE8      ;
 00FC03  2  85 42                STA     STRPTR+1        ;
 00FC05  2  20 57 FE             JSR     OUTSTR
 00FC08  2  00                   BRK
-00FC09  2               
-00FC09  2               
+00FC09  2
+00FC09  2
 00FC09  2               :
 00FC09  2  20 01 FA             JSR     XTIDE_INIT      ; INIT IDE
 00FC0C  2                                               ; SETUP LOCATION
@@ -2780,7 +2780,7 @@ Current file: 6502PCbios.asm
 00FC20  2  85 EF                STA     SRC+1
 00FC22  2  A9 04                LDA     #$04
 00FC24  2  85 ED                STA     DEST+1
-00FC26  2               
+00FC26  2
 00FC26  2               BOOTW1:
 00FC26  2  A0 00                LDY     #$00
 00FC28  2               :
@@ -2797,11 +2797,11 @@ Current file: 6502PCbios.asm
 00FC39  2  C8                   INY
 00FC3A  2  C0 00                CPY     #$00
 00FC3C  2  D0 F7                BNE     :-
-00FC3E  2               
+00FC3E  2
 00FC3E  2  20 27 FB             JSR     IDE_WRITE_SECTOR; READ THE SECTOR
 00FC41  2  C9 00                CMP     #$00
 00FC43  2  D0 A3                BNE     BOOTX
-00FC45  2               
+00FC45  2
 00FC45  2  E6 EF                INC     SRC+1
 00FC47  2  A9 04                LDA     #$04
 00FC49  2  85 ED                STA     DEST+1
@@ -2809,35 +2809,35 @@ Current file: 6502PCbios.asm
 00FC4E  2  A5 EF                LDA     SRC+1
 00FC50  2  C9 80                CMP     #$80
 00FC52  2  D0 D2                BNE     BOOTW1
-00FC54  2               
+00FC54  2
 00FC54  2  A9 C7                LDA     #<MESSAGE9      ;
 00FC56  2  85 41                STA     STRPTR          ;
 00FC58  2  A9 FC                LDA     #>MESSAGE9      ;
 00FC5A  2  85 42                STA     STRPTR+1        ;
 00FC5C  2  20 57 FE             JSR     OUTSTR
 00FC5F  2  00                   BRK
-00FC60  2               
+00FC60  2
 00FC60  2               MESSAGE7:
 00FC60  2  0D 0A 20 41          .BYTE   13,10," ARE YOU SURE YOU WANT TO REPLACE BOOT IMAGE?",13,10
-00FC64  2  52 45 20 59  
-00FC68  2  4F 55 20 53  
+00FC64  2  52 45 20 59
+00FC68  2  4F 55 20 53
 00FC91  2  20 50 52 45          .BYTE   " PRESS 'Y' TO CONTINUE",13,10
-00FC95  2  53 53 20 27  
-00FC99  2  59 27 20 54  
+00FC95  2  53 53 20 27
+00FC99  2  59 27 20 54
 00FCA9  2  00                   .BYTE   00
 00FCAA  2               MESSAGE8:
 00FCAA  2  20 42 4F 4F          .BYTE   " BOOT IMAGE WRITE ABORTED.",13,10
-00FCAE  2  54 20 49 4D  
-00FCB2  2  41 47 45 20  
+00FCAE  2  54 20 49 4D
+00FCB2  2  41 47 45 20
 00FCC6  2  00                   .BYTE   00
 00FCC7  2               MESSAGE9:
 00FCC7  2  20 42 4F 4F          .BYTE   " BOOT IMAGE WRITTEN.",13,10
-00FCCB  2  54 20 49 4D  
-00FCCF  2  41 47 45 20  
+00FCCB  2  54 20 49 4D
+00FCCF  2  41 47 45 20
 00FCDD  2  00                   .BYTE   00
-00FCDE  2               
+00FCDE  2
 00FCDE  2                       .ENDIF
-00FCDE  2               
+00FCDE  2
 00FCDE  1                       .INCLUDE "bios_esp.asm"
 00FCDE  2               ;__ESP DRIVERS______________________________________________________________________________________________________________
 00FCDE  2               ;
@@ -2872,9 +2872,9 @@ Current file: 6502PCbios.asm
 00FCDE  2               ESP0_DAT        = ESP_BASE      ;
 00FCDE  2               ESP1_DAT        = ESP_BASE+1    ;
 00FCDE  2               ESP_STAT        = ESP_BASE+2    ;
-00FCDE  2               
-00FCDE  2               
-00FCDE  2               
+00FCDE  2
+00FCDE  2
+00FCDE  2
 00FCDE  2               ;__________________________________________________________________________________________________
 00FCDE  2               ;
 00FCDE  2               ; STATUS BITS (FOR KBD_STATUS)
@@ -2925,8 +2925,8 @@ Current file: 6502PCbios.asm
 00FCDE  2                       JSR     ESP1_PROBE      ; DETECT ESP1
 00FCDE  2                       JSR     LFCR            ; AND CRLF
 00FCDE  2                       RTS                     ; DONE
-00FCDE  2               
-00FCDE  2               
+00FCDE  2
+00FCDE  2
 00FCDE  2               ESP0_PROBE:
 00FCDE  2               ;
 00FCDE  2                       LDA     #<ESPMESSAGE2   ;
@@ -2934,11 +2934,11 @@ Current file: 6502PCbios.asm
 00FCDE  2                       LDA     #>ESPMESSAGE2   ;
 00FCDE  2                       STA     STRPTR+1        ;
 00FCDE  2                       JSR     WRSTR
-00FCDE  2               
+00FCDE  2
 00FCDE  2                       LDA     #$FF            ; ESP IDENTITY PROBE
 00FCDE  2                       JSR     PUTESP0         ; SEND IT
 00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2               
+00FCDE  2
 00FCDE  2                       JSR     GETESP0
 00FCDE  2                       BCS     ESP_ERROR
 00FCDE  2                       CMP     #'E'
@@ -2972,7 +2972,7 @@ Current file: 6502PCbios.asm
 00FCDE  2                       LDA     #>ESPMESSAGE5   ;
 00FCDE  2                       STA     STRPTR+1        ;
 00FCDE  2                       JSR     WRSTR
-00FCDE  2               
+00FCDE  2
 00FCDE  2               ESP_RESET0:
 00FCDE  2                       LDX     #$20
 00FCDE  2               :
@@ -2992,7 +2992,7 @@ Current file: 6502PCbios.asm
 00FCDE  2                       STA     STRPTR+1        ;
 00FCDE  2                       JSR     WRSTR
 00FCDE  2                       RTS
-00FCDE  2               
+00FCDE  2
 00FCDE  2               ;
 00FCDE  2               ESP1_PROBE:
 00FCDE  2               ;
@@ -3001,11 +3001,11 @@ Current file: 6502PCbios.asm
 00FCDE  2                       LDA     #>ESPMESSAGE3   ;
 00FCDE  2                       STA     STRPTR+1        ;
 00FCDE  2                       JSR     WRSTR
-00FCDE  2               
+00FCDE  2
 00FCDE  2                       LDA     #$FF            ; ESP IDENTITY PROBE
 00FCDE  2                       JSR     PUTESP1         ; SEND IT
 00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2               
+00FCDE  2
 00FCDE  2                       JSR     GETESP1
 00FCDE  2                       BCS     ESP_ERROR
 00FCDE  2                       CMP     #'E'
@@ -3049,7 +3049,7 @@ Current file: 6502PCbios.asm
 00FCDE  2                       BNE     :-
 00FCDE  2                       CLC
 00FCDE  2                       RTS
-00FCDE  2               
+00FCDE  2
 00FCDE  2               ;__________________________________________________________________________________________________
 00FCDE  2               ; ESPCURSORV  - Set Cursor Visibility (A=0 cursor off, A=1 cursor on)
 00FCDE  2               ;__________________________________________________________________________________________________
@@ -3107,7 +3107,7 @@ Current file: 6502PCbios.asm
 00FCDE  2               :
 00FCDE  2                       LDA     #$FF
 00FCDE  2                       RTS
-00FCDE  2               
+00FCDE  2
 00FCDE  2               ;__________________________________________________________________________________________________
 00FCDE  2               ; ESPNETCOUT  - OUTPUT A CHARACTER TO Network Console Connection ('A' POINTS TO BYTE)
 00FCDE  2               ;               Connection Stored in 'consoleConnect' value
@@ -3131,7 +3131,7 @@ Current file: 6502PCbios.asm
 00FCDE  2                       JSR     PUTESP0         ; SEND IT
 00FCDE  2                       LDA     consoleConnect
 00FCDE  2                       JMP     ESPCH1IN
-00FCDE  2               
+00FCDE  2
 00FCDE  2               ;__________________________________________________________________________________________________
 00FCDE  2               ; ESPPS2BUFL - Return number of characters in keyboard buffer
 00FCDE  2               ;__________________________________________________________________________________________________
@@ -3146,8 +3146,8 @@ Current file: 6502PCbios.asm
 00FCDE  2               :
 00FCDE  2                       LDA     #$00
 00FCDE  2                       RTS
-00FCDE  2               
-00FCDE  2               
+00FCDE  2
+00FCDE  2
 00FCDE  2               ;__________________________________________________________________________________________________
 00FCDE  2               ; ESPSER0BUFL - return number of characters in the Serial 0 buffer in 'A'
 00FCDE  2               ;__________________________________________________________________________________________________
@@ -3162,7 +3162,7 @@ Current file: 6502PCbios.asm
 00FCDE  2               :
 00FCDE  2                       LDA     #$00
 00FCDE  2                       RTS
-00FCDE  2               
+00FCDE  2
 00FCDE  2               ;__________________________________________________________________________________________________
 00FCDE  2               ; ESPSER1BUFL - return number of characters in the Serial 1 buffer in 'A'
 00FCDE  2               ;__________________________________________________________________________________________________
@@ -3185,7 +3185,7 @@ Current file: 6502PCbios.asm
 00FCDE  2               ESPNETCBUFL:
 00FCDE  2                       LDA     #28             ; opcode to get buffer length
 00FCDE  2                       JMP     ESP1BUFL
-00FCDE  2               
+00FCDE  2
 00FCDE  2                       .ENDIF
 00FCDE  2               ;__________________________________________________________________________________________________
 00FCDE  2               ; ESPVIDEOOUT - output character in 'A' to CRT (ANSI terminal emulation)
@@ -3215,7 +3215,7 @@ Current file: 6502PCbios.asm
 00FCFA  2               :
 00FCFA  2  A9 FF                LDA     #$FF
 00FCFC  2  60                   RTS
-00FCFD  2               
+00FCFD  2
 00FCFD  2               ESPPS2INW:
 00FCFD  2  20 E9 FC             JSR     ESPPS2IN
 00FD00  2  C9 FF                CMP     #$FF
@@ -3264,7 +3264,7 @@ Current file: 6502PCbios.asm
 00FD2B  2  8D 00 E1             STA     ESP0_DAT
 00FD2E  2  18                   CLC
 00FD2F  2  60                   RTS
-00FD30  2               
+00FD30  2
 00FD30  2               GETESP0:
 00FD30  2  8A                   TXA
 00FD31  2  48                   PHA
@@ -3315,7 +3315,7 @@ Current file: 6502PCbios.asm
 00FD6E  2  AD 00 E1             LDA     ESP0_DAT
 00FD71  2  18                   CLC
 00FD72  2  60                   RTS
-00FD73  2               
+00FD73  2
 00FD73  2               PUTESP1:
 00FD73  2  48                   PHA
 00FD74  2  8A                   TXA
@@ -3350,7 +3350,7 @@ Current file: 6502PCbios.asm
 00FD99  2  8D 01 E1             STA     ESP1_DAT
 00FD9C  2  18                   CLC
 00FD9D  2  60                   RTS
-00FD9E  2               
+00FD9E  2
 00FD9E  2               GETESP1:
 00FD9E  2  8A                   TXA
 00FD9F  2  48                   PHA
@@ -3401,8 +3401,8 @@ Current file: 6502PCbios.asm
 00FDDC  2  AD 01 E1             LDA     ESP1_DAT
 00FDDF  2  18                   CLC
 00FDE0  2  60                   RTS
-00FDE1  2               
-00FDE1  2               
+00FDE1  2
+00FDE1  2
 00FDE1  2                       .IFNDEF PC6502BIOS
 00FDE1  2               ;
 00FDE1  2               ; DRIVER DATA
@@ -3424,7 +3424,8 @@ Current file: 6502PCbios.asm
 00FDE1  2                       .BYTE   "FOUND."
 00FDE1  2                       .BYTE   00
 00FDE1  2                       .ENDIF
-00FDE1  2               
+00FDE1  2
+00FDE1  1                    ;   .INCLUDE "bios_multi.asm"
 00FDE1  1                       .INCLUDE "bios_pager.ASM"
 00FDE1  2               ;__BIOS PAGERS__________________________________________________________________________________________________________________
 00FDE1  2               ;
@@ -3432,7 +3433,7 @@ Current file: 6502PCbios.asm
 00FDE1  2               ;
 00FDE1  2               ;________________________________________________________________________________________________________________________________
 00FDE1  2               ;
-00FDE1  2               
+00FDE1  2
 00FDE1  2               ;__INITPAGES____________________________________________________
 00FDE1  2               ;
 00FDE1  2               ; SETUP MMU FOR BIOS PAGED MEMORY OPERATION
@@ -3474,7 +3475,7 @@ Current file: 6502PCbios.asm
 00FE05  2  A9 01                LDA     #$01
 00FE07  2  8D E2 EF             STA     PC6502_MMU_ENA  ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
 00FE0A  2  60                   RTS
-00FE0B  2               
+00FE0B  2
 00FE0B  2               INITPAGE:
 00FE0B  2  A2 00                LDX     #$00
 00FE0D  2               :
@@ -3496,14 +3497,14 @@ Current file: 6502PCbios.asm
 00FE22  2  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 01
 00FE25  2  68                   PLA
 00FE26  2  60                   RTS
-00FE27  2               
-00FE27  2               
+00FE27  2
+00FE27  2
 00FE27  2               DO_FARCALL_ACTUAL:
 00FE27  2  20 1F FE             JSR     PAGE_ENTER
 00FE2A  2  20 00 C0             JSR     FUNCTION_DISPATCHER
 00FE2D  2  4C 17 FE             JMP     PAGE_EXIT
-00FE30  2               
-00FE30  1               
+00FE30  2
+00FE30  1
 00FE30  1               ;__IOF_OUTCH___________________________________________________
 00FE30  1               ;
 00FE30  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
@@ -3519,7 +3520,7 @@ Current file: 6502PCbios.asm
 00FE3B  1               :
 00FE3B  1  68                   PLA
 00FE3C  1  4C CF F9             JMP     WRSER1
-00FE3F  1               
+00FE3F  1
 00FE3F  1               ;__IOF_CONIN___________________________________________________
 00FE3F  1               ;
 00FE3F  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
@@ -3532,8 +3533,8 @@ Current file: 6502PCbios.asm
 00FE45  1  4C E9 FC             JMP     ESPPS2IN
 00FE48  1               :
 00FE48  1  4C DC F9             JMP     RDSER1
-00FE4B  1               
-00FE4B  1               
+00FE4B  1
+00FE4B  1
 00FE4B  1               ;__IOF_CONINW__________________________________________________
 00FE4B  1               ;
 00FE4B  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
@@ -3546,7 +3547,7 @@ Current file: 6502PCbios.asm
 00FE51  1  4C FD FC             JMP     ESPPS2INW
 00FE54  1               :
 00FE54  1  4C EA F9             JMP     RDSER1W
-00FE57  1               
+00FE57  1
 00FE57  1               ;__OUTSTR______________________________________________________
 00FE57  1               ;
 00FE57  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
@@ -3565,10 +3566,10 @@ Current file: 6502PCbios.asm
 00FE68  1  4C 59 FE             JMP     OUTSTRLP        ; DO NEXT CHAR
 00FE6B  1               ENDOUTSTR:
 00FE6B  1  60                   RTS                     ; RETURN
-00FE6C  1               
+00FE6C  1
 00FE6C  1               DSKYMSG:
 00FE6C  1  7C 06 3F 6D          .BYTE   $7C, $6, $3F, $6D, $0, $3E, $73, $0
-00FE70  1  00 3E 73 00  
+00FE70  1  00 3E 73 00
 00FE74  1               STARTUP:
 00FE74  1                       .IFDEF  ESP
 00FE74  1                       .BYTE   $0D,$0A
@@ -3579,26 +3580,26 @@ Current file: 6502PCbios.asm
 00FE74  1                       .ENDIF
 00FE74  1  0D 0A                .BYTE   $0D,$0A
 00FE76  1  20 20 5F 5F          .BYTE   "  __  ____   ___ ____    ___  ___",$0D,$0A
-00FE7A  1  20 20 5F 5F  
-00FE7E  1  5F 5F 20 20  
+00FE7A  1  20 20 5F 5F
+00FE7E  1  5F 5F 20 20
 00FE99  1  20 2F 20 2F          .BYTE   " / /_| ___| / _ \___ \  / _ \/ __\",$0D,$0A
-00FE9D  1  5F 7C 20 5F  
-00FEA1  1  5F 5F 7C 20  
+00FE9D  1  5F 7C 20 5F
+00FEA1  1  5F 5F 7C 20
 00FEBD  1  7C 20 27 5F          .BYTE   "| '_ \___ \| | | |__) |/ /_)/ /",$0D,$0A
-00FEC1  1  20 5C 5F 5F  
-00FEC5  1  5F 20 5C 7C  
+00FEC1  1  20 5C 5F 5F
+00FEC5  1  5F 20 5C 7C
 00FEDE  1  7C 20 28 5F          .BYTE   "| (_) |__) | |_| / __// ___/ /___",$0D,$0A
-00FEE2  1  29 20 7C 5F  
-00FEE6  1  5F 29 20 7C  
+00FEE2  1  29 20 7C 5F
+00FEE6  1  5F 29 20 7C
 00FF01  1  20 5C 5F 5F          .BYTE   " \___/____/ \___/_____\/   \____/",$0D,$0A,$0D,$0A
-00FF05  1  5F 2F 5F 5F  
-00FF09  1  5F 5F 2F 20  
-00FF26  1               
+00FF05  1  5F 2F 5F 5F
+00FF09  1  5F 5F 2F 20
+00FF26  1
 00FF26  1                       .SEGMENT "IVECTOR"
 00FF26  1                       .ORG    $FFF0
 00FFF0  1  4C 27 FE             JMP     DO_FARCALL_ACTUAL
 00FFF3  1  4C EE F7             JMP     LOADS19
-00FFF6  1               
+00FFF6  1
 00FFF6  1                       .SEGMENT "VECTORS"
 00FFF6  1                       .ORG    $FFFA
 00FFFA  1               NNTVECTOR:
@@ -3607,5 +3608,5 @@ Current file: 6502PCbios.asm
 00FFFC  1  00 F0                .WORD   COLD_START      ;
 00FFFE  1               INTVECTOR:
 00FFFE  1  43 F0                .WORD   INTERRUPT       ; ROM VECTOR FOR IRQ
-010000  1               
+010000  1
 010000  1                       .END

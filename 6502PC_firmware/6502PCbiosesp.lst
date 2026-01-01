@@ -3425,6 +3425,7 @@ Current file: 6502PCbios.asm
 00FDE1  2                       .BYTE   00
 00FDE1  2                       .ENDIF
 00FDE1  2               
+00FDE1  1                    ;   .INCLUDE "bios_multi.asm"
 00FDE1  1                       .INCLUDE "bios_pager.ASM"
 00FDE1  2               ;__BIOS PAGERS__________________________________________________________________________________________________________________
 00FDE1  2               ;

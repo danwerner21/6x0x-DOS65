@@ -56,11 +56,11 @@ DISPATCHTABLE:
         .WORD   ESPPS2BUFL      ; FUNCTION 12 - GET KEYBOARD STATUS
         .WORD   ESPINIT         ; FUNCTION 13 - INIT INTERFACE
 
-        .WORD   drv_noop        ; FUNCTION 14
-        .WORD   drv_noop        ; FUNCTION 15
-        .WORD   drv_noop        ; FUNCTION 16
-        .WORD   drv_noop        ; FUNCTION 17
-        .WORD   drv_noop        ; FUNCTION 18
+        .WORD   ESPVIDEOOUT     ; FUNCTION 14 - WRITE VIDEO
+        .WORD   KBD_GETKEY      ; FUNCTION 15 - READ KEYBOARD
+        .WORD   KBD_GETKEYB     ; FUNCTION 16 - READ KEYBOARD (BLOCKING)
+        .WORD   KBD_GETSTATUS   ; FUNCTION 17 - GET KEYBOARD STATUS
+        .WORD   drv_noop        ; FUNCTION 18 - INIT INTERFACE
 
         .WORD   drv_noop        ; FUNCTION 19
         .WORD   drv_noop        ; FUNCTION 20
