@@ -2556,7 +2556,7 @@ Current file: dos65drv.asm
 00CB34  2  18                   CLC                     ; SIGNAL SUCCESS
 00CB35  2  60                   RTS
 00CB36  2                       .ENDIF
-00CB36  2                       .IFDEF PC6502BIOS
+00CB36  2                       .IFDEF  PC6502BIOS
 00CB36  2               MULTIOINIT:
 00CB36  2                       LDA     #$AA            ; CONTROLLER SELF TEST
 00CB36  2                       JSR     KBD_PUTCMD      ; SEND IT
@@ -3040,7 +3040,7 @@ Current file: dos65drv.asm
 00CD03  2               KBD_DEC6:                       ; HANDLE MODIFIER KEYS
 00CD03  2  AD 6C CA             LDA     KBD_KEYCODE     ; MAKE SURE WE HAVE KEYCODE
 00CD06  2  C9 B8                CMP     #$B8            ; END OF MODIFIER KEYS
-00CD08  2  B0 5F                BCS     KBD_DEC7         ; BYPASS MODIFIER KEY CHECKING
+00CD08  2  B0 5F                BCS     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
 00CD0A  2  C9 B0                CMP     #$B0            ; START OF MODIFIER KEYS
 00CD0C  2  90 5B                BCC     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
 00CD0E  2  A2 04                LDX     #4              ; LOOP COUNTER TO LOOP THRU 4 MODIFIER BITS
@@ -3679,11 +3679,11 @@ Current file: dos65drv.asm
 00D1A0  1  60                   RTS
 00D1A1  1               
 00D1A1  1               DFT_CONSOLE_OUT:
-00D1A1  1  48                   pha
-00D1A2  1  A5 3A                LDA    CONSOLE
-00D1A4  1  85 32                sta    farfunct
-00D1A6  1  68                   pla
-00D1A7  1  4C 00 C0             JMP    FUNCTION_DISPATCHER1
+00D1A1  1  48                   PHA
+00D1A2  1  A5 3A                LDA     CONSOLE
+00D1A4  1  85 32                STA     farfunct
+00D1A6  1  68                   PLA
+00D1A7  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
 00D1AA  1               
 00D1AA  1               ;------------------------------------------------------------------------
 00D1AA  1               LFCR:

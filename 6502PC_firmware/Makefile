@@ -1,4 +1,4 @@
-all:  	 testmulti.s19 dos65drv.s19 rom.hex pcdos65.s19
+all:  	 testmulti.s19 dos65drv.s19 rom.hex pcdos65.s19 bios_video.s19
 
 6502PCbios.out: 6502PCbios.asm bios_serial.asm ../supermon/supermon.asm \
 			  bios_pager.asm bios_ide.asm
@@ -15,6 +15,10 @@ dos65drv.out: dos65drv.asm bios_serial.asm  bios_rtc.asm \
 bios_ch375.out: bios_ch375.asm
 	ca65 bios_ch375.asm -l bios_ch375.lst
 	ld65 bios_ch375.o -vm -v -m bios_ch375.map -C dos65.cfg -o bios_ch375.out
+
+bios_video.out: bios_video.asm
+	ca65 bios_video.asm -l bios_video.lst
+	ld65 bios_video.o -vm -v -m bios_video.map -C dos65.cfg -o bios_video.out
 
 testmulti.out: testmulti.asm bios_multi.asm
 	ca65 testmulti.asm -l testmulti.lst
@@ -36,6 +40,11 @@ dos65drv.s19: dos65drv.out
 testmulti.s19: testmulti.out
 	srec_cat  testmulti.out  -binary -offset 0x900 -exclude 0x0000 0x1000  -o testmulti.s19 --Data-Only
 	sed -i -e '$$aS9' testmulti.s19
+
+bios_video.s19: bios_video.out
+	srec_cat  bios_video.out  -binary -offset 0x900 -exclude 0x0000 0x1000  -o bios_video.s19 --Data-Only
+	sed -i -e '$$aS9' bios_video.s19
+
 
 pcdos65.s19: loader.asm ../dos65_os/dos65_pc6502.s19 dos65drv.s19
 	ca65 loader.asm -l loader.lst
@@ -60,6 +69,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_ide.asm bios_ide.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_rtc.asm bios_rtc.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_esp.asm bios_esp.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_video.asm bios_video.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/bios_multi.asm bios_multi.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/loader.asm loader.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/dos65drv.asm dos65drv.asm

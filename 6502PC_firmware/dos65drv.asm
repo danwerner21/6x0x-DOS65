@@ -159,11 +159,11 @@ drv_noop:
         RTS
 
 DFT_CONSOLE_OUT:
-        pha
-        LDA    CONSOLE
-        sta    farfunct
-        pla
-        JMP    FUNCTION_DISPATCHER1
+        PHA
+        LDA     CONSOLE
+        STA     farfunct
+        PLA
+        JMP     FUNCTION_DISPATCHER1
 
 ;------------------------------------------------------------------------
 LFCR:

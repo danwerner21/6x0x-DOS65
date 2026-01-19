@@ -113,7 +113,7 @@ NINTERRUPT:
         .INCLUDE "bios_serial.asm"
         .INCLUDE "bios_ide.asm"
         .INCLUDE "bios_esp.asm"
-     ;   .INCLUDE "bios_multi.asm"
+;   .INCLUDE "bios_multi.asm"
         .INCLUDE "bios_pager.ASM"
 
 ;__IOF_OUTCH___________________________________________________
@@ -199,6 +199,7 @@ STARTUP:
         .ORG    $FFF0
         JMP     DO_FARCALL_ACTUAL
         JMP     LOADS19
+        JMP     SETPAGE
 
         .SEGMENT "VECTORS"
         .ORG    $FFFA

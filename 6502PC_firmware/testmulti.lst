@@ -603,7 +603,7 @@ Current file: testmulti.asm
 0011A5  2  18                   CLC                     ; SIGNAL SUCCESS
 0011A6  2  60                   RTS
 0011A7  2                       .ENDIF
-0011A7  2                       .IFDEF PC6502BIOS
+0011A7  2                       .IFDEF  PC6502BIOS
 0011A7  2               MULTIOINIT:
 0011A7  2                       LDA     #$AA            ; CONTROLLER SELF TEST
 0011A7  2                       JSR     KBD_PUTCMD      ; SEND IT
@@ -1087,7 +1087,7 @@ Current file: testmulti.asm
 001374  2               KBD_DEC6:                       ; HANDLE MODIFIER KEYS
 001374  2  AD DD 10             LDA     KBD_KEYCODE     ; MAKE SURE WE HAVE KEYCODE
 001377  2  C9 B8                CMP     #$B8            ; END OF MODIFIER KEYS
-001379  2  B0 5F                BCS     KBD_DEC7         ; BYPASS MODIFIER KEY CHECKING
+001379  2  B0 5F                BCS     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
 00137B  2  C9 B0                CMP     #$B0            ; START OF MODIFIER KEYS
 00137D  2  90 5B                BCC     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
 00137F  2  A2 04                LDX     #4              ; LOOP COUNTER TO LOOP THRU 4 MODIFIER BITS

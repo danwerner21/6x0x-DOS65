@@ -70,6 +70,34 @@ PAGE_ENTER:
         RTS
 
 
+
+;__SETPAGE________________________________________________________
+;
+; SETUP MMU FOR A SPECIFIC MAPPED PAGE
+;
+; A=BANK TO SWAP
+; X=MAP PAGE (SPOT IN MEMORY MAP)
+; Y=DESTINATION PAGE (SPOT IN PHYSICAL MEMORY)
+;_______________________________________________________________
+SETPAGE:
+        STA     TEMPWORD
+        LDA     #$00            ; DISABLE MMU
+        STA     PC6502_MMU_ENA
+        LDA     TEMPWORD
+        STA     PC6502_MAP_SETUP; Fill TASK AREA
+        TYA
+        STA     PC6502_MAP_SPACE,X
+        LDA     #$00            ; RE-SETUP TASK AREA 0, JUST IN CASE THE ABOVE WRITE CORRUPTED IT
+        STA     PC6502_MAP_SETUP; Fill TASK AREA
+        TXA
+        STA     PC6502_MAP_SPACE,X
+        LDA     #$01
+        STA     PC6502_MMU_ENA  ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
+        RTS
+
+
+
+
 DO_FARCALL_ACTUAL:
         JSR     PAGE_ENTER
         JSR     FUNCTION_DISPATCHER

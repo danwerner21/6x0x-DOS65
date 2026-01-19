@@ -233,7 +233,7 @@ KBD_TIMEOUT2:
         CLC                     ; SIGNAL SUCCESS
         RTS
         .ENDIF
-        .IFDEF PC6502BIOS
+        .IFDEF  PC6502BIOS
 MULTIOINIT:
         LDA     #$AA            ; CONTROLLER SELF TEST
         JSR     KBD_PUTCMD      ; SEND IT
@@ -717,7 +717,7 @@ KBD_DEC5D:
 KBD_DEC6:                       ; HANDLE MODIFIER KEYS
         LDA     KBD_KEYCODE     ; MAKE SURE WE HAVE KEYCODE
         CMP     #$B8            ; END OF MODIFIER KEYS
-        BCS     KBD_DEC7         ; BYPASS MODIFIER KEY CHECKING
+        BCS     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
         CMP     #$B0            ; START OF MODIFIER KEYS
         BCC     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
         LDX     #4              ; LOOP COUNTER TO LOOP THRU 4 MODIFIER BITS
