@@ -8,15 +8,12 @@
 ;		SETXY	    - Set the xy position of the cursor (X=X,Y=Y)
 ;		CLEARSCREEN - Set the xy position of the cursor (X=X,Y=Y)
 ;		SETCOLOR    - Set the xy position of the cursor (X=X,Y=Y)
+;               SCROLLUP    - Scroll the screen up one line
+;               SETMODE     - Set 40/80 mode
 ;________________________________________________________________________________________________________________________________
 ;
 
-        .SEGMENT "TEA"
-        .ORG    $1000
-
-        VIDEOBANK = $F8
-        TEMPWORD = $35
-        PC6502_ACT_TASK  = $EFE0
+VIDEOBANK       = $F8
 ; DATA STORAGE
 CURX:
         .BYTE   00
@@ -67,40 +64,6 @@ VIDEOWORK:
 ;	$2000-$BFFF	DOUBLE HIRES
 ;*
 
-START:
-        LDA     #$01
-        STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 01
-
-        JSR     VIDEOINIT
-
-:
-        LDX     TMP
-        LDA     BANNER,X
-        CMP     #$00
-        BEQ     :+
-        JSR     WRVID
-        INC     TMP
-        JMP     :-
-:
-
-        JSR     RDSER1W
-        CMP     #27
-        beq     :+
-        JSR     WRVID
-        JMP     :-
-:
-        BRK
-
-
-BANNER:
-        .BYTE   "  __  ____   ___ ____    ___  ___",$0D,$0A
-        .BYTE   " / /_| ___| / _ \___ \  / _ \/ __\",$0D,$0A
-        .BYTE   "| '_ \___ \| | | |__) |/ /_)/ /",$0D,$0A
-        .BYTE   "| (_) |__) | |_| / __// ___/ /___",$0D,$0A
-        .BYTE   " \___/____/ \___/_____\/   \____/",$0D,$0A,$0D,$0A
-        .BYTE   "THIS",08,08,08,08,"THAT WAS A TEST XX",08,08,00
-TMP:
-        .BYTE   $00
 ;__VIDEOINIT____________________________________________________________________________________________________________________
 ;
 ;	INITIALIZE VIDEO CARD
@@ -111,6 +74,17 @@ VIDEOINIT:
         LDX     #$0B            ; MAP $BXXX
         LDY     #VIDEOBANK      ; TO $F8XXX
         JSR     $FFF6           ; CALL SETPAGE
+
+        LDA     #$00
+        STA     $B006
+        LDA     $B006
+        CMP     #$00
+        BNE     VIDEOINIT_FAIL
+        LDA     #$FF
+        STA     $B006
+        LDA     $B006
+        CMP     #$FF
+        BNE     VIDEOINIT_FAIL
 
         LDA     #$02
         STA     $B006           ; CLEAR LORES MODE
@@ -124,10 +98,69 @@ VIDEOINIT:
         LDA     #$01
         STA     $B001           ; SET TEXT MODE PAGE 1
         STA     $B005           ; SET TEXT MODE
+        LDA     #$01
         STA     $B00A           ; SET 80COL MODE
 
         JSR     CLEARSCREEN
+
+        JSR     LFCR            ; CRLF
+        LDA     #<VIDEOMESSAGE1 ;
+        STA     STRPTR          ;
+        LDA     #>VIDEOMESSAGE1 ;
+        STA     STRPTR+1        ;
+        JSR     WRSTR
+
+        LDA     #<VIDEOMESSAGE3 ;
+        STA     STRPTR          ;
+        LDA     #>VIDEOMESSAGE3 ;
+        STA     STRPTR+1        ;
+        JSR     WRSTR
+        JSR     LFCR            ; AND CRLF
+
         RTS
+
+VIDEOINIT_FAIL:
+        JSR     LFCR            ; CRLF
+        LDA     #<VIDEOMESSAGE1 ;
+        STA     STRPTR          ;
+        LDA     #>VIDEOMESSAGE1 ;
+        STA     STRPTR+1        ;
+        JSR     WRSTR
+
+        LDA     #<VIDEOMESSAGE3 ;
+        STA     STRPTR          ;
+        LDA     #>VIDEOMESSAGE3 ;
+        STA     STRPTR+1        ;
+        JSR     WRSTR
+        JSR     LFCR            ; AND CRLF
+        RTS
+
+
+;__SETMODE_______________________________________________________________________________________________________________________
+;
+;	SET 40/80 VIDEO MODE  (0=40/1=80)
+;________________________________________________________________________________________________________________________________
+;
+SETMODE:
+        STA     VIDEOMODE
+        LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
+        LDX     #$0B            ; MAP $BXXX
+        LDY     #VIDEOBANK      ; TO $F8XXX
+        JSR     $FFF6           ; CALL SETPAGE
+        LDA     #$01
+        STA     $B001           ; SET TEXT MODE PAGE 1
+        STA     $B005           ; SET TEXT MODE
+        LDA     VIDEOMODE
+        CMP     #$00
+        BEQ     :+
+        LDA     #$01
+        STA     $B00A           ; SET 80COL MODE
+        JMP     CLEARSCREEN
+:
+        LDA     #$02
+        STA     $B00A           ; SET 40COL MODE
+        JMP     CLEARSCREEN
+
 
 ;__CLEARSCREEN___________________________________________________________________________________________________________________
 ;
@@ -198,25 +231,50 @@ SETXY:
         STY     CURY
         RTS
 
+
+WRVIDTMP:
+        .BYTE    $00
+
 ;__WRVID_________________________________________________________________________________________________________________________
 ;
 ;	WRITE CHARACTER(A) TO VIDEO AT CURRENT X AND Y
 ;________________________________________________________________________________________________________________________________
 ;
 WRVID:
-; NEED TO ADD A CHECK FOR SCROLL
+        STA    WRVIDTMP
+        PHA
+        TXA
+        PHA
+        TYA
+        PHA
+        LDA     WRVIDTMP
         CMP     #$0D
         BNE     :+
         JSR     UNPAINTCURSOR
         LDA     #$00
         STA     CURX
-        JMP     PAINTCURSOR
+        JSR     PAINTCURSOR
+        PLA
+        TAY
+        PLA
+        TAX
+        PLA
+        RTS
 :
         CMP     #$0A
         BNE     :+
         JSR     UNPAINTCURSOR
         INC     CURY
-        JMP     PAINTCURSOR
+        LDA     CURY
+        CMP     #24
+        BEQ     SCROLLV
+        JSR     PAINTCURSOR
+        PLA
+        TAY
+        PLA
+        TAX
+        PLA
+        RTS
 :
         CMP     #$08
         BNE     WRVIDGO
@@ -250,7 +308,28 @@ WRVIDX:
         LDY     #$00
         LDA     #32
         STA     (TEMPWORD),Y
-        JMP     PAINTCURSOR
+        JSR     PAINTCURSOR
+        PLA
+        TAY
+        PLA
+        TAX
+        PLA
+        RTS
+
+
+SCROLLV:
+        JSR     SCROLLUP
+        LDA     #23
+        STA     CURY
+        LDA     #0
+        STA     CURX
+        JSR     PAINTCURSOR
+        PLA
+        TAY
+        PLA
+        TAX
+        PLA
+        RTS
 
 
 
@@ -267,26 +346,34 @@ WRVIDGO:
         LDY     #$00
         STA     (TEMPWORD),Y
 
-        LDX     VIDEOMODE
+        LDX     CURX
+        LDA     VIDEOMODE
         CMP     #$00
         BNE     :+
-        LDX     CURX
-        CPX     #40
+        CPX     #39
         BNE     :++
         INC     CURY
         LDX     #$FF
         JMP     :++
 :
-        LDX     CURX
-        CPX     #80
+        CPX     #79
         BNE     :+
         INC     CURY
         LDX     #$FF
 :
         INX
         STX     CURX
+        LDA     CURY
+        CMP     #24
+        BEQ     SCROLLV
         JSR     PAINTCURSOR
+        PLA
+        TAY
+        PLA
+        TAX
+        PLA
         RTS
+
 
 
 PAINTCURSOR:
@@ -315,6 +402,97 @@ UNPAINTCURSOR:
         STA     (TEMPWORD),Y
         RTS
 
+
+;__SCROLLUP______________________________________________________________________________________________________________________
+;
+;	SCROLL THE SCREEN UP
+;
+;
+;________________________________________________________________________________________________________________________________
+;
+SCROLLUP:
+        LDA     #$B0
+        STA     TEMPWORD+1
+        STA     TEMPWORD1+1
+        LDA     #$B8
+        STA     TEMPWORD2+1
+        STA     TEMPWORD3+1
+        LDA     #$00
+        STA     TEMPWORD
+        STA     TEMPWORD2
+
+        LDA     VIDEOMODE
+        CMP     #01
+        BNE     :+
+        LDA     #80
+        STA     TEMPWORD1
+        STA     TEMPWORD3
+        JMP     SCROLLUP_G
+:
+        LDA     #40
+        STA     TEMPWORD1
+        STA     TEMPWORD3
+
+
+SCROLLUP_G:
+        LDY     #$00
+; SCROLL UP 40/80 CHARACTERS AND COLOR
+:
+        LDA     (TEMPWORD1),Y
+        STA     (TEMPWORD),Y
+        LDA     (TEMPWORD3),Y
+        STA     (TEMPWORD2),Y
+
+        INC     TEMPWORD2
+        INC     TEMPWORD
+        BNE     :+
+        INC     TEMPWORD2+1
+        INC     TEMPWORD+1
+:
+        INC     TEMPWORD3
+        INC     TEMPWORD1
+        BNE     :--
+        INC     TEMPWORD3+1
+        INC     TEMPWORD1+1
+
+        LDA     TEMPWORD1+1
+        CMP     #$B8
+        BNE     :--
+
+
+
+; CLEAR BOTTOM LINE.
+
+        LDA     VIDEOMODE
+        CMP     #01
+        BEQ     :+
+        LDA     #$98
+        STA     TEMPWORD
+        STA     TEMPWORD1
+        LDA     #$B3
+        STA     TEMPWORD+1
+        LDA     #$BF
+        STA     TEMPWORD1+1
+
+        JMP     SCROLLUP_C
+:
+        LDA     #$30
+        STA     TEMPWORD
+        STA     TEMPWORD1
+        LDA     #$B7
+        STA     TEMPWORD+1
+        LDA     #$BB
+        STA     TEMPWORD1+1
+
+SCROLLUP_C:
+        LDA     #32
+        STA     (TEMPWORD),Y
+        LDA     CURCOLOR
+        STA     (TEMPWORD1),Y
+        INY
+        CPY     #80
+        BNE     SCROLLUP_C
+        RTS
 
 
 GETVIDEOADDRESS:
@@ -369,37 +547,19 @@ GETVIDEOADDRESS:
         STA     VIDEOWORK+1
         RTS
 
-
-;--------------------------------------------------
-
-UART1DATA       = $EF84; SERIAL PORT 1 (I/O Card)
-UART1STATUS     = $EF85; SERIAL PORT 1 (I/O Card)
-UART1COMMAND    = $EF86; SERIAL PORT 1 (I/O Card)
-UART1CONTROL    = $EF87; SERIAL PORT 1 (I/O Card)
-
-;__RDSER1________________________________________________________________________________________________________________________
+        .IFNDEF PC6502BIOS
 ;
-;	READ CHARACTER FROM UART TO (A)
-;________________________________________________________________________________________________________________________________
-;
-RDSER1:
-        LDA     UART1STATUS     ; GET STATUS REGISTER
-        AND     #%00001000      ; IS RX READY
-        BEQ     RDSER1N         ; NO, INDICATE NO CHAR
-        LDA     UART1DATA       ; GET DATA CHAR
-        RTS
-RDSER1N:
-        LDA     #$00            ;
-        RTS                     ;
-
-;__RDSER1W_______________________________________________________________________________________________________________________
-;
-;	READ CHARACTER FROM UART TO (A) - WAIT FOR CHAR
-;________________________________________________________________________________________________________________________________
-;
-RDSER1W:
-        JSR     RDSER1
-        CMP     #$00
-        BEQ     RDSER1W
-        AND     #$7F
-        RTS
+; DRIVER DATA
+;__________________________________________________________________________________________________
+; MESSAGES
+;__________________________________________________________________________________________________
+VIDEOMESSAGE1:
+        .BYTE   "MEMORY MAPPED VIDEO:",$0D,$0A
+        .BYTE   " BANK=0xF8 "
+        .BYTE   00
+VIDEOMESSAGE2:
+        .BYTE   "NOT "
+VIDEOMESSAGE3:
+        .BYTE   "FOUND."
+        .BYTE   00
+        .ENDIF

@@ -62,11 +62,11 @@ DISPATCHTABLE:
         .WORD   KBD_GETSTATUS   ; FUNCTION 17 - GET KEYBOARD STATUS
         .WORD   drv_noop        ; FUNCTION 18 - INIT INTERFACE
 
-        .WORD   drv_noop        ; FUNCTION 19
-        .WORD   drv_noop        ; FUNCTION 20
-        .WORD   drv_noop        ; FUNCTION 21
-        .WORD   drv_noop        ; FUNCTION 22
-        .WORD   drv_noop        ; FUNCTION 23
+        .WORD   WRVID           ; FUNCTION 19 - WRITE VIDEO
+        .WORD   KBD_GETKEY      ; FUNCTION 20 - READ KEYBOARD
+        .WORD   KBD_GETKEYB     ; FUNCTION 21 - READ KEYBOARD (BLOCKING)
+        .WORD   KBD_GETSTATUS   ; FUNCTION 22 - GET KEYBOARD STATUS
+        .WORD   VIDEOINIT       ; FUNCTION 23 - INIT INTERFACE
 
         .WORD   drv_noop        ; FUNCTION 24
         .WORD   drv_noop        ; FUNCTION 25
@@ -83,9 +83,9 @@ DISPATCHTABLE:
         .WORD   LPT_OUT         ; SEND BYTE TO LPT PORT ; FUNCTION 34
         .WORD   KBD_GETKEY      ; GET a character from the MULTI IO ps/2 keyboard ; FUNCTION 35
         .WORD   MULTIOINIT      ; INIT MULTI IO CARD   ; FUNCTION 36
-        .WORD   drv_noop        ; FUNCTION 37
-        .WORD   drv_noop        ; FUNCTION 38
-        .WORD   drv_noop        ; FUNCTION 39
+        .WORD   SETXY           ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 37
+        .WORD   CLEARSCREEN     ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 38
+        .WORD   SETCOLOR        ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 39
 
         .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
         .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
@@ -104,9 +104,9 @@ DISPATCHTABLE:
         .WORD   RTC_LED         ; FUNCTION 53 - CONTROL LEDS
         .WORD   RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
         .WORD   RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
-;
-        .WORD   drv_noop        ; FUNCTION 56
-        .WORD   drv_noop        ; FUNCTION 57
+
+        .WORD   SCROLLUP        ; Scroll the screen up one line  ; FUNCTION 56
+        .WORD   SETMODE         ; Set video 40/80 mode ; FUNCTION 57
         .WORD   drv_noop        ; FUNCTION 58
         .WORD   drv_noop        ; FUNCTION 59
 
@@ -134,6 +134,7 @@ DISPATCHTABLE:
         .INCLUDE "bios_esp.asm"
         .INCLUDE "bios_multi.asm"
         .INCLUDE "bios_rtc.asm"
+        .INCLUDE "bios_video.asm"
 
 
 

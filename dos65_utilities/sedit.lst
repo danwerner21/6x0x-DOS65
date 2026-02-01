@@ -38,8 +38,8 @@ Current file: sedit.asm
 000000r 1                       .SEGMENT "TEA"
 000000r 1                       .ORG    $0800
 000800  1               
-000800  1  20 87 11             JSR     CLEARBUFFER
-000803  1  20 A1 11             JSR     DOS65LOAD
+000800  1  20 BE 11             JSR     CLEARBUFFER
+000803  1  20 D8 11             JSR     DOS65LOAD
 000806  1  20 93 0E             JSR     PAINTSCREEN
 000809  1               
 000809  1  A9 00                LDA     #$00
@@ -102,8 +102,8 @@ Current file: sedit.asm
 00086B  1  14 D1 0B             .BYTE   $14,<TOGGLEMODE,>TOGGLEMODE
 00086E  1  30 F7 08             .BYTE   $30,<INSERTCR,>INSERTCR
 000871  1  7F 52 0B             .BYTE   127,<DELETECHAR,>DELETECHAR
-000874  1  18 9E 14             .BYTE   $18,<DOS65SAVE,>DOS65SAVE
-000877  1  19 83 12             .BYTE   $19,<DOS65SAVEAS,>DOS65SAVEAS
+000874  1  18 E6 14             .BYTE   $18,<DOS65SAVE,>DOS65SAVE
+000877  1  19 BA 12             .BYTE   $19,<DOS65SAVEAS,>DOS65SAVEAS
 00087A  1  24 8A 09             .BYTE   $24,<TRUNCATE,>TRUNCATE
 00087D  1  FF                   .BYTE   $FF
 00087E  1               
@@ -111,7 +111,7 @@ Current file: sedit.asm
 00087E  1               
 00087E  1               RETURN_TO_OS:
 00087E  1  20 07 10             JSR     CLEARSCREEN
-000881  1  20 77 11             JSR     READKB_XON
+000881  1  20 7E 11             JSR     READKB_XON
 000884  1  4C 00 01             JMP     $0100
 000887  1               
 000887  1               
@@ -1430,12 +1430,12 @@ Current file: sedit.asm
 001018  1  8A                   TXA
 001019  1  48                   PHA
 00101A  1  A4 0C                LDY     CSRPOSY
-00101C  1  B9 49 16             LDA     DECIMAL1+3,Y
+00101C  1  B9 91 16             LDA     DECIMAL1+3,Y
 00101F  1  29 0F                AND     #$0F
 001021  1  18                   CLC
 001022  1  69 30                ADC     #'0'
 001024  1  8D 64 10             STA     GOCSRT+3
-001027  1  B9 49 16             LDA     DECIMAL1+3,Y
+001027  1  B9 91 16             LDA     DECIMAL1+3,Y
 00102A  1  6A                   ROR     A
 00102B  1  6A                   ROR     A
 00102C  1  6A                   ROR     A
@@ -1446,12 +1446,12 @@ Current file: sedit.asm
 001033  1  8D 63 10             STA     GOCSRT+2
 001036  1               
 001036  1  A4 0B                LDY     CSRPOSX
-001038  1  B9 47 16             LDA     DECIMAL1+1,Y
+001038  1  B9 8F 16             LDA     DECIMAL1+1,Y
 00103B  1  29 0F                AND     #$0F
 00103D  1  18                   CLC
 00103E  1  69 30                ADC     #'0'
 001040  1  8D 67 10             STA     GOCSRT+6
-001043  1  B9 47 16             LDA     DECIMAL1+1,Y
+001043  1  B9 8F 16             LDA     DECIMAL1+1,Y
 001046  1  6A                   ROR     A
 001047  1  6A                   ROR     A
 001048  1  6A                   ROR     A
@@ -1553,7 +1553,7 @@ Current file: sedit.asm
 0010B5  1               ;________________________________________________________________________________________________________________________________
 0010B5  1               ;
 0010B5  1               READKB:
-0010B5  1  20 77 11             JSR     READKB_XON
+0010B5  1  20 7E 11             JSR     READKB_XON
 0010B8  1               
 0010B8  1  A9 00                LDA     #$00            ;
 0010BA  1  A0 FF                LDY     #$FF            ;
@@ -1561,14 +1561,14 @@ Current file: sedit.asm
 0010BC  1  A2 06                LDX     #6              ;
 0010BE  1  20 03 01             JSR     PEM             ;
 0010C1  1               
-0010C1  1  C9 7F                CMP     #127            ;
-0010C3  1  F0 29                BEQ     READKB_DEL      ;
+0010C1  1  C9 1B                CMP     #$1B            ;
+0010C3  1  F0 39                BEQ     READKB_ESC      ;
 0010C5  1               
-0010C5  1  C9 20                CMP     #32             ;
-0010C7  1  B0 17                BCS     READKB_CHAR     ;
+0010C5  1  C9 7F                CMP     #127          ;
+0010C7  1  F0 25                BEQ     READKB_DEL      ;
 0010C9  1               
-0010C9  1  C9 1B                CMP     #$1B            ;
-0010CB  1  F0 31                BEQ     READKB_ESC      ;
+0010C9  1  C9 20                CMP     #32             ;
+0010CB  1  B0 13                BCS     READKB_CHAR     ;
 0010CD  1               
 0010CD  1  C9 0D                CMP     #$0D            ;
 0010CF  1  F0 07                BEQ     READKB_CR       ;
@@ -1579,30 +1579,30 @@ Current file: sedit.asm
 0010D5  1  4C F6 10             JMP     READKB_ERR      ;
 0010D8  1               
 0010D8  1               READKB_CR:
-0010D8  1  20 7D 11             JSR     READKB_XOFF
+0010D8  1  20 84 11             JSR     READKB_XOFF
 0010DB  1  A0 01                LDY     #01
 0010DD  1  A9 30                LDA     #$30
 0010DF  1  60                   RTS
 0010E0  1               
 0010E0  1               READKB_CHAR:
-0010E0  1  20 7D 11             JSR     READKB_XOFF
+0010E0  1  20 84 11             JSR     READKB_XOFF
 0010E3  1  A0 00                LDY     #00
 0010E5  1  60                   RTS
 0010E6  1               
 0010E6  1               READKB_BS:
-0010E6  1  20 7D 11             JSR     READKB_XOFF
+0010E6  1  20 84 11             JSR     READKB_XOFF
 0010E9  1  A0 01                LDY     #01
 0010EB  1  A9 08                LDA     #08
 0010ED  1  60                   RTS
 0010EE  1               
 0010EE  1               READKB_DEL:
-0010EE  1  20 7D 11             JSR     READKB_XOFF
+0010EE  1  20 84 11             JSR     READKB_XOFF
 0010F1  1  A0 01                LDY     #01
 0010F3  1  A9 7F                LDA     #127
 0010F5  1  60                   RTS
 0010F6  1               
 0010F6  1               READKB_ERR:
-0010F6  1  20 7D 11             JSR     READKB_XOFF
+0010F6  1  20 84 11             JSR     READKB_XOFF
 0010F9  1  A0 FF                LDY     #$FF
 0010FB  1  A9 00                LDA     #$00
 0010FD  1  60                   RTS
@@ -1611,682 +1611,726 @@ Current file: sedit.asm
 0010FE  1  A2 06                LDX     #6              ;
 001100  1  20 03 01             JSR     PEM             ;
 001103  1               
-001103  1  C9 5B                CMP     #'['
-001105  1  D0 EF                BNE     READKB_ERR
-001107  1               
-001107  1  A2 06                LDX     #6              ;
-001109  1  20 03 01             JSR     PEM             ;
-00110C  1               
-00110C  1  48                   PHA
-00110D  1  29 F0                AND     #$F0
-00110F  1  AA                   TAX
-001110  1  68                   PLA
-001111  1  E0 30                CPX     #$30
-001113  1  D0 2C                BNE     READKB_NOTFKEY
-001115  1  29 0F                AND     #$0F
-001117  1  85 08                STA     TEMP
-001119  1  A2 06                LDX     #6              ;
-00111B  1  20 03 01             JSR     PEM             ;
-00111E  1  C9 7E                CMP     #'~'
-001120  1  D0 05                BNE     READKB_FKEY1
-001122  1  A9 00                LDA     #$00
-001124  1  4C 38 11             JMP     READKB_FKEY2
-001127  1               READKB_FKEY1:
-001127  1  48                   PHA
-001128  1               
-001128  1  A2 06                LDX     #6              ;
-00112A  1  20 03 01             JSR     PEM             ;
-00112D  1  06 08                ASL     TEMP
-00112F  1  06 08                ASL     TEMP
-001131  1  06 08                ASL     TEMP
-001133  1  06 08                ASL     TEMP
-001135  1               
-001135  1  68                   PLA
-001136  1  29 0F                AND     #$0F
-001138  1               READKB_FKEY2:
-001138  1  18                   CLC
-001139  1  65 08                ADC     TEMP
-00113B  1  A0 01                LDY     #01
-00113D  1  20 7D 11             JSR     READKB_XOFF
-001140  1               
-001140  1  60                   RTS
-001141  1               
-001141  1               
-001141  1               READKB_NOTFKEY:
-001141  1  C9 41                CMP     #'A'
-001143  1  D0 08                BNE     READKB_NOTUP
-001145  1  A0 01                LDY     #01
-001147  1  A9 00                LDA     #00
-001149  1  20 7D 11             JSR     READKB_XOFF
-00114C  1  60                   RTS
-00114D  1               
-00114D  1               READKB_NOTUP:
-00114D  1  C9 42                CMP     #'B'
-00114F  1  D0 08                BNE     READKB_NOTDN
-001151  1  A0 01                LDY     #01
-001153  1  A9 01                LDA     #01
-001155  1  20 7D 11             JSR     READKB_XOFF
-001158  1  60                   RTS
-001159  1               READKB_NOTDN:
-001159  1  C9 44                CMP     #'D'
-00115B  1  D0 08                BNE     READKB_NOTLEFT
-00115D  1  A0 01                LDY     #01
-00115F  1  A9 02                LDA     #02
-001161  1  20 7D 11             JSR     READKB_XOFF
-001164  1  60                   RTS
-001165  1               READKB_NOTLEFT:
-001165  1  C9 43                CMP     #'C'
-001167  1  D0 08                BNE     READKB_NOTRIGHT
-001169  1  A0 01                LDY     #01
-00116B  1  A9 03                LDA     #03
-00116D  1  20 7D 11             JSR     READKB_XOFF
-001170  1  60                   RTS
-001171  1               READKB_NOTRIGHT:
-001171  1  20 7D 11             JSR     READKB_XOFF
-001174  1  4C F6 10             JMP     READKB_ERR
-001177  1               
-001177  1               READKB_XON:
-001177  1  48                   PHA
-001178  1  A9 11                LDA     #17
-00117A  1  4C 80 11             JMP     READKB_XOFF1
-00117D  1               READKB_XOFF:
-00117D  1  48                   PHA
-00117E  1  A9 13                LDA     #19
-001180  1               READKB_XOFF1:
-001180  1  A2 02                LDX     #2              ;  OUTPUT THE CHAR TO THE CONSOLE
-001182  1  20 03 01             JSR     PEM             ;
-001185  1  68                   PLA
-001186  1  60                   RTS
-001187  1               
-001187  1               ;__CLEARBUFFER___________________________________________________________________________________________________________________
-001187  1               ;
-001187  1               ; 	CLEAR THE EDIT BUFFER
-001187  1               ;
-001187  1               ;
-001187  1               ;
-001187  1               ;________________________________________________________________________________________________________________________________
-001187  1               ;
-001187  1               CLEARBUFFER:
-001187  1  A9 00                LDA     #<BUFFER        ; SETUP BUFFER
-001189  1  85 0D                STA     EDTPOS          ;
-00118B  1  A9 18                LDA     #>BUFFER        ;
-00118D  1  85 0E                STA     EDTPOS+1        ;
-00118F  1  A0 00                LDY     #$00            ;
-001191  1               
-001191  1               CLEARBUFFER1:
-001191  1  A9 00                LDA     #00
-001193  1  91 0D                STA     (EDTPOS),Y
-001195  1  C8                   INY
-001196  1  D0 F9                BNE     CLEARBUFFER1
-001198  1  E6 0E                INC     EDTPOS+1
-00119A  1  A5 0E                LDA     EDTPOS+1
-00119C  1  C9 B8                CMP     #>Ram_top       ; are we at the end of RAM?
-00119E  1  D0 F1                BNE     CLEARBUFFER1
-0011A0  1               
-0011A0  1  60                   RTS
-0011A1  1               
-0011A1  1               
-0011A1  1               ;__DOS65LOAD_____________________________________________________________________________________________________________________
-0011A1  1               ;
-0011A1  1               ; 	LOAD A DOS/65 FILE INTO THE EDIT BUFFER
-0011A1  1               ;		FILE IS LOADED INTO 80 COLUMN LINES TO SIMPLIFY SCROLLING
-0011A1  1               ;
-0011A1  1               ;
-0011A1  1               ;________________________________________________________________________________________________________________________________
-0011A1  1               ;
-0011A1  1               DOS65LOAD:
-0011A1  1  A9 00                LDA     #0              ; clear
-0011A3  1  8D 27 01             STA     DFLFCB+32       ; record number
-0011A6  1  A9 07                LDA     #<DFLFCB        ; Open File
-0011A8  1  A0 01                LDY     #>DFLFCB        ;
-0011AA  1  A2 0F                LDX     #15             ;
-0011AC  1  20 03 01             JSR     PEM             ;
-0011AF  1  C9 FF                CMP     #$FF            ; error?, if NOT, continue
-0011B1  1  D0 22                BNE     DOS65LOAD_1     ;
-0011B3  1               
-0011B3  1  A9 00                LDA     #<BUFFER        ; SETUP BUFFER
-0011B5  1  85 09                STA     FCBPTR          ; STORE DEST BUFFER IN FCBPTR
-0011B7  1  A9 18                LDA     #>BUFFER        ;
-0011B9  1  85 0A                STA     FCBPTR+1        ; STORE DEST BUFFER IN FCBPTR
-0011BB  1  A5 09                LDA     FCBPTR          ;
-0011BD  1  85 12                STA     CURRENTLEN      ;
-0011BF  1  A5 0A                LDA     FCBPTR+1        ;
-0011C1  1  85 13                STA     CURRENTLEN+1    ;
-0011C3  1  A9 0D                LDA     #13
-0011C5  1  20 59 12             JSR     DOS65LOAD_STOREBT
-0011C8  1  60                   RTS                     ; OPEN EDITOR, BLANK FILE
-0011C9  1               
-0011C9  1               DOS65LOAD_ERR:
-0011C9  1  A9 F6                LDA     #<FILEERROR2    ; NO, ERROR OUT
-0011CB  1  A0 15                LDY     #>FILEERROR2
-0011CD  1  A2 09                LDX     #9              ; Print error message
-0011CF  1  20 03 01             JSR     PEM             ;
-0011D2  1  4C 00 01             JMP     BOOT            ; WARM BOOT DOS/65
-0011D5  1               DOS65LOAD_1:
-0011D5  1  A9 00                LDA     #0              ; clear
-0011D7  1  8D 27 01             STA     DFLFCB+32       ; record number
-0011DA  1  85 12                STA     CURRENTLEN      ; LENGTH COUNTER
-0011DC  1  A9 00                LDA     #<BUFFER        ; SETUP BUFFER
-0011DE  1  85 09                STA     FCBPTR          ; STORE DEST BUFFER IN FCBPTR
-0011E0  1  A9 18                LDA     #>BUFFER        ;
-0011E2  1  85 0A                STA     FCBPTR+1        ; STORE DEST BUFFER IN FCBPTR
-0011E4  1               
-0011E4  1  A9 AA                LDA     #<FCBBUFFER     ; SETUP BUFFER
-0011E6  1  85 0F                STA     TMPPOS          ;
-0011E8  1  A0 16                LDY     #>FCBBUFFER
-0011EA  1  84 10                STY     TMPPOS+1        ;
-0011EC  1  A2 1A                LDX     #26             ; Setup Buffer
-0011EE  1  20 03 01             JSR     PEM
-0011F1  1               
-0011F1  1               DOS65LOAD_2:
-0011F1  1  A9 07                LDA     #<DFLFCB        ; READ record buffer from disk file
-0011F3  1  A0 01                LDY     #>DFLFCB        ;
-0011F5  1  A2 14                LDX     #20             ;
-0011F7  1  20 03 01             JSR     PEM             ;
-0011FA  1  C9 00                CMP     #$00            ; is error or EOF
-0011FC  1  F0 07                BEQ     DOS65LOAD_3     ;
-0011FE  1  C9 01                CMP     #$01            ; EOF?
-001200  1  F0 40                BEQ     DOS65LOAD_EOF   ; YES, END
-001202  1  4C C9 11             JMP     DOS65LOAD_ERR   ; ERROR, do error handling
-001205  1               DOS65LOAD_3:
-001205  1  A2 00                LDX     #$00            ; CLEAR COUNTERS
-001207  1  A0 00                LDY     #$00            ;
-001209  1               DOS65LOAD_3A:
-001209  1  B1 0F                LDA     (TMPPOS),Y      ; LOAD BYTE FROM BUFFER
-00120B  1  C8                   INY                     ; INC BUFFER COUNTER
-00120C  1  C9 1A                CMP     #$1A            ; IF EOF, SIGNAL END
-00120E  1  F0 37                BEQ     DOS65LOAD_4     ;
-001210  1  C9 0D                CMP     #$0D            ; IF CR PLACE IT IN BUFFER AND PAD WITH SPACES TO MAXCOL
-001212  1  F0 12                BEQ     DOS65LOAD_3D    ;
-001214  1  C9 20                CMP     #32             ; IF UNPRINTABLE, DO NOT PLACE IN BUFFER
-001216  1  90 07                BCC     DOS65LOAD_3C    ;
-001218  1  C9 7F                CMP     #127            ;
-00121A  1  B0 03                BCS     DOS65LOAD_3C    ;
-00121C  1  20 59 12             JSR     DOS65LOAD_STOREBT; STORE THE BYTE IN THE BUFFER
-00121F  1               DOS65LOAD_3C:
-00121F  1  C0 80                CPY     #$80            ; ARE WE AT THE END OF THE SOURCE BUFFER?
-001221  1  D0 E6                BNE     DOS65LOAD_3A    ; NO, LOOP
-001223  1               
-001223  1  4C F1 11             JMP     DOS65LOAD_2     ; KEEP GOING!
-001226  1               
-001226  1               DOS65LOAD_3D:                   ; IN ORDER TO MAKE SCROLLING EASIER <CR> LINES NEED PADDED TO MAXCOL
-001226  1  20 59 12             JSR     DOS65LOAD_STOREBT; STORE THE <CR> BYTE
-001229  1               DOS65LOAD_3D1:
-001229  1  A5 12                LDA     CURRENTLEN      ;
-00122B  1  C9 50                CMP     #MAXCOL         ;
-00122D  1  F0 0C                BEQ     DOS65LOAD_3D2   ;
-00122F  1  A9 00                LDA     #$00            ;
-001231  1  81 09                STA     (FCBPTR,X)      ; PLACE CHAR IN BUFFER
-001233  1  E6 12                INC     CURRENTLEN      ; INC THE LENGTH COUNTER
-001235  1  20 67 12             JSR     DOS65LOAD_STOREBT1; INC THE BUFFER POINTER
-001238  1  4C 29 12             JMP     DOS65LOAD_3D1   ;
-00123B  1               DOS65LOAD_3D2:
-00123B  1  A9 00                LDA     #$00            ;
-00123D  1  85 12                STA     CURRENTLEN      ;
-00123F  1  4C 1F 12             JMP     DOS65LOAD_3C    ;
-001242  1               DOS65LOAD_EOF:
-001242  1  A9 0D                LDA     #13
-001244  1  20 59 12             JSR     DOS65LOAD_STOREBT
-001247  1               
-001247  1               DOS65LOAD_4:
-001247  1  A9 07                LDA     #<DFLFCB        ; CLOSE FILE
-001249  1  A0 01                LDY     #>DFLFCB        ;
-00124B  1  A2 10                LDX     #16             ;
-00124D  1  20 03 01             JSR     PEM             ;
-001250  1  A5 09                LDA     FCBPTR          ;
-001252  1  85 12                STA     CURRENTLEN      ;
-001254  1  A5 0A                LDA     FCBPTR+1        ;
-001256  1  85 13                STA     CURRENTLEN+1    ;
-001258  1  60                   RTS
-001259  1               
-001259  1               
-001259  1               DOS65LOAD_STOREBT:
-001259  1  81 09                STA     (FCBPTR,X)      ; PLACE CHAR IN BUFFER
-00125B  1  E6 12                INC     CURRENTLEN      ; INC THE LENGTH COUNTER
-00125D  1  A5 12                LDA     CURRENTLEN      ;
-00125F  1  C9 50                CMP     #MAXCOL         ; WRAP THE COUNTER ON MAXCOL
-001261  1  D0 04                BNE     DOS65LOAD_STOREBT1;
-001263  1  A9 00                LDA     #$00            ;
-001265  1  85 12                STA     CURRENTLEN      ;
-001267  1               DOS65LOAD_STOREBT1:
-001267  1  E6 09                INC     FCBPTR          ; add to base counter
-001269  1  D0 08                BNE     DOS65LOAD_STOREBT2
-00126B  1  E6 0A                INC     FCBPTR+1        ; yes, carry, inc high byte
-00126D  1  A5 0A                LDA     FCBPTR+1        ;
-00126F  1  C9 B8                CMP     #>Ram_top       ; are we at the end of RAM?
-001271  1  F0 01                BEQ     DOS65LOAD_STOREBTE; YES, STOP.
-001273  1               DOS65LOAD_STOREBT2:
-001273  1  60                   RTS
-001274  1               DOS65LOAD_STOREBTE:
-001274  1  20 47 12             JSR     DOS65LOAD_4     ; CLOSE FILE
-001277  1  A9 1F                LDA     #<FILEERROR3    ; NO, ERROR OUT
-001279  1  A0 16                LDY     #>FILEERROR3
-00127B  1  A2 09                LDX     #9              ; Print error message
-00127D  1  20 03 01             JSR     PEM             ;
-001280  1  4C 00 01             JMP     BOOT            ; WARM BOOT DOS/65
-001283  1               
-001283  1               
-001283  1               ;__DOS65SAVEAS_____________________________________________________________________________________________________________________
-001283  1               ;
-001283  1               ; 	SAVE A DOS/65 FILE FROM THE EDIT BUFFER TO A NEW FILE NAME
-001283  1               ;
-001283  1               ;
-001283  1               ;
-001283  1               ;________________________________________________________________________________________________________________________________
-001283  1               ;
-001283  1               DOS65SAVEAS:
-001283  1  20 07 10             JSR     CLEARSCREEN
-001286  1               
-001286  1  A9 BD                LDA     #<SAVESCREENFORMAT
-001288  1  A0 12                LDY     #>SAVESCREENFORMAT
-00128A  1  A2 09                LDX     #9              ;
-00128C  1  20 03 01             JSR     PEM             ;
-00128F  1  A9 06                LDA     #<SAVESCREENFORMAT1
-001291  1  A0 13                LDY     #>SAVESCREENFORMAT1
-001293  1  A2 09                LDX     #9              ;
-001295  1  20 03 01             JSR     PEM             ;
-001298  1               DOS65SAVEAS1:
-001298  1  A9 C6                LDA     #<SAVESCREENFORMAT2
-00129A  1  A0 13                LDY     #>SAVESCREENFORMAT2
-00129C  1  A2 09                LDX     #9              ;
-00129E  1  20 03 01             JSR     PEM             ;
-0012A1  1               
-0012A1  1  A2 0D                LDX     #13
-0012A3  1  A9 20                LDA     #' '
-0012A5  1               DOS65SAVEAS2:
-0012A5  1  8D 0B 14             STA     FNBUFFER
-0012A8  1  CA                   DEX
-0012A9  1  E0 00                CPX     #$00
-0012AB  1  D0 F8                BNE     DOS65SAVEAS2
-0012AD  1  20 1D 14             JSR     GETFILENAME
-0012B0  1  20 6F 15             JSR     DOS65FCBPREP
-0012B3  1  C9 FF                CMP     #$FF
-0012B5  1  F0 E1                BEQ     DOS65SAVEAS1
-0012B7  1               
-0012B7  1  20 9E 14             JSR     DOS65SAVE
-0012BA  1  4C 93 0E             JMP     PAINTSCREEN
+001103  1  C9 4F                CMP     #79             ; ANSI
+001105  1  D0 03                BNE     :+
+001107  1  4C 8E 11             JMP     READKB_ANSIKEYS
+00110A  1               :
+00110A  1  C9 5B                CMP     #'['            ; VT100
+00110C  1  D0 E8                BNE     READKB_ERR
+00110E  1               
+00110E  1  A2 06                LDX     #6              ;
+001110  1  20 03 01             JSR     PEM             ;
+001113  1               
+001113  1  48                   PHA
+001114  1  29 F0                AND     #$F0
+001116  1  AA                   TAX
+001117  1  68                   PLA
+001118  1  E0 30                CPX     #$30
+00111A  1  D0 2C                BNE     READKB_NOTFKEY
+00111C  1  29 0F                AND     #$0F
+00111E  1  85 08                STA     TEMP
+001120  1  A2 06                LDX     #6              ;
+001122  1  20 03 01             JSR     PEM             ;
+001125  1  C9 7E                CMP     #'~'
+001127  1  D0 05                BNE     READKB_FKEY1
+001129  1  A9 00                LDA     #$00
+00112B  1  4C 3F 11             JMP     READKB_FKEY2
+00112E  1               READKB_FKEY1:
+00112E  1  48                   PHA
+00112F  1               
+00112F  1  A2 06                LDX     #6              ;
+001131  1  20 03 01             JSR     PEM             ;
+001134  1  06 08                ASL     TEMP
+001136  1  06 08                ASL     TEMP
+001138  1  06 08                ASL     TEMP
+00113A  1  06 08                ASL     TEMP
+00113C  1               
+00113C  1  68                   PLA
+00113D  1  29 0F                AND     #$0F
+00113F  1               READKB_FKEY2:
+00113F  1  18                   CLC
+001140  1  65 08                ADC     TEMP
+001142  1  A0 01                LDY     #01
+001144  1  20 84 11             JSR     READKB_XOFF
+001147  1               
+001147  1  60                   RTS
+001148  1               
+001148  1               
+001148  1               READKB_NOTFKEY:
+001148  1  C9 41                CMP     #'A'
+00114A  1  D0 08                BNE     READKB_NOTUP
+00114C  1  A0 01                LDY     #01
+00114E  1  A9 00                LDA     #00
+001150  1  20 84 11             JSR     READKB_XOFF
+001153  1  60                   RTS
+001154  1               
+001154  1               READKB_NOTUP:
+001154  1  C9 42                CMP     #'B'
+001156  1  D0 08                BNE     READKB_NOTDN
+001158  1  A0 01                LDY     #01
+00115A  1  A9 01                LDA     #01
+00115C  1  20 84 11             JSR     READKB_XOFF
+00115F  1  60                   RTS
+001160  1               READKB_NOTDN:
+001160  1  C9 44                CMP     #'D'
+001162  1  D0 08                BNE     READKB_NOTLEFT
+001164  1  A0 01                LDY     #01
+001166  1  A9 02                LDA     #02
+001168  1  20 84 11             JSR     READKB_XOFF
+00116B  1  60                   RTS
+00116C  1               READKB_NOTLEFT:
+00116C  1  C9 43                CMP     #'C'
+00116E  1  D0 08                BNE     READKB_NOTRIGHT
+001170  1  A0 01                LDY     #01
+001172  1  A9 03                LDA     #03
+001174  1  20 84 11             JSR     READKB_XOFF
+001177  1  60                   RTS
+001178  1               READKB_NOTRIGHT:
+001178  1  20 84 11             JSR     READKB_XOFF
+00117B  1  4C F6 10             JMP     READKB_ERR
+00117E  1               
+00117E  1               READKB_XON:
+00117E  1  48                   PHA
+00117F  1  A9 11                LDA     #17
+001181  1  4C 87 11             JMP     READKB_XOFF1
+001184  1               READKB_XOFF:
+001184  1  48                   PHA
+001185  1  A9 13                LDA     #19
+001187  1               READKB_XOFF1:
+001187  1  A2 02                LDX     #2              ;  OUTPUT THE CHAR TO THE CONSOLE
+001189  1  20 03 01             JSR     PEM             ;
+00118C  1  68                   PLA
+00118D  1  60                   RTS
+00118E  1               
+00118E  1               READKB_ANSIKEYS:
+00118E  1  A2 06                LDX     #6              ;
+001190  1  20 03 01             JSR     PEM             ;
+001193  1  48                   PHA
+001194  1  29 F0                AND     #$F0
+001196  1  C9 50                CMP     #$50
+001198  1  D0 0E                BNE     :+
+00119A  1  68                   PLA
+00119B  1  29 0F                AND     #$0F
+00119D  1  09 10                ORA     #$10
+00119F  1  18                   CLC
+0011A0  1  69 01                ADC     #$01
+0011A2  1  C9 1A                CMP     #$1A
+0011A4  1  D0 02                BNE     :+
+0011A6  1  A9 24                LDA     #$24
+0011A8  1               :
+0011A8  1  C9 18                CMP     #$18
+0011AA  1  D0 02                BNE     :+
+0011AC  1  A9 19                LDA     #$19
+0011AE  1               :
+0011AE  1  C9 17                CMP     #$17
+0011B0  1  D0 02                BNE     :+
+0011B2  1  A9 18                LDA     #$18
+0011B4  1               :
+0011B4  1  A0 01                LDY     #01
+0011B6  1  20 84 11             JSR     READKB_XOFF
+0011B9  1  60                   RTS
+0011BA  1               :
+0011BA  1  68                   PLA
+0011BB  1  4C F6 10             JMP     READKB_ERR
+0011BE  1               
+0011BE  1               
+0011BE  1               ;__CLEARBUFFER___________________________________________________________________________________________________________________
+0011BE  1               ;
+0011BE  1               ; 	CLEAR THE EDIT BUFFER
+0011BE  1               ;
+0011BE  1               ;
+0011BE  1               ;
+0011BE  1               ;________________________________________________________________________________________________________________________________
+0011BE  1               ;
+0011BE  1               CLEARBUFFER:
+0011BE  1  A9 00                LDA     #<BUFFER        ; SETUP BUFFER
+0011C0  1  85 0D                STA     EDTPOS          ;
+0011C2  1  A9 18                LDA     #>BUFFER        ;
+0011C4  1  85 0E                STA     EDTPOS+1        ;
+0011C6  1  A0 00                LDY     #$00            ;
+0011C8  1               
+0011C8  1               CLEARBUFFER1:
+0011C8  1  A9 00                LDA     #00
+0011CA  1  91 0D                STA     (EDTPOS),Y
+0011CC  1  C8                   INY
+0011CD  1  D0 F9                BNE     CLEARBUFFER1
+0011CF  1  E6 0E                INC     EDTPOS+1
+0011D1  1  A5 0E                LDA     EDTPOS+1
+0011D3  1  C9 B8                CMP     #>Ram_top       ; are we at the end of RAM?
+0011D5  1  D0 F1                BNE     CLEARBUFFER1
+0011D7  1               
+0011D7  1  60                   RTS
+0011D8  1               
+0011D8  1               
+0011D8  1               ;__DOS65LOAD_____________________________________________________________________________________________________________________
+0011D8  1               ;
+0011D8  1               ; 	LOAD A DOS/65 FILE INTO THE EDIT BUFFER
+0011D8  1               ;		FILE IS LOADED INTO 80 COLUMN LINES TO SIMPLIFY SCROLLING
+0011D8  1               ;
+0011D8  1               ;
+0011D8  1               ;________________________________________________________________________________________________________________________________
+0011D8  1               ;
+0011D8  1               DOS65LOAD:
+0011D8  1  A9 00                LDA     #0              ; clear
+0011DA  1  8D 27 01             STA     DFLFCB+32       ; record number
+0011DD  1  A9 07                LDA     #<DFLFCB        ; Open File
+0011DF  1  A0 01                LDY     #>DFLFCB        ;
+0011E1  1  A2 0F                LDX     #15             ;
+0011E3  1  20 03 01             JSR     PEM             ;
+0011E6  1  C9 FF                CMP     #$FF            ; error?, if NOT, continue
+0011E8  1  D0 22                BNE     DOS65LOAD_1     ;
+0011EA  1               
+0011EA  1  A9 00                LDA     #<BUFFER        ; SETUP BUFFER
+0011EC  1  85 09                STA     FCBPTR          ; STORE DEST BUFFER IN FCBPTR
+0011EE  1  A9 18                LDA     #>BUFFER        ;
+0011F0  1  85 0A                STA     FCBPTR+1        ; STORE DEST BUFFER IN FCBPTR
+0011F2  1  A5 09                LDA     FCBPTR          ;
+0011F4  1  85 12                STA     CURRENTLEN      ;
+0011F6  1  A5 0A                LDA     FCBPTR+1        ;
+0011F8  1  85 13                STA     CURRENTLEN+1    ;
+0011FA  1  A9 0D                LDA     #13
+0011FC  1  20 90 12             JSR     DOS65LOAD_STOREBT
+0011FF  1  60                   RTS                     ; OPEN EDITOR, BLANK FILE
+001200  1               
+001200  1               DOS65LOAD_ERR:
+001200  1  A9 3E                LDA     #<FILEERROR2    ; NO, ERROR OUT
+001202  1  A0 16                LDY     #>FILEERROR2
+001204  1  A2 09                LDX     #9              ; Print error message
+001206  1  20 03 01             JSR     PEM             ;
+001209  1  4C 00 01             JMP     BOOT            ; WARM BOOT DOS/65
+00120C  1               DOS65LOAD_1:
+00120C  1  A9 00                LDA     #0              ; clear
+00120E  1  8D 27 01             STA     DFLFCB+32       ; record number
+001211  1  85 12                STA     CURRENTLEN      ; LENGTH COUNTER
+001213  1  A9 00                LDA     #<BUFFER        ; SETUP BUFFER
+001215  1  85 09                STA     FCBPTR          ; STORE DEST BUFFER IN FCBPTR
+001217  1  A9 18                LDA     #>BUFFER        ;
+001219  1  85 0A                STA     FCBPTR+1        ; STORE DEST BUFFER IN FCBPTR
+00121B  1               
+00121B  1  A9 F2                LDA     #<FCBBUFFER     ; SETUP BUFFER
+00121D  1  85 0F                STA     TMPPOS          ;
+00121F  1  A0 16                LDY     #>FCBBUFFER
+001221  1  84 10                STY     TMPPOS+1        ;
+001223  1  A2 1A                LDX     #26             ; Setup Buffer
+001225  1  20 03 01             JSR     PEM
+001228  1               
+001228  1               DOS65LOAD_2:
+001228  1  A9 07                LDA     #<DFLFCB        ; READ record buffer from disk file
+00122A  1  A0 01                LDY     #>DFLFCB        ;
+00122C  1  A2 14                LDX     #20             ;
+00122E  1  20 03 01             JSR     PEM             ;
+001231  1  C9 00                CMP     #$00            ; is error or EOF
+001233  1  F0 07                BEQ     DOS65LOAD_3     ;
+001235  1  C9 01                CMP     #$01            ; EOF?
+001237  1  F0 40                BEQ     DOS65LOAD_EOF   ; YES, END
+001239  1  4C 00 12             JMP     DOS65LOAD_ERR   ; ERROR, do error handling
+00123C  1               DOS65LOAD_3:
+00123C  1  A2 00                LDX     #$00            ; CLEAR COUNTERS
+00123E  1  A0 00                LDY     #$00            ;
+001240  1               DOS65LOAD_3A:
+001240  1  B1 0F                LDA     (TMPPOS),Y      ; LOAD BYTE FROM BUFFER
+001242  1  C8                   INY                     ; INC BUFFER COUNTER
+001243  1  C9 1A                CMP     #$1A            ; IF EOF, SIGNAL END
+001245  1  F0 37                BEQ     DOS65LOAD_4     ;
+001247  1  C9 0D                CMP     #$0D            ; IF CR PLACE IT IN BUFFER AND PAD WITH SPACES TO MAXCOL
+001249  1  F0 12                BEQ     DOS65LOAD_3D    ;
+00124B  1  C9 20                CMP     #32             ; IF UNPRINTABLE, DO NOT PLACE IN BUFFER
+00124D  1  90 07                BCC     DOS65LOAD_3C    ;
+00124F  1  C9 7F                CMP     #127            ;
+001251  1  B0 03                BCS     DOS65LOAD_3C    ;
+001253  1  20 90 12             JSR     DOS65LOAD_STOREBT; STORE THE BYTE IN THE BUFFER
+001256  1               DOS65LOAD_3C:
+001256  1  C0 80                CPY     #$80            ; ARE WE AT THE END OF THE SOURCE BUFFER?
+001258  1  D0 E6                BNE     DOS65LOAD_3A    ; NO, LOOP
+00125A  1               
+00125A  1  4C 28 12             JMP     DOS65LOAD_2     ; KEEP GOING!
+00125D  1               
+00125D  1               DOS65LOAD_3D:                   ; IN ORDER TO MAKE SCROLLING EASIER <CR> LINES NEED PADDED TO MAXCOL
+00125D  1  20 90 12             JSR     DOS65LOAD_STOREBT; STORE THE <CR> BYTE
+001260  1               DOS65LOAD_3D1:
+001260  1  A5 12                LDA     CURRENTLEN      ;
+001262  1  C9 50                CMP     #MAXCOL         ;
+001264  1  F0 0C                BEQ     DOS65LOAD_3D2   ;
+001266  1  A9 00                LDA     #$00            ;
+001268  1  81 09                STA     (FCBPTR,X)      ; PLACE CHAR IN BUFFER
+00126A  1  E6 12                INC     CURRENTLEN      ; INC THE LENGTH COUNTER
+00126C  1  20 9E 12             JSR     DOS65LOAD_STOREBT1; INC THE BUFFER POINTER
+00126F  1  4C 60 12             JMP     DOS65LOAD_3D1   ;
+001272  1               DOS65LOAD_3D2:
+001272  1  A9 00                LDA     #$00            ;
+001274  1  85 12                STA     CURRENTLEN      ;
+001276  1  4C 56 12             JMP     DOS65LOAD_3C    ;
+001279  1               DOS65LOAD_EOF:
+001279  1  A9 0D                LDA     #13
+00127B  1  20 90 12             JSR     DOS65LOAD_STOREBT
+00127E  1               
+00127E  1               DOS65LOAD_4:
+00127E  1  A9 07                LDA     #<DFLFCB        ; CLOSE FILE
+001280  1  A0 01                LDY     #>DFLFCB        ;
+001282  1  A2 10                LDX     #16             ;
+001284  1  20 03 01             JSR     PEM             ;
+001287  1  A5 09                LDA     FCBPTR          ;
+001289  1  85 12                STA     CURRENTLEN      ;
+00128B  1  A5 0A                LDA     FCBPTR+1        ;
+00128D  1  85 13                STA     CURRENTLEN+1    ;
+00128F  1  60                   RTS
+001290  1               
+001290  1               
+001290  1               DOS65LOAD_STOREBT:
+001290  1  81 09                STA     (FCBPTR,X)      ; PLACE CHAR IN BUFFER
+001292  1  E6 12                INC     CURRENTLEN      ; INC THE LENGTH COUNTER
+001294  1  A5 12                LDA     CURRENTLEN      ;
+001296  1  C9 50                CMP     #MAXCOL         ; WRAP THE COUNTER ON MAXCOL
+001298  1  D0 04                BNE     DOS65LOAD_STOREBT1;
+00129A  1  A9 00                LDA     #$00            ;
+00129C  1  85 12                STA     CURRENTLEN      ;
+00129E  1               DOS65LOAD_STOREBT1:
+00129E  1  E6 09                INC     FCBPTR          ; add to base counter
+0012A0  1  D0 08                BNE     DOS65LOAD_STOREBT2
+0012A2  1  E6 0A                INC     FCBPTR+1        ; yes, carry, inc high byte
+0012A4  1  A5 0A                LDA     FCBPTR+1        ;
+0012A6  1  C9 B8                CMP     #>Ram_top       ; are we at the end of RAM?
+0012A8  1  F0 01                BEQ     DOS65LOAD_STOREBTE; YES, STOP.
+0012AA  1               DOS65LOAD_STOREBT2:
+0012AA  1  60                   RTS
+0012AB  1               DOS65LOAD_STOREBTE:
+0012AB  1  20 7E 12             JSR     DOS65LOAD_4     ; CLOSE FILE
+0012AE  1  A9 67                LDA     #<FILEERROR3    ; NO, ERROR OUT
+0012B0  1  A0 16                LDY     #>FILEERROR3
+0012B2  1  A2 09                LDX     #9              ; Print error message
+0012B4  1  20 03 01             JSR     PEM             ;
+0012B7  1  4C 00 01             JMP     BOOT            ; WARM BOOT DOS/65
+0012BA  1               
+0012BA  1               
+0012BA  1               ;__DOS65SAVEAS_____________________________________________________________________________________________________________________
+0012BA  1               ;
+0012BA  1               ; 	SAVE A DOS/65 FILE FROM THE EDIT BUFFER TO A NEW FILE NAME
+0012BA  1               ;
+0012BA  1               ;
+0012BA  1               ;
+0012BA  1               ;________________________________________________________________________________________________________________________________
+0012BA  1               ;
+0012BA  1               DOS65SAVEAS:
+0012BA  1  20 07 10             JSR     CLEARSCREEN
 0012BD  1               
-0012BD  1               SAVESCREENFORMAT:
-0012BD  1  1B 5B 30 30          .BYTE   $1B,'[','0','0',';','0','0','H'
-0012C1  1  3B 30 30 48  
-0012C5  1  1B 5B 37 6D          .BYTE   $1B,'[','7','m'
-0012C9  1  44 4F 53 2F          .BYTE   "DOS/65 SCREEN EDITOR"
-0012CD  1  36 35 20 53  
-0012D1  1  43 52 45 45  
-0012DD  1  20 20 20 20          .BYTE   "                    "
-0012E1  1  20 20 20 20  
-0012E5  1  20 20 20 20  
-0012F1  1  20 20 20 20          .BYTE   "                    ",'$'
-0012F5  1  20 20 20 20  
-0012F9  1  20 20 20 20  
-001306  1               
-001306  1               SAVESCREENFORMAT1:
-001306  1  20 20 20 20          .BYTE   "                    "
-00130A  1  20 20 20 20  
-00130E  1  20 20 20 20  
-00131A  1  5F 5F 5F 5F          .BYTE   "____________________"
-00131E  1  5F 5F 5F 5F  
-001322  1  5F 5F 5F 5F  
-00132E  1  5F 5F 5F 5F          .BYTE   "____________________"
-001332  1  5F 5F 5F 5F  
-001336  1  5F 5F 5F 5F  
-001342  1  5F 5F 5F 5F          .BYTE   "____________________"
-001346  1  5F 5F 5F 5F  
-00134A  1  5F 5F 5F 5F  
-001356  1  5F 5F 5F 5F          .BYTE   "____________________"
-00135A  1  5F 5F 5F 5F  
-00135E  1  5F 5F 5F 5F  
-00136A  1  1B 5B 32 33          .BYTE   $1B,'[','2','3',';','0','0','H'
-00136E  1  3B 30 30 48  
-001372  1  20 20 20 20          .BYTE   "                            "
-001376  1  20 20 20 20  
-00137A  1  20 20 20 20  
-00138E  1  20 20 20 20          .BYTE   "                            "
-001392  1  20 20 20 20  
-001396  1  20 20 20 20  
-0013AA  1  20 20 20 20          .BYTE   "     OM                "
-0013AE  1  20 4F 4D 20  
-0013B2  1  20 20 20 20  
-0013C1  1  1B 5B 30 6D          .BYTE   $1B,'[','0','m','$'
-0013C5  1  24           
-0013C6  1               SAVESCREENFORMAT2:
-0013C6  1  1B 5B 31 31          .BYTE   $1B,'[','1','1',';','1','0','H'
-0013CA  1  3B 31 30 48  
-0013CE  1  20 20 20 20          .BYTE   "                                   "
-0013D2  1  20 20 20 20  
-0013D6  1  20 20 20 20  
-0013F1  1  1B 5B 31 30          .BYTE   $1B,'[','1','0',';','0','0','H'
-0013F5  1  3B 30 30 48  
-0013F9  1  20 20 4E 45          .BYTE   "  NEW FILE NAME: $"
-0013FD  1  57 20 46 49  
-001401  1  4C 45 20 4E  
-00140B  1               
-00140B  1               FNBUFFER:
-00140B  1  20 20 20 20          .BYTE   "                  "
-00140F  1  20 20 20 20  
-001413  1  20 20 20 20  
-00141D  1               
-00141D  1               ;__GETFILENAME___________________________________________________________________________________________________________________
-00141D  1               ;
-00141D  1               ; POPULATE FNBUFFER WITH ONLY VALID FILENAME CHARACTERS
-00141D  1               ;________________________________________________________________________________________________________________________________
-00141D  1               ;
-00141D  1               GETFILENAME:
-00141D  1  A0 00                LDY     #$00
-00141F  1               GETFILENAME_LOOP:
-00141F  1  A2 06                LDX     #6
-001421  1  20 03 01             JSR     PEM             ;
-001424  1  C9 08                CMP     #8
-001426  1  F0 52                BEQ     GETFILENAME_BACKSPACE
-001428  1  C9 0D                CMP     #13
-00142A  1  F0 40                BEQ     GETFILENAME_END
-00142C  1  C9 21                CMP     #33
-00142E  1  90 EF                BCC     GETFILENAME_LOOP
-001430  1  C9 28                CMP     #40
-001432  1  90 27                BCC     :+
-001434  1  C9 2B                CMP     #43
-001436  1  F0 23                BEQ     :+
-001438  1  C9 2D                CMP     #45
-00143A  1  F0 1F                BEQ     :+
-00143C  1  C9 2E                CMP     #46
-00143E  1  F0 1B                BEQ     :+
-001440  1  C9 30                CMP     #48
-001442  1  90 DB                BCC     GETFILENAME_LOOP
-001444  1  C9 3B                CMP     #59
-001446  1  90 13                BCC     :+
-001448  1  C9 40                CMP     #64
-00144A  1  90 D3                BCC     GETFILENAME_LOOP
-00144C  1  C9 5B                CMP     #91
-00144E  1  90 0B                BCC     :+
-001450  1  C9 61                CMP     #97
-001452  1  90 CB                BCC     GETFILENAME_LOOP
-001454  1  C9 7B                CMP     #123
-001456  1  90 1C                BCC     GETFILENAME_TOUPPER
-001458  1  4C 1F 14             JMP     GETFILENAME_LOOP
-00145B  1               :
-00145B  1  48                   PHA
-00145C  1  A2 02                LDX     #2
-00145E  1  20 03 01             JSR     PEM
-001461  1  98                   TYA
-001462  1  AA                   TAX
-001463  1  68                   PLA
-001464  1  9D 0B 14             STA     FNBUFFER,X
-001467  1  C8                   INY
-001468  1  C0 0E                CPY     #14
-00146A  1  D0 B3                BNE     GETFILENAME_LOOP
-00146C  1               GETFILENAME_END:
-00146C  1  98                   TYA
-00146D  1  AA                   TAX
-00146E  1  A9 00                LDA     #$00
-001470  1  9D 0B 14             STA     FNBUFFER,X
-001473  1  60                   RTS
-001474  1               GETFILENAME_TOUPPER:
-001474  1  38                   SEC
-001475  1  E9 20                SBC     #32
-001477  1  4C 5B 14             JMP     :-
-00147A  1               GETFILENAME_BACKSPACE:
-00147A  1  C0 00                CPY     #00
-00147C  1  F0 A1                BEQ     GETFILENAME_LOOP
-00147E  1  A9 08                LDA     #8
-001480  1  A2 02                LDX     #2
-001482  1  20 03 01             JSR     PEM
-001485  1  A9 20                LDA     #32
-001487  1  A2 02                LDX     #2
-001489  1  20 03 01             JSR     PEM
-00148C  1  A9 08                LDA     #8
-00148E  1  A2 02                LDX     #2
-001490  1  20 03 01             JSR     PEM
-001493  1  88                   DEY
-001494  1  98                   TYA
-001495  1  AA                   TAX
-001496  1  A9 20                LDA     #32
-001498  1  9D 0B 14             STA     FNBUFFER,X
-00149B  1  4C 1F 14             JMP     GETFILENAME_LOOP
-00149E  1               
-00149E  1               
-00149E  1               
-00149E  1               
-00149E  1               
-00149E  1               
-00149E  1               ;__DOS65SAVE_____________________________________________________________________________________________________________________
-00149E  1               ;
-00149E  1               ; 	SAVE A DOS/65 FILE FROM THE EDIT BUFFER
-00149E  1               ;
-00149E  1               ;
-00149E  1               ;
-00149E  1               ;________________________________________________________________________________________________________________________________
-00149E  1               ;
-00149E  1               DOS65SAVE:
-00149E  1  A9 00                LDA     #0              ; clear
-0014A0  1  8D 27 01             STA     DFLFCB+32       ; record number
-0014A3  1  A9 07                LDA     #<DFLFCB        ; Open File
-0014A5  1  A0 01                LDY     #>DFLFCB        ;
-0014A7  1  A2 13                LDX     #19             ;
-0014A9  1  20 03 01             JSR     PEM             ;
-0014AC  1               
-0014AC  1  A9 00                LDA     #0              ; clear
-0014AE  1  8D 27 01             STA     DFLFCB+32       ; record number
-0014B1  1  A9 07                LDA     #<DFLFCB        ; ATTEMPT TO CREATE File
-0014B3  1  A0 01                LDY     #>DFLFCB        ;
-0014B5  1  A2 16                LDX     #22             ;
-0014B7  1  20 03 01             JSR     PEM             ;
-0014BA  1  C9 FF                CMP     #$FF            ; error?, if NOT, continue
-0014BC  1  D0 0A                BNE     DOS65SAVE_1     ;
-0014BE  1               
-0014BE  1               DOS65SAVE_ERR:
-0014BE  1  A9 EA                LDA     #<FILEERROR2A   ; NO, ERROR OUT
-0014C0  1  A0 15                LDY     #>FILEERROR2A
-0014C2  1  A2 09                LDX     #9              ; Print error message
-0014C4  1  20 03 01             JSR     PEM             ;
-0014C7  1  60                   RTS                     ; RETURN
-0014C8  1               DOS65SAVE_1:
-0014C8  1  A9 00                LDA     #0              ; clear
-0014CA  1  8D 27 01             STA     DFLFCB+32       ; record number
-0014CD  1  A9 00                LDA     #<BUFFER        ; SETUP BUFFER
-0014CF  1  85 09                STA     FCBPTR          ; STORE SRC BUFFER IN FCBPTR
-0014D1  1  A9 18                LDA     #>BUFFER        ;
-0014D3  1  85 0A                STA     FCBPTR+1        ; STORE SRC BUFFER IN FCBPTR
-0014D5  1               
-0014D5  1  A9 AA                LDA     #<FCBBUFFER     ; SETUP BUFFER
-0014D7  1  85 0F                STA     TMPPOS          ;
-0014D9  1  A0 16                LDY     #>FCBBUFFER
-0014DB  1  84 10                STY     TMPPOS+1        ;
-0014DD  1  A2 1A                LDX     #26             ; Setup Buffer
-0014DF  1  20 03 01             JSR     PEM
-0014E2  1               
-0014E2  1  A2 00                LDX     #$00            ;
-0014E4  1  86 11                STX     TEMP1           ;
-0014E6  1               DOS65SAVE_2:
-0014E6  1  A5 13                LDA     CURRENTLEN+1    ; AT END PAGE?
-0014E8  1  C5 0A                CMP     FCBPTR+1        ;
-0014EA  1  D0 0D                BNE     DOS65SAVE_2B    ;
-0014EC  1  A5 09                LDA     FCBPTR          ;
-0014EE  1  C5 12                CMP     CURRENTLEN      ;
-0014F0  1  90 07                BCC     DOS65SAVE_2B    ; IF WE ARE NOT PAST THE END, PROCEED AS USUAL
-0014F2  1  F0 05                BEQ     DOS65SAVE_2B    ;
-0014F4  1  A9 1A                LDA     #$1A            ; WE ARE AT END SO PAD WITH EOF
-0014F6  1  4C 0B 15             JMP     DOS65SAVE_2C    ;
-0014F9  1               
-0014F9  1               DOS65SAVE_2B:
-0014F9  1  A0 00                LDY     #$00
-0014FB  1  B1 09                LDA     (FCBPTR),Y      ; GET NEXT BUFFER BYTE
-0014FD  1  E6 09                INC     FCBPTR          ; INC 16 BIT BUFFER POINTER
-0014FF  1  D0 02                BNE     *+4             ;
-001501  1  E6 0A                INC     FCBPTR+1        ;
-001503  1  C9 00                CMP     #$00            ; IS NULL?
-001505  1  F0 DF                BEQ     DOS65SAVE_2     ; YES SKIP
-001507  1  C9 0A                CMP     #10             ; IS LF?
-001509  1  F0 DB                BEQ     DOS65SAVE_2     ; YES SKIP
-00150B  1               
-00150B  1               DOS65SAVE_2C:
-00150B  1  A4 11                LDY     TEMP1           ;
-00150D  1  91 0F                STA     (TMPPOS),Y      ; NO STORE IN BUFFER
-00150F  1  E6 11                INC     TEMP1           ; INC BUFFER POINTER
-001511  1  C9 0D                CMP     #13             ; IF NOT CR
-001513  1  D0 03                BNE     *+5             ; CONTINUE
-001515  1  20 48 15             JSR     DOS65SAVE_LF    ; OTHERWISE INSERT LF
-001518  1               
-001518  1  A6 11                LDX     TEMP1           ;
-00151A  1  E0 80                CPX     #$80            ; PAST END?
-00151C  1  D0 C8                BNE     DOS65SAVE_2     ; NO LOOP TILL BUFFER IS FULL
-00151E  1               
-00151E  1               DOS65SAVE_2D:
-00151E  1  A9 07                LDA     #<DFLFCB        ; WRITE record buffer from disk file
-001520  1  A0 01                LDY     #>DFLFCB        ;
-001522  1  A2 15                LDX     #21             ;
-001524  1  20 03 01             JSR     PEM             ;
-001527  1  C9 00                CMP     #$00            ; is SUCCESSFUL?
-001529  1  F0 03                BEQ     *+5             ;
-00152B  1  4C BE 14             JMP     DOS65SAVE_ERR   ; ERROR, do error handling
-00152E  1               
-00152E  1               
-00152E  1  A5 0A                LDA     FCBPTR+1        ;
-001530  1  C5 13                CMP     CURRENTLEN+1    ; AT END?
-001532  1  90 03                BCC     DOS65SAVE_3     ;
-001534  1  4C 3E 15             JMP     DOS65SAVE_4     ; CLOSE FILE
-001537  1               
-001537  1               DOS65SAVE_3:
-001537  1  A2 00                LDX     #$00            ;
-001539  1  86 11                STX     TEMP1           ;
-00153B  1  4C E6 14             JMP     DOS65SAVE_2     ; SAVE NEXT SECTOR
-00153E  1               
-00153E  1               DOS65SAVE_4:
-00153E  1  A9 07                LDA     #<DFLFCB        ; CLOSE FILE
-001540  1  A0 01                LDY     #>DFLFCB        ;
-001542  1  A2 10                LDX     #16             ;
-001544  1  20 03 01             JSR     PEM             ;
-001547  1  60                   RTS
-001548  1               
-001548  1               
-001548  1               DOS65SAVE_LF:
-001548  1               
-001548  1  A6 11                LDX     TEMP1           ;
-00154A  1  E0 80                CPX     #$80            ; PAST END?
-00154C  1  D0 03                BNE     *+5             ; NO
-00154E  1  20 5A 15             JSR     DOS65SAVE_LF1   ;
-001551  1               
-001551  1  A4 11                LDY     TEMP1           ; WRITE LF
-001553  1  A9 0A                LDA     #10             ;
+0012BD  1  A9 02                LDA     #<SAVESCREENFORMAT
+0012BF  1  A0 13                LDY     #>SAVESCREENFORMAT
+0012C1  1  A2 09                LDX     #9              ;
+0012C3  1  20 03 01             JSR     PEM             ;
+0012C6  1  A9 4B                LDA     #<SAVESCREENFORMAT1
+0012C8  1  A0 13                LDY     #>SAVESCREENFORMAT1
+0012CA  1  A2 09                LDX     #9              ;
+0012CC  1  20 03 01             JSR     PEM             ;
+0012CF  1               DOS65SAVEAS1:
+0012CF  1  A9 0B                LDA     #<SAVESCREENFORMAT2
+0012D1  1  A0 14                LDY     #>SAVESCREENFORMAT2
+0012D3  1  A2 09                LDX     #9              ;
+0012D5  1  20 03 01             JSR     PEM             ;
+0012D8  1               
+0012D8  1  A2 0D                LDX     #13
+0012DA  1  A9 20                LDA     #' '
+0012DC  1               DOS65SAVEAS2:
+0012DC  1  8D 50 14             STA     FNBUFFER
+0012DF  1  CA                   DEX
+0012E0  1  E0 00                CPX     #$00
+0012E2  1  D0 F8                BNE     DOS65SAVEAS2
+0012E4  1  20 62 14             JSR     GETFILENAME
+0012E7  1  20 B7 15             JSR     DOS65FCBPREP
+0012EA  1  C9 FF                CMP     #$FF
+0012EC  1  F0 E1                BEQ     DOS65SAVEAS1
+0012EE  1               
+0012EE  1  20 E6 14             JSR     DOS65SAVE
+0012F1  1  A9 00                LDA     #$00
+0012F3  1  85 0B                STA     CSRPOSX
+0012F5  1  85 0C                STA     CSRPOSY
+0012F7  1  85 0D                STA     EDTPOS
+0012F9  1  85 0E                STA     EDTPOS+1
+0012FB  1  85 0F                STA     TMPPOS
+0012FD  1  85 10                STA     TMPPOS+1
+0012FF  1  4C 93 0E             JMP     PAINTSCREEN
+001302  1               
+001302  1               SAVESCREENFORMAT:
+001302  1  1B 5B 30 30          .BYTE   $1B,'[','0','0',';','0','0','H'
+001306  1  3B 30 30 48  
+00130A  1  1B 5B 37 6D          .BYTE   $1B,'[','7','m'
+00130E  1  44 4F 53 2F          .BYTE   "DOS/65 SCREEN EDITOR"
+001312  1  36 35 20 53  
+001316  1  43 52 45 45  
+001322  1  20 20 20 20          .BYTE   "                    "
+001326  1  20 20 20 20  
+00132A  1  20 20 20 20  
+001336  1  20 20 20 20          .BYTE   "                    ",'$'
+00133A  1  20 20 20 20  
+00133E  1  20 20 20 20  
+00134B  1               
+00134B  1               SAVESCREENFORMAT1:
+00134B  1  20 20 20 20          .BYTE   "                    "
+00134F  1  20 20 20 20  
+001353  1  20 20 20 20  
+00135F  1  5F 5F 5F 5F          .BYTE   "____________________"
+001363  1  5F 5F 5F 5F  
+001367  1  5F 5F 5F 5F  
+001373  1  5F 5F 5F 5F          .BYTE   "____________________"
+001377  1  5F 5F 5F 5F  
+00137B  1  5F 5F 5F 5F  
+001387  1  5F 5F 5F 5F          .BYTE   "____________________"
+00138B  1  5F 5F 5F 5F  
+00138F  1  5F 5F 5F 5F  
+00139B  1  5F 5F 5F 5F          .BYTE   "____________________"
+00139F  1  5F 5F 5F 5F  
+0013A3  1  5F 5F 5F 5F  
+0013AF  1  1B 5B 32 33          .BYTE   $1B,'[','2','3',';','0','0','H'
+0013B3  1  3B 30 30 48  
+0013B7  1  20 20 20 20          .BYTE   "                            "
+0013BB  1  20 20 20 20  
+0013BF  1  20 20 20 20  
+0013D3  1  20 20 20 20          .BYTE   "                            "
+0013D7  1  20 20 20 20  
+0013DB  1  20 20 20 20  
+0013EF  1  20 20 20 20          .BYTE   "     OM                "
+0013F3  1  20 4F 4D 20  
+0013F7  1  20 20 20 20  
+001406  1  1B 5B 30 6D          .BYTE   $1B,'[','0','m','$'
+00140A  1  24           
+00140B  1               SAVESCREENFORMAT2:
+00140B  1  1B 5B 31 31          .BYTE   $1B,'[','1','1',';','1','0','H'
+00140F  1  3B 31 30 48  
+001413  1  20 20 20 20          .BYTE   "                                   "
+001417  1  20 20 20 20  
+00141B  1  20 20 20 20  
+001436  1  1B 5B 31 30          .BYTE   $1B,'[','1','0',';','0','0','H'
+00143A  1  3B 30 30 48  
+00143E  1  20 20 4E 45          .BYTE   "  NEW FILE NAME: $"
+001442  1  57 20 46 49  
+001446  1  4C 45 20 4E  
+001450  1               
+001450  1               FNBUFFER:
+001450  1  20 20 20 20          .BYTE   "                  "
+001454  1  20 20 20 20  
+001458  1  20 20 20 20  
+001462  1               
+001462  1               ;__GETFILENAME___________________________________________________________________________________________________________________
+001462  1               ;
+001462  1               ; POPULATE FNBUFFER WITH ONLY VALID FILENAME CHARACTERS
+001462  1               ;________________________________________________________________________________________________________________________________
+001462  1               ;
+001462  1               GETFILENAME:
+001462  1  20 7E 11             JSR     READKB_XON
+001465  1  A0 00                LDY     #$00
+001467  1               GETFILENAME_LOOP:
+001467  1  A2 06                LDX     #6
+001469  1  20 03 01             JSR     PEM             ;
+00146C  1  C9 08                CMP     #8
+00146E  1  F0 52                BEQ     GETFILENAME_BACKSPACE
+001470  1  C9 0D                CMP     #13
+001472  1  F0 40                BEQ     GETFILENAME_END
+001474  1  C9 21                CMP     #33
+001476  1  90 EF                BCC     GETFILENAME_LOOP
+001478  1  C9 28                CMP     #40
+00147A  1  90 27                BCC     :+
+00147C  1  C9 2B                CMP     #43
+00147E  1  F0 23                BEQ     :+
+001480  1  C9 2D                CMP     #45
+001482  1  F0 1F                BEQ     :+
+001484  1  C9 2E                CMP     #46
+001486  1  F0 1B                BEQ     :+
+001488  1  C9 30                CMP     #48
+00148A  1  90 DB                BCC     GETFILENAME_LOOP
+00148C  1  C9 3B                CMP     #59
+00148E  1  90 13                BCC     :+
+001490  1  C9 40                CMP     #64
+001492  1  90 D3                BCC     GETFILENAME_LOOP
+001494  1  C9 5B                CMP     #91
+001496  1  90 0B                BCC     :+
+001498  1  C9 61                CMP     #97
+00149A  1  90 CB                BCC     GETFILENAME_LOOP
+00149C  1  C9 7B                CMP     #123
+00149E  1  90 1C                BCC     GETFILENAME_TOUPPER
+0014A0  1  4C 67 14             JMP     GETFILENAME_LOOP
+0014A3  1               :
+0014A3  1  48                   PHA
+0014A4  1  A2 02                LDX     #2
+0014A6  1  20 03 01             JSR     PEM
+0014A9  1  98                   TYA
+0014AA  1  AA                   TAX
+0014AB  1  68                   PLA
+0014AC  1  9D 50 14             STA     FNBUFFER,X
+0014AF  1  C8                   INY
+0014B0  1  C0 0E                CPY     #14
+0014B2  1  D0 B3                BNE     GETFILENAME_LOOP
+0014B4  1               GETFILENAME_END:
+0014B4  1  98                   TYA
+0014B5  1  AA                   TAX
+0014B6  1  A9 00                LDA     #$00
+0014B8  1  9D 50 14             STA     FNBUFFER,X
+0014BB  1  60                   RTS
+0014BC  1               GETFILENAME_TOUPPER:
+0014BC  1  38                   SEC
+0014BD  1  E9 20                SBC     #32
+0014BF  1  4C A3 14             JMP     :-
+0014C2  1               GETFILENAME_BACKSPACE:
+0014C2  1  C0 00                CPY     #00
+0014C4  1  F0 A1                BEQ     GETFILENAME_LOOP
+0014C6  1  A9 08                LDA     #8
+0014C8  1  A2 02                LDX     #2
+0014CA  1  20 03 01             JSR     PEM
+0014CD  1  A9 20                LDA     #32
+0014CF  1  A2 02                LDX     #2
+0014D1  1  20 03 01             JSR     PEM
+0014D4  1  A9 08                LDA     #8
+0014D6  1  A2 02                LDX     #2
+0014D8  1  20 03 01             JSR     PEM
+0014DB  1  88                   DEY
+0014DC  1  98                   TYA
+0014DD  1  AA                   TAX
+0014DE  1  A9 20                LDA     #32
+0014E0  1  9D 50 14             STA     FNBUFFER,X
+0014E3  1  4C 67 14             JMP     GETFILENAME_LOOP
+0014E6  1               
+0014E6  1               
+0014E6  1               
+0014E6  1               
+0014E6  1               
+0014E6  1               
+0014E6  1               ;__DOS65SAVE_____________________________________________________________________________________________________________________
+0014E6  1               ;
+0014E6  1               ; 	SAVE A DOS/65 FILE FROM THE EDIT BUFFER
+0014E6  1               ;
+0014E6  1               ;
+0014E6  1               ;
+0014E6  1               ;________________________________________________________________________________________________________________________________
+0014E6  1               ;
+0014E6  1               DOS65SAVE:
+0014E6  1  A9 00                LDA     #0              ; clear
+0014E8  1  8D 27 01             STA     DFLFCB+32       ; record number
+0014EB  1  A9 07                LDA     #<DFLFCB        ; Open File
+0014ED  1  A0 01                LDY     #>DFLFCB        ;
+0014EF  1  A2 13                LDX     #19             ;
+0014F1  1  20 03 01             JSR     PEM             ;
+0014F4  1               
+0014F4  1  A9 00                LDA     #0              ; clear
+0014F6  1  8D 27 01             STA     DFLFCB+32       ; record number
+0014F9  1  A9 07                LDA     #<DFLFCB        ; ATTEMPT TO CREATE File
+0014FB  1  A0 01                LDY     #>DFLFCB        ;
+0014FD  1  A2 16                LDX     #22             ;
+0014FF  1  20 03 01             JSR     PEM             ;
+001502  1  C9 FF                CMP     #$FF            ; error?, if NOT, continue
+001504  1  D0 0A                BNE     DOS65SAVE_1     ;
+001506  1               
+001506  1               DOS65SAVE_ERR:
+001506  1  A9 32                LDA     #<FILEERROR2A   ; NO, ERROR OUT
+001508  1  A0 16                LDY     #>FILEERROR2A
+00150A  1  A2 09                LDX     #9              ; Print error message
+00150C  1  20 03 01             JSR     PEM             ;
+00150F  1  60                   RTS                     ; RETURN
+001510  1               DOS65SAVE_1:
+001510  1  A9 00                LDA     #0              ; clear
+001512  1  8D 27 01             STA     DFLFCB+32       ; record number
+001515  1  A9 00                LDA     #<BUFFER        ; SETUP BUFFER
+001517  1  85 09                STA     FCBPTR          ; STORE SRC BUFFER IN FCBPTR
+001519  1  A9 18                LDA     #>BUFFER        ;
+00151B  1  85 0A                STA     FCBPTR+1        ; STORE SRC BUFFER IN FCBPTR
+00151D  1               
+00151D  1  A9 F2                LDA     #<FCBBUFFER     ; SETUP BUFFER
+00151F  1  85 0F                STA     TMPPOS          ;
+001521  1  A0 16                LDY     #>FCBBUFFER
+001523  1  84 10                STY     TMPPOS+1        ;
+001525  1  A2 1A                LDX     #26             ; Setup Buffer
+001527  1  20 03 01             JSR     PEM
+00152A  1               
+00152A  1  A2 00                LDX     #$00            ;
+00152C  1  86 11                STX     TEMP1           ;
+00152E  1               DOS65SAVE_2:
+00152E  1  A5 13                LDA     CURRENTLEN+1    ; AT END PAGE?
+001530  1  C5 0A                CMP     FCBPTR+1        ;
+001532  1  D0 0D                BNE     DOS65SAVE_2B    ;
+001534  1  A5 09                LDA     FCBPTR          ;
+001536  1  C5 12                CMP     CURRENTLEN      ;
+001538  1  90 07                BCC     DOS65SAVE_2B    ; IF WE ARE NOT PAST THE END, PROCEED AS USUAL
+00153A  1  F0 05                BEQ     DOS65SAVE_2B    ;
+00153C  1  A9 1A                LDA     #$1A            ; WE ARE AT END SO PAD WITH EOF
+00153E  1  4C 53 15             JMP     DOS65SAVE_2C    ;
+001541  1               
+001541  1               DOS65SAVE_2B:
+001541  1  A0 00                LDY     #$00
+001543  1  B1 09                LDA     (FCBPTR),Y      ; GET NEXT BUFFER BYTE
+001545  1  E6 09                INC     FCBPTR          ; INC 16 BIT BUFFER POINTER
+001547  1  D0 02                BNE     *+4             ;
+001549  1  E6 0A                INC     FCBPTR+1        ;
+00154B  1  C9 00                CMP     #$00            ; IS NULL?
+00154D  1  F0 DF                BEQ     DOS65SAVE_2     ; YES SKIP
+00154F  1  C9 0A                CMP     #10             ; IS LF?
+001551  1  F0 DB                BEQ     DOS65SAVE_2     ; YES SKIP
+001553  1               
+001553  1               DOS65SAVE_2C:
+001553  1  A4 11                LDY     TEMP1           ;
 001555  1  91 0F                STA     (TMPPOS),Y      ; NO STORE IN BUFFER
 001557  1  E6 11                INC     TEMP1           ; INC BUFFER POINTER
-001559  1  60                   RTS
-00155A  1               
-00155A  1               DOS65SAVE_LF1:
-00155A  1  A9 07                LDA     #<DFLFCB        ; WRITE record buffer from disk file
-00155C  1  A0 01                LDY     #>DFLFCB        ;
-00155E  1  A2 15                LDX     #21             ;
-001560  1  20 03 01             JSR     PEM             ;
-001563  1  C9 00                CMP     #$00            ; is SUCCESSFUL?
-001565  1  F0 03                BEQ     *+5             ;
-001567  1  4C BE 14             JMP     DOS65SAVE_ERR   ; ERROR, do error handling
-00156A  1  A2 00                LDX     #$00            ;
-00156C  1  86 11                STX     TEMP1           ;
-00156E  1  60                   RTS
-00156F  1               
-00156F  1               DOS65FCBPREP:
-00156F  1  AD 0C 14             LDA     FNBUFFER+1      ; GET ":"
-001572  1  C9 3A                CMP     #':'            ;
-001574  1  F0 0C                BEQ     DOS65FCBPREP_1  ; YES, IT WAS A DRIVE, CONTINUE
-001576  1  A9 C3                LDA     #<FILEERROR1    ; NO, ERROR OUT
-001578  1  A0 15                LDY     #>FILEERROR1
-00157A  1  A2 09                LDX     #9
-00157C  1  20 03 01             JSR     PEM
-00157F  1  A9 FF                LDA     #$FF
-001581  1  60                   RTS
-001582  1               DOS65FCBPREP_1:
-001582  1  AD 0B 14             LDA     FNBUFFER        ; GET DRIVE LETTER
-001585  1  38                   SEC                     ;
-001586  1  E9 40                SBC     #64             ; PARSE DRIVE NUMBER
-001588  1  8D 07 01             STA     DFLFCB+0        ; STORE IT IN FCB
-00158B  1               
-00158B  1  A0 01                LDY     #$01            ; POINT Y TO FCB FILE NAME
-00158D  1  A9 20                LDA     #$20            ; LOAD SPACE CHAR INTO A
-00158F  1               DOS65FCBPREP_1A:                ; BLANK OUT FCB
-00158F  1  99 07 01             STA     DFLFCB,Y        ;
-001592  1  C8                   INY                     ;
-001593  1  C0 09                CPY     #$09            ; IS DONE
-001595  1  D0 F8                BNE     DOS65FCBPREP_1A ; NO, LOOP
-001597  1  A0 01                LDY     #$01            ; POINT Y TO FCB FILE NAME
-001599  1  A2 00                LDX     #$00            ;
-00159B  1               DOS65FCBPREP_2:                 ; COPY FILE NAME PARAMETER INTO FCB
-00159B  1  BD 0D 14             LDA     FNBUFFER+2,X    ;
-00159E  1  E8                   INX                     ;
-00159F  1  C9 2E                CMP     #'.'            ;
-0015A1  1  F0 0B                BEQ     DOS65FCBPREP_3  ;
-0015A3  1  99 07 01             STA     DFLFCB,Y        ;
-0015A6  1  C8                   INY                     ;
-0015A7  1  C0 09                CPY     #$09            ;
-0015A9  1  F0 03                BEQ     DOS65FCBPREP_3  ;
-0015AB  1  4C 9B 15             JMP     DOS65FCBPREP_2  ;
-0015AE  1               DOS65FCBPREP_3:                 ;
-0015AE  1  BD 0D 14             LDA     FNBUFFER+2,X    ;
-0015B1  1  8D 10 01             STA     DFLFCB+9        ;
-0015B4  1  BD 0E 14             LDA     FNBUFFER+3,X    ;
-0015B7  1  8D 11 01             STA     DFLFCB+10       ;
-0015BA  1  BD 0F 14             LDA     FNBUFFER+4,X    ;
-0015BD  1  8D 12 01             STA     DFLFCB+11       ;
-0015C0  1  A9 00                LDA     #$00            ;
-0015C2  1  60                   RTS                     ;
-0015C3  1               
-0015C3  1               
-0015C3  1               FILEERROR1:
-0015C3  1  0D 0A 0D 0A          .BYTE   $0D,$0A,$0D,$0A,"** NO DRIVE SPECIFIED, TRY AGAIN"
-0015C7  1  2A 2A 20 4E  
-0015CB  1  4F 20 44 52  
-0015E7  1  0D 0A 24             .BYTE   $0D,$0A,'$'
-0015EA  1               FILEERROR2A:
-0015EA  1  1B 5B 30 31          .BYTE   $1B,'[','0','1',';','1','0','H'
-0015EE  1  3B 31 30 48  
-0015F2  1  1B 5B 37 6D          .BYTE   $1B,'[','7','m'
-0015F6  1               FILEERROR2:
-0015F6  1  2A 2A 20 44          .BYTE   "** DOS/65 ERROR, OPERATION ABORTED"
-0015FA  1  4F 53 2F 36  
-0015FE  1  35 20 45 52  
-001618  1  1B 5B 30 6D          .BYTE   $1B,'[','0','m'
-00161C  1  0D 0A 24             .BYTE   $0D,$0A,'$'
-00161F  1               FILEERROR3:
-00161F  1  2A 2A 20 46          .BYTE   "** FILE TOO LARGE, OPERATION ABORTED"
-001623  1  49 4C 45 20  
-001627  1  54 4F 4F 20  
-001643  1  0D 0A 24             .BYTE   $0D,$0A,'$'
-001646  1               DECIMAL1:
-001646  1  00 01 02 03          .BYTE   $00,$01,$02,$03,$04,$05,$06,$07,$08,$09
-00164A  1  04 05 06 07  
-00164E  1  08 09        
-001650  1  10 11 12 13          .BYTE   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
-001654  1  14 15 16 17  
-001658  1  18 19        
-00165A  1  20 21 22 23          .BYTE   $20,$21,$22,$23,$24,$25,$26,$27,$28,$29
-00165E  1  24 25 26 27  
-001662  1  28 29        
-001664  1  30 31 32 33          .BYTE   $30,$31,$32,$33,$34,$35,$36,$37,$38,$39
-001668  1  34 35 36 37  
-00166C  1  38 39        
-00166E  1  40 41 42 43          .BYTE   $40,$41,$42,$43,$44,$45,$46,$47,$48,$49
-001672  1  44 45 46 47  
-001676  1  48 49        
-001678  1  50 51 52 53          .BYTE   $50,$51,$52,$53,$54,$55,$56,$57,$58,$59
-00167C  1  54 55 56 57  
-001680  1  58 59        
-001682  1  60 61 62 63          .BYTE   $60,$61,$62,$63,$64,$65,$66,$67,$68,$69
-001686  1  64 65 66 67  
-00168A  1  68 69        
-00168C  1  70 71 72 73          .BYTE   $70,$71,$72,$73,$74,$75,$76,$77,$78,$79
-001690  1  74 75 76 77  
-001694  1  78 79        
-001696  1  80 81 82 83          .BYTE   $80,$81,$82,$83,$84,$85,$86,$87,$88,$89
-00169A  1  84 85 86 87  
-00169E  1  88 89        
-0016A0  1  90 91 92 93          .BYTE   $90,$91,$92,$93,$94,$95,$96,$97,$98,$99
-0016A4  1  94 95 96 97  
-0016A8  1  98 99        
-0016AA  1               FCBBUFFER:
-0016AA  1  xx xx xx xx          .RES    $80
-0016AE  1  xx xx xx xx  
-0016B2  1  xx xx xx xx  
-00172A  1  xx xx xx xx          .ALIGN  256
-00172E  1  xx xx xx xx  
-001732  1  xx xx xx xx  
+001559  1  C9 0D                CMP     #13             ; IF NOT CR
+00155B  1  D0 03                BNE     *+5             ; CONTINUE
+00155D  1  20 90 15             JSR     DOS65SAVE_LF    ; OTHERWISE INSERT LF
+001560  1               
+001560  1  A6 11                LDX     TEMP1           ;
+001562  1  E0 80                CPX     #$80            ; PAST END?
+001564  1  D0 C8                BNE     DOS65SAVE_2     ; NO LOOP TILL BUFFER IS FULL
+001566  1               
+001566  1               DOS65SAVE_2D:
+001566  1  A9 07                LDA     #<DFLFCB        ; WRITE record buffer from disk file
+001568  1  A0 01                LDY     #>DFLFCB        ;
+00156A  1  A2 15                LDX     #21             ;
+00156C  1  20 03 01             JSR     PEM             ;
+00156F  1  C9 00                CMP     #$00            ; is SUCCESSFUL?
+001571  1  F0 03                BEQ     *+5             ;
+001573  1  4C 06 15             JMP     DOS65SAVE_ERR   ; ERROR, do error handling
+001576  1               
+001576  1               
+001576  1  A5 0A                LDA     FCBPTR+1        ;
+001578  1  C5 13                CMP     CURRENTLEN+1    ; AT END?
+00157A  1  90 03                BCC     DOS65SAVE_3     ;
+00157C  1  4C 86 15             JMP     DOS65SAVE_4     ; CLOSE FILE
+00157F  1               
+00157F  1               DOS65SAVE_3:
+00157F  1  A2 00                LDX     #$00            ;
+001581  1  86 11                STX     TEMP1           ;
+001583  1  4C 2E 15             JMP     DOS65SAVE_2     ; SAVE NEXT SECTOR
+001586  1               
+001586  1               DOS65SAVE_4:
+001586  1  A9 07                LDA     #<DFLFCB        ; CLOSE FILE
+001588  1  A0 01                LDY     #>DFLFCB        ;
+00158A  1  A2 10                LDX     #16             ;
+00158C  1  20 03 01             JSR     PEM             ;
+00158F  1  60                   RTS
+001590  1               
+001590  1               
+001590  1               DOS65SAVE_LF:
+001590  1               
+001590  1  A6 11                LDX     TEMP1           ;
+001592  1  E0 80                CPX     #$80            ; PAST END?
+001594  1  D0 03                BNE     *+5             ; NO
+001596  1  20 A2 15             JSR     DOS65SAVE_LF1   ;
+001599  1               
+001599  1  A4 11                LDY     TEMP1           ; WRITE LF
+00159B  1  A9 0A                LDA     #10             ;
+00159D  1  91 0F                STA     (TMPPOS),Y      ; NO STORE IN BUFFER
+00159F  1  E6 11                INC     TEMP1           ; INC BUFFER POINTER
+0015A1  1  60                   RTS
+0015A2  1               
+0015A2  1               DOS65SAVE_LF1:
+0015A2  1  A9 07                LDA     #<DFLFCB        ; WRITE record buffer from disk file
+0015A4  1  A0 01                LDY     #>DFLFCB        ;
+0015A6  1  A2 15                LDX     #21             ;
+0015A8  1  20 03 01             JSR     PEM             ;
+0015AB  1  C9 00                CMP     #$00            ; is SUCCESSFUL?
+0015AD  1  F0 03                BEQ     *+5             ;
+0015AF  1  4C 06 15             JMP     DOS65SAVE_ERR   ; ERROR, do error handling
+0015B2  1  A2 00                LDX     #$00            ;
+0015B4  1  86 11                STX     TEMP1           ;
+0015B6  1  60                   RTS
+0015B7  1               
+0015B7  1               DOS65FCBPREP:
+0015B7  1  AD 51 14             LDA     FNBUFFER+1      ; GET ":"
+0015BA  1  C9 3A                CMP     #':'            ;
+0015BC  1  F0 0C                BEQ     DOS65FCBPREP_1  ; YES, IT WAS A DRIVE, CONTINUE
+0015BE  1  A9 0B                LDA     #<FILEERROR1    ; NO, ERROR OUT
+0015C0  1  A0 16                LDY     #>FILEERROR1
+0015C2  1  A2 09                LDX     #9
+0015C4  1  20 03 01             JSR     PEM
+0015C7  1  A9 FF                LDA     #$FF
+0015C9  1  60                   RTS
+0015CA  1               DOS65FCBPREP_1:
+0015CA  1  AD 50 14             LDA     FNBUFFER        ; GET DRIVE LETTER
+0015CD  1  38                   SEC                     ;
+0015CE  1  E9 40                SBC     #64             ; PARSE DRIVE NUMBER
+0015D0  1  8D 07 01             STA     DFLFCB+0        ; STORE IT IN FCB
+0015D3  1               
+0015D3  1  A0 01                LDY     #$01            ; POINT Y TO FCB FILE NAME
+0015D5  1  A9 20                LDA     #$20            ; LOAD SPACE CHAR INTO A
+0015D7  1               DOS65FCBPREP_1A:                ; BLANK OUT FCB
+0015D7  1  99 07 01             STA     DFLFCB,Y        ;
+0015DA  1  C8                   INY                     ;
+0015DB  1  C0 09                CPY     #$09            ; IS DONE
+0015DD  1  D0 F8                BNE     DOS65FCBPREP_1A ; NO, LOOP
+0015DF  1  A0 01                LDY     #$01            ; POINT Y TO FCB FILE NAME
+0015E1  1  A2 00                LDX     #$00            ;
+0015E3  1               DOS65FCBPREP_2:                 ; COPY FILE NAME PARAMETER INTO FCB
+0015E3  1  BD 52 14             LDA     FNBUFFER+2,X    ;
+0015E6  1  E8                   INX                     ;
+0015E7  1  C9 2E                CMP     #'.'            ;
+0015E9  1  F0 0B                BEQ     DOS65FCBPREP_3  ;
+0015EB  1  99 07 01             STA     DFLFCB,Y        ;
+0015EE  1  C8                   INY                     ;
+0015EF  1  C0 09                CPY     #$09            ;
+0015F1  1  F0 03                BEQ     DOS65FCBPREP_3  ;
+0015F3  1  4C E3 15             JMP     DOS65FCBPREP_2  ;
+0015F6  1               DOS65FCBPREP_3:                 ;
+0015F6  1  BD 52 14             LDA     FNBUFFER+2,X    ;
+0015F9  1  8D 10 01             STA     DFLFCB+9        ;
+0015FC  1  BD 53 14             LDA     FNBUFFER+3,X    ;
+0015FF  1  8D 11 01             STA     DFLFCB+10       ;
+001602  1  BD 54 14             LDA     FNBUFFER+4,X    ;
+001605  1  8D 12 01             STA     DFLFCB+11       ;
+001608  1  A9 00                LDA     #$00            ;
+00160A  1  60                   RTS                     ;
+00160B  1               
+00160B  1               
+00160B  1               FILEERROR1:
+00160B  1  0D 0A 0D 0A          .BYTE   $0D,$0A,$0D,$0A,"** NO DRIVE SPECIFIED, TRY AGAIN"
+00160F  1  2A 2A 20 4E  
+001613  1  4F 20 44 52  
+00162F  1  0D 0A 24             .BYTE   $0D,$0A,'$'
+001632  1               FILEERROR2A:
+001632  1  1B 5B 30 31          .BYTE   $1B,'[','0','1',';','1','0','H'
+001636  1  3B 31 30 48  
+00163A  1  1B 5B 37 6D          .BYTE   $1B,'[','7','m'
+00163E  1               FILEERROR2:
+00163E  1  2A 2A 20 44          .BYTE   "** DOS/65 ERROR, OPERATION ABORTED"
+001642  1  4F 53 2F 36  
+001646  1  35 20 45 52  
+001660  1  1B 5B 30 6D          .BYTE   $1B,'[','0','m'
+001664  1  0D 0A 24             .BYTE   $0D,$0A,'$'
+001667  1               FILEERROR3:
+001667  1  2A 2A 20 46          .BYTE   "** FILE TOO LARGE, OPERATION ABORTED"
+00166B  1  49 4C 45 20  
+00166F  1  54 4F 4F 20  
+00168B  1  0D 0A 24             .BYTE   $0D,$0A,'$'
+00168E  1               DECIMAL1:
+00168E  1  00 01 02 03          .BYTE   $00,$01,$02,$03,$04,$05,$06,$07,$08,$09
+001692  1  04 05 06 07  
+001696  1  08 09        
+001698  1  10 11 12 13          .BYTE   $10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+00169C  1  14 15 16 17  
+0016A0  1  18 19        
+0016A2  1  20 21 22 23          .BYTE   $20,$21,$22,$23,$24,$25,$26,$27,$28,$29
+0016A6  1  24 25 26 27  
+0016AA  1  28 29        
+0016AC  1  30 31 32 33          .BYTE   $30,$31,$32,$33,$34,$35,$36,$37,$38,$39
+0016B0  1  34 35 36 37  
+0016B4  1  38 39        
+0016B6  1  40 41 42 43          .BYTE   $40,$41,$42,$43,$44,$45,$46,$47,$48,$49
+0016BA  1  44 45 46 47  
+0016BE  1  48 49        
+0016C0  1  50 51 52 53          .BYTE   $50,$51,$52,$53,$54,$55,$56,$57,$58,$59
+0016C4  1  54 55 56 57  
+0016C8  1  58 59        
+0016CA  1  60 61 62 63          .BYTE   $60,$61,$62,$63,$64,$65,$66,$67,$68,$69
+0016CE  1  64 65 66 67  
+0016D2  1  68 69        
+0016D4  1  70 71 72 73          .BYTE   $70,$71,$72,$73,$74,$75,$76,$77,$78,$79
+0016D8  1  74 75 76 77  
+0016DC  1  78 79        
+0016DE  1  80 81 82 83          .BYTE   $80,$81,$82,$83,$84,$85,$86,$87,$88,$89
+0016E2  1  84 85 86 87  
+0016E6  1  88 89        
+0016E8  1  90 91 92 93          .BYTE   $90,$91,$92,$93,$94,$95,$96,$97,$98,$99
+0016EC  1  94 95 96 97  
+0016F0  1  98 99        
+0016F2  1               FCBBUFFER:
+0016F2  1  xx xx xx xx          .RES    $80
+0016F6  1  xx xx xx xx  
+0016FA  1  xx xx xx xx  
+001772  1  xx xx xx xx          .ALIGN  256
+001776  1  xx xx xx xx  
+00177A  1  xx xx xx xx  
 001800  1               BUFFER:
 001800  1  00                   .BYTE   00              ; start of user RAM (set as needed, should be page aligned)
 001801  1               Ram_top         = $B800         ; end of user RAM+1 (set as needed, should be page aligned)

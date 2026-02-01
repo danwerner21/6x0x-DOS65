@@ -129,6 +129,7 @@ Current file: 6502PCbios.asm
 000000r 2               TEMPWORD        = $3B           ;
 000000r 2               TEMPWORD1       = $3D           ;
 000000r 2               TEMPWORD2       = $3F           ;
+000000r 2               TEMPWORD3       = $44           ;
 000000r 2               STRPTR          = $41           ;
 000000r 2               DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
 000000r 2               
@@ -216,6 +217,13 @@ Current file: 6502PCbios.asm
 00F014  1  A9 09                LDA     #$09            ; SET CONSOLE ESP
 00F016  1  85 3A                STA     CONSOLE         ;
 00F018  1                       .ENDIF
+00F018  1               
+00F018  1                       .IFDEF VIDEO
+00F018  1                       LDA     #19             ; SET CONSOLE VIDEO
+00F018  1                       STA     CONSOLE         ;
+00F018  1                       .ENDIF
+00F018  1               
+00F018  1               
 00F018  1               ;;;
 00F018  1  A9 41                LDA     #<IRQROUTINE
 00F01A  1  85 35                STA     IRQVECTOR
@@ -231,16 +239,21 @@ Current file: 6502PCbios.asm
 00F027  1  20 BF F9             JSR     SERIALINIT
 00F02A  1               
 00F02A  1  20 1F FE             JSR     PAGE_ENTER
-00F02D  1  A9 93                LDA     #<STARTUP       ; OUTPUT STARTUP STRING
+00F02D  1  A9 8C                LDA     #<STARTUP       ; OUTPUT STARTUP STRING
 00F02F  1  85 41                STA     STRPTR          ;
 00F031  1  A9 FE                LDA     #>STARTUP       ;
 00F033  1  85 42                STA     STRPTR+1        ;
-00F035  1  20 76 FE             JSR     OUTSTR          ;
+00F035  1  20 6F FE             JSR     OUTSTR          ;
 00F038  1  20 17 FE             JSR     PAGE_EXIT
 00F03B  1               
 00F03B  1               
 00F03B  1  A9 00                LDA     #$00            ;
 00F03D  1  8D 00 03             STA     INBUFFER        ; MAKE SURE INPUT BUFFER IS EMPTY
+00F040  1               
+00F040  1                       .IFDEF VIDEO
+00F040  1                       JMP     BOOT
+00F040  1                       .ENDIF
+00F040  1               
 00F040  1               
 00F040  1  00                   BRK                     ; PERFORM BRK (START MONITOR)
 00F041  1               
@@ -373,7 +386,7 @@ Current file: 6502PCbios.asm
 00F08D  2  A2 00                LDX     #0              ; point at start of input buffer
 00F08F  2  86 B9                STX     CHRPNT
 00F091  2               SMOVE:
-00F091  2  20 6A FE             JSR     IOF_CONINW      ; CHRIN kernal call to input a character
+00F091  2  20 63 FE             JSR     IOF_CONINW      ; CHRIN kernal call to input a character
 00F094  2               
 00F094  2  C9 08                CMP     #$08            ; IS BACKSPACE?
 00F096  2  D0 1A                BNE     :+              ; NO, SKUP BACKSPACE RTN
@@ -1655,7 +1668,7 @@ Current file: 6502PCbios.asm
 00F7E1  2               ; -----------------------------------------------------------------------------
 00F7E1  2               ; check for stop key
 00F7E1  2               STOP:
-00F7E1  2  20 5E FE             JSR     IOF_CONIN
+00F7E1  2  20 57 FE             JSR     IOF_CONIN
 00F7E4  2  C9 03                CMP     #$03
 00F7E6  2  F0 03                BEQ     :+
 00F7E8  2  A9 FF                LDA     #$FF
@@ -1667,10 +1680,10 @@ Current file: 6502PCbios.asm
 00F7EE  2               ; -----------------------------------------------------------------------------
 00F7EE  2               ; LOAD A MOTOROLA FORMATTED HEX FILE
 00F7EE  2               LOADS19:
-00F7EE  2  20 6A FE             JSR     IOF_CONINW      ;
+00F7EE  2  20 63 FE             JSR     IOF_CONINW      ;
 00F7F1  2  C9 53                CMP     #'S'            ;
 00F7F3  2  D0 F9                BNE     LOADS19         ; FIRST CHAR NOT (S)
-00F7F5  2  20 6A FE             JSR     IOF_CONINW      ; READ CHAR
+00F7F5  2  20 63 FE             JSR     IOF_CONINW      ; READ CHAR
 00F7F8  2  C9 39                CMP     #'9'            ;
 00F7FA  2  F0 33                BEQ     LOAD21          ;
 00F7FC  2  C9 31                CMP     #'1'            ;
@@ -1720,7 +1733,7 @@ Current file: 6502PCbios.asm
 00F847  2  60                   RTS                     ;
 00F848  2               ; INPUT HEX CHAR
 00F848  2               INHEX:
-00F848  2  20 6A FE             JSR     IOF_CONINW      ;
+00F848  2  20 63 FE             JSR     IOF_CONINW      ;
 00F84B  2  48                   PHA                     ;
 00F84C  2  20 4F FE             JSR     IOF_OUTCH       ;
 00F84F  2  68                   PLA                     ;
@@ -2753,8 +2766,8 @@ Current file: 6502PCbios.asm
 00FBED  2  85 41                STA     STRPTR          ;
 00FBEF  2  A9 FC                LDA     #>MESSAGE7      ;
 00FBF1  2  85 42                STA     STRPTR+1        ;
-00FBF3  2  20 76 FE             JSR     OUTSTR
-00FBF6  2  20 6A FE             JSR     IOF_CONINW
+00FBF3  2  20 6F FE             JSR     OUTSTR
+00FBF6  2  20 63 FE             JSR     IOF_CONINW
 00FBF9  2  C9 59                CMP     #'Y'
 00FBFB  2  F0 0C                BEQ     :+
 00FBFD  2               
@@ -2762,7 +2775,7 @@ Current file: 6502PCbios.asm
 00FBFF  2  85 41                STA     STRPTR          ;
 00FC01  2  A9 FC                LDA     #>MESSAGE8      ;
 00FC03  2  85 42                STA     STRPTR+1        ;
-00FC05  2  20 76 FE             JSR     OUTSTR
+00FC05  2  20 6F FE             JSR     OUTSTR
 00FC08  2  00                   BRK
 00FC09  2               
 00FC09  2               
@@ -2814,7 +2827,7 @@ Current file: 6502PCbios.asm
 00FC56  2  85 41                STA     STRPTR          ;
 00FC58  2  A9 FC                LDA     #>MESSAGE9      ;
 00FC5A  2  85 42                STA     STRPTR+1        ;
-00FC5C  2  20 76 FE             JSR     OUTSTR
+00FC5C  2  20 6F FE             JSR     OUTSTR
 00FC5F  2  00                   BRK
 00FC60  2               
 00FC60  2               MESSAGE7:
@@ -2838,6 +2851,8 @@ Current file: 6502PCbios.asm
 00FCDE  2               
 00FCDE  2                       .ENDIF
 00FCDE  2               
+00FCDE  1               
+00FCDE  1                       .IFDEF ESP
 00FCDE  1                       .INCLUDE "bios_esp.asm"
 00FCDE  2               ;__ESP DRIVERS______________________________________________________________________________________________________________
 00FCDE  2               ;
@@ -3425,7 +3440,8 @@ Current file: 6502PCbios.asm
 00FDE1  2                       .BYTE   00
 00FDE1  2                       .ENDIF
 00FDE1  2               
-00FDE1  1               ;   .INCLUDE "bios_multi.asm"
+00FDE1  1                       .ENDIF
+00FDE1  1               
 00FDE1  1                       .INCLUDE "bios_pager.ASM"
 00FDE1  2               ;__BIOS PAGERS__________________________________________________________________________________________________________________
 00FDE1  2               ;
@@ -3539,94 +3555,96 @@ Current file: 6502PCbios.asm
 00FE4F  1               ;
 00FE4F  1               ;______________________________________________________________
 00FE4F  1               IOF_OUTCH:
+00FE4F  1               
+00FE4F  1                       .IFDEF ESP
 00FE4F  1  48                   PHA
-00FE50  1  A5 3A                LDA     CONSOLE
-00FE52  1  C9 09                CMP     #$09
-00FE54  1  D0 04                BNE     :+
-00FE56  1  68                   PLA
-00FE57  1  4C DE FC             JMP     ESPVIDEOOUT
-00FE5A  1               :
-00FE5A  1  68                   PLA
-00FE5B  1  4C CF F9             JMP     WRSER1
-00FE5E  1               
-00FE5E  1               ;__IOF_CONIN___________________________________________________
-00FE5E  1               ;
-00FE5E  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00FE5E  1               ;
-00FE5E  1               ;______________________________________________________________
-00FE5E  1               IOF_CONIN:
-00FE5E  1  A5 3A                LDA     CONSOLE
-00FE60  1  C9 09                CMP     #$09
-00FE62  1  D0 03                BNE     :+
-00FE64  1  4C E9 FC             JMP     ESPPS2IN
-00FE67  1               :
-00FE67  1  4C DC F9             JMP     RDSER1
-00FE6A  1               
-00FE6A  1               
-00FE6A  1               ;__IOF_CONINW__________________________________________________
-00FE6A  1               ;
-00FE6A  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00FE6A  1               ;
-00FE6A  1               ;______________________________________________________________
-00FE6A  1               IOF_CONINW:
-00FE6A  1  A5 3A                LDA     CONSOLE
-00FE6C  1  C9 09                CMP     #$09
-00FE6E  1  D0 03                BNE     :+
-00FE70  1  4C FD FC             JMP     ESPPS2INW
-00FE73  1               :
-00FE73  1  4C EA F9             JMP     RDSER1W
-00FE76  1               
-00FE76  1               ;__OUTSTR______________________________________________________
-00FE76  1               ;
-00FE76  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00FE76  1               ;
-00FE76  1               ;______________________________________________________________
-00FE76  1               OUTSTR:
-00FE76  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
-00FE78  1               OUTSTRLP:
-00FE78  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
-00FE7A  1  C9 00                CMP     #$00            ; IS NULL?
-00FE7C  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-00FE7E  1  20 4F FE             JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
-00FE81  1  E6 41                INC     STRPTR
-00FE83  1  D0 F3                BNE     OUTSTRLP
-00FE85  1  E6 42                INC     STRPTR+1
-00FE87  1  4C 78 FE             JMP     OUTSTRLP        ; DO NEXT CHAR
-00FE8A  1               ENDOUTSTR:
-00FE8A  1  60                   RTS                     ; RETURN
-00FE8B  1               
-00FE8B  1               DSKYMSG:
-00FE8B  1  7C 06 3F 6D          .BYTE   $7C, $6, $3F, $6D, $0, $3E, $73, $0
-00FE8F  1  00 3E 73 00  
-00FE93  1               STARTUP:
-00FE93  1                       .IFDEF  ESP
-00FE93  1  0D 0A                .BYTE   $0D,$0A
-00FE95  1  0D 0A                .BYTE   $0D,$0A
-00FE97  1  0D 0A                .BYTE   $0D,$0A
-00FE99  1  1B 5B 33 32          .BYTE   27,"[32;40m",27,"[2J"
-00FE9D  1  3B 34 30 6D  
-00FEA1  1  1B 5B 32 4A  
-00FEA5  1  0D 0A                .BYTE   $0D,$0A
-00FEA7  1                       .ENDIF
-00FEA7  1  0D 0A                .BYTE   $0D,$0A
-00FEA9  1  20 20 5F 5F          .BYTE   "  __  ____   ___ ____    ___  ___",$0D,$0A
-00FEAD  1  20 20 5F 5F  
-00FEB1  1  5F 5F 20 20  
-00FECC  1  20 2F 20 2F          .BYTE   " / /_| ___| / _ \___ \  / _ \/ __\",$0D,$0A
-00FED0  1  5F 7C 20 5F  
-00FED4  1  5F 5F 7C 20  
-00FEF0  1  7C 20 27 5F          .BYTE   "| '_ \___ \| | | |__) |/ /_)/ /",$0D,$0A
-00FEF4  1  20 5C 5F 5F  
-00FEF8  1  5F 20 5C 7C  
-00FF11  1  7C 20 28 5F          .BYTE   "| (_) |__) | |_| / __// ___/ /___",$0D,$0A
-00FF15  1  29 20 7C 5F  
-00FF19  1  5F 29 20 7C  
-00FF34  1  20 5C 5F 5F          .BYTE   " \___/____/ \___/_____\/   \____/",$0D,$0A,$0D,$0A
-00FF38  1  5F 2F 5F 5F  
-00FF3C  1  5F 5F 2F 20  
-00FF59  1               
-00FF59  1                       .SEGMENT "IVECTOR"
-00FF59  1                       .ORG    $FFF0
+00FE50  1  4C DE FC             JMP     ESPVIDEOOUT
+00FE53  1  68                   PLA
+00FE54  1                       .ENDIF
+00FE54  1  4C CF F9             JMP     WRSER1
+00FE57  1               
+00FE57  1               ;__IOF_CONIN___________________________________________________
+00FE57  1               ;
+00FE57  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00FE57  1               ;
+00FE57  1               ;______________________________________________________________
+00FE57  1               IOF_CONIN:
+00FE57  1  A5 3A                LDA     CONSOLE
+00FE59  1  C9 09                CMP     #$09
+00FE5B  1  D0 03                BNE     :+
+00FE5D  1                       .IFDEF ESP
+00FE5D  1  4C E9 FC             JMP     ESPPS2IN
+00FE60  1                       .ENDIF
+00FE60  1               :
+00FE60  1  4C DC F9             JMP     RDSER1
+00FE63  1               
+00FE63  1               
+00FE63  1               ;__IOF_CONINW__________________________________________________
+00FE63  1               ;
+00FE63  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00FE63  1               ;
+00FE63  1               ;______________________________________________________________
+00FE63  1               IOF_CONINW:
+00FE63  1  A5 3A                LDA     CONSOLE
+00FE65  1  C9 09                CMP     #$09
+00FE67  1  D0 03                BNE     :+
+00FE69  1                       .IFDEF ESP
+00FE69  1  4C FD FC             JMP     ESPPS2INW
+00FE6C  1                       .ENDIF
+00FE6C  1               :
+00FE6C  1  4C EA F9             JMP     RDSER1W
+00FE6F  1               
+00FE6F  1               ;__OUTSTR______________________________________________________
+00FE6F  1               ;
+00FE6F  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00FE6F  1               ;
+00FE6F  1               ;______________________________________________________________
+00FE6F  1               OUTSTR:
+00FE6F  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+00FE71  1               OUTSTRLP:
+00FE71  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+00FE73  1  C9 00                CMP     #$00            ; IS NULL?
+00FE75  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00FE77  1  20 4F FE             JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
+00FE7A  1  E6 41                INC     STRPTR
+00FE7C  1  D0 F3                BNE     OUTSTRLP
+00FE7E  1  E6 42                INC     STRPTR+1
+00FE80  1  4C 71 FE             JMP     OUTSTRLP        ; DO NEXT CHAR
+00FE83  1               ENDOUTSTR:
+00FE83  1  60                   RTS                     ; RETURN
+00FE84  1               
+00FE84  1               DSKYMSG:
+00FE84  1  7C 06 3F 6D          .BYTE   $7C, $6, $3F, $6D, $0, $3E, $73, $0
+00FE88  1  00 3E 73 00  
+00FE8C  1               STARTUP:
+00FE8C  1                       .IFDEF  ESP
+00FE8C  1  0D 0A                .BYTE   $0D,$0A
+00FE8E  1  0D 0A                .BYTE   $0D,$0A
+00FE90  1  0D 0A                .BYTE   $0D,$0A
+00FE92  1  1B 5B 33 32          .BYTE   27,"[32;40m",27,"[2J"
+00FE96  1  3B 34 30 6D  
+00FE9A  1  1B 5B 32 4A  
+00FE9E  1  0D 0A                .BYTE   $0D,$0A
+00FEA0  1                       .ENDIF
+00FEA0  1  0D 0A                .BYTE   $0D,$0A
+00FEA2  1  20 20 5F 5F          .BYTE   "  __  ____   ___ ____    ___  ___",$0D,$0A
+00FEA6  1  20 20 5F 5F  
+00FEAA  1  5F 5F 20 20  
+00FEC5  1  20 2F 20 2F          .BYTE   " / /_| ___| / _ \___ \  / _ \/ __\",$0D,$0A
+00FEC9  1  5F 7C 20 5F  
+00FECD  1  5F 5F 7C 20  
+00FEE9  1  7C 20 27 5F          .BYTE   "| '_ \___ \| | | |__) |/ /_)/ /",$0D,$0A
+00FEED  1  20 5C 5F 5F  
+00FEF1  1  5F 20 5C 7C  
+00FF0A  1  7C 20 28 5F          .BYTE   "| (_) |__) | |_| / __// ___/ /___",$0D,$0A
+00FF0E  1  29 20 7C 5F  
+00FF12  1  5F 29 20 7C  
+00FF2D  1  20 5C 5F 5F          .BYTE   " \___/____/ \___/_____\/   \____/",$0D,$0A,$0D,$0A
+00FF31  1  5F 2F 5F 5F  
+00FF35  1  5F 5F 2F 20  
+00FF52  1               
+00FF52  1                       .SEGMENT "IVECTOR"
+00FF52  1                       .ORG    $FFF0
 00FFF0  1  4C 46 FE             JMP     DO_FARCALL_ACTUAL
 00FFF3  1  4C EE F7             JMP     LOADS19
 00FFF6  1  4C 27 FE             JMP     SETPAGE

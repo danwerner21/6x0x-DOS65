@@ -65,12 +65,17 @@ DSKYMSG:
 
 ;cold entry from loader
 boot:
+        LDA     CONSOLE
+        CMP     #19
+        BEQ     :+
+
         LDA     #<opnmsg        ;point to message
         LDY     #>opnmsg
         JSR     outmsg          ;send it
         LDA     #<opnmsg1       ;point to message
         LDY     #>opnmsg1
         JSR     outmsg          ;send it
+:
 ;set up jumps into dos/65 in page one
 
 ; setup diskconfig table
@@ -82,7 +87,11 @@ boot:
         CPX     #$10
         BNE     :-
 
-        LDA     #13             ; Video INITIALIZE
+        LDA     #23            ; Mapped Video INITIALIZE
+        STA     farfunct
+        JSR     DO_FARCALL
+
+        LDA     #13             ; ESP Video INITIALIZE
         STA     farfunct
         JSR     DO_FARCALL
 

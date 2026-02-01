@@ -1,14 +1,16 @@
-all:  	 testmulti.s19 dos65drv.s19 rom.hex pcdos65.s19 bios_video.s19
+all:  	 testmulti.s19 dos65drv.s19 rom.hex pcdos65.s19
 
 6502PCbios.out: 6502PCbios.asm bios_serial.asm ../supermon/supermon.asm \
-			  bios_pager.asm bios_ide.asm
+			  bios_pager.asm bios_ide.asm bios_video.asm
 	ca65 6502PCbios.asm -l 6502PCbios.lst
 	ca65 6502PCbios.asm -D ESP -l 6502PCbiosesp.lst -o 6502PCbiosesp.o
+	ca65 6502PCbios.asm -D VIDEO -l 6502PCbiosvideo.lst -o 6502PCbiosvideo.o
 	ld65 6502PCbios.o -vm -v -m 6502PCbios.map -C dos65.cfg -o 6502PCbios.out
 	ld65 6502PCbiosesp.o -vm -v -m 6502PCbiosesp.map -C dos65.cfg -o 6502PCbiosesp.out
+	ld65 6502PCbiosvideo.o -vm -v -m 6502PCbiosvideo.map -C dos65.cfg -o 6502PCbiosvideo.out
 
 dos65drv.out: dos65drv.asm bios_serial.asm  bios_rtc.asm \
-			  bios_pager.asm bios_ide.asm bios_ch375.asm bios_esp.asm bios_multi.asm
+			  bios_pager.asm bios_ide.asm bios_ch375.asm bios_esp.asm bios_multi.asm bios_video.asm
 	ca65 dos65drv.asm -l dos65drv.lst
 	ld65 dos65drv.o -vm -v -m dos65drv.map -C dos65.cfg -o dos65drv.out
 
@@ -16,19 +18,15 @@ bios_ch375.out: bios_ch375.asm
 	ca65 bios_ch375.asm -l bios_ch375.lst
 	ld65 bios_ch375.o -vm -v -m bios_ch375.map -C dos65.cfg -o bios_ch375.out
 
-bios_video.out: bios_video.asm
-	ca65 bios_video.asm -l bios_video.lst
-	ld65 bios_video.o -vm -v -m bios_video.map -C dos65.cfg -o bios_video.out
-
 testmulti.out: testmulti.asm bios_multi.asm
 	ca65 testmulti.asm -l testmulti.lst
 	ld65 testmulti.o -vm -v -m testmulti.map -C dos65.cfg -o testmulti.out
 
 
-
 rom.hex: 6502PCbios.out bios_ch375.asm bios_ide.asm
 	srec_cat  6502PCbios.out -binary -exclude 0x0000 0xEF00 -offset -0x8F00 -o rom.h1  -intel -address-length=2 --Data_Only
-	srec_cat  6502PCbiosesp.out -binary -exclude 0x0000 0xEF00 -offset -0x7F00 -o rom.h2  -intel -address-length=2
+#	srec_cat  6502PCbiosesp.out -binary -exclude 0x0000 0xEF00 -offset -0x7F00 -o rom.h2  -intel -address-length=2
+	srec_cat  6502PCbiosvideo.out -binary -exclude 0x0000 0xEF00 -offset -0x7F00 -o rom.h2  -intel -address-length=2
 	cat 	rom.h1 rom.h2 > rom.hex
 	@rm	rom.h1
 	@rm	rom.h2
@@ -40,11 +38,6 @@ dos65drv.s19: dos65drv.out
 testmulti.s19: testmulti.out
 	srec_cat  testmulti.out  -binary -offset 0x900 -exclude 0x0000 0x1000  -o testmulti.s19 --Data-Only
 	sed -i -e '$$aS9' testmulti.s19
-
-bios_video.s19: bios_video.out
-	srec_cat  bios_video.out  -binary -offset 0x900 -exclude 0x0000 0x1000  -o bios_video.s19 --Data-Only
-	sed -i -e '$$aS9' bios_video.s19
-
 
 pcdos65.s19: loader.asm ../dos65_os/dos65_pc6502.s19 dos65drv.s19
 	ca65 loader.asm -l loader.lst

@@ -47,6 +47,13 @@ COLD_START:
         LDA     #$09            ; SET CONSOLE ESP
         STA     CONSOLE         ;
         .ENDIF
+
+        .IFDEF VIDEO
+        LDA     #19             ; SET CONSOLE VIDEO
+        STA     CONSOLE         ;
+        .ENDIF
+
+
 ;;;
         LDA     #<IRQROUTINE
         STA     IRQVECTOR
@@ -72,6 +79,11 @@ COLD_START:
 
         LDA     #$00            ;
         STA     INBUFFER        ; MAKE SURE INPUT BUFFER IS EMPTY
+
+        .IFDEF VIDEO
+        JMP     BOOT
+        .ENDIF
+
 
         BRK                     ; PERFORM BRK (START MONITOR)
 
@@ -112,8 +124,11 @@ NINTERRUPT:
         .INCLUDE "../supermon/supermon.asm"
         .INCLUDE "bios_serial.asm"
         .INCLUDE "bios_ide.asm"
+
+        .IFDEF ESP
         .INCLUDE "bios_esp.asm"
-;   .INCLUDE "bios_multi.asm"
+        .ENDIF
+
         .INCLUDE "bios_pager.ASM"
 
 ;__IOF_OUTCH___________________________________________________
@@ -122,14 +137,12 @@ NINTERRUPT:
 ;
 ;______________________________________________________________
 IOF_OUTCH:
+
+        .IFDEF ESP
         PHA
-        LDA     CONSOLE
-        CMP     #$09
-        BNE     :+
-        PLA
         JMP     ESPVIDEOOUT
-:
         PLA
+        .ENDIF
         JMP     WRSER1
 
 ;__IOF_CONIN___________________________________________________
@@ -141,7 +154,9 @@ IOF_CONIN:
         LDA     CONSOLE
         CMP     #$09
         BNE     :+
+        .IFDEF ESP
         JMP     ESPPS2IN
+        .ENDIF
 :
         JMP     RDSER1
 
@@ -155,7 +170,9 @@ IOF_CONINW:
         LDA     CONSOLE
         CMP     #$09
         BNE     :+
+        .IFDEF ESP
         JMP     ESPPS2INW
+        .ENDIF
 :
         JMP     RDSER1W
 

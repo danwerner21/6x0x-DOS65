@@ -129,6 +129,7 @@ Current file: 6502PCbios.asm
 000000r 2               TEMPWORD        = $3B           ;
 000000r 2               TEMPWORD1       = $3D           ;
 000000r 2               TEMPWORD2       = $3F           ;
+000000r 2               TEMPWORD3       = $44           ;
 000000r 2               STRPTR          = $41           ;
 000000r 2               DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
 000000r 2               
@@ -216,6 +217,13 @@ Current file: 6502PCbios.asm
 00F018  1                       LDA     #$09            ; SET CONSOLE ESP
 00F018  1                       STA     CONSOLE         ;
 00F018  1                       .ENDIF
+00F018  1               
+00F018  1                       .IFDEF VIDEO
+00F018  1                       LDA     #19             ; SET CONSOLE VIDEO
+00F018  1                       STA     CONSOLE         ;
+00F018  1                       .ENDIF
+00F018  1               
+00F018  1               
 00F018  1               ;;;
 00F018  1  A9 41                LDA     #<IRQROUTINE
 00F01A  1  85 35                STA     IRQVECTOR
@@ -225,22 +233,27 @@ Current file: 6502PCbios.asm
 00F022  1  85 38                STA     NMIVECTOR+1
 00F024  1               ;
 00F024  1               ;       INIT PAGING
-00F024  1  20 E1 FD             JSR     INITPAGES       ;
+00F024  1  20 DE FC             JSR     INITPAGES       ;
 00F027  1               
 00F027  1               ;	INIT HARDWARE
 00F027  1  20 BF F9             JSR     SERIALINIT
 00F02A  1               
-00F02A  1  20 1F FE             JSR     PAGE_ENTER
-00F02D  1  A9 93                LDA     #<STARTUP       ; OUTPUT STARTUP STRING
+00F02A  1  20 1C FD             JSR     PAGE_ENTER
+00F02D  1  A9 7E                LDA     #<STARTUP       ; OUTPUT STARTUP STRING
 00F02F  1  85 41                STA     STRPTR          ;
-00F031  1  A9 FE                LDA     #>STARTUP       ;
+00F031  1  A9 FD                LDA     #>STARTUP       ;
 00F033  1  85 42                STA     STRPTR+1        ;
-00F035  1  20 76 FE             JSR     OUTSTR          ;
-00F038  1  20 17 FE             JSR     PAGE_EXIT
+00F035  1  20 61 FD             JSR     OUTSTR          ;
+00F038  1  20 14 FD             JSR     PAGE_EXIT
 00F03B  1               
 00F03B  1               
 00F03B  1  A9 00                LDA     #$00            ;
 00F03D  1  8D 00 03             STA     INBUFFER        ; MAKE SURE INPUT BUFFER IS EMPTY
+00F040  1               
+00F040  1                       .IFDEF VIDEO
+00F040  1                       JMP     BOOT
+00F040  1                       .ENDIF
+00F040  1               
 00F040  1               
 00F040  1  00                   BRK                     ; PERFORM BRK (START MONITOR)
 00F041  1               
@@ -353,9 +366,9 @@ Current file: 6502PCbios.asm
 00F069  2  A0 00                LDY     #MSG2-MSGBAS    ; display headers
 00F06B  2  20 C0 F7             JSR     SNDCLR
 00F06E  2  A9 3B                LDA     #$3B            ; prefix registers with "; " to allow editing
-00F070  2  20 4F FE             JSR     CHROUT
+00F070  2  20 4C FD             JSR     CHROUT
 00F073  2  A9 20                LDA     #$20
-00F075  2  20 4F FE             JSR     CHROUT
+00F075  2  20 4C FD             JSR     CHROUT
 00F078  2  A5 B0                LDA     PCH             ; print 2-byte program counter
 00F07A  2  20 5A F6             JSR     WRTWO
 00F07D  2  A0 01                LDY     #1              ; start 1 byte after PC high byte
@@ -373,24 +386,24 @@ Current file: 6502PCbios.asm
 00F08D  2  A2 00                LDX     #0              ; point at start of input buffer
 00F08F  2  86 B9                STX     CHRPNT
 00F091  2               SMOVE:
-00F091  2  20 6A FE             JSR     IOF_CONINW      ; CHRIN kernal call to input a character
+00F091  2  20 58 FD             JSR     IOF_CONINW      ; CHRIN kernal call to input a character
 00F094  2               
 00F094  2  C9 08                CMP     #$08            ; IS BACKSPACE?
 00F096  2  D0 1A                BNE     :+              ; NO, SKUP BACKSPACE RTN
 00F098  2  E0 00                CPX     #$00            ; IS INDEX =0 ?
 00F09A  2  F0 F5                BEQ     SMOVE           ; YES, SKIP BACKSPACE
-00F09C  2  20 4F FE             JSR     IOF_OUTCH       ; BACK UP CURSOR
+00F09C  2  20 4C FD             JSR     IOF_OUTCH       ; BACK UP CURSOR
 00F09F  2  A9 20                LDA     #$20
-00F0A1  2  20 4F FE             JSR     IOF_OUTCH       ; SPACE ON SCREEN
+00F0A1  2  20 4C FD             JSR     IOF_OUTCH       ; SPACE ON SCREEN
 00F0A4  2  A9 08                LDA     #$08
-00F0A6  2  20 4F FE             JSR     IOF_OUTCH       ; BACK UP CURSOR
+00F0A6  2  20 4C FD             JSR     IOF_OUTCH       ; BACK UP CURSOR
 00F0A9  2               
 00F0A9  2  A9 00                LDA     #0
 00F0AB  2  9D 00 04             STA     INBUFF,X        ; store in input buffer
 00F0AE  2  CA                   DEX
 00F0AF  2  4C 91 F0             JMP     SMOVE
 00F0B2  2               :
-00F0B2  2  20 4F FE             JSR     IOF_OUTCH       ; OUTPUT CHAR TO SCREEN
+00F0B2  2  20 4C FD             JSR     IOF_OUTCH       ; OUTPUT CHAR TO SCREEN
 00F0B5  2               
 00F0B5  2  9D 00 04             STA     INBUFF,X        ; store in input buffer
 00F0B8  2  E8                   INX
@@ -503,7 +516,7 @@ Current file: 6502PCbios.asm
 00F156  2  90 F2                BCC     ALTM1           ; if not, read the next one
 00F158  2               ALTMX:
 00F158  2  A9 91                LDA     #$91            ; move cursor up
-00F15A  2  20 4F FE             JSR     CHROUT
+00F15A  2  20 4C FD             JSR     CHROUT
 00F15D  2  20 8D F1             JSR     DISPMEM         ; re-display line to make ascii match hex
 00F160  2  4C 8A F0             JMP     STRT            ; back to main loop
 00F163  2               
@@ -544,7 +557,7 @@ Current file: 6502PCbios.asm
 00F18D  2               DISPMEM:
 00F18D  2  20 45 F6             JSR     CRLF            ; new line
 00F190  2  A9 3E                LDA     #'>'            ; prefix > so memory can be edited in place
-00F192  2  20 4F FE             JSR     CHROUT
+00F192  2  20 4C FD             JSR     CHROUT
 00F195  2  20 30 F6             JSR     SHOWAD          ; show address of first byte on line
 00F198  2  A0 00                LDY     #0
 00F19A  2  F0 03                BEQ     DMEMGO          ; SHOWAD already printed a space after the address
@@ -568,7 +581,7 @@ Current file: 6502PCbios.asm
 00F1BA  2               DDOT:
 00F1BA  2  A9 2E                LDA     #$2E            ; if not, output '.' instaed
 00F1BC  2               DCHROK:
-00F1BC  2  20 4F FE             JSR     CHROUT
+00F1BC  2  20 4C FD             JSR     CHROUT
 00F1BF  2  C8                   INY                     ; next byte
 00F1C0  2  C0 08                CPY     #8              ; have we output 8 bytes yet?
 00F1C2  2  90 EC                BCC     DCHAR           ; if not, output next byte
@@ -935,13 +948,13 @@ Current file: 6502PCbios.asm
 00F3D5  2  A5 CB                LDA     OPCODE          ; put opcode into instruction
 00F3D7  2  91 C3                STA     (TMP2),Y
 00F3D9  2  A9 0D                LDA     #$0D            ; cr
-00F3DB  2  20 4F FE             JSR     CHROUT
+00F3DB  2  20 4C FD             JSR     CHROUT
 00F3DE  2  A0 2E                LDY     #MSG7-MSGBAS    ; "A " prefix
 00F3E0  2  20 C0 F7             JSR     SNDCLR          ; clear line
 00F3E3  2  A9 41                LDA     #'A'
-00F3E5  2  20 4F FE             JSR     CHROUT
+00F3E5  2  20 4C FD             JSR     CHROUT
 00F3E8  2  A9 20                LDA     #' '
-00F3EA  2  20 4F FE             JSR     CHROUT
+00F3EA  2  20 4C FD             JSR     CHROUT
 00F3ED  2  20 97 F4             JSR     DISLIN          ; disassemble the instruction we just assembled
 00F3F0  2  E6 C6                INC     LENGTH          ; instruction length = operand length + 1 byte
 00F3F2  2  A5 C6                LDA     LENGTH          ;   for the opcode
@@ -950,27 +963,27 @@ Current file: 6502PCbios.asm
 00F3F7  2  20 45 F6             JSR     CRLF
 00F3FA  2  A9 41                LDA     #'A'            ; stuff keyboard buffer with next assemble command:
 00F3FC  2  8D 00 04             STA     INBUFF
-00F3FF  2  20 4F FE             JSR     IOF_OUTCH
+00F3FF  2  20 4C FD             JSR     IOF_OUTCH
 00F402  2  A9 20                LDA     #' '            ;   after the previously assembled instruction
 00F404  2  8D 01 04             STA     INBUFF+1
-00F407  2  20 4F FE             JSR     IOF_OUTCH
+00F407  2  20 4C FD             JSR     IOF_OUTCH
 00F40A  2  A5 C4                LDA     TMP2+1          ; convert high byte of next address to hex
 00F40C  2  20 68 F6             JSR     ASCTWO
 00F40F  2  8D 02 04             STA     INBUFF+2        ; put it in the keyboard buffer
-00F412  2  20 4F FE             JSR     IOF_OUTCH
+00F412  2  20 4C FD             JSR     IOF_OUTCH
 00F415  2  8E 03 04             STX     INBUFF+3
 00F418  2  8A                   TXA
-00F419  2  20 4F FE             JSR     IOF_OUTCH
+00F419  2  20 4C FD             JSR     IOF_OUTCH
 00F41C  2  A5 C3                LDA     TMP2            ; convert low byte of next address to hex
 00F41E  2  20 68 F6             JSR     ASCTWO
 00F421  2  8D 04 04             STA     INBUFF+4        ; put it in the keyboard buffer
-00F424  2  20 4F FE             JSR     IOF_OUTCH
+00F424  2  20 4C FD             JSR     IOF_OUTCH
 00F427  2  8E 05 04             STX     INBUFF+5
 00F42A  2  8A                   TXA
-00F42B  2  20 4F FE             JSR     IOF_OUTCH
+00F42B  2  20 4C FD             JSR     IOF_OUTCH
 00F42E  2  A9 20                LDA     #' '            ;   after the previously assembled instruction
 00F430  2  8D 06 04             STA     INBUFF+6
-00F433  2  20 4F FE             JSR     IOF_OUTCH
+00F433  2  20 4C FD             JSR     IOF_OUTCH
 00F436  2  A2 07                LDX     #7              ; set number of chars in keyboard buffer
 00F438  2  A9 00                LDA     #$00
 00F43A  2  85 B9                STA     CHRPNT
@@ -1029,7 +1042,7 @@ Current file: 6502PCbios.asm
 00F48F  2               
 00F48F  2               DSOUT1:
 00F48F  2  A9 2E                LDA     #'.'            ; output ". " prefix to allow edit and reassemble
-00F491  2  20 4F FE             JSR     CHROUT
+00F491  2  20 4C FD             JSR     CHROUT
 00F494  2  20 3D F6             JSR     SPACE
 00F497  2               
 00F497  2               DISLIN:
@@ -1080,10 +1093,10 @@ Current file: 6502PCbios.asm
 00F4E1  2  06 C5                ASL     ACMD            ; check whether addr mode uses the current char
 00F4E3  2  90 0E                BCC     PRADR4          ; if not, skip it
 00F4E5  2  BD F2 F8             LDA     CHAR1-1,X       ; look up the first char in the table
-00F4E8  2  20 4F FE             JSR     CHROUT          ; print first char
+00F4E8  2  20 4C FD             JSR     CHROUT          ; print first char
 00F4EB  2  BD F8 F8             LDA     CHAR2-1,X       ; look up the second char in the table
 00F4EE  2  F0 03                BEQ     PRADR4          ; if there's no second character, skip it
-00F4F0  2  20 4F FE             JSR     CHROUT          ; print second char
+00F4F0  2  20 4C FD             JSR     CHROUT          ; print second char
 00F4F3  2               PRADR4:
 00F4F3  2  CA                   DEX                     ; next potential address mode character
 00F4F4  2  D0 D3                BNE     PRADR1          ; loop if we haven't checked them all yet
@@ -1191,7 +1204,7 @@ Current file: 6502PCbios.asm
 00F569  2  88                   DEY                     ; next bit
 00F56A  2  D0 F8                BNE     PRMN2           ; loop until all bits shifted
 00F56C  2  69 3F                ADC     #$3F            ; calculate ascii code for letter by adding to '?'
-00F56E  2  20 4F FE             JSR     CHROUT          ; output letter
+00F56E  2  20 4C FD             JSR     CHROUT          ; output letter
 00F571  2  CA                   DEX                     ; next letter
 00F572  2  D0 EC                BNE     PRMN1           ; loop until all 3 letters are output
 00F574  2  4C 3D F6             JMP     SPACE           ; output space
@@ -1346,15 +1359,15 @@ Current file: 6502PCbios.asm
 00F643  2  D0 07                BNE     FLIP
 00F645  2               CRLF:
 00F645  2  A9 0D                LDA     #$0D            ; load CR in A
-00F647  2  20 4F FE             JSR     CHROUT          ; otherwise output CR+LF
+00F647  2  20 4C FD             JSR     CHROUT          ; otherwise output CR+LF
 00F64A  2  A9 0A                LDA     #$0A            ; output LF
 00F64C  2               FLIP:
-00F64C  2  4C 4F FE             JMP     CHROUT
+00F64C  2  4C 4C FD             JMP     CHROUT
 00F64F  2               
 00F64F  2               FRESH:
 00F64F  2  20 45 F6             JSR     CRLF            ; output CR
 00F652  2  A9 20                LDA     #$20            ; load space in A
-00F654  2  20 4F FE             JSR     CHROUT
+00F654  2  20 4C FD             JSR     CHROUT
 00F657  2  4C C3 F7             JMP     SNCLR
 00F65A  2               
 00F65A  2               ; -----------------------------------------------------------------------------
@@ -1362,10 +1375,10 @@ Current file: 6502PCbios.asm
 00F65A  2               WRTWO:
 00F65A  2  86 CA                STX     SAVX            ; save X
 00F65C  2  20 68 F6             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
-00F65F  2  20 4F FE             JSR     CHROUT          ; output upper nybble
+00F65F  2  20 4C FD             JSR     CHROUT          ; output upper nybble
 00F662  2  8A                   TXA                     ; transfer lower to A
 00F663  2  A6 CA                LDX     SAVX            ; restore X
-00F665  2  4C 4F FE             JMP     CHROUT          ; output lower nybble
+00F665  2  4C 4C FD             JMP     CHROUT          ; output lower nybble
 00F668  2               
 00F668  2               ; -----------------------------------------------------------------------------
 00F668  2               ; convert byte in A to hex digits
@@ -1523,13 +1536,13 @@ Current file: 6502PCbios.asm
 00F714  2  20 77 F5             JSR     RDPAR           ; read a parameter
 00F717  2  20 4F F6             JSR     FRESH           ; next line and clear
 00F71A  2  A9 24                LDA     #'$'            ; output $ sigil for hex
-00F71C  2  20 4F FE             JSR     CHROUT
+00F71C  2  20 4C FD             JSR     CHROUT
 00F71F  2  A5 C1                LDA     TMP0            ; load the 16-bit value entered
 00F721  2  A6 C2                LDX     TMP0+1
 00F723  2  20 34 F6             JSR     WRADDR          ; print it in 4 hex digits
 00F726  2  20 4F F6             JSR     FRESH
 00F729  2  A9 2B                LDA     #'+'            ; output + sigil for decimal
-00F72B  2  20 4F FE             JSR     CHROUT
+00F72B  2  20 4C FD             JSR     CHROUT
 00F72E  2  20 5F F7             JSR     CVTDEC          ; convert to BCD using hardware mode
 00F731  2  A9 00                LDA     #0              ; clear digit counter
 00F733  2  A2 06                LDX     #6              ; max digits + 1
@@ -1537,14 +1550,14 @@ Current file: 6502PCbios.asm
 00F737  2  20 92 F7             JSR     NMPRNT          ; print result without leading zeros
 00F73A  2  20 4F F6             JSR     FRESH           ; next line and clear
 00F73D  2  A9 26                LDA     #'&'            ; print & sigil for octal
-00F73F  2  20 4F FE             JSR     CHROUT
+00F73F  2  20 4C FD             JSR     CHROUT
 00F742  2  A9 00                LDA     #0              ; clear digit counter
 00F744  2  A2 08                LDX     #8              ; max digits + 1
 00F746  2  A0 02                LDY     #2              ; bits per digit - 1
 00F748  2  20 84 F7             JSR     PRINUM          ; output number
 00F74B  2  20 4F F6             JSR     FRESH           ; next line and clear
 00F74E  2  A9 25                LDA     #'%'            ; print % sigil for binary
-00F750  2  20 4F FE             JSR     CHROUT
+00F750  2  20 4C FD             JSR     CHROUT
 00F753  2  A9 00                LDA     #0              ; clear digit counter
 00F755  2  A2 18                LDX     #$18            ; max digits + 1
 00F757  2  A0 00                LDY     #0              ; bits per digit - 1
@@ -1615,7 +1628,7 @@ Current file: 6502PCbios.asm
 00F7AF  2               NZERO:
 00F7AF  2  E6 CB                INC     DIGCNT          ; increment digit counter
 00F7B1  2  09 30                ORA     #$30            ; add numeric value to ascii '0' to get ascii char
-00F7B3  2  20 4F FE             JSR     CHROUT          ; output character
+00F7B3  2  20 4C FD             JSR     CHROUT          ; output character
 00F7B6  2               ZERSUP:
 00F7B6  2  CA                   DEX                     ; decrement number of leading zeros
 00F7B7  2  D0 DD                BNE     DIGOUT          ; next digit
@@ -1633,11 +1646,11 @@ Current file: 6502PCbios.asm
 00F7C3  2  A0 28                LDY     #$28            ; loop 40 times
 00F7C5  2               SNCLP:
 00F7C5  2  A9 20                LDA     #$20            ; output space character
-00F7C7  2  20 4F FE             JSR     CHROUT
+00F7C7  2  20 4C FD             JSR     CHROUT
 00F7CA  2  88                   DEY
 00F7CB  2  D0 F8                BNE     SNCLP
 00F7CD  2  A9 0D                LDA     #13             ; output CR
-00F7CF  2  20 4F FE             JSR     CHROUT          ; send CR
+00F7CF  2  20 4C FD             JSR     CHROUT          ; send CR
 00F7D2  2  60                   RTS
 00F7D3  2               
 00F7D3  2               ; -----------------------------------------------------------------------------
@@ -1655,7 +1668,7 @@ Current file: 6502PCbios.asm
 00F7E1  2               ; -----------------------------------------------------------------------------
 00F7E1  2               ; check for stop key
 00F7E1  2               STOP:
-00F7E1  2  20 5E FE             JSR     IOF_CONIN
+00F7E1  2  20 4F FD             JSR     IOF_CONIN
 00F7E4  2  C9 03                CMP     #$03
 00F7E6  2  F0 03                BEQ     :+
 00F7E8  2  A9 FF                LDA     #$FF
@@ -1667,10 +1680,10 @@ Current file: 6502PCbios.asm
 00F7EE  2               ; -----------------------------------------------------------------------------
 00F7EE  2               ; LOAD A MOTOROLA FORMATTED HEX FILE
 00F7EE  2               LOADS19:
-00F7EE  2  20 6A FE             JSR     IOF_CONINW      ;
+00F7EE  2  20 58 FD             JSR     IOF_CONINW      ;
 00F7F1  2  C9 53                CMP     #'S'            ;
 00F7F3  2  D0 F9                BNE     LOADS19         ; FIRST CHAR NOT (S)
-00F7F5  2  20 6A FE             JSR     IOF_CONINW      ; READ CHAR
+00F7F5  2  20 58 FD             JSR     IOF_CONINW      ; READ CHAR
 00F7F8  2  C9 39                CMP     #'9'            ;
 00F7FA  2  F0 33                BEQ     LOAD21          ;
 00F7FC  2  C9 31                CMP     #'1'            ;
@@ -1699,7 +1712,7 @@ Current file: 6502PCbios.asm
 00F828  2  F0 C4                BEQ     LOADS19         ;
 00F82A  2               LOAD19:
 00F82A  2  A9 3F                LDA     #'?'            ;
-00F82C  2  20 4F FE             JSR     IOF_OUTCH       ;
+00F82C  2  20 4C FD             JSR     IOF_OUTCH       ;
 00F82F  2               LOAD21:
 00F82F  2  60                   RTS
 00F830  2               S19GETBYTE:
@@ -1720,9 +1733,9 @@ Current file: 6502PCbios.asm
 00F847  2  60                   RTS                     ;
 00F848  2               ; INPUT HEX CHAR
 00F848  2               INHEX:
-00F848  2  20 6A FE             JSR     IOF_CONINW      ;
+00F848  2  20 58 FD             JSR     IOF_CONINW      ;
 00F84B  2  48                   PHA                     ;
-00F84C  2  20 4F FE             JSR     IOF_OUTCH       ;
+00F84C  2  20 4C FD             JSR     IOF_OUTCH       ;
 00F84F  2  68                   PLA                     ;
 00F850  2  C9 3A                CMP     #$3A            ; LESS THAN 9?
 00F852  2  B0 02                BCS     INHEX_BIG       ; NO, SKIP NEXT
@@ -2753,8 +2766,8 @@ Current file: 6502PCbios.asm
 00FBED  2  85 41                STA     STRPTR          ;
 00FBEF  2  A9 FC                LDA     #>MESSAGE7      ;
 00FBF1  2  85 42                STA     STRPTR+1        ;
-00FBF3  2  20 76 FE             JSR     OUTSTR
-00FBF6  2  20 6A FE             JSR     IOF_CONINW
+00FBF3  2  20 61 FD             JSR     OUTSTR
+00FBF6  2  20 58 FD             JSR     IOF_CONINW
 00FBF9  2  C9 59                CMP     #'Y'
 00FBFB  2  F0 0C                BEQ     :+
 00FBFD  2               
@@ -2762,7 +2775,7 @@ Current file: 6502PCbios.asm
 00FBFF  2  85 41                STA     STRPTR          ;
 00FC01  2  A9 FC                LDA     #>MESSAGE8      ;
 00FC03  2  85 42                STA     STRPTR+1        ;
-00FC05  2  20 76 FE             JSR     OUTSTR
+00FC05  2  20 61 FD             JSR     OUTSTR
 00FC08  2  00                   BRK
 00FC09  2               
 00FC09  2               
@@ -2814,7 +2827,7 @@ Current file: 6502PCbios.asm
 00FC56  2  85 41                STA     STRPTR          ;
 00FC58  2  A9 FC                LDA     #>MESSAGE9      ;
 00FC5A  2  85 42                STA     STRPTR+1        ;
-00FC5C  2  20 76 FE             JSR     OUTSTR
+00FC5C  2  20 61 FD             JSR     OUTSTR
 00FC5F  2  00                   BRK
 00FC60  2               
 00FC60  2               MESSAGE7:
@@ -2838,796 +2851,215 @@ Current file: 6502PCbios.asm
 00FCDE  2               
 00FCDE  2                       .ENDIF
 00FCDE  2               
+00FCDE  1               
+00FCDE  1                       .IFDEF ESP
 00FCDE  1                       .INCLUDE "bios_esp.asm"
-00FCDE  2               ;__ESP DRIVERS______________________________________________________________________________________________________________
+00FCDE  1                       .ENDIF
+00FCDE  1               
+00FCDE  1                       .INCLUDE "bios_pager.ASM"
+00FCDE  2               ;__BIOS PAGERS__________________________________________________________________________________________________________________
 00FCDE  2               ;
-00FCDE  2               ; 	CUBIX ISA DUAL ESP IO drivers for 6809PC
+00FCDE  2               ; 	Memory Page Management Functions
 00FCDE  2               ;
-00FCDE  2               ;	Entry points:
-00FCDE  2               ;		ESPINIT     - INIT HARDWARE
-00FCDE  2               ;		ESPVIDEOOUT - OUTPUT A CHARACTER TO VIDEO (ANSI)
-00FCDE  2               ;               ESPPS2IN    - read a character from the ps/2 keyboard ('A' POINTS TO BYTE)
-00FCDE  2               ;               ESPPS2BUFL  - return number of characters in the keyboard buffer in 'A'
-00FCDE  2               ;               ESPCURSORV  - Set Cursor Visibility (A=0 cursor off, A=1 cursor on)
-00FCDE  2               ;		ESPSER0OUT  - OUTPUT A CHARACTER TO Serial 0 ('A' POINTS TO BYTE)
-00FCDE  2               ;               ESPSER0IN   - read a character from Serial 0 ('A' POINTS TO BYTE)
-00FCDE  2               ;               ESPSER0BUFL - return number of characters in the Serial 0 buffer in 'A'
-00FCDE  2               ;		ESPSER1OUT  - OUTPUT A CHARACTER TO Serial 1 ('A' POINTS TO BYTE)
-00FCDE  2               ;               ESPSER1IN   - read a character from Serial 1 ('A' POINTS TO BYTE)
-00FCDE  2               ;               ESPSER1BUFL - return number of characters in the Serial 1 buffer in 'A'
-00FCDE  2               ;		ESPNETCOUT  - OUTPUT A CHARACTER TO Network Console Connection ('A' POINTS TO BYTE)
-00FCDE  2               ;               ESPNETCIN   - read a character from Network Console Connection ('A' POINTS TO BYTE)
-00FCDE  2               ;               ESPNETCBUFL - return number of characters in the Network Connection buffer in 'A'
-00FCDE  2               ;               PUTESP0     - put opcode/data to ESP0
-00FCDE  2               ;               PUTESP1     - put opcode/data to ESP1
-00FCDE  2               ;               GETESP0     - get opcode/data from ESP0
-00FCDE  2               ;               GETESP1     - get opcode/data from ESP1
 00FCDE  2               ;________________________________________________________________________________________________________________________________
 00FCDE  2               ;
-00FCDE  2               ;*
-00FCDE  2               ;*        HARDWARE I/O ADDRESSES
-00FCDE  2               ;*
-00FCDE  2               ;
-00FCDE  2               ESP_BASE        = PC6502_IO+$100
-00FCDE  2               ESP0_DAT        = ESP_BASE      ;
-00FCDE  2               ESP1_DAT        = ESP_BASE+1    ;
-00FCDE  2               ESP_STAT        = ESP_BASE+2    ;
 00FCDE  2               
-00FCDE  2               
-00FCDE  2               
-00FCDE  2               ;__________________________________________________________________________________________________
+00FCDE  2               ;__INITPAGES____________________________________________________
 00FCDE  2               ;
-00FCDE  2               ; STATUS BITS (FOR KBD_STATUS)
+00FCDE  2               ; SETUP MMU FOR BIOS PAGED MEMORY OPERATION
 00FCDE  2               ;
-00FCDE  2               ESP0_RDY        = $01           ; BIT 0, ESP0 READY
-00FCDE  2               ESP0_BUSY       = $02           ; BIT 1, ESP0 BUSY
-00FCDE  2               ESP1_RDY        = $08           ; BIT 3, ESP1 READY
-00FCDE  2               ESP1_BUSY       = $10           ; BIT 4, ESP1 BUSY
+00FCDE  2               ; SETUP:
+00FCDE  2               ; 	TASK 0, NORMAL OPERATION
+00FCDE  2               ;       TASK 1, ADDITIONAL RAM PAGED INTO C000-D000 (10,11)
+00FCDE  2               ;	TASKS 2-15 -- OPEN FOR OS/USER USE
+00FCDE  2               ;_______________________________________________________________
+00FCDE  2               ;  The 6502PC has a flexible hardware MMU. There are 64 programmable task contexts, each with 16 4K banks ($BXXX).
+00FCDE  2               ;  The MMU has several Registers.
+00FCDE  2               ;     $xFE0- Write only-Task Register, Sets which context is active, when the mmu is enabled (0-63)
+00FCDE  2               ;     $xFE1- Write only-Setup Register, Sets which context is being setup (exposed in the edit window) (0-63)
+00FCDE  2               ;     $xFE2- Write only-Enable Register 0=MMU Disabled, 1=MMU Enabled
+00FCDE  2               ;     $xFE4- Read Only- Active Task Register (only lower 6 bits)
+00FCDE  2               ;     $xFE6- Read Only- hit ISA TC Bit
+00FCDE  2               ;     $xFE7- Read Only- Current IO Page (only lower 4 bits)
 00FCDE  2               ;
-00FCDE  2                       .IFNDEF PC6502BIOS
+00FCDE  2               ;     $xfDx- read or write task edit window
 00FCDE  2               ;
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; DATA
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               consoleConnect:
-00FCDE  2                       .BYTE   00
-00FCDE  2               ;
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESP IO INITIALIZATION
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPINIT:
-00FCDE  2               ;
-00FCDE  2                       JSR     LFCR            ; AND CRLF
-00FCDE  2                       LDA     #<ESPMESSAGE1   ;
-00FCDE  2                       STA     STRPTR          ;
-00FCDE  2                       LDA     #>ESPMESSAGE1   ;
-00FCDE  2                       STA     STRPTR+1        ;
-00FCDE  2                       JSR     WRSTR
-00FCDE  2                       JSR     LFCR            ; AND CRLF
-00FCDE  2               ; KEYBOARD INITIALIZATION
-00FCDE  2                       LDA     #<MESSAGE2      ;
-00FCDE  2                       STA     STRPTR          ;
-00FCDE  2                       LDA     #>MESSAGE2      ;
-00FCDE  2                       STA     STRPTR+1        ;
-00FCDE  2                       JSR     WRSTR           ; DO PROMPT
-00FCDE  2                       LDA     #>ESP_BASE      ; GET BASE PORT
-00FCDE  2                       JSR     PRINT_BYTE      ; PRINT BASE PORT
-00FCDE  2                       LDA     #<ESP_BASE      ; GET BASE PORT
-00FCDE  2                       JSR     PRINT_BYTE      ; PRINT BASE PORT
-00FCDE  2                       JSR     LFCR            ; AND CRLF
-00FCDE  2                       JSR     ESP_RESET0      ;
-00FCDE  2                       JSR     ESP_RESET1      ;
-00FCDE  2               ;
-00FCDE  2                       JSR     ESP0_PROBE      ; DETECT ESP0
-00FCDE  2                       JSR     LFCR            ; AND CRLF
-00FCDE  2                       JSR     ESP1_PROBE      ; DETECT ESP1
-00FCDE  2                       JSR     LFCR            ; AND CRLF
-00FCDE  2                       RTS                     ; DONE
-00FCDE  2               
-00FCDE  2               
-00FCDE  2               ESP0_PROBE:
-00FCDE  2               ;
-00FCDE  2                       LDA     #<ESPMESSAGE2   ;
-00FCDE  2                       STA     STRPTR          ;
-00FCDE  2                       LDA     #>ESPMESSAGE2   ;
-00FCDE  2                       STA     STRPTR+1        ;
-00FCDE  2                       JSR     WRSTR
-00FCDE  2               
-00FCDE  2                       LDA     #$FF            ; ESP IDENTITY PROBE
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2               
-00FCDE  2                       JSR     GETESP0
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'E'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP0
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'S'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP0
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'P'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP0
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'3'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP0
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'2'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP0
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'V'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP0
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'1'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       LDA     #<ESPMESSAGE5   ;
-00FCDE  2                       STA     STRPTR          ;
-00FCDE  2                       LDA     #>ESPMESSAGE5   ;
-00FCDE  2                       STA     STRPTR+1        ;
-00FCDE  2                       JSR     WRSTR
-00FCDE  2               
-00FCDE  2               ESP_RESET0:
-00FCDE  2                       LDX     #$20
-00FCDE  2               :
-00FCDE  2                       LDA     #00
-00FCDE  2                       JSR     PUTESP0
-00FCDE  2                       DEX
-00FCDE  2                       CPX     #$00
-00FCDE  2                       BNE     :-
-00FCDE  2                       CLC
-00FCDE  2                       RTS
-00FCDE  2               ;
-00FCDE  2               ;
-00FCDE  2               ESP_ERROR:
-00FCDE  2                       LDA     #<ESPMESSAGE4   ;
-00FCDE  2                       STA     STRPTR          ;
-00FCDE  2                       LDA     #>ESPMESSAGE4   ;
-00FCDE  2                       STA     STRPTR+1        ;
-00FCDE  2                       JSR     WRSTR
-00FCDE  2                       RTS
-00FCDE  2               
-00FCDE  2               ;
-00FCDE  2               ESP1_PROBE:
-00FCDE  2               ;
-00FCDE  2                       LDA     #<ESPMESSAGE3   ;
-00FCDE  2                       STA     STRPTR          ;
-00FCDE  2                       LDA     #>ESPMESSAGE3   ;
-00FCDE  2                       STA     STRPTR+1        ;
-00FCDE  2                       JSR     WRSTR
-00FCDE  2               
-00FCDE  2                       LDA     #$FF            ; ESP IDENTITY PROBE
-00FCDE  2                       JSR     PUTESP1         ; SEND IT
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2               
-00FCDE  2                       JSR     GETESP1
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'E'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP1
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'S'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP1
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'P'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP1
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'3'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP1
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'2'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP1
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'V'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       JSR     GETESP1
-00FCDE  2                       BCS     ESP_ERROR
-00FCDE  2                       CMP     #'1'
-00FCDE  2                       BNE     ESP_ERROR
-00FCDE  2                       LDA     #<ESPMESSAGE5   ;
-00FCDE  2                       STA     STRPTR          ;
-00FCDE  2                       LDA     #>ESPMESSAGE5   ;
-00FCDE  2                       STA     STRPTR+1        ;
-00FCDE  2                       JSR     WRSTR
-00FCDE  2               ESP_RESET1:
-00FCDE  2                       LDX     #$20
-00FCDE  2               :
-00FCDE  2                       LDA     #00
-00FCDE  2                       JSR     PUTESP1
-00FCDE  2                       DEX
-00FCDE  2                       CPX     #$00
-00FCDE  2                       BNE     :-
-00FCDE  2                       CLC
-00FCDE  2                       RTS
-00FCDE  2               
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPCURSORV  - Set Cursor Visibility (A=0 cursor off, A=1 cursor on)
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPCURSORV:
-00FCDE  2                       PHA
-00FCDE  2                       LDA     #05             ; ESP OPCODE
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       PLA
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       RTS
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPSER0OUT  - OUTPUT A CHARACTER TO Serial 0 ('A' POINTS TO BYTE)
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPSER0OUT:
-00FCDE  2                       PHA
-00FCDE  2                       LDA     #08             ; ESP OPCODE
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       PLA
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       RTS
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPSER0IN   - read a character from Serial 0 ('A' POINTS TO BYTE)
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPSER0IN:
-00FCDE  2                       LDA     #10             ; ESP IN FROM Serial 0
-00FCDE  2                       JMP     ESPCHIN
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPSER1OUT  - OUTPUT A CHARACTER TO Serial 1 ('A' POINTS TO BYTE)
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPSER1OUT:
-00FCDE  2                       PHA
-00FCDE  2                       LDA     #08             ; ESP OPCODE
-00FCDE  2                       JSR     PUTESP1         ; SEND IT
-00FCDE  2                       PLA
-00FCDE  2                       JSR     PUTESP1         ; SEND IT
-00FCDE  2                       RTS
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPSER1IN   - read a character from Serial 1 ('A' POINTS TO BYTE)
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPSER1IN:
-00FCDE  2                       LDA     #10             ; ESP IN FROM Serial 1
-00FCDE  2               ESPCH1IN:
-00FCDE  2                       JSR     PUTESP1         ; SEND IT
-00FCDE  2                       BCS     :+
-00FCDE  2                       JSR     GETESP1         ; GET IT
-00FCDE  2                       BCS     :+
-00FCDE  2                       CMP     #$00
-00FCDE  2                       BEQ     :+
-00FCDE  2                       RTS
-00FCDE  2               :
-00FCDE  2                       LDA     #$FF
-00FCDE  2                       RTS
-00FCDE  2               
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPNETCOUT  - OUTPUT A CHARACTER TO Network Console Connection ('A' POINTS TO BYTE)
-00FCDE  2               ;               Connection Stored in 'consoleConnect' value
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPNETCOUT:
-00FCDE  2                       PHA
-00FCDE  2                       LDA     #25             ; ESP OPCODE
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       LDA     consoleConnect
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       PLA
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       RTS
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPNETCIN   - read a character from Network Console Connection ('A' POINTS TO BYTE)
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPNETCIN:
-00FCDE  2                       LDA     #26             ; ESP OPCODE
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       LDA     consoleConnect
-00FCDE  2                       JMP     ESPCH1IN
-00FCDE  2               
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPPS2BUFL - Return number of characters in keyboard buffer
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPPS2BUFL:
-00FCDE  2                       LDA     #04             ; opcode to get buffer length
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       BCS     :+
-00FCDE  2                       JSR     GETESP0         ; GET IT
-00FCDE  2                       BCS     :+
-00FCDE  2                       RTS
-00FCDE  2               :
-00FCDE  2                       LDA     #$00
-00FCDE  2                       RTS
-00FCDE  2               
-00FCDE  2               
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPSER0BUFL - return number of characters in the Serial 0 buffer in 'A'
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPSER0BUFL:
-00FCDE  2                       LDA     #11             ; opcode to get buffer length
-00FCDE  2                       JSR     PUTESP0         ; SEND IT
-00FCDE  2                       BCS     :+
-00FCDE  2                       JSR     GETESP0         ; GET IT
-00FCDE  2                       BCS     :+
-00FCDE  2                       RTS
-00FCDE  2               :
-00FCDE  2                       LDA     #$00
-00FCDE  2                       RTS
-00FCDE  2               
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPSER1BUFL - return number of characters in the Serial 1 buffer in 'A'
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPSER1BUFL:
-00FCDE  2                       LDA     #11             ; opcode to get buffer length
-00FCDE  2               ESP1BUFL:
-00FCDE  2                       JSR     PUTESP1         ; SEND IT
-00FCDE  2                       BCS     :+
-00FCDE  2                       JSR     GETESP1         ; GET IT
-00FCDE  2                       BCS     :+
-00FCDE  2                       RTS
-00FCDE  2               :
-00FCDE  2                       LDA     #$00
-00FCDE  2                       RTS
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPNETCBUFL - return number of characters in the Network Connection buffer in 'A'
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPNETCBUFL:
-00FCDE  2                       LDA     #28             ; opcode to get buffer length
-00FCDE  2                       JMP     ESP1BUFL
-00FCDE  2               
-00FCDE  2                       .ENDIF
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ; ESPVIDEOOUT - output character in 'A' to CRT (ANSI terminal emulation)
-00FCDE  2               ;__________________________________________________________________________________________________
-00FCDE  2               ;
-00FCDE  2               ESPVIDEOOUT:
-00FCDE  2  48                   PHA
-00FCDF  2  A9 01                LDA     #01             ; ESP OUT TO SCREEN
-00FCE1  2  20 05 FD             JSR     PUTESP0         ; SEND IT
-00FCE4  2  68                   PLA
-00FCE5  2  20 05 FD             JSR     PUTESP0         ; SEND IT
-00FCE8  2  60                   RTS
-00FCE9  2               ;__________________________________________________________________________________________________
-00FCE9  2               ; ESPPS2IN - Fetch character out of Keyboard Buffer into 'A'  ($FF is no characters waiting)
-00FCE9  2               ;__________________________________________________________________________________________________
-00FCE9  2               ;
-00FCE9  2               ESPPS2IN:
-00FCE9  2  A9 03                LDA     #03             ; ESP IN FROM PS2
-00FCEB  2               ESPCHIN:
-00FCEB  2  20 05 FD             JSR     PUTESP0         ; SEND IT
-00FCEE  2  B0 0A                BCS     :+
-00FCF0  2  20 30 FD             JSR     GETESP0         ; GET IT
-00FCF3  2  B0 05                BCS     :+
-00FCF5  2  C9 00                CMP     #$00
-00FCF7  2  F0 01                BEQ     :+
-00FCF9  2  60                   RTS
-00FCFA  2               :
-00FCFA  2  A9 FF                LDA     #$FF
-00FCFC  2  60                   RTS
-00FCFD  2               
-00FCFD  2               ESPPS2INW:
-00FCFD  2  20 E9 FC             JSR     ESPPS2IN
-00FD00  2  C9 FF                CMP     #$FF
-00FD02  2  F0 F9                BEQ     ESPPS2INW
-00FD04  2  60                   RTS
-00FD05  2               ;
-00FD05  2               ;__________________________________________________________________________________________________
-00FD05  2               ; HARDWARE INTERFACE
-00FD05  2               ;__________________________________________________________________________________________________
-00FD05  2               ;
-00FD05  2               ; a=VALUE AND RETURN
-00FD05  2               ; Carry set on timeout
-00FD05  2               ;
-00FD05  2               ;__________________________________________________________________________________________________
-00FD05  2               PUTESP0:
-00FD05  2  48                   PHA
-00FD06  2  8A                   TXA
-00FD07  2  48                   PHA
-00FD08  2  98                   TYA
-00FD09  2  48                   PHA
-00FD0A  2  A2 00                LDX     #$00
-00FD0C  2  A0 00                LDY     #$00
-00FD0E  2               :
-00FD0E  2  AD 02 E1             LDA     ESP_STAT
-00FD11  2  29 02                AND     #ESP0_BUSY
-00FD13  2  F0 11                BEQ     :+
-00FD15  2  CA                   DEX
-00FD16  2  E0 00                CPX     #$00
-00FD18  2  D0 F4                BNE     :-
-00FD1A  2  88                   DEY
-00FD1B  2  C0 00                CPY     #$00
-00FD1D  2  D0 EF                BNE     :-
-00FD1F  2  68                   PLA
-00FD20  2  A8                   TAY
-00FD21  2  68                   PLA
-00FD22  2  AA                   TAX
-00FD23  2  68                   PLA
-00FD24  2  38                   SEC
-00FD25  2  60                   RTS
-00FD26  2               :
-00FD26  2  68                   PLA
-00FD27  2  A8                   TAY
-00FD28  2  68                   PLA
-00FD29  2  AA                   TAX
-00FD2A  2  68                   PLA
-00FD2B  2  8D 00 E1             STA     ESP0_DAT
-00FD2E  2  18                   CLC
-00FD2F  2  60                   RTS
-00FD30  2               
-00FD30  2               GETESP0:
-00FD30  2  8A                   TXA
-00FD31  2  48                   PHA
-00FD32  2  98                   TYA
-00FD33  2  48                   PHA
-00FD34  2  A2 00                LDX     #$00
-00FD36  2  A0 00                LDY     #$00
-00FD38  2               :
-00FD38  2  AD 02 E1             LDA     ESP_STAT
-00FD3B  2  29 02                AND     #ESP0_BUSY
-00FD3D  2  F0 10                BEQ     :+
-00FD3F  2  CA                   DEX
-00FD40  2  E0 00                CPX     #$00
-00FD42  2  D0 F4                BNE     :-
-00FD44  2  88                   DEY
-00FD45  2  C0 00                CPY     #$00
-00FD47  2  D0 EF                BNE     :-
-00FD49  2  68                   PLA
-00FD4A  2  A8                   TAY
-00FD4B  2  68                   PLA
-00FD4C  2  AA                   TAX
-00FD4D  2  38                   SEC
-00FD4E  2  60                   RTS
-00FD4F  2               :
-00FD4F  2  A2 00                LDX     #$00
-00FD51  2  A0 00                LDY     #$00
-00FD53  2               :
-00FD53  2  AD 02 E1             LDA     ESP_STAT
-00FD56  2  29 01                AND     #ESP0_RDY
-00FD58  2  D0 10                BNE     :+
-00FD5A  2  CA                   DEX
-00FD5B  2  E0 00                CPX     #$00
-00FD5D  2  D0 F4                BNE     :-
-00FD5F  2  88                   DEY
-00FD60  2  C0 00                CPY     #$00
-00FD62  2  D0 EF                BNE     :-
-00FD64  2  68                   PLA
-00FD65  2  A8                   TAY
-00FD66  2  68                   PLA
-00FD67  2  AA                   TAX
-00FD68  2  38                   SEC
-00FD69  2  60                   RTS
-00FD6A  2               :
-00FD6A  2  68                   PLA
-00FD6B  2  A8                   TAY
-00FD6C  2  68                   PLA
-00FD6D  2  AA                   TAX
-00FD6E  2  AD 00 E1             LDA     ESP0_DAT
-00FD71  2  18                   CLC
-00FD72  2  60                   RTS
-00FD73  2               
-00FD73  2               PUTESP1:
-00FD73  2  48                   PHA
-00FD74  2  8A                   TXA
-00FD75  2  48                   PHA
-00FD76  2  98                   TYA
-00FD77  2  48                   PHA
-00FD78  2  A2 00                LDX     #$00
-00FD7A  2  A0 00                LDY     #$00
-00FD7C  2               :
-00FD7C  2  AD 02 E1             LDA     ESP_STAT
-00FD7F  2  29 10                AND     #ESP1_BUSY
-00FD81  2  F0 11                BEQ     :+
-00FD83  2  CA                   DEX
-00FD84  2  E0 00                CPX     #$00
-00FD86  2  D0 F4                BNE     :-
-00FD88  2  88                   DEY
-00FD89  2  C0 00                CPY     #$00
-00FD8B  2  D0 EF                BNE     :-
-00FD8D  2  68                   PLA
-00FD8E  2  A8                   TAY
-00FD8F  2  68                   PLA
-00FD90  2  AA                   TAX
-00FD91  2  68                   PLA
-00FD92  2  38                   SEC
-00FD93  2  60                   RTS
-00FD94  2               :
-00FD94  2  68                   PLA
-00FD95  2  A8                   TAY
-00FD96  2  68                   PLA
-00FD97  2  AA                   TAX
-00FD98  2  68                   PLA
-00FD99  2  8D 01 E1             STA     ESP1_DAT
-00FD9C  2  18                   CLC
-00FD9D  2  60                   RTS
-00FD9E  2               
-00FD9E  2               GETESP1:
-00FD9E  2  8A                   TXA
-00FD9F  2  48                   PHA
-00FDA0  2  98                   TYA
-00FDA1  2  48                   PHA
-00FDA2  2  A2 00                LDX     #$00
-00FDA4  2  A0 00                LDY     #$00
-00FDA6  2               :
-00FDA6  2  AD 02 E1             LDA     ESP_STAT
-00FDA9  2  29 10                AND     #ESP1_BUSY
-00FDAB  2  F0 10                BEQ     :+
-00FDAD  2  CA                   DEX
-00FDAE  2  E0 00                CPX     #$00
-00FDB0  2  D0 F4                BNE     :-
-00FDB2  2  88                   DEY
-00FDB3  2  C0 00                CPY     #$00
-00FDB5  2  D0 EF                BNE     :-
-00FDB7  2  68                   PLA
-00FDB8  2  A8                   TAY
-00FDB9  2  68                   PLA
-00FDBA  2  AA                   TAX
-00FDBB  2  38                   SEC
-00FDBC  2  60                   RTS
-00FDBD  2               :
-00FDBD  2  A2 00                LDX     #$00
-00FDBF  2  A0 00                LDY     #$00
-00FDC1  2               :
-00FDC1  2  AD 02 E1             LDA     ESP_STAT
-00FDC4  2  29 08                AND     #ESP1_RDY
-00FDC6  2  D0 10                BNE     :+
-00FDC8  2  CA                   DEX
-00FDC9  2  E0 00                CPX     #$00
-00FDCB  2  D0 F4                BNE     :-
-00FDCD  2  88                   DEY
-00FDCE  2  C0 00                CPY     #$00
-00FDD0  2  D0 EF                BNE     :-
-00FDD2  2  68                   PLA
-00FDD3  2  A8                   TAY
-00FDD4  2  68                   PLA
-00FDD5  2  AA                   TAX
-00FDD6  2  38                   SEC
-00FDD7  2  60                   RTS
-00FDD8  2               :
-00FDD8  2  68                   PLA
-00FDD9  2  A8                   TAY
-00FDDA  2  68                   PLA
-00FDDB  2  AA                   TAX
-00FDDC  2  AD 01 E1             LDA     ESP1_DAT
-00FDDF  2  18                   CLC
-00FDE0  2  60                   RTS
-00FDE1  2               
-00FDE1  2               
-00FDE1  2                       .IFNDEF PC6502BIOS
-00FDE1  2               ;
-00FDE1  2               ; DRIVER DATA
-00FDE1  2               ;__________________________________________________________________________________________________
-00FDE1  2               ; MESSAGES
-00FDE1  2               ;__________________________________________________________________________________________________
-00FDE1  2               ESPMESSAGE1:
-00FDE1  2                       .BYTE   "DUAL ESP IO:"
-00FDE1  2                       .BYTE   00
-00FDE1  2               ESPMESSAGE2:
-00FDE1  2                       .BYTE   "  ESP0: "
-00FDE1  2                       .BYTE   00
-00FDE1  2               ESPMESSAGE3:
-00FDE1  2                       .BYTE   "  ESP1: "
-00FDE1  2                       .BYTE   00
-00FDE1  2               ESPMESSAGE4:
-00FDE1  2                       .BYTE   "NOT "
-00FDE1  2               ESPMESSAGE5:
-00FDE1  2                       .BYTE   "FOUND."
-00FDE1  2                       .BYTE   00
-00FDE1  2                       .ENDIF
-00FDE1  2               
-00FDE1  1               ;   .INCLUDE "bios_multi.asm"
-00FDE1  1                       .INCLUDE "bios_pager.ASM"
-00FDE1  2               ;__BIOS PAGERS__________________________________________________________________________________________________________________
-00FDE1  2               ;
-00FDE1  2               ; 	Memory Page Management Functions
-00FDE1  2               ;
-00FDE1  2               ;________________________________________________________________________________________________________________________________
-00FDE1  2               ;
-00FDE1  2               
-00FDE1  2               ;__INITPAGES____________________________________________________
-00FDE1  2               ;
-00FDE1  2               ; SETUP MMU FOR BIOS PAGED MEMORY OPERATION
-00FDE1  2               ;
-00FDE1  2               ; SETUP:
-00FDE1  2               ; 	TASK 0, NORMAL OPERATION
-00FDE1  2               ;       TASK 1, ADDITIONAL RAM PAGED INTO C000-D000 (10,11)
-00FDE1  2               ;	TASKS 2-15 -- OPEN FOR OS/USER USE
-00FDE1  2               ;_______________________________________________________________
-00FDE1  2               ;  The 6502PC has a flexible hardware MMU. There are 64 programmable task contexts, each with 16 4K banks ($BXXX).
-00FDE1  2               ;  The MMU has several Registers.
-00FDE1  2               ;     $xFE0- Write only-Task Register, Sets which context is active, when the mmu is enabled (0-63)
-00FDE1  2               ;     $xFE1- Write only-Setup Register, Sets which context is being setup (exposed in the edit window) (0-63)
-00FDE1  2               ;     $xFE2- Write only-Enable Register 0=MMU Disabled, 1=MMU Enabled
-00FDE1  2               ;     $xFE4- Read Only- Active Task Register (only lower 6 bits)
-00FDE1  2               ;     $xFE6- Read Only- hit ISA TC Bit
-00FDE1  2               ;     $xFE7- Read Only- Current IO Page (only lower 4 bits)
-00FDE1  2               ;
-00FDE1  2               ;     $xfDx- read or write task edit window
-00FDE1  2               ;
-00FDE1  2               ;_______________________________________________________________
-00FDE1  2               INITPAGES:
-00FDE1  2  A9 00                LDA     #$00            ; ENSURE MMU IS DISABLED (SHOULD BE ALREADY, BUT . . . )
-00FDE3  2  8D E2 EF             STA     PC6502_MMU_ENA
-00FDE6  2  A9 01                LDA     #$01
-00FDE8  2  8D E1 EF             STA     PC6502_MAP_SETUP; Fill TASK 1
-00FDEB  2  20 0B FE             JSR     INITPAGE        ; FILL TASK 1 WITH A 1:1 MAP
-00FDEE  2  A9 10                LDA     #$10            ; BUT, MAP Cxxx AND Dxxx TO RAM 10xxx AND 11xxx RATHER THAN RAM
-00FDF0  2  8D DC EF             STA     PC6502_MAP_SPACE+$0C
-00FDF3  2  A9 11                LDA     #$11
-00FDF5  2  8D DD EF             STA     PC6502_MAP_SPACE+$0D
-00FDF8  2  A9 00                LDA     #$00
-00FDFA  2  8D E1 EF             STA     PC6502_MAP_SETUP; Then do task 0
-00FDFD  2  20 0B FE             JSR     INITPAGE        ; FILL TASK 0 WITH A 1:1 MAP
-00FE00  2               ;  Why task 1 before task 0??   On some boards every write to the register also writes to task 0
-00FE00  2               ;  so it is important to write task 0 last (or not use it)
-00FE00  2  A9 00                LDA     #$00
-00FE02  2  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
-00FE05  2  A9 01                LDA     #$01
-00FE07  2  8D E2 EF             STA     PC6502_MMU_ENA  ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
-00FE0A  2  60                   RTS
-00FE0B  2               
-00FE0B  2               INITPAGE:
-00FE0B  2  A2 00                LDX     #$00
-00FE0D  2               :
-00FE0D  2  8A                   TXA
-00FE0E  2  9D D0 EF             STA     PC6502_MAP_SPACE,X; CREATE A 1:1 MAP OF BANK
-00FE11  2  E8                   INX
-00FE12  2  E0 10                CPX     #$10
-00FE14  2  D0 F7                BNE     :-
-00FE16  2  60                   RTS
-00FE17  2               PAGE_EXIT:
-00FE17  2  48                   PHA
-00FE18  2  A9 00                LDA     #$00
-00FE1A  2  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
-00FE1D  2  68                   PLA
-00FE1E  2  60                   RTS
-00FE1F  2               PAGE_ENTER:
-00FE1F  2  48                   PHA
-00FE20  2  A9 01                LDA     #$01
-00FE22  2  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 01
-00FE25  2  68                   PLA
-00FE26  2  60                   RTS
-00FE27  2               
-00FE27  2               
-00FE27  2               
-00FE27  2               ;__SETPAGE________________________________________________________
-00FE27  2               ;
-00FE27  2               ; SETUP MMU FOR A SPECIFIC MAPPED PAGE
-00FE27  2               ;
-00FE27  2               ; A=BANK TO SWAP
-00FE27  2               ; X=MAP PAGE (SPOT IN MEMORY MAP)
-00FE27  2               ; Y=DESTINATION PAGE (SPOT IN PHYSICAL MEMORY)
-00FE27  2               ;_______________________________________________________________
-00FE27  2               SETPAGE:
-00FE27  2  85 3B                STA     TEMPWORD
-00FE29  2  A9 00                LDA     #$00            ; DISABLE MMU
-00FE2B  2  8D E2 EF             STA     PC6502_MMU_ENA
-00FE2E  2  A5 3B                LDA     TEMPWORD
-00FE30  2  8D E1 EF             STA     PC6502_MAP_SETUP; Fill TASK AREA
-00FE33  2  98                   TYA
-00FE34  2  9D D0 EF             STA     PC6502_MAP_SPACE,X
-00FE37  2  A9 00                LDA     #$00            ; RE-SETUP TASK AREA 0, JUST IN CASE THE ABOVE WRITE CORRUPTED IT
-00FE39  2  8D E1 EF             STA     PC6502_MAP_SETUP; Fill TASK AREA
-00FE3C  2  8A                   TXA
-00FE3D  2  9D D0 EF             STA     PC6502_MAP_SPACE,X
-00FE40  2  A9 01                LDA     #$01
-00FE42  2  8D E2 EF             STA     PC6502_MMU_ENA  ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
-00FE45  2  60                   RTS
-00FE46  2               
-00FE46  2               
-00FE46  2               
-00FE46  2               
-00FE46  2               DO_FARCALL_ACTUAL:
-00FE46  2  20 1F FE             JSR     PAGE_ENTER
-00FE49  2  20 00 C0             JSR     FUNCTION_DISPATCHER
-00FE4C  2  4C 17 FE             JMP     PAGE_EXIT
-00FE4F  2               
-00FE4F  1               
-00FE4F  1               ;__IOF_OUTCH___________________________________________________
-00FE4F  1               ;
-00FE4F  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00FE4F  1               ;
-00FE4F  1               ;______________________________________________________________
-00FE4F  1               IOF_OUTCH:
-00FE4F  1  48                   PHA
-00FE50  1  A5 3A                LDA     CONSOLE
-00FE52  1  C9 09                CMP     #$09
-00FE54  1  D0 04                BNE     :+
-00FE56  1  68                   PLA
-00FE57  1  4C DE FC             JMP     ESPVIDEOOUT
-00FE5A  1               :
-00FE5A  1  68                   PLA
-00FE5B  1  4C CF F9             JMP     WRSER1
-00FE5E  1               
-00FE5E  1               ;__IOF_CONIN___________________________________________________
-00FE5E  1               ;
-00FE5E  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00FE5E  1               ;
-00FE5E  1               ;______________________________________________________________
-00FE5E  1               IOF_CONIN:
-00FE5E  1  A5 3A                LDA     CONSOLE
-00FE60  1  C9 09                CMP     #$09
-00FE62  1  D0 03                BNE     :+
-00FE64  1  4C E9 FC             JMP     ESPPS2IN
-00FE67  1               :
-00FE67  1  4C DC F9             JMP     RDSER1
-00FE6A  1               
-00FE6A  1               
-00FE6A  1               ;__IOF_CONINW__________________________________________________
-00FE6A  1               ;
-00FE6A  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00FE6A  1               ;
-00FE6A  1               ;______________________________________________________________
-00FE6A  1               IOF_CONINW:
-00FE6A  1  A5 3A                LDA     CONSOLE
-00FE6C  1  C9 09                CMP     #$09
-00FE6E  1  D0 03                BNE     :+
-00FE70  1  4C FD FC             JMP     ESPPS2INW
-00FE73  1               :
-00FE73  1  4C EA F9             JMP     RDSER1W
-00FE76  1               
-00FE76  1               ;__OUTSTR______________________________________________________
-00FE76  1               ;
-00FE76  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00FE76  1               ;
-00FE76  1               ;______________________________________________________________
-00FE76  1               OUTSTR:
-00FE76  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
-00FE78  1               OUTSTRLP:
-00FE78  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
-00FE7A  1  C9 00                CMP     #$00            ; IS NULL?
-00FE7C  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-00FE7E  1  20 4F FE             JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
-00FE81  1  E6 41                INC     STRPTR
-00FE83  1  D0 F3                BNE     OUTSTRLP
-00FE85  1  E6 42                INC     STRPTR+1
-00FE87  1  4C 78 FE             JMP     OUTSTRLP        ; DO NEXT CHAR
-00FE8A  1               ENDOUTSTR:
-00FE8A  1  60                   RTS                     ; RETURN
-00FE8B  1               
-00FE8B  1               DSKYMSG:
-00FE8B  1  7C 06 3F 6D          .BYTE   $7C, $6, $3F, $6D, $0, $3E, $73, $0
-00FE8F  1  00 3E 73 00  
-00FE93  1               STARTUP:
-00FE93  1                       .IFDEF  ESP
-00FE93  1                       .BYTE   $0D,$0A
-00FE93  1                       .BYTE   $0D,$0A
-00FE93  1                       .BYTE   $0D,$0A
-00FE93  1                       .BYTE   27,"[32;40m",27,"[2J"
-00FE93  1                       .BYTE   $0D,$0A
-00FE93  1                       .ENDIF
-00FE93  1  0D 0A                .BYTE   $0D,$0A
-00FE95  1  20 20 5F 5F          .BYTE   "  __  ____   ___ ____    ___  ___",$0D,$0A
-00FE99  1  20 20 5F 5F  
-00FE9D  1  5F 5F 20 20  
-00FEB8  1  20 2F 20 2F          .BYTE   " / /_| ___| / _ \___ \  / _ \/ __\",$0D,$0A
-00FEBC  1  5F 7C 20 5F  
-00FEC0  1  5F 5F 7C 20  
-00FEDC  1  7C 20 27 5F          .BYTE   "| '_ \___ \| | | |__) |/ /_)/ /",$0D,$0A
-00FEE0  1  20 5C 5F 5F  
-00FEE4  1  5F 20 5C 7C  
-00FEFD  1  7C 20 28 5F          .BYTE   "| (_) |__) | |_| / __// ___/ /___",$0D,$0A
-00FF01  1  29 20 7C 5F  
-00FF05  1  5F 29 20 7C  
-00FF20  1  20 5C 5F 5F          .BYTE   " \___/____/ \___/_____\/   \____/",$0D,$0A,$0D,$0A
-00FF24  1  5F 2F 5F 5F  
-00FF28  1  5F 5F 2F 20  
-00FF45  1               
-00FF45  1                       .SEGMENT "IVECTOR"
-00FF45  1                       .ORG    $FFF0
-00FFF0  1  4C 46 FE             JMP     DO_FARCALL_ACTUAL
+00FCDE  2               ;_______________________________________________________________
+00FCDE  2               INITPAGES:
+00FCDE  2  A9 00                LDA     #$00            ; ENSURE MMU IS DISABLED (SHOULD BE ALREADY, BUT . . . )
+00FCE0  2  8D E2 EF             STA     PC6502_MMU_ENA
+00FCE3  2  A9 01                LDA     #$01
+00FCE5  2  8D E1 EF             STA     PC6502_MAP_SETUP; Fill TASK 1
+00FCE8  2  20 08 FD             JSR     INITPAGE        ; FILL TASK 1 WITH A 1:1 MAP
+00FCEB  2  A9 10                LDA     #$10            ; BUT, MAP Cxxx AND Dxxx TO RAM 10xxx AND 11xxx RATHER THAN RAM
+00FCED  2  8D DC EF             STA     PC6502_MAP_SPACE+$0C
+00FCF0  2  A9 11                LDA     #$11
+00FCF2  2  8D DD EF             STA     PC6502_MAP_SPACE+$0D
+00FCF5  2  A9 00                LDA     #$00
+00FCF7  2  8D E1 EF             STA     PC6502_MAP_SETUP; Then do task 0
+00FCFA  2  20 08 FD             JSR     INITPAGE        ; FILL TASK 0 WITH A 1:1 MAP
+00FCFD  2               ;  Why task 1 before task 0??   On some boards every write to the register also writes to task 0
+00FCFD  2               ;  so it is important to write task 0 last (or not use it)
+00FCFD  2  A9 00                LDA     #$00
+00FCFF  2  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
+00FD02  2  A9 01                LDA     #$01
+00FD04  2  8D E2 EF             STA     PC6502_MMU_ENA  ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
+00FD07  2  60                   RTS
+00FD08  2               
+00FD08  2               INITPAGE:
+00FD08  2  A2 00                LDX     #$00
+00FD0A  2               :
+00FD0A  2  8A                   TXA
+00FD0B  2  9D D0 EF             STA     PC6502_MAP_SPACE,X; CREATE A 1:1 MAP OF BANK
+00FD0E  2  E8                   INX
+00FD0F  2  E0 10                CPX     #$10
+00FD11  2  D0 F7                BNE     :-
+00FD13  2  60                   RTS
+00FD14  2               PAGE_EXIT:
+00FD14  2  48                   PHA
+00FD15  2  A9 00                LDA     #$00
+00FD17  2  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
+00FD1A  2  68                   PLA
+00FD1B  2  60                   RTS
+00FD1C  2               PAGE_ENTER:
+00FD1C  2  48                   PHA
+00FD1D  2  A9 01                LDA     #$01
+00FD1F  2  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 01
+00FD22  2  68                   PLA
+00FD23  2  60                   RTS
+00FD24  2               
+00FD24  2               
+00FD24  2               
+00FD24  2               ;__SETPAGE________________________________________________________
+00FD24  2               ;
+00FD24  2               ; SETUP MMU FOR A SPECIFIC MAPPED PAGE
+00FD24  2               ;
+00FD24  2               ; A=BANK TO SWAP
+00FD24  2               ; X=MAP PAGE (SPOT IN MEMORY MAP)
+00FD24  2               ; Y=DESTINATION PAGE (SPOT IN PHYSICAL MEMORY)
+00FD24  2               ;_______________________________________________________________
+00FD24  2               SETPAGE:
+00FD24  2  85 3B                STA     TEMPWORD
+00FD26  2  A9 00                LDA     #$00            ; DISABLE MMU
+00FD28  2  8D E2 EF             STA     PC6502_MMU_ENA
+00FD2B  2  A5 3B                LDA     TEMPWORD
+00FD2D  2  8D E1 EF             STA     PC6502_MAP_SETUP; Fill TASK AREA
+00FD30  2  98                   TYA
+00FD31  2  9D D0 EF             STA     PC6502_MAP_SPACE,X
+00FD34  2  A9 00                LDA     #$00            ; RE-SETUP TASK AREA 0, JUST IN CASE THE ABOVE WRITE CORRUPTED IT
+00FD36  2  8D E1 EF             STA     PC6502_MAP_SETUP; Fill TASK AREA
+00FD39  2  8A                   TXA
+00FD3A  2  9D D0 EF             STA     PC6502_MAP_SPACE,X
+00FD3D  2  A9 01                LDA     #$01
+00FD3F  2  8D E2 EF             STA     PC6502_MMU_ENA  ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
+00FD42  2  60                   RTS
+00FD43  2               
+00FD43  2               
+00FD43  2               
+00FD43  2               
+00FD43  2               DO_FARCALL_ACTUAL:
+00FD43  2  20 1C FD             JSR     PAGE_ENTER
+00FD46  2  20 00 C0             JSR     FUNCTION_DISPATCHER
+00FD49  2  4C 14 FD             JMP     PAGE_EXIT
+00FD4C  2               
+00FD4C  1               
+00FD4C  1               ;__IOF_OUTCH___________________________________________________
+00FD4C  1               ;
+00FD4C  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00FD4C  1               ;
+00FD4C  1               ;______________________________________________________________
+00FD4C  1               IOF_OUTCH:
+00FD4C  1               
+00FD4C  1                       .IFDEF ESP
+00FD4C  1                       PHA
+00FD4C  1                       JMP     ESPVIDEOOUT
+00FD4C  1                       PLA
+00FD4C  1                       .ENDIF
+00FD4C  1  4C CF F9             JMP     WRSER1
+00FD4F  1               
+00FD4F  1               ;__IOF_CONIN___________________________________________________
+00FD4F  1               ;
+00FD4F  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00FD4F  1               ;
+00FD4F  1               ;______________________________________________________________
+00FD4F  1               IOF_CONIN:
+00FD4F  1  A5 3A                LDA     CONSOLE
+00FD51  1  C9 09                CMP     #$09
+00FD53  1  D0 00                BNE     :+
+00FD55  1                       .IFDEF ESP
+00FD55  1                       JMP     ESPPS2IN
+00FD55  1                       .ENDIF
+00FD55  1               :
+00FD55  1  4C DC F9             JMP     RDSER1
+00FD58  1               
+00FD58  1               
+00FD58  1               ;__IOF_CONINW__________________________________________________
+00FD58  1               ;
+00FD58  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00FD58  1               ;
+00FD58  1               ;______________________________________________________________
+00FD58  1               IOF_CONINW:
+00FD58  1  A5 3A                LDA     CONSOLE
+00FD5A  1  C9 09                CMP     #$09
+00FD5C  1  D0 00                BNE     :+
+00FD5E  1                       .IFDEF ESP
+00FD5E  1                       JMP     ESPPS2INW
+00FD5E  1                       .ENDIF
+00FD5E  1               :
+00FD5E  1  4C EA F9             JMP     RDSER1W
+00FD61  1               
+00FD61  1               ;__OUTSTR______________________________________________________
+00FD61  1               ;
+00FD61  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00FD61  1               ;
+00FD61  1               ;______________________________________________________________
+00FD61  1               OUTSTR:
+00FD61  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+00FD63  1               OUTSTRLP:
+00FD63  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+00FD65  1  C9 00                CMP     #$00            ; IS NULL?
+00FD67  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00FD69  1  20 4C FD             JSR     IOF_OUTCH       ; PRINT CHAR IN ACC
+00FD6C  1  E6 41                INC     STRPTR
+00FD6E  1  D0 F3                BNE     OUTSTRLP
+00FD70  1  E6 42                INC     STRPTR+1
+00FD72  1  4C 63 FD             JMP     OUTSTRLP        ; DO NEXT CHAR
+00FD75  1               ENDOUTSTR:
+00FD75  1  60                   RTS                     ; RETURN
+00FD76  1               
+00FD76  1               DSKYMSG:
+00FD76  1  7C 06 3F 6D          .BYTE   $7C, $6, $3F, $6D, $0, $3E, $73, $0
+00FD7A  1  00 3E 73 00  
+00FD7E  1               STARTUP:
+00FD7E  1                       .IFDEF  ESP
+00FD7E  1                       .BYTE   $0D,$0A
+00FD7E  1                       .BYTE   $0D,$0A
+00FD7E  1                       .BYTE   $0D,$0A
+00FD7E  1                       .BYTE   27,"[32;40m",27,"[2J"
+00FD7E  1                       .BYTE   $0D,$0A
+00FD7E  1                       .ENDIF
+00FD7E  1  0D 0A                .BYTE   $0D,$0A
+00FD80  1  20 20 5F 5F          .BYTE   "  __  ____   ___ ____    ___  ___",$0D,$0A
+00FD84  1  20 20 5F 5F  
+00FD88  1  5F 5F 20 20  
+00FDA3  1  20 2F 20 2F          .BYTE   " / /_| ___| / _ \___ \  / _ \/ __\",$0D,$0A
+00FDA7  1  5F 7C 20 5F  
+00FDAB  1  5F 5F 7C 20  
+00FDC7  1  7C 20 27 5F          .BYTE   "| '_ \___ \| | | |__) |/ /_)/ /",$0D,$0A
+00FDCB  1  20 5C 5F 5F  
+00FDCF  1  5F 20 5C 7C  
+00FDE8  1  7C 20 28 5F          .BYTE   "| (_) |__) | |_| / __// ___/ /___",$0D,$0A
+00FDEC  1  29 20 7C 5F  
+00FDF0  1  5F 29 20 7C  
+00FE0B  1  20 5C 5F 5F          .BYTE   " \___/____/ \___/_____\/   \____/",$0D,$0A,$0D,$0A
+00FE0F  1  5F 2F 5F 5F  
+00FE13  1  5F 5F 2F 20  
+00FE30  1               
+00FE30  1                       .SEGMENT "IVECTOR"
+00FE30  1                       .ORG    $FFF0
+00FFF0  1  4C 43 FD             JMP     DO_FARCALL_ACTUAL
 00FFF3  1  4C EE F7             JMP     LOADS19
-00FFF6  1  4C 27 FE             JMP     SETPAGE
+00FFF6  1  4C 24 FD             JMP     SETPAGE
 00FFF9  1               
 00FFF9  1                       .SEGMENT "VECTORS"
 00FFF9  1                       .ORG    $FFFA

@@ -1519,14 +1519,14 @@ READKB:
         LDX     #6              ;
         JSR     PEM             ;
 
-        CMP     #127            ;
+        CMP     #$1B            ;
+        BEQ     READKB_ESC      ;
+
+        CMP     #127          ;
         BEQ     READKB_DEL      ;
 
         CMP     #32             ;
         BCS     READKB_CHAR     ;
-
-        CMP     #$1B            ;
-        BEQ     READKB_ESC      ;
 
         CMP     #$0D            ;
         BEQ     READKB_CR       ;
@@ -1569,7 +1569,11 @@ READKB_ESC:
         LDX     #6              ;
         JSR     PEM             ;
 
-        CMP     #'['
+        CMP     #79             ; ANSI
+        BNE     :+
+        JMP     READKB_ANSIKEYS
+:
+        CMP     #'['            ; VT100
         BNE     READKB_ERR
 
         LDX     #6              ;
@@ -1655,6 +1659,38 @@ READKB_XOFF1:
         JSR     PEM             ;
         PLA
         RTS
+
+READKB_ANSIKEYS:
+        LDX     #6              ;
+        JSR     PEM             ;
+        PHA
+        AND     #$F0
+        CMP     #$50
+        BNE     :+
+        PLA
+        AND     #$0F
+        ORA     #$10
+        CLC
+        ADC     #$01
+        CMP     #$1A
+        BNE     :+
+        LDA     #$24
+:
+        CMP     #$18
+        BNE     :+
+        LDA     #$19
+:
+        CMP     #$17
+        BNE     :+
+        LDA     #$18
+:
+        LDY     #01
+        JSR     READKB_XOFF
+        RTS
+:
+        PLA
+        JMP     READKB_ERR
+
 
 ;__CLEARBUFFER___________________________________________________________________________________________________________________
 ;
@@ -1862,6 +1898,13 @@ DOS65SAVEAS2:
         BEQ     DOS65SAVEAS1
 
         JSR     DOS65SAVE
+        LDA     #$00
+        STA     CSRPOSX
+        STA     CSRPOSY
+        STA     EDTPOS
+        STA     EDTPOS+1
+        STA     TMPPOS
+        STA     TMPPOS+1
         JMP     PAINTSCREEN
 
 SAVESCREENFORMAT:
@@ -1897,6 +1940,7 @@ FNBUFFER:
 ;________________________________________________________________________________________________________________________________
 ;
 GETFILENAME:
+        JSR     READKB_XON
         LDY     #$00
 GETFILENAME_LOOP:
         LDX     #6

@@ -498,13 +498,15 @@ KBD_GETKEYB:
 ; Get Keyboard status
 ;__________________________________________________________________________________________________
 KBD_GETSTATUS:
+        JSR     KBD_DECODE
         LDA     KBD_STATUS      ; GET CURRENT STATUS
         AND     #KBD_KEYRDY     ; ISOLATE KEY READY FLAG
+        CMP     #$00
         BEQ     :+
-        LDA     #$00
+        LDA     #$FF
         RTS
 :
-        LDA     #$FF
+        LDA     #$00
         RTS
 
 

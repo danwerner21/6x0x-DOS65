@@ -79,6 +79,7 @@ CONSOLE         = $3A
 TEMPWORD        = $3B           ;
 TEMPWORD1       = $3D           ;
 TEMPWORD2       = $3F           ;
+TEMPWORD3       = $44           ;
 STRPTR          = $41           ;
 DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
 
