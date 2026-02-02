@@ -464,17 +464,18 @@ KBD_SETRPT:
 ;__________________________________________________________________________________________________
 KBD_GETKEY:
         JSR     KBD_DECODE
-        BCC     :+
+        LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
+        CMP     #$00
+        BNE     :+
         LDA     #$FF            ;
         SEC
         RTS
 :
-        LDA     KBD_KEYCODE
-        PHA
-        LDA     KBD_STATUS
-        AND     #$7F
-        STA     KBD_STATUS
-        PLA
+        STX     TMPX
+        LDX     KBD_BUFFERPTR
+        LDA     KBD_BUFFER,X
+        DEC     KBD_BUFFERPTR
+        LDX     TMPX
         CLC
         RTS
 
@@ -482,31 +483,28 @@ KBD_GETKEY:
 ; Get char from Keyboard, return in A (blocking)
 ;__________________________________________________________________________________________________
 KBD_GETKEYB:
-:
         JSR     KBD_DECODE
-        BCS     :-
-        LDA     KBD_KEYCODE
-        PHA
-        LDA     KBD_STATUS
-        AND     #$7F
-        STA     KBD_STATUS
-        PLA
+        LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
+        CMP     #$00
+        BEQ     KBD_GETKEYB
+
+        STX     TMPX
+        LDX     KBD_BUFFERPTR
+        LDA     KBD_BUFFER,X
+        DEC     KBD_BUFFERPTR
+        LDX     TMPX
         CLC
         RTS
+TMPX:
+        .BYTE   00
+
 
 ;__GETSTATUS_______________________________________________________________________________________
 ; Get Keyboard status
 ;__________________________________________________________________________________________________
 KBD_GETSTATUS:
         JSR     KBD_DECODE
-        LDA     KBD_STATUS      ; GET CURRENT STATUS
-        AND     #KBD_KEYRDY     ; ISOLATE KEY READY FLAG
-        CMP     #$00
-        BEQ     :+
-        LDA     #$FF
-        RTS
-:
-        LDA     #$00
+        LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
         RTS
 
 
@@ -617,11 +615,11 @@ KBD_DECODE:
 ;   goto Step 1
 ;
 KBD_DEC0:                       ; CHECK KEYCODE BUFFER
-        LDA     KBD_STATUS      ; GET CURRENT STATUS
-        AND     #KBD_KEYRDY     ; ISOLATE KEY READY FLAG
-        BEQ     KBD_DEC1
-        SEC
-        RTS                     ; ABORT IF KEY IS ALREADY PENDING
+;        LDA     KBD_STATUS      ; GET CURRENT STATUS
+;        AND     #KBD_KEYRDY     ; ISOLATE KEY READY FLAG
+;        BEQ     KBD_DEC1
+;        SEC
+;        RTS                     ; ABORT IF KEY IS ALREADY PENDING
 
 KBD_DEC1:                       ; PROCESS NEXT SCANCODE
         JSR     KBD_GETDATAX    ; GET THE SCANCODE
@@ -880,11 +878,21 @@ KBD_DEC12:                      ; DETECT UNKNOWN/INVALID KEYCODES
         CMP     #$FF            ; IS IT $FF (UNKNOWN/INVALID)
         BEQ     KBD_DECNEW      ; IF SO, JUST RESTART THE ENGINE
 
-KBD_DEC13:                      ; DONE - RECORD RESULTS
-        LDA     KBD_STATUS      ; GET CURRENT STATUS
-        ORA     #KBD_KEYRDY     ; SET KEY READY BIT
-        STA     KBD_STATUS      ; SAVE IT
+KBD_DEC13:                      ; DONE - RECORD RESULTS INTO BUFFER
+        LDX     KBD_BUFFERPTR
+        CPX     #16
+        BEQ     KBD_DEC13A
+:
+        LDA     KBD_BUFFER,X
+        STA     KBD_BUFFER+1,X
+        DEX
+        CPX     #$FF
+        BNE     :-
+        LDA     KBD_KEYCODE
+        STA     KBD_BUFFER+1
+        INC     KBD_BUFFERPTR
         LDA     #$00            ; A=0
+KBD_DEC13A:
         CLC                     ; SIGNAL SUCCESS WITH A=1, CARRY CLEAR
         RTS
 
@@ -1000,6 +1008,13 @@ KBD_MAPEXT:                     ; PAIRS ARE [SCANCODE,KEYCODE] FOR EXTENDED SCAN
 KBD_MAPNUMPAD:                  ; KEYCODE TRANSLATION FROM NUMPAD RANGE TO STD ASCII/KEYCODES
         .BYTE   $F3,$F7,$F5,$F8,$FF,$F9,$F2,$F6,$F4,$F0,$F1,$2F,$2A,$2D,$2B,$0D
         .BYTE   $31,$32,$33,$34,$35,$36,$37,$38,$39,$30,$2E,$2F,$2A,$2D,$2B,$0D
+
+
+KBD_BUFFERPTR:
+        .BYTE $00
+KBD_BUFFER:
+        .BYTE $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+
 ;
 ;
 ;__________________________________________________________________________________________________
