@@ -15,6 +15,11 @@ CCMLNG          = 2048          ;CCM LENGTH
 CRSYM           = 32            ;CR SYMBOL
 LASTROW         = 20
 MAXCOL          = 80
+PAGESIZE        = 100           ;PAGE UP/DOWN SIZE (100 * 16 = 1600 bytes)
+CR              = 13            ;CARRIAGE RETURN
+SPACE           = 32            ;SPACE CHARACTER
+DEL             = 127           ;DELETE CHARACTER
+EOFCHAR         = $1A           ;DOS/65 END-OF-FILE MARKER
 
 ;ZERO PAGE
 NAMED           = $02           ;"TO" FILE NAMED IF <128
@@ -29,6 +34,44 @@ TMPPOS          = $0F           ;
 TEMP1           = $11           ;
 CURRENTLEN      = $12           ;
 MODE            = $14           ; 0= OVERWRITE MODE, 1= INSERT MODE
+
+;MACROS
+        .macro SAVE_EDITSTATE
+        LDA     CSRPOSX
+        PHA
+        LDA     CSRPOSY
+        PHA
+        LDA     EDTPOS
+        PHA
+        LDA     EDTPOS+1
+        PHA
+        .endmacro
+
+        .macro RESTORE_EDITSTATE
+        PLA
+        STA     EDTPOS+1
+        PLA
+        STA     EDTPOS
+        PLA
+        STA     CSRPOSY
+        PLA
+        STA     CSRPOSX
+        .endmacro
+
+        .macro INC_EDTPOS
+        INC     EDTPOS
+        BNE     :+
+        INC     EDTPOS+1
+:
+        .endmacro
+
+        .macro DEC_EDTPOS
+        LDA     EDTPOS
+        BNE     :+
+        DEC     EDTPOS+1
+:
+        DEC     EDTPOS
+        .endmacro
 
 ;MAIN PROGRAM
         .SEGMENT "TEA"
@@ -53,12 +96,11 @@ MODE            = $14           ; 0= OVERWRITE MODE, 1= INSERT MODE
 EDITLOOP:
         JSR     READKB          ; GET USER INPUT
 ;
+        CPY     #$FF            ; ERROR?
+        BEQ     EDITLOOP        ; YES, IGNORE AND RE-READ
 
-        CPY     #$01            ; IF IT IS A NORMAL KEYSTROKE
-        BNE     EDIT            ; GOTO EDIT
-
-        CPY     #$FF            ; IF IT IS AN ERROR
-        BEQ     EDITLOOP        ;  LOOP
+        CPY     #$01            ; IF Y=1 IT IS A FUNCTION KEY, PROCESS IT
+        BNE     EDIT            ; OTHERWISE (Y=0 REGULAR CHAR) GOTO EDIT
 
         STA     TEMP            ; STORE COMMAND IN TEMP
         LDY     #$00            ;
@@ -120,7 +162,6 @@ RETURN_TO_OS:
 EDIT:
         PHA                     ; STORE KEYSTROKE
         LDA     MODE            ; OVERWRITE OR INSERT?
-        CMP     #$00            ;
         BEQ     EDIT_OM         ; OVERWRITE MODE
         JSR     INSERTCHAR      ; INSERT CHAR SPACE
 EDIT_OM:
@@ -130,18 +171,17 @@ EDIT_OM:
         BNE     EDIT_OMB        ; NO, CONTINUE
         INY                     ;
         LDA     (EDTPOS),Y      ; IS NEXT POS A NULL?
-        CMP     #$00            ;
         BNE     EDIT_OMC        ;
 EDIT_OMA:
         PLA                     ;
         LDY     #$00            ;
         STA     (EDTPOS),Y      ; PUT CHAR IN EDIT BUFFER
         JSR     TOCONSOLE       ; PLACE CHAR ON SCREEN
-        JSR     INCEDTPOS       ; MOVE EDTPOS 1 TO THE RIGHT
+        INC_EDTPOS              ; MOVE EDTPOS 1 TO THE RIGHT
         LDA     #13             ;
         STA     (EDTPOS),Y      ; PUT CHAR IN EDIT BUFFER
         JSR     TOCONSOLE       ; PLACE CHAR ON SCREEN
-        JSR     INCEDTPOS       ; MOVE EDTPOS 1 TO THE RIGHT
+        INC_EDTPOS              ; MOVE EDTPOS 1 TO THE RIGHT
         JSR     CRSRLEFT        ; MOVE CSR BACK 1
         JSR     EDITCHECK       ;
         JMP     EDITLOOP        ;
@@ -151,7 +191,7 @@ EDIT_OMB:
         LDY     #$00
         STA     (EDTPOS),Y      ; PUT CHAR IN EDIT BUFFER
         JSR     TOCONSOLE       ; PLACE CHAR ON SCREEN
-        JSR     INCEDTPOS       ; MOVE EDTPOS 1 TO THE RIGHT
+        INC_EDTPOS              ; MOVE EDTPOS 1 TO THE RIGHT
         JSR     EDITCHECK       ;
         JMP     EDITLOOP
 
@@ -159,9 +199,9 @@ EDIT_OMC:
 
         LDA     CSRPOSY         ; HAVE WE REACHED THE END OF THE SCREEN?
         CMP     #LASTROW-1      ;
-        BNE     *+5             ; NO
+        BNE     EDIT_OMC1       ; NO
         JSR     SCROLLDOWN      ; SCROLL
-
+EDIT_OMC1:
         JSR     INSERTLINE
         JMP     EDIT_OMA
 
@@ -173,18 +213,22 @@ EDIT_OMC:
 ;
 EDITCHECK:
         PHA
-        LDA     EDTPOS+1
+        LDA     EDTPOS+1        ; COMPARE HIGH BYTES FIRST
         CMP     CURRENTLEN+1
-        BCC     EDITCHECK_1
-        LDA     EDTPOS
+        BCC     EDITCHECK_1     ; IF EDTPOS+1 < CURRENTLEN+1, EXIT (EDTPOS < CURRENTLEN)
+        BNE     EDITCHECK_UPDATE; IF EDTPOS+1 > CURRENTLEN+1, UPDATE (EDTPOS > CURRENTLEN)
+        LDA     EDTPOS          ; HIGH BYTES EQUAL, CHECK LOW BYTES
         CMP     CURRENTLEN
-        BCC     EDITCHECK_1
+        BCC     EDITCHECK_1     ; IF EDTPOS < CURRENTLEN, EXIT
 
+EDITCHECK_UPDATE:               ; Set WORD CURRENTLEN= WORD EDTPOS
         LDA     EDTPOS+1
         STA     CURRENTLEN+1
         LDA     EDTPOS
-        STA     CURRENTLEN
+        STA     CURRENTLEN      ; INCRIMENT WORD CURRENTLEN
         INC     CURRENTLEN
+        BNE     EDITCHECK_1
+        INC     CURRENTLEN+1
 EDITCHECK_1:
         PLA
         RTS
@@ -196,15 +240,7 @@ EDITCHECK_1:
 ;________________________________________________________________________________________________________________________________
 ;
 INSERTCR:
-        LDA     CSRPOSX         ; Store current cursor and edit position into stack
-        PHA                     ;
-        LDA     CSRPOSY         ;
-        PHA                     ;
-        LDA     EDTPOS          ;
-        PHA                     ;
-        LDA     EDTPOS+1        ;
-        PHA                     ;
-
+        SAVE_EDITSTATE
 
         LDY     #$00            ; move editpos to the end of the screen and store count into INSERTCHTEMP
         STY     INSERTCHTEMP    ; INSERTCHTEMP=0
@@ -212,7 +248,7 @@ INSERTCR:
 INSERTCR1:
         INX                     ; x++
         INC     INSERTCHTEMP    ; INSERTCHTEMP++
-        JSR     INCEDTPOS       ; MOVE EDTPOS 1 TO THE RIGHT
+        INC_EDTPOS              ; MOVE EDTPOS 1 TO THE RIGHT
         CPX     #MAXCOL         ; are we at the end of the line?
         BNE     INSERTCR1       ; no, loop
 
@@ -223,26 +259,8 @@ INSERTCR2:
         JSR     GOCSR           ;
         JSR     INSERTLINE      ; INSERT A LINE
 
-
-        PLA                     ;
-        STA     EDTPOS+1        ;
-        PLA                     ;
-        STA     EDTPOS          ;
-        PLA                     ;
-        STA     CSRPOSY         ;
-        PLA                     ;
-        STA     CSRPOSX         ;
-
-        LDA     CSRPOSX         ; Store current cursor and edit position into stack
-        PHA                     ;
-        LDA     CSRPOSY         ;
-        PHA                     ;
-        LDA     EDTPOS          ;
-        PHA                     ;
-        LDA     EDTPOS+1        ;
-        PHA                     ;
-
-
+        RESTORE_EDITSTATE
+        SAVE_EDITSTATE
         LDX     INSERTCHTEMP    ;
 
 INSERTCR3:
@@ -256,26 +274,18 @@ INSERTCR3:
         TAY                     ;
         STA     (EDTPOS),Y      ;
 
-        JSR     INCEDTPOS       ; MOVE EDTPOS 1 TO THE RIGHT
+        INC_EDTPOS              ; MOVE EDTPOS 1 TO THE RIGHT
         DEX                     ;
-        CPX     #$00            ;
         BNE     INSERTCR3       ;
 
-        PLA                     ;
-        STA     EDTPOS+1        ;
-        PLA                     ;
-        STA     EDTPOS          ;
-        PLA                     ;
-        STA     CSRPOSY         ;
-        PLA                     ;
-        STA     CSRPOSX         ;
+        RESTORE_EDITSTATE
         JSR     GOCSR
 
         LDY     #$00            ;
         LDA     #13             ;
         STA     (EDTPOS),Y      ; PUT CHAR IN EDIT BUFFER
         JSR     TOCONSOLE       ; PLACE CHAR ON SCREEN
-        JSR     INCEDTPOS       ; MOVE EDTPOS 1 TO THE RIGHT
+        INC_EDTPOS              ; MOVE EDTPOS 1 TO THE RIGHT
 
 
         LDX     INSERTCHTEMP    ;
@@ -285,15 +295,13 @@ INSERTCR4:
         PHA
         LDA     (EDTPOS),Y      ; PUT CHAR IN EDIT BUFFER
         JSR     TOCONSOLE       ; PLACE CHAR ON SCREEN
-        JSR     INCEDTPOS       ; MOVE EDTPOS 1 TO THE RIGHT
+        INC_EDTPOS              ; MOVE EDTPOS 1 TO THE RIGHT
         PLA                     ;
         TAX                     ;
         DEX                     ;
-        CPX     #$00            ;
         BNE     INSERTCR4       ;
 
-        JSR     GOCSR
-        RTS
+        JMP     GOCSR
 
 INSERTCHTEMP:
         .BYTE   0               ;
@@ -305,14 +313,7 @@ INSERTCHTEMP:
 ;________________________________________________________________________________________________________________________________
 ;
 TRUNCATE:
-        LDA     CSRPOSX         ; Store current cursor and edit position into stack
-        PHA                     ;
-        LDA     CSRPOSY         ;
-        PHA                     ;
-        LDA     EDTPOS          ;
-        PHA                     ;
-        LDA     EDTPOS+1        ;
-        PHA                     ;
+        SAVE_EDITSTATE
 
         LDY     #$00            ;
         LDA     #13             ;
@@ -320,17 +321,19 @@ TRUNCATE:
         JSR     TOCONSOLE       ; PLACE CHAR ON SCREEN
 
 TRUNCATE_LOOP:
-        JSR     INCEDTPOS
+        INC_EDTPOS
         LDA     #$00            ;
         TAY                     ;
         STA     (EDTPOS),Y      ; PUT CHAR IN EDIT BUFFER
 
-        LDA     EDTPOS+1        ;
+        LDA     EDTPOS+1        ; COMPARE HIGH BYTES
         CMP     CURRENTLEN+1    ;
-        BNE     TRUNCATE_LOOP   ;
-        LDA     EDTPOS          ;
+        BCC     TRUNCATE_LOOP   ; CONTINUE IF EDTPOS+1 < CURRENTLEN+1
+        BNE     TRUNCATE_DONE   ; EXIT IF EDTPOS+1 > CURRENTLEN+1
+        LDA     EDTPOS          ; HIGH BYTES EQUAL, CHECK LOW BYTES
         CMP     CURRENTLEN      ;
-        BNE     TRUNCATE_LOOP   ;
+        BCC     TRUNCATE_LOOP   ; CONTINUE IF EDTPOS < CURRENTLEN
+TRUNCATE_DONE:
 
         PLA                     ;
         STA     EDTPOS+1        ;
@@ -344,9 +347,7 @@ TRUNCATE_LOOP:
         STA     CSRPOSX         ;
 
         JSR     CHKPOS          ;
-        JSR     PAGEUP          ;
-
-        RTS
+        JMP     PAGEUP          ;
 
 
 ;__INSERTLINE____________________________________________________________________________________________________________________
@@ -362,20 +363,33 @@ INSERTLINE:
         LDA     CURRENTLEN+1    ;
         STA     TMPPOS+1        ; TMPPOS SHOULD BE BOTTOM OF COPY
 
-        LDA     CURRENTLEN      ; SET CURRENTLEN TO NEW TOP
-        CLC                     ; (+80)
-        ADC     #$50            ;
-        STA     CURRENTLEN      ;
+; CHECK IF WE HAVE ROOM FOR 80 MORE BYTES BEFORE MODIFYING CURRENTLEN
+; Calculate CURRENTLEN + 80 to check if result < Ram_top
+        LDA     CURRENTLEN      ;
+        CLC                     ;
+        ADC     #MAXCOL         ; Add 80 to low byte
+        STA     TEMP1           ; Save result low byte temporarily
         LDA     CURRENTLEN+1    ;
-        ADC     #$00            ;
+        ADC     #$00            ; Add carry to high byte
+        STA     TEMP            ; Save result high byte temporarily
+; Now TEMP:TEMP1 contains CURRENTLEN + 80
+        CMP     #>Ram_top       ; Compare high byte with $B8
+        BCC     INSERTLINE_OK   ; If less than, OK to proceed
+        BNE     INSERTLINE_ABORT; If greater than, abort (not enough room)
+        LDA     TEMP1           ; High bytes equal, check low byte
+        CMP     #<Ram_top       ;
+        BCS     INSERTLINE_ABORT; If >= Ram_top, abort (not enough room)
+INSERTLINE_OK:
+; Safe to update CURRENTLEN with pre-calculated result
+        LDA     TEMP1           ;
+        STA     CURRENTLEN      ;
+        LDA     TEMP            ;
         STA     CURRENTLEN+1    ;
-        CMP     #>(Ram_top-1)   ; are we at the end of RAM?
-        BCS     INSERTLINE_ABORT; IF SO, ABORT
 ;
 INSERTLINE1:
         LDY     #$00            ;
         LDA     (TMPPOS),Y      ;
-        LDY     #$50            ;
+        LDY     #MAXCOL         ;
         STA     (TMPPOS),Y      ;
         DEC     TMPPOS          ;
         LDA     TMPPOS          ;
@@ -383,47 +397,45 @@ INSERTLINE1:
         BNE     INSERTLINE1A    ;
         DEC     TMPPOS+1        ;
 INSERTLINE1A:
-        LDA     TMPPOS+1        ;
+        LDA     TMPPOS+1        ; COMPARE HIGH BYTES
         CMP     EDTPOS+1        ;
-        BNE     INSERTLINE1     ;
-        LDA     TMPPOS          ;
+        BCC     INSERTLINE1B    ; EXIT IF TMPPOS+1 < EDTPOS+1 (SAFETY CHECK)
+        BNE     INSERTLINE1     ; CONTINUE IF TMPPOS+1 > EDTPOS+1
+        LDA     TMPPOS          ; HIGH BYTES EQUAL, CHECK LOW BYTES
         CMP     EDTPOS          ;
-        BNE     INSERTLINE1     ;
-        LDX     #80             ;
+        BCC     INSERTLINE1B    ; EXIT IF TMPPOS < EDTPOS (SAFETY CHECK)
+        BNE     INSERTLINE1     ; CONTINUE IF TMPPOS > EDTPOS
+INSERTLINE1B:                   ; EXIT WHEN TMPPOS <= EDTPOS
+; TMPPOS IS NOW EDTPOS-1. SHIFT THE BYTE AT EDTPOS THAT WAS MISSED.
+        INC     TMPPOS          ;
+        BNE     INSERTLINE1C    ;
+        INC     TMPPOS+1        ;
+INSERTLINE1C:                   ; TMPPOS == EDTPOS NOW
+        LDY     #$00            ;
+        LDA     (TMPPOS),Y      ; READ BYTE AT EDTPOS
+        LDY     #MAXCOL         ;
+        STA     (TMPPOS),Y      ; SHIFT IT TO EDTPOS+80
+; NULL-FILL FROM EDTPOS FOR MAXCOL BYTES
+        LDX     #MAXCOL         ;
         LDY     #$00            ;
         LDA     #$00            ;
 INSERTLINE2:
         STA     (TMPPOS),Y      ;
         INY                     ;
         DEX                     ;
-        CPX     #$00            ;
         BNE     INSERTLINE2     ;
 
-        LDA     CSRPOSX         ;
-        PHA                     ;
-        LDA     CSRPOSY         ;
-        PHA                     ;
-        LDA     EDTPOS          ;
-        PHA                     ;
-        LDA     EDTPOS+1        ;
-        PHA                     ;
+        SAVE_EDITSTATE
         LDY     #$00            ;
 
 INSERTLINE3:
         LDA     (EDTPOS),Y      ;
         JSR     TOCONSOLE       ;
-        JSR     INCEDTPOS       ;
+        INC_EDTPOS              ;
         LDA     CSRPOSY         ; HAVE WE REACHED THE END OF THE SCREEN?
         CMP     #LASTROW        ;
         BNE     INSERTLINE3     ; NO
-        PLA                     ;
-        STA     EDTPOS+1        ;
-        PLA                     ;
-        STA     EDTPOS          ;
-        PLA                     ;
-        STA     CSRPOSY         ;
-        PLA                     ;
-        STA     CSRPOSX         ;
+        RESTORE_EDITSTATE
         JMP     GOCSR           ;
 
 INSERTLINE_ABORT:
@@ -438,45 +450,53 @@ INSERTLINE_ABORT:
 ;________________________________________________________________________________________________________________________________
 ;
 DELETELINE:
+; CHECK THAT CURRENTLEN - MAXCOL WON'T UNDERFLOW PAST BUFFER
+        LDA     CURRENTLEN      ;
+        SEC                     ;
+        SBC     #MAXCOL         ;
+        STA     TEMP1           ; SAVE CANDIDATE LOW BYTE
+        LDA     CURRENTLEN+1    ;
+        SBC     #$00            ;
+        CMP     #>BUFFER        ; COMPARE HIGH BYTE WITH BUFFER START
+        BCC     DELETELINE_ABORT; WOULD GO BELOW BUFFER, ABORT
+        BNE     DELETELINE_OK   ; ABOVE BUFFER PAGE, SAFE
+        LDA     TEMP1           ; HIGH BYTES EQUAL, CHECK LOW BYTE
+        CMP     #<BUFFER        ;
+        BCC     DELETELINE_ABORT; WOULD GO BELOW BUFFER, ABORT
+DELETELINE_OK:
         LDA     EDTPOS          ;
         STA     TMPPOS          ;
         LDA     EDTPOS+1        ;
         STA     TMPPOS+1        ; TMPPOS SHOULD BE TOP OF COPY
 
         LDA     CURRENTLEN      ; SET CURRENTLEN TO NEW TOP
-        SEC                     ; (+80)
-        SBC     #$50            ;
+        SEC                     ; (-80)
+        SBC     #MAXCOL         ;
         STA     CURRENTLEN      ;
         LDA     CURRENTLEN+1    ;
         SBC     #$00            ;
         STA     CURRENTLEN+1    ;
 ;
 DELETELINE1:
-        LDY     #$50            ;
+        LDY     #MAXCOL         ;
         LDA     (TMPPOS),Y      ;
         LDY     #$00            ;
         STA     (TMPPOS),Y      ;
         INC     TMPPOS          ;
         LDA     TMPPOS          ;
-        CMP     #$00            ;
         BNE     DELETELINE1A    ;
         INC     TMPPOS+1        ;
 DELETELINE1A:
-        LDA     TMPPOS+1        ;
+        LDA     TMPPOS+1        ; COMPARE HIGH BYTES
         CMP     CURRENTLEN+1    ;
-        BNE     DELETELINE1     ;
-        LDA     TMPPOS          ;
+        BCC     DELETELINE1     ; CONTINUE IF TMPPOS+1 < CURRENTLEN+1
+        BNE     DELETELINE1B    ; EXIT IF TMPPOS+1 > CURRENTLEN+1 (SAFETY CHECK)
+        LDA     TMPPOS          ; HIGH BYTES EQUAL, CHECK LOW BYTES
         CMP     CURRENTLEN      ;
-        BNE     DELETELINE1     ;
+        BCC     DELETELINE1     ; CONTINUE IF TMPPOS < CURRENTLEN
+DELETELINE1B:                   ; EXIT WHEN TMPPOS >= CURRENTLEN
 
-        LDA     CSRPOSX         ;
-        PHA                     ;
-        LDA     CSRPOSY         ;
-        PHA                     ;
-        LDA     EDTPOS          ;
-        PHA                     ;
-        LDA     EDTPOS+1        ;
-        PHA                     ;
+        SAVE_EDITSTATE
         LDA     #$00            ;
         STA     CSRPOSX         ;
         JSR     GOCSR           ;
@@ -484,20 +504,15 @@ DELETELINE1A:
 DELETELINE3:
         LDA     (EDTPOS),Y      ;
         JSR     TOCONSOLE       ;
-        JSR     INCEDTPOS       ;
+        INC_EDTPOS              ;
         LDA     CSRPOSY         ; HAVE WE REACHED THE END OF THE SCREEN?
         CMP     #LASTROW        ;
         BNE     DELETELINE3     ; NO
-        PLA                     ;
-        STA     EDTPOS+1        ;
-        PLA                     ;
-        STA     EDTPOS          ;
-        PLA                     ;
-        STA     CSRPOSY         ;
-        PLA                     ;
-        STA     CSRPOSX         ;
+        RESTORE_EDITSTATE
         JMP     GOCSR           ;
 
+DELETELINE_ABORT:
+        RTS
 
 ;__INSERTCHAR____________________________________________________________________________________________________________________
 ;
@@ -514,32 +529,49 @@ INSERTCHAR:
 ; FIND END OF LINE
         LDY     #$00            ;
 INSERTCHAR1:
-        LDA     (TMPPOS),Y      ;
+; FIX: Check full 16-bit boundary, not just high byte
+        LDA     TMPPOS+1        ; CHECK BOUNDARY BEFORE READING
+        CMP     #>Ram_top       ; are we at the end of RAM?
+        BCC     INSERTCHAR1A    ; Less than high byte, safe
+        BNE     :+              ; Greater than high byte, abort
+        LDA     TMPPOS          ; High bytes equal, check low byte
+        CMP     #<Ram_top       ;
+        BCS     :+              ; At or past Ram_top, abort
+        JMP     INSERTCHAR1A
+:
+        JMP     INSERTCHAR_ABORT
+INSERTCHAR1A:
+        LDA     (TMPPOS),Y      ; READ BYTE
 
         INC     TMPPOS          ; INC POINTER
-        BNE     *+4             ;
+        BNE     INSERTCHAR1B    ;
         INC     TMPPOS+1        ;
+INSERTCHAR1B:
         CMP     #13             ; AT END?
         BEQ     INSERTCHAR2     ; FOUND END
-
-        LDA     TMPPOS+1
-        CMP     #>(Ram_top-1)   ; are we at the end of RAM?
-        BCS     INSERTCHAR_ABORT; IF SO, ABORT
         JMP     INSERTCHAR1     ;
 
 INSERTCHAR2:
         LDA     (TMPPOS),Y      ; FREE SPACE AT END OF LINE?
-        CMP     #$00            ;
-        BEQ     INSERTCHAR3     ;
-        JSR     INSERTCHAR5     ; NO, INSERT A LINE
+        BEQ     INSERTCHAR3     ; YES, PROCEED WITH INSERT
+; NO FREE SPACE - CHECK IF WE'RE AT EOF (TMPPOS >= CURRENTLEN)
+        LDA     TMPPOS+1        ;
+        CMP     CURRENTLEN+1    ;
+        BCC     INSERTCHAR2A    ; TMPPOS+1 < CURRENTLEN+1, NOT AT EOF
+        BNE     INSERTCHAR_ABORT; TMPPOS+1 > CURRENTLEN+1, PAST EOF - ABORT
+        LDA     TMPPOS          ; HIGH BYTES EQUAL, CHECK LOW BYTES
+        CMP     CURRENTLEN      ;
+        BCS     INSERTCHAR_ABORT; TMPPOS >= CURRENTLEN, AT OR PAST EOF - ABORT
+INSERTCHAR2A:
+        JSR     INSERTCHAR5     ; NOT AT EOF, INSERT A LINE
 
 INSERTCHAR3:
         DEC     TMPPOS          ; DEC TMPPOS
         LDA     TMPPOS          ;
         CMP     #$FF            ;
-        BNE     *+4             ;
+        BNE     INSERTCHAR3A    ;
         DEC     TMPPOS+1        ;
-
+INSERTCHAR3A:
         LDY     #$00            ; MOVE EVERYTHING UP ONE POS
         LDA     (TMPPOS),Y      ;
         INY                     ;
@@ -551,40 +583,34 @@ INSERTCHAR3:
         CMP     EDTPOS          ;
         BNE     INSERTCHAR3     ; NO, LOOP
 
-        LDA     CSRPOSX         ;
-        PHA                     ;
-        LDA     CSRPOSY         ;
-        PHA                     ;
-        LDA     EDTPOS          ;
-        PHA                     ;
-        LDA     EDTPOS+1        ;
-        PHA                     ;
+        LDY     #$00            ; CLEAR VACATED POSITION SO EDIT_OM
+        LDA     #$00            ; DOES NOT SEE STALE CR FROM PRE-SHIFT
+        STA     (EDTPOS),Y      ;
+
+        SAVE_EDITSTATE
         LDY     #$00            ;
+        LDX     #MAXCOL         ; SAFETY: LIMIT REDRAW TO ONE LINE (80 CHARS)
 INSERTCHAR4:
         LDA     (EDTPOS),Y      ;
         PHA                     ;
         JSR     TOCONSOLE       ;
-        JSR     INCEDTPOS       ;
+        INC_EDTPOS              ;
         PLA                     ;
         CMP     #13             ; HAVE WE REACHED THE END OF THE ROW?
-        BNE     INSERTCHAR4     ; NO
-        PLA                     ;
-        STA     EDTPOS+1        ;
-        PLA                     ;
-        STA     EDTPOS          ;
-        PLA                     ;
-        STA     CSRPOSY         ;
-        PLA                     ;
-        STA     CSRPOSX         ;
+        BEQ     INSERTCHAR4_DONE; YES, EXIT
+        DEX                     ; DECREMENT SAFETY COUNTER
+        BNE     INSERTCHAR4     ; CONTINUE IF NOT EXHAUSTED
+INSERTCHAR4_DONE:
+        RESTORE_EDITSTATE
         JMP     GOCSR           ;
 INSERTCHAR_ABORT:
         RTS                     ;
 INSERTCHAR5:
         LDA     CSRPOSY         ; HAVE WE REACHED THE END OF THE SCREEN?
         CMP     #LASTROW-1      ;
-        BNE     *+5             ; NO
+        BNE     INSERTCHAR5A    ; NO
         JSR     SCROLLDOWN      ; SCROLL
-
+INSERTCHAR5A:
         LDA     EDTPOS          ;
         PHA                     ;
         LDA     EDTPOS+1        ;
@@ -624,6 +650,13 @@ INSERTCHAR5:
 ;________________________________________________________________________________________________________________________________
 ;
 BACKSPACE:
+        LDA     EDTPOS          ; CHECK IF AT BUFFER START
+        BNE     BACKSPACE1      ;
+        LDA     EDTPOS+1        ;
+        CMP     #>BUFFER        ;
+        BNE     BACKSPACE1      ;
+        RTS                     ; AT BUFFER START, DO NOTHING
+BACKSPACE1:
         JSR     CRSRLEFT
         JMP     DELETECHAR
 
@@ -635,32 +668,215 @@ BACKSPACE:
 ;________________________________________________________________________________________________________________________________
 ;
 DELETECHAR:
+; CHECK IF WE'RE AT OR PAST EOF (NOTHING TO DELETE)
+        LDA     EDTPOS+1        ;
+        CMP     CURRENTLEN+1    ;
+        BCC     DELETECHAR0A    ; EDTPOS+1 < CURRENTLEN+1, OK
+        BEQ     DELETECHAR0B    ; HIGH BYTES EQUAL, CHECK LOW BYTE
+        JMP     DELETECHAR_ABORT; EDTPOS+1 > CURRENTLEN+1, PAST EOF
+DELETECHAR0B:
+        LDA     EDTPOS          ;
+        CMP     CURRENTLEN      ;
+        BCC     DELETECHAR0A    ; EDTPOS < CURRENTLEN, OK
+        JMP     DELETECHAR_ABORT; EDTPOS >= CURRENTLEN, AT/PAST EOF
+
+DELETECHAR0A:
+; Save the character we're about to delete to determine repaint strategy
+        LDY     #$00            ;
+        LDA     (EDTPOS),Y      ; Read character at cursor
+        STA     TEMP            ; Save it for later
+
+; SPECIAL CASE: CR AT COLUMN 0 = EMPTY LINE
+; BYTE-SHIFT WOULD CORRUPT THE 80-COLUMN LINE STRUCTURE
+; USE DELETELINE TO PROPERLY REMOVE THE ENTIRE 80-BYTE LINE
+        CMP     #13             ; DELETING A CR?
+        BNE     DELETECHAR_SHIFTA; NO, NORMAL DELETE
+
+        LDA     CSRPOSX         ; AT COLUMN 0? (EMPTY LINE)
+        BNE     DELETECHAR_MERGE; NO, MERGE WITH NEXT LINE
+        JMP     DELETELINE      ; YES, REMOVE ENTIRE EMPTY LINE
+DELETECHAR_SHIFTA:
+        JMP     DELETECHAR_SHIFT
+;
+; DELETECHAR_MERGE - MERGE CURRENT LINE WITH NEXT LINE WHEN DELETING CR
+;
+; WHEN THE USER DELETES A CR AT COLUMN > 0, WE MUST:
+;   1. COPY NEXT LINE'S CONTENT TO CURRENT LINE (REPLACING CR + NULLS)
+;   2. WRITE NEW CR AFTER MERGED CONTENT
+;   3. NULL-FILL REMAINDER OF CURRENT LINE
+;   4. DELETE THE NEXT LINE (SHIFT BUFFER UP BY MAXCOL, REDUCE CURRENTLEN)
+;   5. FULL SCREEN REPAINT
+;
+DELETECHAR_MERGE:
+; CALCULATE NEXT LINE START: TMPPOS = EDTPOS + (MAXCOL - CSRPOSX)
+        LDA     #MAXCOL         ;
+        SEC                     ;
+        SBC     CSRPOSX         ; A = DISTANCE TO NEXT LINE START
+        CLC                     ;
+        ADC     EDTPOS          ;
+        STA     TMPPOS          ;
+        LDA     EDTPOS+1        ;
+        ADC     #$00            ;
+        STA     TMPPOS+1        ; TMPPOS = START OF NEXT LINE
+
+; CHECK IF NEXT LINE EXISTS (TMPPOS < CURRENTLEN)
+        LDA     TMPPOS+1        ;
+        CMP     CURRENTLEN+1    ;
+        BCC     DELETECHAR_MERGE_OK; TMPPOS < CURRENTLEN
+        BNE     DELETECHAR_MERGE_ABORT; TMPPOS > CURRENTLEN, NO NEXT LINE
+        LDA     TMPPOS          ;
+        CMP     CURRENTLEN      ;
+        BCC     DELETECHAR_MERGE_OK; TMPPOS < CURRENTLEN
+DELETECHAR_MERGE_ABORT:
+        JMP     DELETECHAR_ABORT; NO NEXT LINE, NOTHING TO MERGE
+
+DELETECHAR_MERGE_OK:
+; COUNT CONTENT ON NEXT LINE (SCAN FOR CR)
+        LDY     #$00            ;
+DELETECHAR_MERGE_COUNT:
+        LDA     (TMPPOS),Y      ;
+        CMP     #CR             ; FOUND CR?
+        BEQ     DELETECHAR_MERGE_COUNTED
+        INY                     ;
+        CPY     #MAXCOL         ; SAFETY: DON'T SCAN PAST LINE
+        BNE     DELETECHAR_MERGE_COUNT
+DELETECHAR_MERGE_COUNTED:
+; Y = NUMBER OF CONTENT BYTES ON NEXT LINE (BEFORE CR)
+        STY     TEMP1           ; SAVE NEXT LINE CONTENT LENGTH
+
+; CHECK IF MERGE FITS: CSRPOSX + NEXT_CONTENT < MAXCOL
+; (NEED ROOM FOR AT LEAST THE CR)
+        TYA                     ;
+        CLC                     ;
+        ADC     CSRPOSX         ;
+        CMP     #MAXCOL         ; CSRPOSX + NEXT_CONTENT >= MAXCOL?
+        BCS     DELETECHAR_MERGE_ABORT; YES, CAN'T MERGE - TOO LONG
+
+; COPY NEXT LINE CONTENT TO CURRENT LINE AT CURSOR POSITION
+        LDY     #$00            ;
+        LDX     TEMP1           ; COUNTER = NEXT LINE CONTENT LENGTH
+        BEQ     DELETECHAR_MERGE_NOCOPY; NOTHING TO COPY (NEXT LINE EMPTY)
+DELETECHAR_MERGE_COPY:
+        LDA     (TMPPOS),Y      ; READ FROM NEXT LINE
+        STA     (EDTPOS),Y      ; WRITE TO CURRENT LINE AT CR POSITION
+        INY                     ;
+        DEX                     ;
+        BNE     DELETECHAR_MERGE_COPY
+
+DELETECHAR_MERGE_NOCOPY:
+; WRITE CR AFTER MERGED CONTENT
+        LDA     #CR             ;
+        STA     (EDTPOS),Y      ; CR AT EDTPOS + NEXT_CONTENT
+        INY                     ;
+
+; NULL-FILL REST OF CURRENT LINE TO NEXT LINE BOUNDARY
+; FILL FROM CURRENT Y TO (MAXCOL - CSRPOSX)
+        LDA     #MAXCOL         ;
+        SEC                     ;
+        SBC     CSRPOSX         ; A = DISTANCE FROM EDTPOS TO NEXT LINE
+        STA     TEMP1           ; REUSE TEMP1 AS FILL LIMIT
+        LDA     #$00            ;
+DELETECHAR_MERGE_FILL:
+        CPY     TEMP1           ; REACHED NEXT LINE BOUNDARY?
+        BCS     DELETECHAR_MERGE_DEL; YES, DONE FILLING
+        STA     (EDTPOS),Y      ; WRITE NULL
+        INY                     ;
+        BNE     DELETECHAR_MERGE_FILL; ALWAYS TAKEN (Y < 80)
+
+DELETECHAR_MERGE_DEL:
+; DELETE THE NEXT LINE BY SHIFTING BUFFER UP BY MAXCOL
+; TMPPOS ALREADY POINTS TO NEXT LINE START
+; REDUCE CURRENTLEN BY MAXCOL
+        LDA     CURRENTLEN      ;
+        SEC                     ;
+        SBC     #MAXCOL         ;
+        STA     CURRENTLEN      ;
+        LDA     CURRENTLEN+1    ;
+        SBC     #$00            ;
+        STA     CURRENTLEN+1    ;
+
+; SHIFT LOOP: COPY FROM TMPPOS+MAXCOL TO TMPPOS
+DELETECHAR_MERGE_SHIFT:
+        LDA     TMPPOS+1        ; CHECK IF DONE
+        CMP     CURRENTLEN+1    ;
+        BCC     DELETECHAR_MERGE_SHIFT1; TMPPOS < CURRENTLEN, CONTINUE
+        BNE     DELETECHAR_MERGE_DONE; TMPPOS > CURRENTLEN, DONE
+        LDA     TMPPOS          ;
+        CMP     CURRENTLEN      ;
+        BCS     DELETECHAR_MERGE_DONE; TMPPOS >= CURRENTLEN, DONE
+DELETECHAR_MERGE_SHIFT1:
+        LDY     #MAXCOL         ;
+        LDA     (TMPPOS),Y      ; READ FROM TMPPOS + MAXCOL
+        LDY     #$00            ;
+        STA     (TMPPOS),Y      ; WRITE TO TMPPOS
+        INC     TMPPOS          ;
+        BNE     DELETECHAR_MERGE_SHIFT
+        INC     TMPPOS+1        ;
+        JMP     DELETECHAR_MERGE_SHIFT
+
+DELETECHAR_MERGE_DONE:
+        JMP     DELETECHAR_FULLREPAINT
+
+DELETECHAR_SHIFT:
         LDA     EDTPOS          ; STORE CURRENT POSITION
         STA     TMPPOS          ;
         LDA     EDTPOS+1        ;
         STA     TMPPOS+1        ;
 
-; FIND MOVE CHARS BACK ONE SPACE UNTIL THE END OF LINE
+; MOVE CHARS BACK ONE SPACE UNTIL CR OR EOF
 DELETECHAR1:
-        LDY     #$01            ;
-        LDA     (TMPPOS),Y      ;
-        CMP     #$00            ;
-        BNE     DELETECHAR1A    ;
-        LDA     #32             ; REPLACE NULLS WITH SPACES
+; First, check if next byte (TMPPOS+1) is at or past EOF
+; Calculate TMPPOS+1 for comparison
+        LDA     TMPPOS          ;
+        CLC                     ;
+        ADC     #$01            ;
+        STA     TEMP1           ; TEMP1 = low byte of TMPPOS+1
+        LDA     TMPPOS+1        ;
+        ADC     #$00            ;
+; A now has high byte of TMPPOS+1
+        CMP     CURRENTLEN+1    ;
+        BCC     DELETECHAR1A    ; TMPPOS+1 < CURRENTLEN, OK to read
+        BEQ     DELETECHAR1AB   ; HIGH BYTES EQUAL, CHECK LOW BYTE
+        JMP     DELETECHAR1_EOF ; TMPPOS+1 > CURRENTLEN, past EOF
+DELETECHAR1AB:
+        LDA     TEMP1           ;
+        CMP     CURRENTLEN      ;
+        BCC     DELETECHAR1A    ; TMPPOS+1 < CURRENTLEN, OK to read
+        JMP     DELETECHAR1_EOF ; TMPPOS+1 >= CURRENTLEN, at/past EOF
+
 DELETECHAR1A:
+; Safe to read from TMPPOS+1
+        LDY     #$01            ;
+        LDA     (TMPPOS),Y      ; Read byte from next position
+        CMP     #13             ; CHECK FOR CR
+        BEQ     DELETECHAR1C    ; FOUND CR, HANDLE IT
+        CMP     #$00            ; CHECK FOR NULL
+        BNE     DELETECHAR1B    ;
+        LDA     #32             ; REPLACE NULLS WITH SPACES
+
+DELETECHAR1B:
+        LDY     #$00            ;
+        STA     (TMPPOS),Y      ; Store at current position
+        INC     TMPPOS          ; INC POINTER
+        BNE     DELETECHAR1     ; NO OVERFLOW, CONTINUE
+        INC     TMPPOS+1        ; OVERFLOW, INC HIGH BYTE
+        JMP     DELETECHAR1     ; CONTINUE LOOP
+
+DELETECHAR1C:                   ; FOUND CR
+        LDY     #$00            ;
+        STA     (TMPPOS),Y      ; Store CR at current position
+        INC     TMPPOS          ; INC POINTER TO POINT PAST CR
+        BNE     DELETECHAR1D    ; NO OVERFLOW, CONTINUE
+        INC     TMPPOS+1        ; OVERFLOW, INC HIGH BYTE
+DELETECHAR1D:
+        JMP     DELETECHAR2     ; EXIT TO CLEANUP
+
+DELETECHAR1_EOF:                ; REACHED EOF WITHOUT FINDING CR
+; Just null out current position and exit
+        LDA     #$00            ;
         LDY     #$00            ;
         STA     (TMPPOS),Y      ;
-
-        INC     TMPPOS          ; INC POINTER
-        BNE     *+4             ;
-        INC     TMPPOS+1        ;
-        CMP     #13             ; AT END?
-        BEQ     DELETECHAR2     ; FOUND END
-
-        LDA     TMPPOS+1
-        CMP     #>(Ram_top-1)   ; are we at the end of RAM?
-        BCS     DELETECHAR_ABORT; IF SO, ABORT
-        JMP     DELETECHAR1     ;
+        JMP     DELETECHAR2     ; EXIT TO CLEANUP
 
 
 
@@ -669,18 +885,48 @@ DELETECHAR2:
         LDA     #$00
         STA     (TMPPOS),Y      ;
 
-; FAST DISPLAY UPDATE: USE ANSI DELETE-CHAR INSTEAD OF REDRAWING WHOLE LINE
+; CHECK IF WE DELETED A CR (line merge) OR NULL (blank line) - REQUIRES FULL REPAINT
+        LDA     TEMP            ; Get the character we deleted
+        CMP     #13             ; Was it a CR?
+        BEQ     DELETECHAR_FULLREPAINT; Yes, need full repaint
+        CMP     #$00            ; Was it a null (blank line)?
+        BEQ     DELETECHAR_FULLREPAINT; Yes, need full repaint
+        JMP     DELETECHAR_FAST ; Regular character, use fast update
+
+; REPAINT FROM CURRENT ROW TO BOTTOM (for deleting CR/null that merges lines)
+DELETECHAR_FULLREPAINT:
+        SAVE_EDITSTATE
+
+; BACK UP EDTPOS TO COLUMN 0 OF CURRENT ROW
+        LDA     CSRPOSX
+        TAX
+        BEQ     DELETECHAR_FP1
+DELETECHAR_FP0:
+        DEC_EDTPOS
+        DEX
+        BNE     DELETECHAR_FP0
+DELETECHAR_FP1:
+        LDA     #$00
+        STA     CSRPOSX
+        JSR     GOCSR           ; POSITION CURSOR TO COL 0 OF CURRENT ROW
+        LDY     #$00
+DELETECHAR_FP2:
+        LDA     (EDTPOS),Y
+        JSR     TOCONSOLE
+        INC_EDTPOS
+        LDA     CSRPOSY         ; HAVE WE REACHED THE END OF THE SCREEN?
+        CMP     #LASTROW
+        BNE     DELETECHAR_FP2
+
+        RESTORE_EDITSTATE
+        JMP     GOCSR           ;
+
+; FAST DISPLAY UPDATE: USE ANSI DELETE-CHAR (for mid-line deletes)
+DELETECHAR_FAST:
         LDA     CSRPOSX         ; remember starting column to avoid wrapping on the short redraw
         STA     DELETECHARTMP
 
-        LDA     CSRPOSX         ;
-        PHA                     ;
-        LDA     CSRPOSY         ;
-        PHA                     ;
-        LDA     EDTPOS          ;
-        PHA                     ;
-        LDA     EDTPOS+1        ;
-        PHA                     ;
+        SAVE_EDITSTATE
 
 ; delete char at cursor (terminal shifts remainder left)
         LDA     #<DELCHARSEQ
@@ -688,24 +934,32 @@ DELETECHAR2:
         LDX     #9
         JSR     PEM
 
-; redraw a short tail (up to 16 chars, stop at CR, stay on this line)
+; redraw rest of line (stop at CR or line end)
         LDA     #MAXCOL-1
         SEC
-        SBC     DELETECHARTMP    ; remaining cols before wrap
+        SBC     DELETECHARTMP   ; remaining cols before wrap
         STA     TEMP1
         LDY     #$00
-        LDX     #16             ; limit redraw length
+        LDX     #MAXCOL         ; limit redraw to full line width
 DELETECHAR4:
-        LDA     (EDTPOS),Y
+        LDA     (EDTPOS),Y      ; Load character
         CMP     #13
-        BEQ     DELETECHAR4B     ; stop at CR
-        TYA
+        BNE     DELETECHAR4_NOTCR
+        JSR     TOCONSOLE       ; RENDER THE CR MARKER BEFORE EXITING
+        JMP     DELETECHAR4B    ; THEN CLEAN UP REST OF LINE
+DELETECHAR4_NOTCR:
+        PHA                     ; Push character to preserve it
+        TYA                     ; Check if Y >= TEMP1
         CMP     TEMP1
-        BCS     DELETECHAR4B     ; don't wrap line
-        JSR     TOCONSOLE
+        BCS     DELETECHAR4A    ; Exit if would wrap
+        PLA                     ; Pop character back
+        JSR     TOCONSOLE       ; Output it
         INY
         DEX
         BNE     DELETECHAR4
+        BEQ     DELETECHAR4B    ; Exit when counter exhausted
+DELETECHAR4A:                   ; Exit path that cleans stack
+        PLA                     ; Pop unused character
 DELETECHAR4B:
 
 ; clean the rest of the line to avoid artifacts
@@ -715,14 +969,7 @@ DELETECHAR4B:
         JSR     PEM
 
 ; restore cursor/buffer state
-        PLA                     ;
-        STA     EDTPOS+1        ;
-        PLA                     ;
-        STA     EDTPOS          ;
-        PLA                     ;
-        STA     CSRPOSY         ;
-        PLA                     ;
-        STA     CSRPOSX         ;
+        RESTORE_EDITSTATE
         JMP     GOCSR           ;
 DELETECHAR_ABORT:
         RTS                     ;
@@ -740,7 +987,6 @@ DELETECHARTMP:
 TOGGLEMODE:
 
         LDA     MODE            ;
-        CMP     #$00            ;
         BNE     TOGGLEMODEOW    ;
 
 TOGGLEMODEIM:
@@ -789,20 +1035,17 @@ CRSRUP:
 CRSRUP1:
         LDX     #$00            ;
         LDA     CSRPOSY         ; FIRST LINE?
-        CMP     #$00            ; THEN SCROLL UP
         BNE     CRSRUP2         ;
-        JSR     SCROLLUP        ;
-        RTS
+        JMP     SCROLLUP        ; YES, SCROLL UP
 
 CRSRUP2:
-        JSR     DECEDTPOS       ; MOVE POINTER BACK ONE
+        DEC_EDTPOS              ; MOVE POINTER BACK ONE
         INX                     ; INC COUNTER
         CPX     #MAXCOL         ; HAVE WE GONE BACK MAXCOL POSITIONS?
-        BNE     CRSRUP2         ; YES, EXIT
+        BNE     CRSRUP2         ; NO, LOOP
 
         DEC     CSRPOSY         ;
-        JSR     CHKPOS          ; WE ARE DONE! POSITION THE CURSOR AND EXIT
-        RTS                     ;
+        JMP     CHKPOS          ; WE ARE DONE! POSITION THE CURSOR AND EXIT
 
 
 ;__CRSRDN________________________________________________________________________________________________________________________
@@ -821,21 +1064,23 @@ CRSRDN:
 CRSRDN1:
         LDX     #$00
 CRSRDN2:
-        JSR     INCEDTPOS       ; MOVE EDTPOS 1 TO THE RIGHT
+        INC_EDTPOS              ; MOVE EDTPOS 1 TO THE RIGHT
         INX
         CPX     #MAXCOL
         BEQ     CRSRDN3         ; YES, DONE
         LDA     EDTPOS+1        ; WILL NEXT MOVE SEND US PAST THE END OF RAM?
         CMP     #>Ram_top       ; are we at the end of RAM?
-        BEQ     CRSRDN4         ; YES, DONE THEN
-        LDA     EDTPOS+1        ;
+        BCC     CRSRDN2A        ; Less than high byte, OK to continue
+        BNE     CRSRDN4         ; Greater than high byte, stop
+        LDA     EDTPOS          ; High bytes equal, check low byte
+        CMP     #<Ram_top       ;
+        BCS     CRSRDN4         ; At or past Ram_top, stop
 
 CRSRDN2A:
         JMP     CRSRDN2         ; NO, KEEP GOING
 CRSRDN3:
         INC     CSRPOSY         ;
-        JSR     CHKPOS          ; WE ARE DONE! POSITION THE CURSOR AND EXIT
-        RTS                     ;
+        JMP     CHKPOS          ; WE ARE DONE! POSITION THE CURSOR AND EXIT
 CRSRDN4:
         JMP     PAINTSCREEN0    ;
 
@@ -859,14 +1104,14 @@ CRSRLEFT1:
         LDA     CSRPOSX         ; CHECK TO SEE IF WE WERE AT THE LEFT MOST POSITION
         CMP     #$FF            ;
         BEQ     CRSRLEFT2       ; IF WE WERE, DO SOME SPECIAL STUFF
-        JSR     DECEDTPOS       ; MOVE EDTPOS 1 TO THE LEFT
+        DEC_EDTPOS              ; MOVE EDTPOS 1 TO THE LEFT
         JMP     CHKPOS          ; POSITION THE CURSOR
 CRSRLEFT2:                      ; CURSOR IS AT THE LEFT MOST LINE
         LDA     #MAXCOL-1       ;
         STA     CSRPOSX         ;
         TAX                     ;
 CRSRLEFT2A:
-        JSR     INCEDTPOS       ;
+        INC_EDTPOS              ;
         DEX                     ;
         BNE     CRSRLEFT2A      ;
         JMP     CRSRUP          ; MOVE UP ONE LINE
@@ -894,23 +1139,27 @@ CRSRRIGHT1:                     ;
         LDA     (EDTPOS),Y      ; GET CHAR FROM EDIT BUFFER
         JSR     TOCONSOLE       ; PLACE CHAR ON SCREEN
 ;
-        JSR     INCEDTPOS       ; MOVE EDTPOS 1 TO THE RIGHT
+        INC_EDTPOS              ; MOVE EDTPOS 1 TO THE RIGHT
 ;
         LDA     EDTPOS+1        ;
         CMP     #>Ram_top       ; are we at the end of RAM?
-        BNE     CRSRRIGHT2      ; NO, EXIT
-        JSR     DECEDTPOS       ; OTHERWISE BACK POINTER OFF ONE
+        BCC     CRSRRIGHT2      ; Less than high byte, OK to continue
+        BNE     CRSRRIGHT_BACK  ; Greater than high byte, back off
+        LDA     EDTPOS          ; High bytes equal, check low byte
+        CMP     #<Ram_top       ;
+        BCC     CRSRRIGHT2      ; Less than Ram_top, OK to continue
+CRSRRIGHT_BACK:
+        DEC_EDTPOS              ; OTHERWISE BACK POINTER OFF ONE
 ; AND PLACE CURSOR BACK ONE POSITION
         DEC     CSRPOSX         ;
         LDA     CSRPOSX         ;
         CMP     #$FF            ;
         BNE     CRSRRIGHT2      ;
         DEC     CSRPOSY         ;
-        LDA     #MAXCOL         ;
+        LDA     #MAXCOL-1       ; FIX: Valid range is 0-79, not 0-80
         STA     CSRPOSX         ; DDW 11/29/2014 (FROM Y)
 CRSRRIGHT2:
-        JSR     CHKPOS
-        RTS                     ;
+        JMP     CHKPOS
 
 
 
@@ -948,9 +1197,8 @@ SCROLLUPSTART:
         ADC     CSRPOSX
         TAX
 SCROLLUP1:
-        JSR     DECEDTPOS
+        DEC_EDTPOS
         DEX
-        CPX     #$00
         BNE     SCROLLUP1
 
         LDX     #$00
@@ -963,15 +1211,14 @@ SCROLLUP1:
         LDA     EDTPOS+1
         PHA
 
-        JSR     DECEDTPOS
+        DEC_EDTPOS
         LDY     #$00
         LDX     #MAXCOL
 SCROLLUP2:
-        JSR     INCEDTPOS
+        INC_EDTPOS
         LDA     (EDTPOS),Y
         JSR     TOCONSOLE
         DEX
-        CPX     #$00
         BNE     SCROLLUP2
 
         PLA
@@ -986,16 +1233,14 @@ SCROLLUP2:
         STA     CSRPOSY         ;
         JSR     GOCSR           ;
 
-SCROLLUP3:
-        CPX     #$00
-        BEQ     SCROLLUP4
-        JSR     INCEDTPOS
-        DEX
-        JMP     SCROLLUP3
-
+        TXA                     ; ADD CSRPOSX TO EDTPOS IN ONE STEP
+        CLC
+        ADC     EDTPOS
+        STA     EDTPOS
+        BCC     SCROLLUP4
+        INC     EDTPOS+1
 SCROLLUP4:
-        JSR     CHKPOS
-        RTS
+        JMP     CHKPOS
 
 SCROLLUPT:
         .BYTE   $1B,'[','3',';','2','2','r',$1B,'[','3',';','1','H',$1B,'M',$1B,'[','r','$'
@@ -1015,15 +1260,7 @@ SCROLLDOWN:
         JSR     PEM             ;
 
 
-        LDA     CSRPOSX
-        PHA
-        LDA     CSRPOSY
-        PHA
-        LDA     EDTPOS
-        PHA
-        LDA     EDTPOS+1
-        PHA
-
+        SAVE_EDITSTATE
 
         LDA     #MAXCOL
         SEC
@@ -1032,9 +1269,8 @@ SCROLLDOWN:
         DEX
         BEQ     SCROLLDOWN1A
 SCROLLDOWN1:
-        JSR     INCEDTPOS
+        INC_EDTPOS
         DEX
-        CPX     #$00
         BNE     SCROLLDOWN1
 SCROLLDOWN1A:
         LDX     #$00
@@ -1044,21 +1280,13 @@ SCROLLDOWN1A:
         LDY     #$00
         LDX     #MAXCOL
 SCROLLDOWN2:
-        JSR     INCEDTPOS
+        INC_EDTPOS
         LDA     (EDTPOS),Y
         JSR     TOCONSOLE
         DEX
-        CPX     #$00
         BNE     SCROLLDOWN2
 
-        PLA
-        STA     EDTPOS+1
-        PLA
-        STA     EDTPOS
-        PLA
-        STA     CSRPOSY
-        PLA
-        STA     CSRPOSX
+        RESTORE_EDITSTATE
         DEC     CSRPOSY
 
         JMP     CHKPOS
@@ -1084,12 +1312,11 @@ CHKPOS:
         LDA     EDTPOS+1        ; CHECK HIGH BYTE, IF NOT EQUAL
         CMP     #>BUFFER        ; NO WAY WE ARE AT START OF BUFFER
         BNE     CHKPOS1         ; SO GO ON
-        LDA     EDTPOS          ; CHECK LOW BYTE
-        CMP     #$00            ; IF WE ARE NOT AT TOP
-        BCS     CHKPOS1         ; SCROLL
-        RTS                     ; IF NOT, DO NOTHING
+        LDA     EDTPOS          ; CHECK LOW BYTE (BUFFER is page-aligned, low byte = $00)
+        BNE     CHKPOS1         ; IF WE ARE NOT AT TOP, CONTINUE BACKING UP
+        JMP     GOCSR           ; AT BUFFER START, POSITION CURSOR AND RETURN
 CHKPOS1:
-        JSR     DECEDTPOS       ; DEC THE EDIT POSITION
+        DEC_EDTPOS              ; DEC THE EDIT POSITION
         DEC     CSRPOSX         ; DEC THE CURSOR POSITION
         LDA     CSRPOSX         ; ARE WE PAST THE START OF THE ROW?
         CMP     #$FF
@@ -1114,35 +1341,6 @@ CHKPOS2:
 
 
 
-;__INCEDTPOS_____________________________________________________________________________________________________________________
-;
-; 	INCREMENT THE EDTPOS POINTER
-;
-;________________________________________________________________________________________________________________________________
-;
-
-INCEDTPOS:
-        INC     EDTPOS
-        BNE     INCEDTPOS1
-        INC     EDTPOS+1
-INCEDTPOS1:
-        RTS
-
-;__DECEDTPOS_____________________________________________________________________________________________________________________
-;
-; 	DECREMENT THE EDTPOS POINTER
-;
-;________________________________________________________________________________________________________________________________
-;
-DECEDTPOS:
-        DEC     EDTPOS
-        LDA     EDTPOS
-        CMP     #$FF
-        BNE     DECEDTPOS1
-        DEC     EDTPOS+1
-DECEDTPOS1:
-        RTS
-
 
 
 
@@ -1162,29 +1360,29 @@ PAGEDOWN:
         JMP     PAGEDOWN1       ;
 PAGEDOWNA:
         LDA     CSRPOSX
-        CMP     #$00
         BEQ     PAGEDOWN1
-        JSR     DECEDTPOS
+        DEC_EDTPOS
         DEC     CSRPOSX
         JMP     PAGEDOWN
 
 PAGEDOWN1:
-        LDX     #$64
+        LDX     #PAGESIZE
 PAGEDOWN2:
         LDY     #$10
 PAGEDOWN2A:
-        JSR     INCEDTPOS
+        INC_EDTPOS
 
         LDA     EDTPOS+1        ; WILL NEXT MOVE SEND US PAST THE END OF RAM?
         CMP     #>Ram_top       ; are we at the end of RAM?
-        BNE     PAGEDOWN2B      ;
-        JMP     PAGEDOWN2C      ;
+        BCC     PAGEDOWN2B      ; Less than high byte, OK to continue
+        BNE     PAGEDOWN2C      ; Greater than high byte, stop
+        LDA     EDTPOS          ; High bytes equal, check low byte
+        CMP     #<Ram_top       ;
+        BCS     PAGEDOWN2C      ; At or past Ram_top, stop
 PAGEDOWN2B:
         DEY
-        CPY     #$00
         BNE     PAGEDOWN2A
         DEX
-        CPX     #$00
         BNE     PAGEDOWN2
 PAGEDOWN2C:
         LDA     EDTPOS
@@ -1221,18 +1419,17 @@ PAGEUP:
         RTS
 PAGEUPA:
         LDA     CSRPOSX
-        CMP     #$00
         BEQ     PAGEUP1
-        JSR     DECEDTPOS
+        DEC_EDTPOS
         DEC     CSRPOSX
         JMP     PAGEUP
 
 PAGEUP1:
-        LDX     #$64
+        LDX     #PAGESIZE
 PAGEUP2:
         LDY     #$10
 PAGEUP2A:
-        JSR     DECEDTPOS
+        DEC_EDTPOS
 
         LDA     EDTPOS          ;
         BNE     PAGEUP2B        ; CHECK TO SEE IF POINTER IS AT THE VERY TOP OF THE
@@ -1242,10 +1439,8 @@ PAGEUP2A:
         JMP     PAGEUP2C        ;
 PAGEUP2B:
         DEY
-        CPY     #$00
         BNE     PAGEUP2A
         DEX
-        CPX     #$00
         BNE     PAGEUP2
 PAGEUP2C:
         LDA     EDTPOS
@@ -1309,23 +1504,19 @@ PAINTSCREEN_LOOPA:
         LDY     #$00
 
 PAINTSCREEN_LOOPB:
-        LDA     DFLFCB,Y
+        LDA     DFLFCB+1,Y      ; SKIP DRIVE BYTE, COPY FCB[1..8] FILENAME
         STA     SCREENFORMAT1,Y
         INY
         CPY     #8
         BNE     PAINTSCREEN_LOOPB
-        LDA     #'.'
-        INY
-        STA     SCREENFORMAT1,Y
-        LDA     DFLFCB,Y
-        INY
-        STA     SCREENFORMAT1,Y
-        LDA     DFLFCB,Y
-        INY
-        STA     SCREENFORMAT1,Y
-        LDA     DFLFCB,Y
-        INY
-        STA     SCREENFORMAT1,Y
+        LDA     #'.'            ; Y=8
+        STA     SCREENFORMAT1,Y ; SCREENFORMAT1[8] = '.'
+        LDA     DFLFCB+9        ; EXTENSION CHAR 1
+        STA     SCREENFORMAT1+9
+        LDA     DFLFCB+10       ; EXTENSION CHAR 2
+        STA     SCREENFORMAT1+10
+        LDA     DFLFCB+11       ; EXTENSION CHAR 3
+        STA     SCREENFORMAT1+11
 
 
 
@@ -1398,10 +1589,10 @@ GOCSR:
         ADC     #'0'
         STA     GOCSRT+3
         LDA     DECIMAL1+3,Y
-        ROR     A
-        ROR     A
-        ROR     A
-        ROR     A
+        LSR     A
+        LSR     A
+        LSR     A
+        LSR     A
         AND     #$0F
         CLC
         ADC     #'0'
@@ -1414,10 +1605,10 @@ GOCSR:
         ADC     #'0'
         STA     GOCSRT+6
         LDA     DECIMAL1+1,Y
-        ROR     A
-        ROR     A
-        ROR     A
-        ROR     A
+        LSR     A
+        LSR     A
+        LSR     A
+        LSR     A
         AND     #$0F
         CLC
         ADC     #'0'
@@ -1485,10 +1676,10 @@ PRINTCR:
         .BYTE   $1B,'[','7','m','<',$1B,'[','0','m','$'
 
 DELCHARSEQ:
-        .BYTE   $1B,'[','P','$'            ; ANSI delete char
+        .BYTE   $1B,'[','P','$' ; ANSI delete char
 
 ERASEEOLSEQ:
-        .BYTE   $1B,'[','K','$'            ; ANSI erase to end of line
+        .BYTE   $1B,'[','K','$' ; ANSI erase to end of line
 
 
 ;__READKB________________________________________________________________________________________________________________________
@@ -1522,7 +1713,7 @@ READKB:
         CMP     #$1B            ;
         BEQ     READKB_ESC      ;
 
-        CMP     #127          ;
+        CMP     #127            ;
         BEQ     READKB_DEL      ;
 
         CMP     #32             ;
@@ -1609,9 +1800,7 @@ READKB_FKEY2:
         CLC
         ADC     TEMP
         LDY     #01
-        JSR     READKB_XOFF
-
-        RTS
+        JMP     READKB_XOFF
 
 
 READKB_NOTFKEY:
@@ -1619,30 +1808,26 @@ READKB_NOTFKEY:
         BNE     READKB_NOTUP
         LDY     #01
         LDA     #00
-        JSR     READKB_XOFF
-        RTS
+        JMP     READKB_XOFF
 
 READKB_NOTUP:
         CMP     #'B'
         BNE     READKB_NOTDN
         LDY     #01
         LDA     #01
-        JSR     READKB_XOFF
-        RTS
+        JMP     READKB_XOFF
 READKB_NOTDN:
         CMP     #'D'
         BNE     READKB_NOTLEFT
         LDY     #01
         LDA     #02
-        JSR     READKB_XOFF
-        RTS
+        JMP     READKB_XOFF
 READKB_NOTLEFT:
         CMP     #'C'
         BNE     READKB_NOTRIGHT
         LDY     #01
         LDA     #03
-        JSR     READKB_XOFF
-        RTS
+        JMP     READKB_XOFF
 READKB_NOTRIGHT:
         JSR     READKB_XOFF
         JMP     READKB_ERR
@@ -1666,7 +1851,7 @@ READKB_ANSIKEYS:
         PHA
         AND     #$F0
         CMP     #$50
-        BNE     :+
+        BNE     READKB_ANSI_ERR ; NOT A FUNCTION KEY, ERROR
         PLA
         AND     #$0F
         ORA     #$10
@@ -1685,10 +1870,10 @@ READKB_ANSIKEYS:
         LDA     #$18
 :
         LDY     #01
-        JSR     READKB_XOFF
-        RTS
-:
-        PLA
+        JMP     READKB_XOFF
+
+READKB_ANSI_ERR:
+        PLA                     ; CLEAN UP STACKED CHAR
         JMP     READKB_ERR
 
 
@@ -1707,16 +1892,20 @@ CLEARBUFFER:
         STA     EDTPOS+1        ;
         LDY     #$00            ;
 
+        LDA     #$00
 CLEARBUFFER1:
-        LDA     #00
         STA     (EDTPOS),Y
         INY
         BNE     CLEARBUFFER1
         INC     EDTPOS+1
-        LDA     EDTPOS+1
-        CMP     #>Ram_top       ; are we at the end of RAM?
-        BNE     CLEARBUFFER1
-
+        LDX     EDTPOS+1
+        CPX     #>Ram_top       ; are we at the end of RAM?
+        BCC     CLEARBUFFER1    ; Less than high byte, continue
+        BNE     CLEARBUFFER_DONE; Greater than high byte, done
+        LDX     EDTPOS          ; High bytes equal, check low byte
+        CPX     #<Ram_top       ;
+        BCC     CLEARBUFFER1    ; Less than Ram_top, continue
+CLEARBUFFER_DONE:
         RTS
 
 
@@ -1747,8 +1936,7 @@ DOS65LOAD:
         LDA     FCBPTR+1        ;
         STA     CURRENTLEN+1    ;
         LDA     #13
-        JSR     DOS65LOAD_STOREBT
-        RTS                     ; OPEN EDITOR, BLANK FILE
+        JMP     DOS65LOAD_STOREBT; OPEN EDITOR, BLANK FILE
 
 DOS65LOAD_ERR:
         LDA     #<FILEERROR2    ; NO, ERROR OUT
@@ -1807,6 +1995,7 @@ DOS65LOAD_3D:                   ; IN ORDER TO MAKE SCROLLING EASIER <CR> LINES N
         JSR     DOS65LOAD_STOREBT; STORE THE <CR> BYTE
 DOS65LOAD_3D1:
         LDA     CURRENTLEN      ;
+        BEQ     DOS65LOAD_3D2   ; ALREADY WRAPPED TO 0 (79-CHAR LINE), NO PADDING NEEDED
         CMP     #MAXCOL         ;
         BEQ     DOS65LOAD_3D2   ;
         LDA     #$00            ;
@@ -1848,7 +2037,11 @@ DOS65LOAD_STOREBT1:
         INC     FCBPTR+1        ; yes, carry, inc high byte
         LDA     FCBPTR+1        ;
         CMP     #>Ram_top       ; are we at the end of RAM?
-        BEQ     DOS65LOAD_STOREBTE; YES, STOP.
+        BCC     DOS65LOAD_STOREBT2; Less than high byte, OK
+        BNE     DOS65LOAD_STOREBTE; Greater than high byte, error
+        LDA     FCBPTR          ; High bytes equal, check low byte
+        CMP     #<Ram_top       ;
+        BCS     DOS65LOAD_STOREBTE; At or past Ram_top, error
 DOS65LOAD_STOREBT2:
         RTS
 DOS65LOAD_STOREBTE:
@@ -1888,10 +2081,10 @@ DOS65SAVEAS1:
         LDX     #13
         LDA     #' '
 DOS65SAVEAS2:
-        STA     FNBUFFER
+        STA     FNBUFFER,X
         DEX
-        CPX     #$00
         BNE     DOS65SAVEAS2
+        STA     FNBUFFER        ; CLEAR BYTE 0 AS WELL
         JSR     GETFILENAME
         JSR     DOS65FCBPREP
         CMP     #$FF
@@ -2046,8 +2239,7 @@ DOS65SAVE_ERR:
         LDA     #<FILEERROR2A   ; NO, ERROR OUT
         LDY     #>FILEERROR2A
         LDX     #9              ; Print error message
-        JSR     PEM             ;
-        RTS                     ; RETURN
+        JMP     PEM             ; RETURN AFTER PRINT
 DOS65SAVE_1:
         LDA     #0              ; clear
         STA     DFLFCB+32       ; record number
@@ -2066,13 +2258,15 @@ DOS65SAVE_1:
         LDX     #$00            ;
         STX     TEMP1           ;
 DOS65SAVE_2:
-        LDA     CURRENTLEN+1    ; AT END PAGE?
-        CMP     FCBPTR+1        ;
-        BNE     DOS65SAVE_2B    ;
-        LDA     FCBPTR          ;
+        LDA     FCBPTR+1        ; COMPARE HIGH BYTES
+        CMP     CURRENTLEN+1    ;
+        BCC     DOS65SAVE_2B    ; FCBPTR+1 < CURRENTLEN+1, USE ACTUAL DATA
+        BNE     DOS65SAVE_2EOF  ; FCBPTR+1 > CURRENTLEN+1, PAST END
+        LDA     FCBPTR          ; HIGH BYTES EQUAL, CHECK LOW BYTES
         CMP     CURRENTLEN      ;
-        BCC     DOS65SAVE_2B    ; IF WE ARE NOT PAST THE END, PROCEED AS USUAL
-        BEQ     DOS65SAVE_2B    ;
+        BCC     DOS65SAVE_2B    ; FCBPTR < CURRENTLEN, USE ACTUAL DATA
+        BEQ     DOS65SAVE_2B    ; FCBPTR == CURRENTLEN, USE ACTUAL DATA
+DOS65SAVE_2EOF:
         LDA     #$1A            ; WE ARE AT END SO PAD WITH EOF
         JMP     DOS65SAVE_2C    ;
 
@@ -2080,8 +2274,9 @@ DOS65SAVE_2B:
         LDY     #$00
         LDA     (FCBPTR),Y      ; GET NEXT BUFFER BYTE
         INC     FCBPTR          ; INC 16 BIT BUFFER POINTER
-        BNE     *+4             ;
+        BNE     DOS65SAVE_2B1   ;
         INC     FCBPTR+1        ;
+DOS65SAVE_2B1:
         CMP     #$00            ; IS NULL?
         BEQ     DOS65SAVE_2     ; YES SKIP
         CMP     #10             ; IS LF?
@@ -2092,9 +2287,9 @@ DOS65SAVE_2C:
         STA     (TMPPOS),Y      ; NO STORE IN BUFFER
         INC     TEMP1           ; INC BUFFER POINTER
         CMP     #13             ; IF NOT CR
-        BNE     *+5             ; CONTINUE
+        BNE     DOS65SAVE_2C1   ; CONTINUE
         JSR     DOS65SAVE_LF    ; OTHERWISE INSERT LF
-
+DOS65SAVE_2C1:
         LDX     TEMP1           ;
         CPX     #$80            ; PAST END?
         BNE     DOS65SAVE_2     ; NO LOOP TILL BUFFER IS FULL
@@ -2105,14 +2300,18 @@ DOS65SAVE_2D:
         LDX     #21             ;
         JSR     PEM             ;
         CMP     #$00            ; is SUCCESSFUL?
-        BEQ     *+5             ;
+        BEQ     DOS65SAVE_2D1   ;
         JMP     DOS65SAVE_ERR   ; ERROR, do error handling
-
+DOS65SAVE_2D1:
 
         LDA     FCBPTR+1        ;
         CMP     CURRENTLEN+1    ; AT END?
-        BCC     DOS65SAVE_3     ;
-        JMP     DOS65SAVE_4     ; CLOSE FILE
+        BCC     DOS65SAVE_3     ; FCBPTR+1 < CURRENTLEN+1, CONTINUE
+        BNE     DOS65SAVE_4     ; FCBPTR+1 > CURRENTLEN+1, CLOSE FILE
+        LDA     FCBPTR          ; HIGH BYTES EQUAL, CHECK LOW BYTES
+        CMP     CURRENTLEN      ;
+        BCC     DOS65SAVE_3     ; FCBPTR < CURRENTLEN, CONTINUE
+        JMP     DOS65SAVE_4     ; FCBPTR >= CURRENTLEN, CLOSE FILE
 
 DOS65SAVE_3:
         LDX     #$00            ;
@@ -2123,17 +2322,16 @@ DOS65SAVE_4:
         LDA     #<DFLFCB        ; CLOSE FILE
         LDY     #>DFLFCB        ;
         LDX     #16             ;
-        JSR     PEM             ;
-        RTS
+        JMP     PEM             ; CLOSE AND RETURN
 
 
 DOS65SAVE_LF:
 
         LDX     TEMP1           ;
         CPX     #$80            ; PAST END?
-        BNE     *+5             ; NO
+        BNE     DOS65SAVE_LFA   ; NO
         JSR     DOS65SAVE_LF1   ;
-
+DOS65SAVE_LFA:
         LDY     TEMP1           ; WRITE LF
         LDA     #10             ;
         STA     (TMPPOS),Y      ; NO STORE IN BUFFER
@@ -2146,8 +2344,9 @@ DOS65SAVE_LF1:
         LDX     #21             ;
         JSR     PEM             ;
         CMP     #$00            ; is SUCCESSFUL?
-        BEQ     *+5             ;
+        BEQ     DOS65SAVE_LF1A  ;
         JMP     DOS65SAVE_ERR   ; ERROR, do error handling
+DOS65SAVE_LF1A:
         LDX     #$00            ;
         STX     TEMP1           ;
         RTS

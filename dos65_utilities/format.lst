@@ -120,6 +120,7 @@ Current file: format.asm
 000000r 2               TEMPWORD        = $3B           ;
 000000r 2               TEMPWORD1       = $3D           ;
 000000r 2               TEMPWORD2       = $3F           ;
+000000r 2               TEMPWORD3       = $44           ;
 000000r 2               STRPTR          = $41           ;
 000000r 2               DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
 000000r 2               

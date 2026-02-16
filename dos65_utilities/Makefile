@@ -1,7 +1,7 @@
 
 all:  	assign.com alloc.com asm.com mkcom.com prpdrv.com\
 	bcompile.com bcomp816.com compare.com copy.com debug.com edit.com run.com sedit.com cpm.co6 \
-	dbasic.com dbasic816.com s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com
+	s19.com writeos.com rtc.com format.com nvset.com xmr.com xms.com
 
 
 assign.com: assign.c
@@ -68,14 +68,6 @@ copy.out: copy201.asm
 cpm.out: cpm.asm
 	ca65 --cpu 6502 cpm.asm -l cpm.lst
 	ld65 cpm.o  -m cpm.map -C dos65.cfg -o cpm.out
-
-dbasic.out: dbasic.asm
-	ca65 --cpu 6502 dbasic.asm -l dbasic.lst
-	ld65 dbasic.o  -m dbasic.map -C dos65.cfg -o dbasic.out
-
-dbasic816.out: dbasic.asm
-	ca65 --cpu 65816 -D DUODYNE dbasic.asm -l dbasic816.lst -o dbasic816.o
-	ld65 dbasic816.o  -m dbasic816.map -C dos65.cfg -o dbasic816.out
 
 debug.out: debug202.asm
 	ca65 --cpu 6502 debug202.asm -l debug.lst
@@ -245,36 +237,6 @@ debug.com: debug.out
 	@cpmrm -f wbw_hd512 ../bin/6502PC/DOS65_6502PC.IMG 0:debug.com
 	cpmcp -f wbw_hd512 ../bin/6502PC/DOS65_6502PC.IMG  debug.com 0:debug.com
 
-
-dbasic.com: dbasic.out
-	srec_cat  dbasic.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  dbasic.s19  -data-only
-	srec_cat  dbasic.s19  -offset -0x0800  -o  dbasicA.s  -data-only
-	srec_cat  dbasicA.s -o dbasic.com  -BINARY
-	@rm -f dbasicA.s
-	sed -i -e '$$aS9' dbasic.s19
-	cp dbasic.com ../bin/6x0x/
-	cp dbasic.s19 ../bin/6x0x/
-	cp dbasic.com ../bin/nhyodyne/
-	cp dbasic.s19 ../bin/nhyodyne/
-	cp dbasic.com ../bin/duodyne02/
-	cp dbasic.s19 ../bin/duodyne02/
-	@cpmrm -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img dbasic.co6
-	cpmcp -f wbw_hd512 ../bin/duodyne02/hd512_duodyne.img  dbasic.com 0:dbasic.co6
-	@cpmrm -f wbw_hd512 ../bin/6502PC/DOS65_6502PC.IMG 0:dbasic.com
-	cpmcp -f wbw_hd512 ../bin/6502PC/DOS65_6502PC.IMG  dbasic.com 0:dbasic.com
-
-dbasic816.com: dbasic816.out
-	srec_cat  dbasic816.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  dbasic816.s19  -data-only
-	srec_cat  dbasic816.s19  -offset -0x0800  -o  dbasic816A.s  -data-only
-	srec_cat  dbasic816A.s -o dbasic816.com  -BINARY
-	@rm -f dbasic816A.s
-	sed -i -e '$$aS9' dbasic816.s19
-	cp dbasic816.com ../bin/duodyne/
-	cp dbasic816.s19 ../bin/duodyne/
-	@cpmrm -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img dbasic.co6
-	cpmcp -f wbw_hd512 ../bin/duodyne/hd512_duodyne.img  dbasic816.com 0:dbasic.co6
-
-
 edit.com: edit.out
 	srec_cat  edit.out -binary -offset 0x0100 -exclude 0x0000 0x0800 -o  edit.s19  -data-only
 	srec_cat  edit.s19  -offset -0x0800  -o  editA.s  -data-only
@@ -427,7 +389,6 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/asm211.asm asm211.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/compr202.asm compr202.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/copy201.asm copy201.asm
-	pretty6502 -p1 -a0 -du -mu -l ./backup/dbasic.asm dbasic.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/debug202.asm debug202.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/edit203.asm edit203.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/format.asm format.asm

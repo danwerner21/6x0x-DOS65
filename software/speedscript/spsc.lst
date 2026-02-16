@@ -1,0 +1,2422 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : spsc.asm
+Current file: spsc.asm
+
+000000r 1               ;__SpeedScript_________________________________________________________________
+000000r 1               ;
+000000r 1               ; SpeedScript 3.1 by Charles Brannon
+000000r 1               ; published in Compute Magazine for various 8-bit computers.
+000000r 1               ; This project is a port of the Commodore 64 version of SpeedScript
+000000r 1               ; to the 6502PC running DOS/65 with the memory mapped video card.
+000000r 1               ;
+000000r 1               ;______________________________________________________________________________
+000000r 1                       .PSC02
+000000r 1               
+000000r 1                       .SEGMENT "TEA"
+000000r 1                       .ORG    $0800
+000800  1               
+000800  1                       .INCLUDE "macro.asm"
+000800  2               ; some macros
+000800  2                       .macro COPY16  src, dst
+000800  2                       LDA     src
+000800  2                       STA     dst
+000800  2                       LDA     src+1
+000800  2                       STA     dst+1
+000800  2                       .endmacro
+000800  2               
+000800  2                       .macro COPY162  src, dst, dst2
+000800  2                       LDA     src
+000800  2                       STA     dst
+000800  2                       STA     dst2
+000800  2                       LDA     src+1
+000800  2                       STA     dst+1
+000800  2                       STA     dst2+1
+000800  2                       .endmacro
+000800  2               
+000800  2               
+000800  2                       .macro ADD16   left,right
+000800  2                       CLC
+000800  2                       LDA     left
+000800  2                       ADC     right
+000800  2                       STA     left
+000800  2                       LDA     left+1
+000800  2                       ADC     right+1
+000800  2                       STA     left+1
+000800  2                       .endmacro
+000800  2               
+000800  2               ;Compares two 16-bit values, and sets the C and Z flags the
+000800  2               ;same as a LDA and CMP;instruction would for 8-bit addresses.
+000800  2                       .macro COMP16  left,right
+000800  2                       SEC
+000800  2                       LDA     left
+000800  2                       SBC     right
+000800  2                       STA     temp
+000800  2                       LDA     left+1
+000800  2                       SBC     right+1
+000800  2                       ORA     temp
+000800  2                       .endmacro
+000800  2               
+000800  2               ; Compares two 16-bit values but only affects the C flag.
+000800  2                       .macro COMPC16 left,right
+000800  2                       SEC
+000800  2                       LDA     left
+000800  2                       SBC     right
+000800  2                       LDA     left+1
+000800  2                       SBC     right+1
+000800  2                       .endmacro
+000800  2               
+000800  2               ;  sub16 left,right       :  left - right -> left
+000800  2               ;  sub16 left,right,dst   : left - right -> dst
+000800  2                       .macro SUB16   left,right
+000800  2                       SEC
+000800  2                       LDA     left
+000800  2                       SBC     right
+000800  2                       STA     left
+000800  2                       LDA     left+1
+000800  2                       SBC     right+1
+000800  2                       STA     left+1
+000800  2                       .endmacro
+000800  2               
+000800  2                       .macro SUB162   left,right,dst
+000800  2                       SEC
+000800  2                       LDA     left
+000800  2                       SBC     right
+000800  2                       STA     dst
+000800  2                       LDA     left+1
+000800  2                       SBC     right+1
+000800  2                       STA     dst+1
+000800  2                       .endmacro
+000800  2               
+000800  2               ; Subtract an 8-bit value from a 16-bit one
+000800  2                       .macro  SUB8    left,right
+000800  2                       SEC
+000800  2                       LDA     left
+000800  2                       SBC     right
+000800  2                       STA     left
+000800  2                       LDA     left+1
+000800  2                       SBC     #0
+000800  2                       STA     left+1
+000800  2                       .endmacro
+000800  2               
+000800  2               
+000800  2                       .macro  SUB82    left,right,dst
+000800  2                       SEC
+000800  2                       LDA     left
+000800  2                       SBC     right
+000800  2                       STA     dst
+000800  2                       LDA     left+1
+000800  2                       SBC     #0
+000800  2                       STA     dst+1
+000800  2                       .endmacro
+000800  2               
+000800  2                       .macro  SUB83    left,right,dst,dst2
+000800  2                       SEC
+000800  2                       LDA     left
+000800  2                       SBC     right
+000800  2                       STA     dst
+000800  2                       STA     dst2
+000800  2                       LDA     left+1
+000800  2                       SBC     #0
+000800  2                       STA     dst+1
+000800  2                       STA     dst2+1
+000800  2                       .endmacro
+000800  2               
+000800  2                       .macro PRINTMESSAGE message
+000800  2                       LDA     #<message
+000800  2                       LDY     #>message
+000800  2                       JSR     PRMSG
+000800  2                       .endmacro
+000800  2               
+000800  2                       .macro  TOPPRINTMESSAGE message
+000800  2                       JSR     topclr
+000800  2                       PRINTMESSAGE message
+000800  2                       .endmacro
+000800  2               
+000800  2               ;Display a 16-bit integer from the A and X registers
+000800  2               ;in decimal using CHROUT.
+000800  2                       .macro         DISPLAY_NUMBER
+000800  2                       JSR     displaynum
+000800  2                       .endmacro
+000800  2               
+000800  2               ;TODO: convert to something that works on X16
+000800  2               ; should branch if the SHIFT and CTRL keys are
+000800  2               ; specifically held down.
+000800  2                       .macro   B_UNLESS_SHIFT_CTRL addr
+000800  2                       LDA     653
+000800  2                       CMP     #5
+000800  2                       BNE     addr
+000800  2                       .endmacro
+000800  2               
+000800  2               ;TODO: convert to something that works on X16
+000800  2               ; should branch if the SHIFT key is held down,
+000800  2               ; regardless of any other qualifiers
+000800  2                       .macro        B_UNLESS_SHIFT addr
+000800  2                       LDA     653
+000800  2                       AND     #1
+000800  2                       BNE     addr
+000800  2                       .endmacro
+000800  2               
+000800  2                       .MACRO  B_IF_PUNCT dst
+000800  2                       CMP     #'.'
+000800  2                       BEQ     dst
+000800  2                       CMP     #'!'
+000800  2                       BEQ     dst
+000800  2                       CMP     #'?'
+000800  2                       BEQ     dst
+000800  2                       .ENDMACRO
+000800  2               
+000800  2                       .macro        PRCODE  dst
+000800  2                       JSR     aschex
+000800  2                       STA     dst
+000800  2                       .endmacro
+000800  2                       .macro  PRCODE16 dst
+000800  2                       PRCODE  dst
+000800  2                       LDA     hex+1
+000800  2                       STA     dst+1
+000800  2                       .endmacro
+000800  2               
+000800  2                       .macro  RVS_TEXT text
+000800  2                       .BYTE   $12
+000800  2                       .BYTE   text
+000800  2                       .BYTE   $92
+000800  2                       .endmacro
+000800  2               
+000800  1                       .INCLUDE "defines.asm"
+000800  2               
+000800  2               
+000800  2               DFLFCB          = $107          ;DEFAULT FCB
+000800  2               PEM             = $103          ;PEM ENTRY
+000800  2               BOOT            = $100          ;WARM BOOT
+000800  2               
+000800  2               
+000800  2               ; memory map
+000800  2               TEXEND_INIT     = $9000
+000800  2               TEXBUF_INIT     = $A000
+000800  2               BUFEND_INIT     = $B800
+000800  2               
+000800  2               INSCOLOR        = 14
+000800  2               TOPFGCOLOR      = 1
+000800  2               DEFAULT_DEVICE  = 1
+000800  2               
+000800  2               ; PETSCII constants
+000800  2               PETSCII_CLR     = 147
+000800  2               PETSCII_MODE    = $8F
+000800  2               space           = 32
+000800  2               
+000800  2               
+000800  2               
+000800  2               ;COLUMNS = $D9
+000800  2               COLUMNS         = $D9
+000800  2               ROWS            = $DA
+000800  2               
+000800  2               CURRENT_COLUMN  = $D3
+000800  2               QUOTE_MODE      = $D4
+000800  2               INSERT_MODE     = $D8
+000800  2               
+000800  2               ;Locations used by high-speed memory
+000800  2               ;move routines:
+000800  2               
+000800  2               froml           = $26
+000800  2               fromh           = $27
+000800  2               destl           = $28
+000800  2               desth           = $29
+000800  2               llen            = $2A
+000800  2               hlen            = $2B
+000800  2               
+000800  2               ;curr: Position of cursor within text
+000800  2               ;memory. scr: used by the refresh
+000800  2               ;routine.
+000800  2               
+000800  2               curr            = $39
+000800  2               
+000800  2               ;tex: An alternate location used in tan-
+000800  2               ;dem with curr. COLR is used by RE-
+000800  2               ;FRESH. temp is used throughout as a
+000800  2               ;reusable scratchpad pointer. INDIR is
+000800  2               ;also a reusable indirect pointer.
+000800  2               ;UNDERCURS stores the value of the
+000800  2               ;character highlighted by the cursor.
+000800  2               
+000800  2               tex             = $FB
+000800  2               temp            = $3B
+000800  2               indir           = $FD
+000800  2               UNDERCURS       = $FA
+000800  2               
+000800  2               ;WINDCOLR: Color of command line
+000800  2               ;window supported by refresh.
+000800  2               ;RETCHAR is the screen-
+000800  2               ;code value of the return mark (a left-
+000800  2               ;pointing arrow).
+000800  2               
+000800  2               windcolr        = $0C
+000800  2               retchar         = 31
+000800  2               
+000800  2               
+000800  2               
+000800  2               ;SCREEN          = $FFED
+000800  2               ;PLOT            = $FFF0
+000800  2               ;chrout          = $FFD2
+000800  2               ;stop            = $FFE1
+000800  2               ;setlfs          = $FFBA
+000800  2               ;setnam          = $FFBD
+000800  2               ;clall           = $FFE7
+000800  2               ;open            = $FFC0
+000800  2               ;chrin           = $FFCF
+000800  2               ;chkin           = $FFC6
+000800  2               ;chkout          = $FFC9
+000800  2               ;getin           = $FFE4
+000800  2               ;clrchn          = $FFCC
+000800  2               ;close           = $FFC3
+000800  2               ;load            = $FFD5
+000800  2               ;save            = $FFD8
+000800  2               ;ioinit          = $FF84
+000800  2               ;scnkey = $FF9F ; not supported in x16?
+000800  2               
+000800  2               ; VERA I/O registers
+000800  2               ;V_H_INC1        = $10
+000800  2               ;V_H             = $9f22
+000800  2               ;V_M             = $9f21
+000800  2               ;V_L             = $9f20
+000800  2               ;V_1             = $9f23
+000800  2               ;CTRL            = $9F25
+000800  2               
+000800  1               
+000800  1               ;Called only when initally run. It is
+000800  1               ;assumed that the author's initials (that
+000800  1               ;conveniently work out in hex) are not
+000800  1               ;normally present in memory. If they
+000800  1               ;are, we know that SpeedScript has been
+000800  1               ;run before, so we avoid the ERASE
+000800  1               ;routine to preserve the text in memory.
+000800  1               
+000800  1               BEGIN:
+000800  1  20 CC 13             JSR     INIT
+000803  1  A9 CB                LDA     #$CB
+000805  1  CD A2 19             CMP     firstrun
+000808  1  8D A2 19             STA     firstrun
+00080B  1  F0 03                BEQ     SKIPERAS
+00080D  1  20 F8 08             JSR     erase
+000810  1               SKIPERAS:
+000810  1  20 04 14             JSR     INIT2
+000813  1  4C 49 09             JMP     main
+000816  1               
+000816  1               ;UMOVE is a high-speed memory move
+000816  1               ;routine. It gets its speed from self-
+000816  1               ;modifying code (the $0000's at
+000816  1               ;MOVLOOP are replaced by actual ad-
+000816  1               ;dresses when UMOVE is called). Some
+000816  1               ;assemblers may assemble this as a
+000816  1               ;zero-page mode, so you may want to
+000816  1               ;change the $0000's to $FFFF's. UMOVE
+000816  1               ;is used to move an overlapping range
+000816  1               ;of memory upward, so it is used to de-
+000816  1               ;lete. Set froml/fromh to point to
+000816  1               ;the source area of memory,
+000816  1               ;destl/desth to point to the destina-
+000816  1               ;tion, and llen/hlen to hold the
+000816  1               ;length of the area being moved.
+000816  1               
+000816  1               umove:
+000816  1  A5 26                LDA     froml
+000818  1  8D 36 08             STA     MOVLOOP+1
+00081B  1  A5 27                LDA     fromh
+00081D  1  8D 37 08             STA     MOVLOOP+2
+000820  1  A5 28                LDA     destl
+000822  1  8D 39 08             STA     MOVLOOP+4
+000825  1  A5 29                LDA     desth
+000827  1  8D 3A 08             STA     MOVLOOP+5
+00082A  1  A6 2B                LDX     hlen
+00082C  1  F0 20                BEQ     SKIPMOV
+00082E  1               MOV1:
+00082E  1  A9 00                LDA     #0
+000830  1               MOV2:
+000830  1  8D 49 16             STA     endpos
+000833  1  A0 00                LDY     #0
+000835  1               MOVLOOP:
+000835  1  B9 00 00             LDA     $0000,Y
+000838  1  99 00 00             STA     $0000,Y
+00083B  1  C8                   INY
+00083C  1  CC 49 16             CPY     endpos
+00083F  1  D0 F4                BNE     MOVLOOP
+000841  1  EE 37 08             INC     MOVLOOP+2
+000844  1  EE 3A 08             INC     MOVLOOP+5
+000847  1  E0 00                CPX     #0
+000849  1  F0 07                BEQ     OUT
+00084B  1  CA                   DEX
+00084C  1  D0 E0                BNE     MOV1
+00084E  1               SKIPMOV:
+00084E  1  A5 2A                LDA     llen
+000850  1  D0 DE                BNE     MOV2
+000852  1               OUT:
+000852  1  60                   RTS
+000853  1               ;DMOVE uses the same variables as UMOVE, but is used to move an
+000853  1               ;overlapping block of memory down ward, so it is used to insert. If the block
+000853  1               ;of memory to be moved does not overlap the destination area, then either
+000853  1               ;routine can be used.
+000853  1               dmove:
+000853  1  A5 2B                LDA     hlen
+000855  1  AA                   TAX
+000856  1  05 2A                ORA     llen
+000858  1  D0 01                BNE     NOTNULL
+00085A  1  60                   RTS
+00085B  1               NOTNULL:
+00085B  1  18                   CLC
+00085C  1  8A                   TXA
+00085D  1  65 27                ADC     fromh
+00085F  1  8D 7E 08             STA     DMOVLOOP+2
+000862  1  A5 26                LDA     froml
+000864  1  8D 7D 08             STA     DMOVLOOP+1
+000867  1  18                   CLC
+000868  1  8A                   TXA
+000869  1  65 29                ADC     desth
+00086B  1  8D 81 08             STA     DMOVLOOP+5
+00086E  1  A5 28                LDA     destl
+000870  1  8D 80 08             STA     DMOVLOOP+4
+000873  1  E8                   INX
+000874  1  A4 2A                LDY     llen
+000876  1  D0 04                BNE     DMOVLOOP
+000878  1  F0 0D                BEQ     SKIPDMOV
+00087A  1               DMOV1:
+00087A  1  A0 FF                LDY     #255
+00087C  1               DMOVLOOP:
+00087C  1  B9 00 00             LDA     $0000,Y
+00087F  1  99 00 00             STA     $0000,Y
+000882  1  88                   DEY
+000883  1  C0 FF                CPY     #255
+000885  1  D0 F5                BNE     DMOVLOOP
+000887  1               SKIPDMOV:
+000887  1  CE 7E 08             DEC     DMOVLOOP+2
+00088A  1  CE 81 08             DEC     DMOVLOOP+5
+00088D  1  CA                   DEX
+00088E  1  D0 EA                BNE     DMOV1
+000890  1  60                   RTS
+000891  1               
+000891  1               ; displaynum replaces the call to BASIC $BCDC
+000891  1               ; from the original one.
+000891  1               nums:
+000891  1  01 00 0A 00          .WORD   1,10,100,1000,10000
+000895  1  64 00 E8 03  
+000899  1  10 27        
+00089B  1               numarg:
+00089B  1  00 00                .WORD   0
+00089D  1               numspace:
+00089D  1  20                   .BYTE   $20
+00089E  1               displaynum:
+00089E  1  8E 9B 08             STX     numarg
+0008A1  1  8D 9C 08             STA     numarg+1
+0008A4  1               ;lda #space
+0008A4  1               ;jsr chrout ; leading space just like real one
+0008A4  1               basicdisplaynum:
+0008A4  1  A0 08                LDY     #8
+0008A6  1               dnzz:
+0008A6  1  AD 9C 08             LDA     numarg+1
+0008A9  1  D9 92 08             CMP     nums+1,y
+0008AC  1  90 0A                BCC     dn2
+0008AE  1  D0 0C                BNE     startout
+0008B0  1  AD 9B 08             LDA     numarg
+0008B3  1  D9 91 08             CMP     nums,y
+0008B6  1  B0 04                BCS     startout
+0008B8  1               dn2:
+0008B8  1  88                   DEY
+0008B9  1  88                   DEY
+0008BA  1  D0 EA                BNE     dnzz
+0008BC  1               startout:
+0008BC  1  A9 30                LDA     #$30
+0008BE  1  8D 9D 08             STA     numspace
+0008C1  1               diglp:
+0008C1  1  AD 9C 08             LDA     numarg+1
+0008C4  1  D9 92 08             CMP     nums+1,y
+0008C7  1  90 24                BCC     digitout
+0008C9  1  D0 0A                BNE     dontcmp
+0008CB  1  AD 9B 08             LDA     numarg
+0008CE  1  F9 91 08             SBC     nums,y          ;carry already set
+0008D1  1  90 1A                BCC     digitout
+0008D3  1  B0 06                BCS     digsub
+0008D5  1               dontcmp:
+0008D5  1  AD 9B 08             LDA     numarg
+0008D8  1  F9 91 08             SBC     nums,y          ;carry already set
+0008DB  1               digsub: ; subtract value of digit
+0008DB  1  EE 9D 08             INC     numspace
+0008DE  1  8D 9B 08             STA     numarg          ;already subtracted
+0008E1  1  AD 9C 08             LDA     numarg+1
+0008E4  1  F9 92 08             SBC     nums+1,y
+0008E7  1  8D 9C 08             STA     numarg+1
+0008EA  1  4C C1 08             JMP     diglp
+0008ED  1               digitout:
+0008ED  1  AD 9D 08             LDA     numspace
+0008F0  1  20 40 14             JSR     chrout
+0008F3  1  88                   DEY
+0008F4  1  88                   DEY
+0008F5  1  10 C5                BPL     startout
+0008F7  1  60                   RTS
+0008F8  1               
+0008F8  1               
+0008F8  1               ; comment from left column of page 99
+0008F8  1               
+0008F8  1               erase:
+0008F8  1  AD 3C 16             LDA     texstart
+0008FB  1  85 FB                STA     tex
+0008FD  1  8D 45 16             STA     toplin
+000900  1  8D 4B 16             STA     lastline
+000903  1  85 39                STA     curr
+000905  1  AD 3D 16             LDA     texstart+1
+000908  1  85 FC                STA     tex+1
+00090A  1  8D 46 16             STA     toplin+1
+00090D  1  8D 4C 16             STA     lastline+1
+000910  1  85 3A                STA     curr+1
+000912  1  38                   SEC
+000913  1  AD 3F 16             LDA     texend+1
+000916  1  ED 3D 16             SBC     texstart+1
+000919  1  AA                   TAX
+00091A  1  A9 20                LDA     #space
+00091C  1               CLRLOOP:
+00091C  1  A0 FF                LDY     #255
+00091E  1  C6 FC                DEC     tex+1
+000920  1  91 FB                STA     (tex),Y
+000922  1  C8                   INY
+000923  1  E6 FC                INC     tex+1
+000925  1               CLR2:
+000925  1  91 FB                STA     (tex),Y
+000927  1  C8                   INY
+000928  1  D0 FB                BNE     CLR2
+00092A  1  E6 FC                INC     tex+1
+00092C  1  CA                   DEX
+00092D  1  D0 F6                BNE     CLR2
+00092F  1  91 FB                STA     (tex),Y
+000931  1  60                   RTS
+000932  1               
+000932  1               ; PRMSG is used anytime we need to
+000932  1               ; print something at the top of the screen
+000932  1               ; (the command line). Pass it the address
+000932  1               ; of the message to be printed by storing
+000932  1               ; the low .byte of the address in the accu
+000932  1               ; mulator, and the high .byte in the
+000932  1               ; register. The message in memory must
+000932  1               ; end with a zero .byte. The routine does
+000932  1               ; not add a carriage return.
+000932  1               
+000932  1               PRMSG:
+000932  1  85 3B                STA     temp
+000934  1  84 3C                STY     temp+1
+000936  1  A0 00                LDY     #0
+000938  1               PRLOOP:
+000938  1  B1 3B                LDA     (temp),Y
+00093A  1  F0 06                BEQ     PREXIT
+00093C  1  20 40 14             JSR     chrout
+00093F  1  C8                   INY
+000940  1  D0 F6                BNE     PRLOOP
+000942  1               PREXIT:
+000942  1  60                   RTS
+000943  1               getakey:
+000943  1  20 34 14             JSR     chrin
+000946  1  F0 FB                BEQ     getakey
+000948  1  60                   RTS
+000949  1               
+000949  1               
+000949  1               
+000949  1               ;The MAIN loop blinks the cursor,
+000949  1               ;checks for keystrokes, converts
+000949  1               ;them from ASCII to screen codes,
+000949  1               ;puts them in text at the CURRent position, and increments
+000949  1               ;the CURRent position and lastline. It also checks for special
+000949  1               ;cases like the back-arrow and the return key and passes control
+000949  1               ;characters to the CONTROL routine. SHIFTed spaces are turned into
+000949  1               ;unSHIFTed ones. The INSMODE flag is checked to see if we should
+000949  1               ;insert a space before a character.
+000949  1               main:
+000949  1  9C A5 1A             STZ     blinkflag
+00094C  1  B2 39                LDA     (curr)
+00094E  1  85 FA                STA     UNDERCURS
+000950  1               main2:
+000950  1  B2 39                LDA     (curr)
+000952  1  49 80                EOR     #$80
+000954  1  92 39                STA     (curr)
+000956  1  AD A5 1A             LDA     blinkflag
+000959  1  49 01                EOR     #1
+00095B  1  8D A5 1A             STA     blinkflag
+00095E  1  20 4D 14             JSR     refresh
+000961  1               WAIT:
+000961  1  20 34 14             JSR     chrin
+000964  1  D0 0B                BNE     KEYPRESS
+000966  1  A5 A2                LDA     162             ;TODO: TI seconds counter
+000968  1  29 10                AND     #16
+00096A  1  F0 F5                BEQ     WAIT
+00096C  1  64 A2                STZ     162
+00096E  1  4C 50 09             JMP     main2
+000971  1               KEYPRESS:
+000971  1  AA                   TAX
+000972  1  A5 FA                LDA     UNDERCURS
+000974  1  92 39                STA     (curr)
+000976  1  9C A5 1A             STZ     blinkflag
+000979  1  E0 5F                CPX     #95
+00097B  1  D0 0A                BNE     NOTBKS
+00097D  1  20 42 0B             JSR     left
+000980  1  A9 20                LDA     #32
+000982  1  92 39                STA     (curr)
+000984  1  4C 49 09             JMP     main
+000987  1               NOTBKS:
+000987  1  AD 47 16             LDA     msgflg
+00098A  1  F0 05                BEQ     nomsg
+00098C  1  DA                   PHX
+00098D  1  20 21 14             JSR     sysmsg
+000990  1  FA                   PLX
+000991  1               nomsg:
+000991  1  8A                   TXA
+000992  1  C9 0D                CMP     #13
+000994  1  D0 02                BNE     notcr
+000996  1  A2 5F                LDX     #retchar+64
+000998  1               notcr:
+000998  1  8A                   TXA
+000999  1  29 7F                AND     #127
+00099B  1  C9 20                CMP     #32
+00099D  1  90 4B                BCC     CONTROL
+00099F  1  E0 A0                CPX     #160
+0009A1  1  D0 02                BNE     NESHIFT
+0009A3  1  A2 20                LDX     #space
+0009A5  1               NESHIFT:
+0009A5  1  8A                   TXA
+0009A6  1  48                   PHA
+0009A7  1  A0 00                LDY     #0
+0009A9  1  B1 39                LDA     (curr),Y
+0009AB  1  C9 1F                CMP     #retchar
+0009AD  1  F0 07                BEQ     DOINS
+0009AF  1  AD 48 16             LDA     INSMODE
+0009B2  1  29 F0                AND     #$F0            ; background color
+0009B4  1  F0 03                BEQ     NOTINST
+0009B6  1               DOINS:
+0009B6  1  20 D8 0E             JSR     inschar
+0009B9  1               NOTINST:
+0009B9  1  68                   PLA
+0009BA  1               PUTCHR:
+0009BA  1  92 39                STA     (curr)
+0009BC  1  20 4D 14             JSR     refresh
+0009BF  1  38                   SEC
+0009C0  1  A5 39                LDA     curr
+0009C2  1  ED 4B 16             SBC     lastline
+0009C5  1  85 3B                STA     temp
+0009C7  1  A5 3A                LDA     curr+1
+0009C9  1  ED 4C 16             SBC     lastline+1
+0009CC  1  05 3B                ORA     temp
+0009CE  1  90 0E                BCC     INKURR
+0009D0  1  A5 39                LDA     curr
+0009D2  1  69 00                ADC     #0
+0009D4  1  8D 4B 16             STA     lastline
+0009D7  1  A5 3A                LDA     curr+1
+0009D9  1  69 00                ADC     #0
+0009DB  1  8D 4C 16             STA     lastline+1
+0009DE  1               INKURR:
+0009DE  1  E6 39                INC     curr
+0009E0  1  D0 02                BNE     NOINC2
+0009E2  1  E6 3A                INC     curr+1
+0009E4  1               NOINC2:
+0009E4  1  20 83 0A             JSR     check
+0009E7  1  4C 49 09             JMP     main
+0009EA  1               ;CONTROl looks up a keyboard command in the list
+0009EA  1               ;of control codes at CTBL. The first .byte of
+0009EA  1               ;CTBL is the actual number of commands. Once the
+0009EA  1               ;position is found, this position is doubled as
+0009EA  1               ;an index to the two-byte address table at VECT.
+0009EA  1               ;The address of MAIN-1 is put on the stack,
+0009EA  1               ;simulating the return address; then the address
+0009EA  1               ;of the command routine taken from VECT is pushed.
+0009EA  1               ;We then perform an RTS. RTS pulls the .bytes off
+0009EA  1               ;the stack as if they were put there by a JSR.
+0009EA  1               ;This powerful technique is used to simulate
+0009EA  1               ;ON+GOTO in machine language.
+0009EA  1               CONTROL:
+0009EA  1  8A                   TXA
+0009EB  1  AE 0C 0A             LDX     CTBL
+0009EE  1               SRCH:
+0009EE  1  DD 0C 0A             CMP     CTBL,X
+0009F1  1  F0 06                BEQ     FOUND
+0009F3  1  CA                   DEX
+0009F4  1  D0 F8                BNE     SRCH
+0009F6  1  4C 49 09             JMP     main
+0009F9  1               FOUND:
+0009F9  1  CA                   DEX
+0009FA  1  8A                   TXA
+0009FB  1  0A                   ASL
+0009FC  1  AA                   TAX
+0009FD  1  A9 09                LDA     #>(main-1)
+0009FF  1  48                   PHA
+000A00  1  A9 48                LDA     #<(main-1)
+000A02  1  48                   PHA
+000A03  1  BD 35 0A             LDA     VECT+1,X
+000A06  1  48                   PHA
+000A07  1  BD 34 0A             LDA     VECT,X
+000A0A  1  48                   PHA
+000A0B  1  60                   RTS
+000A0C  1               CTBL:
+000A0C  1  27                   .BYTE   39
+000A0D  1  1D 9D 89 85          .BYTE   29,157,137,133,2,12,138,134,20,148
+000A11  1  02 0C 8A 86  
+000A15  1  14 94        
+000A17  1  04 13 09 93          .BYTE   4,19,9,147,135,139,5,136,140
+000A1B  1  87 8B 05 88  
+000A1F  1  8C           
+000A20  1  16 91 11 9F          .BYTE   22,145,17,159,18,24,26,16
+000A24  1  12 18 1A 10  
+000A28  1  1C 1E 06 01          .BYTE   28,30,6,1,11,8,31,3,131
+000A2C  1  0B 08 1F 03  
+000A30  1  83           
+000A31  1  0A 8D 07             .BYTE   10,141,7
+000A34  1               VECT:
+000A34  1  38 0B 41 0B          .WORD   right-1,left-1,wleft-1,wright-1,BORDER-1,LETTERS-1
+000A38  1  4C 0B 82 0B  
+000A3C  1  57 14 58 14  
+000A40  1  E0 0B 46 0C          .WORD   sleft-1,sright-1,DELCHAR-1,inschar-1,DELETE-1
+000A44  1  79 0D D7 0E  
+000A48  1  AD 0D        
+000A4A  1  F0 0D 39 0F          .WORD   HOME-1,instgl-1,CLEAR-1,paright-1,parleft-1
+000A4E  1  59 0F 7B 0F  
+000A52  1  9C 0F        
+000A54  1  F7 0F 81 0A          .WORD   ERAS-1,TLOAD-1,TSAVE-1,verify-1
+000A58  1  81 0A 81 0A  
+000A5C  1  E0 0B 46 0C          .WORD   sleft-1,sright-1,catalog-1,insbuffer-1,switch-1
+000A60  1  81 0A 8D 11  
+000A64  1  1B 12        
+000A66  1  C6 0B 81 0A          .WORD   endtex-1,print-1,FORMAT-1,dcmnd-1
+000A6A  1  05 11 81 0A  
+000A6E  1  94 0D 28 12          .WORD   DELIN-1,alpha-1,killbuff-1,HUNT-1,FREEMEM-1,tab-1
+000A72  1  95 0C 6F 12  
+000A76  1  B1 13 94 0E  
+000A7A  1  8C 0E 0F 13          .WORD   lottaspaces-1,repstart-1,endpar-1,SANDR-1
+000A7E  1  BC 0E 4E 12  
+000A82  1               ;The check routine first prevents the cursor from
+000A82  1               ;disappearing past the beginning or end-of-text memory,
+000A82  1               ;and prevents us from cursoring past the end-of-text pointer.
+000A82  1               ;It also checks to see if the cursor has left the visible
+000A82  1               ;screen, scrolling with REFRESH to make the cursor visible.
+000A82  1               
+000A82  1               
+000A82  1               TLOAD:
+000A82  1               TSAVE:
+000A82  1               verify:
+000A82  1               catalog:
+000A82  1               dcmnd:
+000A82  1               print:
+000A82  1               ;; stubs todo
+000A82  1  60           rts
+000A83  1               
+000A83  1               check:
+000A83  1  20 E1 0A             JSR     check2
+000A86  1  38 A5 39 ED          COMPC16 curr,toplin
+000A8A  1  45 16 A5 3A  
+000A8E  1  ED 46 16     
+000A91  1  B0 20                BCS     OK1
+000A93  1  38 AD 45 16          COMP16  toplin,texstart
+000A97  1  ED 3C 16 85  
+000A9B  1  3B AD 46 16  
+000AA4  1  F0 0D                BEQ     OK1
+000AA6  1  A5 39 8D 45          COPY16  curr,toplin
+000AAA  1  16 A5 3A 8D  
+000AAE  1  46 16        
+000AB0  1  20 4D 14             JSR     refresh
+000AB3  1               OK1:
+000AB3  1  38                   SEC
+000AB4  1  AD 4F 16             LDA     BOTSCR
+000AB7  1  E5 39                SBC     curr
+000AB9  1  85 FB                STA     tex
+000ABB  1  AD 50 16             LDA     BOTSCR+1
+000ABE  1  E5 3A                SBC     curr+1
+000AC0  1  85 FC                STA     tex+1
+000AC2  1  05 FB                ORA     tex
+000AC4  1  F0 02                BEQ     EQA
+000AC6  1  B0 18                BCS     OK2
+000AC8  1               EQA:
+000AC8  1  18                   CLC
+000AC9  1  AD 45 16             LDA     toplin
+000ACC  1  6D 44 16             ADC     LENTABLE
+000ACF  1  8D 45 16             STA     toplin
+000AD2  1  AD 46 16             LDA     toplin+1
+000AD5  1  69 00                ADC     #0
+000AD7  1  8D 46 16             STA     toplin+1
+000ADA  1               REF:
+000ADA  1  20 4D 14             JSR     refresh
+000ADD  1  4C B3 0A             JMP     OK1
+000AE0  1               OK2:
+000AE0  1  60                   RTS
+000AE1  1               
+000AE1  1               check2:
+000AE1  1  38                   SEC
+000AE2  1  AD 4B 16             LDA     lastline
+000AE5  1  ED 3E 16             SBC     texend
+000AE8  1  85 3B                STA     temp
+000AEA  1  AD 4C 16             LDA     lastline+1
+000AED  1  ED 3F 16             SBC     texend+1
+000AF0  1  05 3B                ORA     temp
+000AF2  1  90 0C                BCC     CK3
+000AF4  1  AD 3E 16             LDA     texend
+000AF7  1  8D 4B 16             STA     lastline
+000AFA  1  AD 3F 16             LDA     texend+1
+000AFD  1  8D 4C 16             STA     lastline+1
+000B00  1               CK3:
+000B00  1  38                   SEC
+000B01  1  A5 39                LDA     curr
+000B03  1  ED 3C 16             SBC     texstart
+000B06  1  85 3B                STA     temp
+000B08  1  A5 3A                LDA     curr+1
+000B0A  1  ED 3D 16             SBC     texstart+1
+000B0D  1  05 3B                ORA     temp
+000B0F  1  B0 0B                BCS     INRANGE
+000B11  1  AD 3C 16             LDA     texstart
+000B14  1  85 39                STA     curr
+000B16  1  AD 3D 16             LDA     texstart+1
+000B19  1  85 3A                STA     curr+1
+000B1B  1  60                   RTS
+000B1C  1               INRANGE:
+000B1C  1  38                   SEC
+000B1D  1  A5 39                LDA     curr
+000B1F  1  ED 4B 16             SBC     lastline
+000B22  1  85 3B                STA     temp
+000B24  1  A5 3A                LDA     curr+1
+000B26  1  ED 4C 16             SBC     lastline+1
+000B29  1  05 3B                ORA     temp
+000B2B  1  B0 01                BCS     OUTRANGE
+000B2D  1  60                   RTS
+000B2E  1               OUTRANGE:
+000B2E  1  AD 4B 16 85          COPY16  lastline,curr
+000B32  1  39 AD 4C 16  
+000B36  1  85 3A        
+000B38  1  60                   RTS
+000B39  1               ; move cursor right.
+000B39  1               right:
+000B39  1  E6 39                INC     curr
+000B3B  1  D0 02                BNE     NOINCR
+000B3D  1  E6 3A                INC     curr+1
+000B3F  1               NOINCR:
+000B3F  1  4C 83 0A             JMP     check
+000B42  1               
+000B42  1               ; Cursor left.
+000B42  1               left:
+000B42  1  A5 39                LDA     curr
+000B44  1  D0 02                BNE     NODEC
+000B46  1  C6 3A                DEC     curr+1
+000B48  1               NODEC:
+000B48  1  C6 39                DEC     curr
+000B4A  1  4C 83 0A             JMP     check
+000B4D  1               ; Word left. We look backward for a space.
+000B4D  1               wleft:
+000B4D  1  A5 39 85 FB          COPY16  curr,tex
+000B51  1  A5 3A 85 FC  
+000B55  1  C6 FC                DEC     tex+1
+000B57  1  A0 FF                LDY     #$FF
+000B59  1               STRIP:
+000B59  1  B1 FB                LDA     (tex),Y
+000B5B  1  C9 20                CMP     #space
+000B5D  1  F0 04                BEQ     STRLOOP
+000B5F  1  C9 1F                CMP     #retchar
+000B61  1  D0 03                BNE     WLOOP
+000B63  1               STRLOOP:
+000B63  1  88                   DEY
+000B64  1  D0 F3                BNE     STRIP
+000B66  1               WLOOP:
+000B66  1  B1 FB                LDA     (tex),Y
+000B68  1  C9 20                CMP     #space
+000B6A  1  F0 08                BEQ     wrout
+000B6C  1  C9 1F                CMP     #retchar
+000B6E  1  F0 04                BEQ     wrout
+000B70  1  88                   DEY
+000B71  1  D0 F3                BNE     WLOOP
+000B73  1  60                   RTS
+000B74  1               wrout:
+000B74  1  38                   SEC
+000B75  1  98                   TYA
+000B76  1  65 FB                ADC     tex
+000B78  1  85 39                STA     curr
+000B7A  1  A5 FC                LDA     tex+1
+000B7C  1  69 00                ADC     #0
+000B7E  1  85 3A                STA     curr+1
+000B80  1  4C 83 0A             JMP     check
+000B83  1               ;Word right. We scan forward
+000B83  1               ;for a space. OIDS is not a meaningful label.
+000B83  1               wright:
+000B83  1  A0 00                LDY     #0
+000B85  1               RLOOP:
+000B85  1  B1 39                LDA     (curr),Y
+000B87  1  C9 20                CMP     #space
+000B89  1  F0 08                BEQ     ROUT
+000B8B  1  C9 1F                CMP     #retchar
+000B8D  1  F0 04                BEQ     ROUT
+000B8F  1  C8                   INY
+000B90  1  D0 F3                BNE     RLOOP
+000B92  1  60                   RTS
+000B93  1               ROUT:
+000B93  1  C8                   INY
+000B94  1  D0 0B                BNE     OIDS
+000B96  1  E6 3A                INC     curr+1
+000B98  1  A5 3A                LDA     curr+1
+000B9A  1  CD 4C 16             CMP     lastline+1
+000B9D  1  90 02                BCC     OIDS
+000B9F  1  D0 19                BNE     lastword
+000BA1  1               OIDS:
+000BA1  1  B1 39                LDA     (curr),Y
+000BA3  1  C9 20                CMP     #space
+000BA5  1  F0 EC                BEQ     ROUT
+000BA7  1  C9 1F                CMP     #retchar
+000BA9  1  F0 E8                BEQ     ROUT
+000BAB  1               ; add Y to curr to move the cursor
+000BAB  1               ; check prevents illegal cursor movement.
+000BAB  1               ; LASTWORD is called if the end
+000BAB  1               ; of the word cannot be found within 255 characters.
+000BAB  1               adycurr:
+000BAB  1  18                   CLC
+000BAC  1  98                   TYA
+000BAD  1  65 39                ADC     curr
+000BAF  1  85 39                STA     curr
+000BB1  1  A5 3A                LDA     curr+1
+000BB3  1  69 00                ADC     #0
+000BB5  1  85 3A                STA     curr+1
+000BB7  1               wrtn:
+000BB7  1  4C 83 0A             JMP     check
+000BBA  1               
+000BBA  1               lastword:
+000BBA  1  AD 4B 16 85          COPY16  lastline,curr
+000BBE  1  39 AD 4C 16  
+000BC2  1  85 3A        
+000BC4  1  4C 83 0A             JMP     check
+000BC7  1               
+000BC7  1               ;endtex is tricky,  (p103)
+000BC7  1               
+000BC7  1               endtex:
+000BC7  1  9C 45 16             STZ     toplin
+000BCA  1  AD 4C 16             LDA     lastline+1
+000BCD  1  38                   SEC
+000BCE  1  E9 04                SBC     #4
+000BD0  1  CD 3D 16             CMP     texstart+1
+000BD3  1  B0 03                BCS     SAFE
+000BD5  1  AD 3D 16             LDA     texstart+1
+000BD8  1               SAFE:
+000BD8  1  8D 46 16             STA     toplin+1
+000BDB  1  20 4D 14             JSR     refresh
+000BDE  1  4C BA 0B             JMP     lastword
+000BE1  1               
+000BE1  1               
+000BE1  1               
+000BE1  1               ;Sentence left. We look backward for ending punctuation
+000BE1  1               ;or a return mark, then go forward until we run out of spaces.
+000BE1  1               
+000BE1  1               
+000BE1  1               sleft:
+000BE1  1  A5 39 85 FB          COPY16  curr,tex
+000BE5  1  A5 3A 85 FC  
+000BE9  1  C6 FC                DEC     tex+1
+000BEB  1  A0 FF                LDY     #$FF
+000BED  1               PMANY:
+000BED  1  B1 FB                LDA     (tex),Y
+000BEF  1  C9 2E F0 0C          B_IF_PUNCT PSRCH
+000BF3  1  C9 21 F0 08  
+000BF7  1  C9 3F F0 04  
+000BFB  1  C9 1F                CMP     #retchar
+000BFD  1  D0 04                BNE     psloop
+000BFF  1               PSRCH:
+000BFF  1  88                   DEY
+000C00  1  D0 EB                BNE     PMANY
+000C02  1  60                   RTS
+000C03  1               psloop:
+000C03  1  B1 FB                LDA     (tex),Y
+000C05  1  C9 2E F0 1B          B_IF_PUNCT PUNCT
+000C09  1  C9 21 F0 17  
+000C0D  1  C9 3F F0 13  
+000C11  1  C9 1F                CMP     #retchar
+000C13  1  F0 0F                BEQ     PUNCT
+000C15  1  88                   DEY
+000C16  1  D0 EB                BNE     psloop
+000C18  1  C6 FC                DEC     tex+1
+000C1A  1  A5 FC                LDA     tex+1
+000C1C  1  CD 3C 16             CMP     texstart
+000C1F  1  B0 E2                BCS     psloop
+000C21  1  4C 3A 0C             JMP     firstword
+000C24  1               PUNCT:
+000C24  1  84 3B                STY     temp
+000C26  1  C6 3B                DEC     temp
+000C28  1               SKIPSPC:
+000C28  1  C8                   INY
+000C29  1  F0 0A                BEQ     REPEAT
+000C2B  1  B1 FB                LDA     (tex),y
+000C2D  1  C9 20                CMP     #space
+000C2F  1  F0 F7                BEQ     SKIPSPC
+000C31  1  88                   DEY
+000C32  1  4C 74 0B             JMP     wrout
+000C35  1               REPEAT:
+000C35  1  A4 3B                LDY     temp
+000C37  1  4C 03 0C             JMP     psloop
+000C3A  1               firstword:
+000C3A  1  AD 3C 16 85          COPY16  texstart,curr
+000C3E  1  39 AD 3D 16  
+000C42  1  85 3A        
+000C44  1  4C 83 0A             JMP     check
+000C47  1               ; Sentence right. We look for ending punctuation,
+000C47  1               ; then skip forward until we run out of spaces.
+000C47  1               sright:
+000C47  1  A0 00                LDY     #0
+000C49  1               srlp:
+000C49  1  B1 39                LDA     (curr),Y
+000C4B  1  C9 2E F0 1D          B_IF_PUNCT punct2
+000C4F  1  C9 21 F0 19  
+000C53  1  C9 3F F0 15  
+000C57  1  C9 1F                CMP     #retchar
+000C59  1  F0 11                BEQ     punct2
+000C5B  1  C8                   INY
+000C5C  1  D0 EB                BNE     srlp
+000C5E  1  E6 3A                INC     curr+1
+000C60  1  A5 3A                LDA     curr+1
+000C62  1  CD 4C 16             CMP     lastline+1
+000C65  1  F0 E2                BEQ     srlp
+000C67  1  90 E0                BCC     srlp
+000C69  1               srexit:
+000C69  1  4C BA 0B             JMP     lastword
+000C6C  1               punct2:
+000C6C  1  C8                   INY
+000C6D  1  D0 0E                BNE     nofixcurr
+000C6F  1  E6 3A                INC     curr+1
+000C71  1  A5 3A                LDA     curr+1
+000C73  1  CD 4C 16             CMP     lastline+1
+000C76  1  90 05                BCC     nofixcurr
+000C78  1  F0 03                BEQ     nofixcurr
+000C7A  1  4C BA 0B             JMP     lastword
+000C7D  1               nofixcurr:
+000C7D  1  B1 39                LDA     (curr),y
+000C7F  1  C9 20                CMP     #space
+000C81  1  F0 E9                BEQ     punct2
+000C83  1  C9 2E F0 E5          B_IF_PUNCT punct2
+000C87  1  C9 21 F0 E1  
+000C8B  1  C9 3F F0 DD  
+000C8F  1  C9 1F                CMP     #retchar
+000C91  1  F0 D9                BEQ     punct2
+000C93  1  4C AB 0B             JMP     adycurr
+000C96  1               ; The text buffer starts at a fixed
+000C96  1               ; location, but the end of the buffer
+000C96  1               ; is changed as text is added to it.
+000C96  1               ; To clear the buffer, we just set
+000C96  1               ; the end of the buffer to the
+000C96  1               ; start of the buffer. No text is
+000C96  1               ; actually erased.
+000C96  1               killbuff:
+000C96  1  AD 40 16 8D          COPY16  texbuf,tptr
+000C9A  1  C0 16 AD 41  
+000C9E  1  16 8D C1 16  
+000CA2  1  20 34 14             JSR     topclr
+000CA5  1  A9 82 A0 14          PRINTMESSAGE killmsg
+000CA9  1  20 32 09     
+000CAC  1  A9 01                LDA     #1
+000CAE  1  8D 47 16             STA     msgflg
+000CB1  1  60                   RTS
+000CB2  1               
+000CB2  1               ; This is the second level of the
+000CB2  1               ; general-purpose delete routines. (p.105)
+000CB2  1               
+000CB2  1               
+000CB2  1               del1:
+000CB2  1  38 A5 39 ED          COMP16  curr,texstart
+000CB6  1  3C 16 85 3B  
+000CBA  1  A5 3A ED 3D  
+000CC1  1  D0 03                BNE     DEL1A
+000CC3  1               DELABORT:
+000CC3  1  68                   PLA
+000CC4  1  68                   PLA
+000CC5  1  60                   RTS
+000CC6  1               DEL1A:
+000CC6  1  A5 39 85 26          COPY16  curr,froml
+000CCA  1  A5 3A 85 27  
+000CCE  1  60                   RTS
+000CCF  1               del2:
+000CCF  1  38                   SEC
+000CD0  1  A5 39                LDA     curr
+000CD2  1  85 28                STA     destl
+000CD4  1  49 FF                EOR     #$ff
+000CD6  1  65 26                ADC     froml
+000CD8  1  8D C4 16             STA     goblen
+000CDB  1  A5 3A                LDA     curr+1
+000CDD  1  85 29                STA     desth
+000CDF  1  49 FF                EOR     #$ff
+000CE1  1  65 27                ADC     fromh
+000CE3  1  8D C5 16             STA     goblen+1
+000CE6  1               delc:
+000CE6  1  A5 26 8D C6          COPY16  froml,fromsav
+000CEA  1  16 A5 27 8D  
+000CEE  1  C7 16        
+000CF0  1  A5 28                LDA     destl
+000CF2  1  8D C8 16             STA     destsav
+000CF5  1  85 26                STA     froml
+000CF7  1  A5 29                LDA     desth
+000CF9  1  8D C9 16             STA     destsav+1
+000CFC  1  85 27                STA     fromh
+000CFE  1  38                   SEC
+000CFF  1  AD C5 16             LDA     goblen+1
+000D02  1  6D C1 16             ADC     tptr+1
+000D05  1  CD 43 16             CMP     bufend+1
+000D08  1  90 12                BCC     gosav
+000D0A  1  20 34 14 A9          TOPPRINTMESSAGE buferr
+000D0E  1  91 A0 14 20  
+000D12  1  32 09        
+000D14  1  A9 01                LDA     #1
+000D16  1  8D 47 16             STA     msgflg
+000D19  1               ; TODO: confirm this works in X16
+000D19  1  64 C6                STZ     198             ; clear keyboard buffer
+000D1B  1  60                   RTS
+000D1C  1               
+000D1C  1               gosav:
+000D1C  1  AD C0 16 85          COPY16  tptr,destl
+000D20  1  28 AD C1 16  
+000D24  1  85 29        
+000D26  1  AD C4 16             LDA     goblen
+000D29  1  85 2A                STA     llen
+000D2B  1  18                   CLC
+000D2C  1  6D C0 16             ADC     tptr
+000D2F  1  8D C0 16             STA     tptr
+000D32  1  AD C5 16             LDA     goblen+1
+000D35  1  85 2B                STA     hlen
+000D37  1  6D C1 16             ADC     tptr+1
+000D3A  1  8D C1 16             STA     tptr+1
+000D3D  1               ;lda #0
+000D3D  1               ;sta $D01A ;TODO: label
+000D3D  1               ;lda #52
+000D3D  1               ;sta map
+000D3D  1  20 16 08             JSR     umove
+000D40  1               ;lda #54
+000D40  1               ;sta map
+000D40  1               ;lda #1
+000D40  1               ;sta $D01A
+000D40  1               
+000D40  1  AD C6 16 85          COPY16  fromsav,froml
+000D44  1  26 AD C7 16  
+000D48  1  85 27        
+000D4A  1  AD C8 16 85          COPY16  destsav,destl
+000D4E  1  28 AD C9 16  
+000D52  1  85 29        
+000D54  1  38 AD 4B 16          SUB162  lastline,destl,llen
+000D58  1  E5 28 85 2A  
+000D5C  1  AD 4C 16 E5  
+000D63  1  20 16 08             JSR     umove
+000D66  1  38 AD 4B 16          SUB16   lastline,goblen
+000D6A  1  ED C4 16 8D  
+000D6E  1  4B 16 AD 4C  
+000D79  1  60                   RTS
+000D7A  1               ;Most delete commands end up calling
+000D7A  1               ;the above routines. (p106)
+000D7A  1               DELCHAR:
+000D7A  1  20 B2 0C             JSR     del1
+000D7D  1  20 42 0B             JSR     left
+000D80  1  20 CF 0C             JSR     del2
+000D83  1               fixtp:
+000D83  1  38 AD C0 16          SUB8    tptr,#1
+000D87  1  E9 01 8D C0  
+000D8B  1  16 AD C1 16  
+000D94  1  60                   RTS
+000D95  1               ;this is called from CTRL-back arrow.
+000D95  1               ;We first check to see if SHIFT is also
+000D95  1               ;held down. If so, we go to another routine
+000D95  1               ;that "eats" spaces.
+000D95  1               DELIN:
+000D95  1  AD 8D 02 C9          B_UNLESS_SHIFT_CTRL DODELIN
+000D99  1  05 D0 03     
+000D9C  1  4C 1A 0E             JMP     EATSPACE
+000D9F  1               DODELIN:
+000D9F  1  20 39 0B             JSR     right
+000DA2  1  20 B2 0C             JSR     del1
+000DA5  1  20 42 0B             JSR     left
+000DA8  1  20 CF 0C             JSR     del2
+000DAB  1  4C 83 0D             JMP     fixtp
+000DAE  1               
+000DAE  1               ;Called by CTRL-D.  (etc)
+000DAE  1               DELETE:
+000DAE  1  20 96 0C             JSR     killbuff
+000DB1  1  A9 21                LDA     #$21            ; white on red
+000DB3  1  85 0C                STA     windcolr
+000DB5  1  20 34 14             JSR     topclr
+000DB8  1  A9 9D A0 14          PRINTMESSAGE delmsg
+000DBC  1  20 32 09     
+000DBF  1  20 43 09             JSR     getakey
+000DC2  1  48                   PHA
+000DC3  1  20 21 14             JSR     sysmsg
+000DC6  1  68                   PLA
+000DC7  1  29 BF                AND     #191
+000DC9  1  C9 17                CMP     #23             ; "W"
+000DCB  1  D0 09                BNE     NOTWORD
+000DCD  1               DELWORD:
+000DCD  1  20 B2 0C             JSR     del1
+000DD0  1  20 4D 0B             JSR     wleft
+000DD3  1  4C CF 0C             JMP     del2
+000DD6  1               NOTWORD:
+000DD6  1  C9 13                CMP     #19             ; "S"
+000DD8  1  D0 09                BNE     NOTSENT
+000DDA  1               DELSENT:
+000DDA  1  20 B2 0C             JSR     del1
+000DDD  1  20 E1 0B             JSR     sleft
+000DE0  1  4C CF 0C             JMP     del2
+000DE3  1               NOTSENT:
+000DE3  1  C9 10                CMP     #16             ; "P"
+000DE5  1  D0 09                BNE     NOTPAR
+000DE7  1  20 B2 0C             JSR     del1
+000DEA  1  20 9D 0F             JSR     parleft
+000DED  1  4C CF 0C             JMP     del2
+000DF0  1               NOTPAR:
+000DF0  1  60                   RTS
+000DF1  1               
+000DF1  1               
+000DF1  1               ;Home the cursor. if the cursor
+000DF1  1               ;is already home, move the cursor
+000DF1  1               ;to the top of text.
+000DF1  1               HOME:
+000DF1  1  38 A5 39 ED          COMP16  curr,toplin
+000DF5  1  45 16 85 3B  
+000DF9  1  A5 3A ED 46  
+000E00  1  F0 0B                BEQ     tophome
+000E02  1  AD 45 16 85          COPY16  toplin,curr
+000E06  1  39 AD 46 16  
+000E0A  1  85 3A        
+000E0C  1  60                   RTS
+000E0D  1               tophome:
+000E0D  1  AD 3C 16 85          COPY16  texstart,curr
+000E11  1  39 AD 3D 16  
+000E15  1  85 3A        
+000E17  1  4C 83 0A             JMP     check
+000E1A  1               
+000E1A  1               ; This deletes all spaces between the
+000E1A  1               ; cursor and following nonspace text.
+000E1A  1               ; Sometimes inventing labels can be fun.
+000E1A  1               EATSPACE:
+000E1A  1  A5 39 85 FB          COPY162 curr,tex,destl
+000E1E  1  85 28 A5 3A  
+000E22  1  85 FC 85 29  
+000E26  1  A0 00                LDY     #0
+000E28  1               spcsrch:
+000E28  1  B1 FB                LDA     (tex),y
+000E2A  1  C9 20                CMP     #space
+000E2C  1  D0 1E                BNE     outspace
+000E2E  1  C8                   INY
+000E2F  1  D0 F7                BNE     spcsrch
+000E31  1  A5 FC                LDA     tex+1
+000E33  1  CD 4C 16             CMP     lastline+1
+000E36  1  90 0F                BCC     goinc
+000E38  1  AD 4B 16 85          COPY16  lastline,tex
+000E3C  1  FB AD 4C 16  
+000E40  1  85 FC        
+000E42  1  A0 00                LDY     #0
+000E44  1  4C 4C 0E             JMP     outspace
+000E47  1               goinc:
+000E47  1  E6 FC                INC     tex+1
+000E49  1  4C 28 0E             JMP     spcsrch
+000E4C  1               outspace:
+000E4C  1  18                   CLC
+000E4D  1  98                   TYA
+000E4E  1  65 FB                ADC     tex
+000E50  1  85 26                STA     froml
+000E52  1  A9 00                LDA     #0
+000E54  1  65 FC                ADC     tex+1
+000E56  1  85 27                STA     fromh
+000E58  1               
+000E58  1  38 AD 4B 16          SUB162  lastline,destl,llen
+000E5C  1  E5 28 85 2A  
+000E60  1  AD 4C 16 E5  
+000E67  1  38 A5 26 E5          SUB162  froml,destl,goblen
+000E6B  1  28 8D C4 16  
+000E6F  1  A5 27 E5 29  
+000E76  1  20 16 08             JSR     umove
+000E79  1  38 AD 4B 16          SUB162  lastline,goblen,lastline
+000E7D  1  ED C4 16 8D  
+000E81  1  4B 16 AD 4C  
+000E8C  1  60                   RTS
+000E8D  1               
+000E8D  1               ;Inserts 255 spaces. Notice how it and other
+000E8D  1               ;insert routines use TAB2.
+000E8D  1               lottaspaces:
+000E8D  1  A9 FF                LDA     #255
+000E8F  1  8D DD 16             STA     inslen
+000E92  1  4C A7 0E             JMP     tab2
+000E95  1               
+000E95  1               tab:
+000E95  1  A9 05                LDA     #5
+000E97  1  8D DD 16             STA     inslen
+000E9A  1  20 A7 0E             JSR     tab2
+000E9D  1  B1 39                LDA     (curr),y
+000E9F  1  C9 20                CMP     #space
+000EA1  1  D0 01                BNE     noincy
+000EA3  1  C8                   INY
+000EA4  1               noincy:
+000EA4  1  4C AB 0B             JMP     adycurr
+000EA7  1               tab2:
+000EA7  1  A9 00                LDA     #0
+000EA9  1  8D DE 16             STA     inslen+1
+000EAC  1  20 EA 0E             JSR     insblock
+000EAF  1  A9 20                LDA     #space
+000EB1  1  AE DD 16             LDX     inslen
+000EB4  1  A0 00                LDY     #0
+000EB6  1               fillsp:
+000EB6  1  91 39                STA     (curr),y
+000EB8  1  C8                   INY
+000EB9  1  CA                   DEX
+000EBA  1  D0 FA                BNE     fillsp
+000EBC  1  60                   RTS
+000EBD  1               ;SHIFT-RETURN calls this. It inserts
+000EBD  1               ;two spaces, fills them with return marks,
+000EBD  1               ;then calls tAB for a margin indent. Not
+000EBD  1               ;much code for a useful routine.
+000EBD  1               endpar:
+000EBD  1  20 D8 0E             JSR     inschar
+000EC0  1  20 D8 0E             JSR     inschar
+000EC3  1  A9 1F                LDA     #retchar
+000EC5  1  A0 00                LDY     #0
+000EC7  1  91 39                STA     (curr),Y
+000EC9  1  C8                   INY
+000ECA  1  91 39                STA     (curr),Y
+000ECC  1  20 4D 14             JSR     refresh
+000ECF  1  20 39 0B             JSR     right
+000ED2  1  20 39 0B             JSR     right
+000ED5  1  4C 95 0E             JMP     tab
+000ED8  1               ;insert a single space:
+000ED8  1               inschar:
+000ED8  1  A9 01                LDA     #1
+000EDA  1  8D DD 16             STA     inslen
+000EDD  1  9C DE 16             STZ     inslen+1
+000EE0  1  20 EA 0E             JSR     insblock
+000EE3  1  A9 20                LDA     #space
+000EE5  1  92 39                STA     (curr)
+000EE7  1  4C 83 0A             JMP     check
+000EEA  1               ;A general routine to insert as many
+000EEA  1               ;spaces as are specified by inslen.
+000EEA  1               insblock:
+000EEA  1  18                   CLC
+000EEB  1  AD 4B 16             LDA     lastline
+000EEE  1  6D DD 16             ADC     inslen          ; discarded?
+000EF1  1  AD 4C 16             LDA     lastline+1
+000EF4  1  6D DE 16             ADC     inslen+1
+000EF7  1  CD 3F 16             CMP     texend+1
+000EFA  1  90 05                BCC     okins
+000EFC  1  68                   PLA
+000EFD  1  68                   PLA
+000EFE  1  4C 39 0F             JMP     inout
+000F01  1               okins:
+000F01  1  18                   CLC
+000F02  1  A5 39                LDA     curr
+000F04  1  85 26                STA     froml
+000F06  1  6D DD 16             ADC     inslen
+000F09  1  85 28                STA     destl
+000F0B  1  A5 3A                LDA     curr+1
+000F0D  1  85 27                STA     froml+1
+000F0F  1  6D DE 16             ADC     inslen+1
+000F12  1  85 29                STA     destl+1
+000F14  1  38 AD 4B 16          SUB162  lastline,froml,llen
+000F18  1  E5 26 85 2A  
+000F1C  1  AD 4C 16 E5  
+000F23  1  20 53 08             JSR     dmove
+000F26  1  18 AD 4B 16          ADD16   lastline,inslen
+000F2A  1  6D DD 16 8D  
+000F2E  1  4B 16 AD 4C  
+000F39  1               inout:
+000F39  1  60                   RTS
+000F3A  1               ;toggle insert mode. The INSMODE
+000F3A  1               ;flag doubles as the color of the
+000F3A  1               ;command line.
+000F3A  1               instgl:
+000F3A  1  AD 48 16             LDA     INSMODE
+000F3D  1  49 E0                EOR     #INSCOLOR << 4
+000F3F  1  8D 48 16             STA     INSMODE
+000F42  1  4C 21 14             JMP     sysmsg
+000F45  1               ;Another example of modular code.
+000F45  1               YORN:
+000F45  1  A9 AC A0 14          PRINTMESSAGE ynmsg
+000F49  1  20 32 09     
+000F4C  1               YORNKEY:                        ;JSR scnkey
+000F4C  1  20 34 14             JSR     chrin
+000F4F  1  F0 FB                BEQ     YORNKEY
+000F51  1  C9 93                CMP     #PETSCII_CLR    ;user is spamming CLR/HOME
+000F53  1  F0 F7                BEQ     YORNKEY         ;ignore it
+000F55  1  29 7F                AND     #127
+000F57  1  C9 79                CMP     #'y'
+000F59  1  60                   RTS
+000F5A  1               ;Erase all text. (p108)
+000F5A  1               CLEAR:
+000F5A  1  A9 21                LDA     #$21            ;white on red
+000F5C  1  85 0C                STA     windcolr
+000F5E  1  20 34 14             JSR     topclr
+000F61  1  A9 C3 A0 14          PRINTMESSAGE clrmsg
+000F65  1  20 32 09     
+000F68  1  20 45 0F             JSR     YORN
+000F6B  1  F0 03                BEQ     DOIT
+000F6D  1  4C 21 14             JMP     sysmsg
+000F70  1               DOIT:
+000F70  1  A2 FA                LDX     #$FA
+000F72  1  9A                   TXS
+000F73  1  20 F8 08             JSR     erase
+000F76  1  20 07 14             JSR     INIT3
+000F79  1  4C 49 09             JMP     main
+000F7C  1               ;Paragraph right.
+000F7C  1               paright:
+000F7C  1  A0 00                LDY     #0
+000F7E  1               parlp:
+000F7E  1  B1 39                LDA     (curr),Y
+000F80  1  C9 1F                CMP     #retchar
+000F82  1  F0 11                BEQ     retfound
+000F84  1  C8                   INY
+000F85  1  D0 F7                BNE     parlp
+000F87  1  E6 3A                INC     curr+1
+000F89  1  A5 3A                LDA     curr+1
+000F8B  1  CD 4C 16             CMP     lastline+1
+000F8E  1  90 EE                BCC     parlp
+000F90  1  F0 EC                BEQ     parlp
+000F92  1  4C BA 0B             JMP     lastword
+000F95  1               retfound:
+000F95  1  C8                   INY
+000F96  1  D0 02                BNE     goady
+000F98  1  E6 3A                INC     curr+1
+000F9A  1               goady:
+000F9A  1  4C AB 0B             JMP     adycurr
+000F9D  1               ;Paragraph left.
+000F9D  1               parleft:
+000F9D  1  A5 39 85 FB          COPY16  curr,tex
+000FA1  1  A5 3A 85 FC  
+000FA5  1  C6 FC                DEC     tex+1
+000FA7  1  A0 FF                LDY     #$ff
+000FA9  1               parloop:
+000FA9  1  B1 FB                LDA     (tex),y
+000FAB  1  C9 1F                CMP     #retchar
+000FAD  1  F0 11                BEQ     retf2
+000FAF  1               parcont:
+000FAF  1  88                   DEY
+000FB0  1  C0 FF                CPY     #255
+000FB2  1  D0 F5                BNE     parloop
+000FB4  1  C6 FC                DEC     tex+1
+000FB6  1  A5 FC                LDA     tex+1
+000FB8  1  CD 3D 16             CMP     texstart+1
+000FBB  1  B0 EC                BCS     parloop
+000FBD  1  4C 3A 0C             JMP     firstword
+000FC0  1               retf2:
+000FC0  1  38                   SEC
+000FC1  1  98                   TYA
+000FC2  1  65 FB                ADC     tex
+000FC4  1  85 FB                STA     tex
+000FC6  1  A9 00                LDA     #0
+000FC8  1  65 FC                ADC     tex+1
+000FCA  1  85 FC                STA     tex+1
+000FCC  1  38 A5 FB E5          COMP16  tex,curr
+000FD0  1  39 85 3B A5  
+000FD4  1  FC E5 3A 05  
+000FD9  1  D0 12                BNE     textocurr
+000FDB  1  84 3B                STY     temp
+000FDD  1  18                   CLC
+000FDE  1  A5 FB                LDA     tex
+000FE0  1  E5 3B                SBC     temp
+000FE2  1  85 FB                STA     tex
+000FE4  1  A5 FC                LDA     tex+1
+000FE6  1  E9 00                SBC     #0
+000FE8  1  85 FC                STA     tex+1
+000FEA  1  4C AF 0F             JMP     parcont
+000FED  1               textocurr:
+000FED  1  A5 FB 85 39          COPY16  tex,curr
+000FF1  1  A5 FC 85 3A  
+000FF5  1  4C 83 0A             JMP     check
+000FF8  1               
+000FF8  1               ;ERAS is called by CTRL-E. It works
+000FF8  1               ;much like CTRL-D. Notice that the
+000FF8  1               ;ORA #64 allows ....
+000FF8  1               ERAS:
+000FF8  1  AD 8D 02 29          B_UNLESS_SHIFT ERAS1
+000FFC  1  01 D0 03     
+000FFF  1  20 96 0C             JSR     killbuff
+001002  1               ERAS1:
+001002  1  20 34 14             JSR     topclr
+001005  1  A9 D2 A0 14          PRINTMESSAGE erasmsg
+001009  1  20 32 09     
+00100C  1               erasagain:
+00100C  1  B2 39                LDA     (curr)
+00100E  1  49 80                EOR     #$80
+001010  1  92 39                STA     (curr)
+001012  1  20 4D 14             JSR     refresh
+001015  1  B2 39                LDA     (curr)
+001017  1  49 80                EOR     #$80
+001019  1  92 39                STA     (curr)
+00101B  1  A9 21                LDA     #$21
+00101D  1  85 0C                STA     windcolr
+00101F  1  20 43 09             JSR     getakey
+001022  1  09 40                ORA     #64
+001024  1  C9 77                CMP     #'w'
+001026  1  D0 09                BNE     noword
+001028  1               erasword:
+001028  1  20 51 10             JSR     era1
+00102B  1  20 83 0B             JSR     wright
+00102E  1  4C 60 10             JMP     era2
+001031  1               noword:
+001031  1  C9 73                CMP     #'s'
+001033  1  D0 09                BNE     unsent
+001035  1               erasent:
+001035  1  20 51 10             JSR     era1
+001038  1  20 47 0C             JSR     sright
+00103B  1  4C 60 10             JMP     era2
+00103E  1               unsent:
+00103E  1  C9 70                CMP     #'p'
+001040  1  D0 09                BNE     nopar
+001042  1  20 51 10             JSR     era1
+001045  1  20 7C 0F             JSR     paright
+001048  1  4C 60 10             JMP     era2
+00104B  1               nopar:
+00104B  1  20 83 0A             JSR     check
+00104E  1  4C 21 14             JMP     sysmsg
+001051  1               era1:
+001051  1  A5 39 85 28          COPY162 curr,destl,savcurr
+001055  1  8D BA 16 A5  
+001059  1  3A 85 29 8D  
+00105F  1  60                   RTS
+001060  1               era2:
+001060  1  38                   SEC
+001061  1  A5 39                LDA     curr
+001063  1  85 26                STA     froml
+001065  1  ED BA 16             SBC     savcurr
+001068  1  8D C4 16             STA     goblen
+00106B  1  A5 3A                LDA     curr+1
+00106D  1  85 27                STA     froml+1
+00106F  1  ED BB 16             SBC     savcurr+1
+001072  1  8D C5 16             STA     goblen+1
+001075  1  20 E6 0C             JSR     delc
+001078  1  AD BA 16 85          COPY16  savcurr,curr
+00107C  1  39 AD BB 16  
+001080  1  85 3A        
+001082  1  20 4D 14             JSR     refresh
+001085  1  4C 0C 10             JMP     erasagain
+001088  1               ;the INPUT routine is used to get responses
+001088  1               ;from the command line.
+001088  1               input:
+001088  1  A5 D9                LDA     COLUMNS         ;columns
+00108A  1  E5 D3                SBC     CURRENT_COLUMN  ; current column
+00108C  1  8D 4D 16             STA     limit
+00108F  1               inp1:
+00108F  1  A0 00                LDY     #0
+001091  1               cursin:
+001091  1  A9 99                LDA     #153            ; Light Green
+001093  1  20 40 14             JSR     chrout
+001096  1  A9 12                LDA     #18             ; Reverse On
+001098  1  20 40 14             JSR     chrout
+00109B  1  A9 20                LDA     #space
+00109D  1  20 40 14             JSR     chrout
+0010A0  1  A9 9D                LDA     #157            ; cursor left
+0010A2  1  20 40 14             JSR     chrout
+0010A5  1  8C 4E 16             STY     inlen
+0010A8  1  20 43 09             JSR     getakey
+0010AB  1  AC 4E 16             LDY     inlen
+0010AE  1  85 3B                STA     temp
+0010B0  1  A9 92                LDA     #146            ;Reverse Off
+0010B2  1  20 40 14             JSR     chrout
+0010B5  1  A9 20                LDA     #space
+0010B7  1  20 40 14             JSR     chrout
+0010BA  1  A9 9D                LDA     #157            ; cursor left
+0010BC  1  20 40 14             JSR     chrout
+0010BF  1  A9 9B                LDA     #155            ; Light Gray
+0010C1  1  20 40 14             JSR     chrout
+0010C4  1  A5 3B                LDA     temp
+0010C6  1  C9 0D                CMP     #13
+0010C8  1  F0 32                BEQ     inexit
+0010CA  1  C9 14                CMP     #20             ;petscii DEL key
+0010CC  1  D0 0F                BNE     noback
+0010CE  1  88                   DEY
+0010CF  1  10 04                BPL     notzero
+0010D1  1  C8                   INY
+0010D2  1  4C 91 10             JMP     cursin
+0010D5  1               notzero:
+0010D5  1  A9 9D                LDA     #157
+0010D7  1  20 40 14             JSR     chrout
+0010DA  1  4C 91 10             JMP     cursin
+0010DD  1               noback:
+0010DD  1  A5 3B                LDA     temp
+0010DF  1  29 7F                AND     #127
+0010E1  1  C9 20                CMP     #space
+0010E3  1  90 AC                BCC     cursin
+0010E5  1  CC 4D 16             CPY     limit
+0010E8  1  F0 A7                BEQ     cursin
+0010EA  1  A5 3B                LDA     temp
+0010EC  1  99 79 16             STA     inbuff,y
+0010EF  1  20 40 14             JSR     chrout
+0010F2  1  A9 00                LDA     #0
+0010F4  1  85 D4                STA     QUOTE_MODE      ; no quote mode
+0010F6  1  85 D8                STA     INSERT_MODE     ; no insert mode
+0010F8  1  C8                   INY
+0010F9  1  4C 91 10             JMP     cursin
+0010FC  1               inexit:
+0010FC  1  20 40 14             JSR     chrout
+0010FF  1  A9 00                LDA     #0
+001101  1  99 79 16             STA     inbuff,y
+001104  1  98                   TYA
+001105  1  60                   RTS
+001106  1               
+001106  1               ; called by CTRL-\ to enter a format code.
+001106  1               ; It checks insert mode and inserts if necessary.
+001106  1               FORMAT:
+001106  1  20 34 14             JSR     topclr
+001109  1  A9 F2 A0 14          PRINTMESSAGE formsg
+00110D  1  20 32 09     
+001110  1  20 43 09             JSR     getakey
+001113  1  09 80                ORA     #$80
+001115  1  48                   PHA
+001116  1  AD 48 16             LDA     INSMODE
+001119  1  29 F0                AND     #$F0            ;background color
+00111B  1  F0 03                BEQ     NOINS
+00111D  1  20 D8 0E             JSR     inschar
+001120  1               NOINS:
+001120  1  20 21 14             JSR     sysmsg
+001123  1  68                   PLA
+001124  1  4C BA 09             JMP     PUTCHR
+001127  1               ; oh boy
+001127  1               aschex:
+001127  1  9C BC 16             STZ     bcd
+00112A  1  9C BD 16             STZ     bcd+1
+00112D  1  9C BE 16             STZ     hex
+001130  1  9C BF 16             STZ     hex+1
+001133  1               digit:
+001133  1  38                   SEC
+001134  1  B1 FB                LDA     (tex),y
+001136  1  E9 30                SBC     #'0'
+001138  1  90 2A                BCC     nonum
+00113A  1  C9 0A                CMP     #10             ;radix
+00113C  1  B0 26                BCS     nonum
+00113E  1  0E BC 16             ASL     bcd
+001141  1  2E BD 16             ROL     bcd+1
+001144  1  0E BC 16             ASL     bcd
+001147  1  2E BD 16             ROL     bcd+1
+00114A  1  0E BC 16             ASL     bcd
+00114D  1  2E BD 16             ROL     bcd+1
+001150  1  0E BC 16             ASL     bcd
+001153  1  2E BD 16             ROL     bcd+1
+001156  1  0D BC 16             ORA     bcd
+001159  1  8D BC 16             STA     bcd
+00115C  1  C8                   INY
+00115D  1  D0 D4                BNE     digit
+00115F  1  E6 FC                INC     tex+1
+001161  1  4C 33 11             JMP     digit
+001164  1               nonum:
+001164  1  F8                   SED
+001165  1               dechex:
+001165  1  AD BC 16             LDA     bcd
+001168  1  0D BD 16             ORA     bcd+1
+00116B  1  F0 1C                BEQ     donenum
+00116D  1  38 AD BC 16          SUB8    bcd,#1
+001171  1  E9 01 8D BC  
+001175  1  16 AD BD 16  
+00117E  1  EE BE 16             INC     hex
+001181  1  D0 03                BNE     nohexinc
+001183  1  EE BF 16             INC     hex+1
+001186  1               nohexinc:
+001186  1  4C 65 11             JMP     dechex
+001189  1               donenum:
+001189  1  AD BE 16             LDA     hex
+00118C  1  D8                   CLD
+00118D  1  60                   RTS
+00118E  1               
+00118E  1               ;p113
+00118E  1               
+00118E  1               insbuffer:
+00118E  1  38 AD C0 16          SUB162  tptr,texbuf,buflen
+001192  1  ED 40 16 8D  
+001196  1  C2 16 AD C1  
+0011A1  1  0D C2 16             ORA     buflen
+0011A4  1  D0 10                BNE     okbuff
+0011A6  1  20 34 14             JSR     topclr
+0011A9  1  A9 68 A0 15          PRINTMESSAGE insmsg
+0011AD  1  20 32 09     
+0011B0  1  A9 01                LDA     #1
+0011B2  1  8D 47 16             STA     msgflg
+0011B5  1  60                   RTS
+0011B6  1               
+0011B6  1               okbuff:
+0011B6  1  18                   CLC
+0011B7  1  A5 39                LDA     curr
+0011B9  1  85 26                STA     froml
+0011BB  1  6D C2 16             ADC     buflen
+0011BE  1  85 28                STA     destl
+0011C0  1  A5 3A                LDA     curr+1
+0011C2  1  85 27                STA     froml+1
+0011C4  1  6D C3 16             ADC     buflen+1
+0011C7  1  85 29                STA     destl+1
+0011C9  1  38 AD 4B 16          SUB162  lastline,froml, llen
+0011CD  1  E5 26 85 2A  
+0011D1  1  AD 4C 16 E5  
+0011D8  1  18                   CLC
+0011D9  1  65 29                ADC     desth
+0011DB  1  CD 3F 16             CMP     texend+1
+0011DE  1  90 10                BCC     okmov
+0011E0  1  20 34 14             JSR     topclr
+0011E3  1  A9 60 A0 15          PRINTMESSAGE inserr
+0011E7  1  20 32 09     
+0011EA  1  A9 01                LDA     #1
+0011EC  1  8D 47 16             STA     msgflg
+0011EF  1  60                   RTS
+0011F0  1               
+0011F0  1               okmov:
+0011F0  1  20 53 08             JSR     dmove
+0011F3  1  18                   CLC
+0011F4  1  AD C2 16             LDA     buflen
+0011F7  1  85 2A                STA     llen
+0011F9  1  6D 4B 16             ADC     lastline
+0011FC  1  8D 4B 16             STA     lastline
+0011FF  1  AD C3 16             LDA     buflen+1
+001202  1  85 2B                STA     llen+1
+001204  1  6D 4C 16             ADC     lastline+1
+001207  1  8D 4C 16             STA     lastline+1
+00120A  1  A5 39 85 28          COPY16  curr,destl
+00120E  1  A5 3A 85 29  
+001212  1  AD 40 16 85          COPY16  texbuf,froml
+001216  1  26 AD 41 16  
+00121A  1  85 27        
+00121C  1               ;lda #0
+00121C  1               ;sta $d01a
+00121C  1               ;;;;; TODO         LDA     #52
+00121C  1               ;;;;; TODO         STA     map
+00121C  1               ;;;;; TODO         JSR     umove
+00121C  1               ;;;;; TODO         LDA     #54
+00121C  1               ;;;;; TODO         STA     map
+00121C  1               ;lda #1
+00121C  1               ;sta $d01a
+00121C  1               ;;;;; TODO         JMP     check
+00121C  1               
+00121C  1               switch:
+00121C  1  A0 01                LDY     #1
+00121E  1  B2 39                LDA     (curr)
+001220  1  AA                   TAX
+001221  1  B1 39                LDA     (curr),y
+001223  1  92 39                STA     (curr)
+001225  1  8A                   TXA
+001226  1  91 39                STA     (curr),y
+001228  1  60                   RTS
+001229  1               
+001229  1               alpha:
+001229  1  B2 39                LDA     (curr)
+00122B  1  29 3F                AND     #63
+00122D  1  F0 0A                BEQ     notalpha
+00122F  1  C9 1B                CMP     #27
+001231  1  B0 06                BCS     notalpha
+001233  1  B2 39                LDA     (curr)
+001235  1  49 40                EOR     #64
+001237  1  92 39                STA     (curr)
+001239  1               notalpha:
+001239  1  4C 39 0B             JMP     right
+00123C  1               
+00123C  1               intoas:
+00123C  1  85 3B                STA     temp
+00123E  1  29 3F                AND     #$3f
+001240  1  06 3B                ASL     temp
+001242  1  24 3B                BIT     temp
+001244  1  10 02                BPL     isk1
+001246  1  09 80                ORA     #$80
+001248  1               isk1:
+001248  1  70 02                BVS     isk2
+00124A  1  09 40                ORA     #$40
+00124C  1               isk2:
+00124C  1  85 3B                STA     temp
+00124E  1  60                   RTS
+00124F  1               
+00124F  1               
+00124F  1               ;Global search and replace. This just
+00124F  1               ;links together the search-specify routine,
+00124F  1               ;the replace-specify routine,
+00124F  1               ;then repeatedly calls Hunt and Replace,
+00124F  1               ;until Hunt returns "Not Found." (fpos+1
+00124F  1               ;is $FF after a search failure.)
+00124F  1               SANDR:
+00124F  1  20 77 12             JSR     reset
+001252  1  AD E4 16             LDA     huntlen
+001255  1  F0 16                BEQ     NOSR
+001257  1  20 17 13             JSR     askrep
+00125A  1               SNR:
+00125A  1  20 9D 12             JSR     CONTSRCH
+00125D  1  AD E2 16             LDA     fpos+1
+001260  1  C9 FF                CMP     #$FF
+001262  1  F0 09                BEQ     NOSR
+001264  1  20 3A 13             JSR     repl
+001267  1  20 4D 14             JSR     refresh
+00126A  1  4C 5A 12             JMP     SNR
+00126D  1               NOSR:
+00126D  1  4C 21 14             JMP     sysmsg
+001270  1               ;if SHIFT is held down, we ask for and store
+001270  1               ;the hunt phrase. If SHIFT is not down, we
+001270  1               ;perform the actual hunt. The line in the inbuff is compared with
+001270  1               ;characters in text. (p121)
+001270  1               HUNT:
+001270  1  AD 8D 02 C9          B_UNLESS_SHIFT_CTRL CONTSRCH
+001274  1  05 D0 26     
+001277  1               reset:
+001277  1  20 34 14 A9          TOPPRINTMESSAGE srchmsg
+00127B  1  09 A0 16 20  
+00127F  1  32 09        
+001281  1  20 88 10             JSR     input
+001284  1  8D E4 16             STA     huntlen
+001287  1  D0 03                BNE     oksrch
+001289  1  4C 21 14             JMP     sysmsg
+00128C  1               oksrch:
+00128C  1  A0 00                LDY     #0
+00128E  1               tobuff:
+00128E  1  B9 79 16             LDA     inbuff,Y
+001291  1  99 E5 16             STA     huntbuff,Y
+001294  1  C8                   INY
+001295  1  CC 4E 16             CPY     inlen
+001298  1  D0 F4                BNE     tobuff
+00129A  1  4C 21 14             JMP     sysmsg
+00129D  1               CONTSRCH:
+00129D  1  A5 39 85 FB          COPY16  curr,tex
+0012A1  1  A5 3A 85 FC  
+0012A5  1  A9 FF                LDA     #$FF
+0012A7  1  8D E2 16             STA     fpos+1
+0012AA  1  A0 01                LDY     #1
+0012AC  1  A2 00                LDX     #0
+0012AE  1  AD E4 16             LDA     huntlen
+0012B1  1  F0 4D                BEQ     notfound
+0012B3  1               SRCH1:
+0012B3  1  BD E5 16             LDA     huntbuff,X
+0012B6  1  D1 FB                CMP     (tex),Y
+0012B8  1  F0 02                BEQ     CY
+0012BA  1  A2 FF                LDX     #$FF
+0012BC  1               CY:
+0012BC  1  C8                   INY
+0012BD  1  D0 0B                BNE     novfl
+0012BF  1  E6 FC                INC     tex+1
+0012C1  1  A5 FC                LDA     tex+1
+0012C3  1  CD 4C 16             CMP     lastline+1
+0012C6  1  F0 02                BEQ     novfl
+0012C8  1  B0 36                BCS     notfound
+0012CA  1               novfl:
+0012CA  1  E8                   INX
+0012CB  1  EC E4 16             CPX     huntlen
+0012CE  1  D0 E3                BNE     SRCH1
+0012D0  1  18                   CLC
+0012D1  1  98                   TYA
+0012D2  1  65 FB                ADC     tex
+0012D4  1  85 3B                STA     temp
+0012D6  1  A5 FC                LDA     tex+1
+0012D8  1  69 00                ADC     #0
+0012DA  1  85 3C                STA     temp+1
+0012DC  1  AD 4B 16             LDA     lastline
+0012DF  1  C5 3B                CMP     temp
+0012E1  1  AD 4C 16             LDA     lastline+1
+0012E4  1  E5 3C                SBC     temp+1
+0012E6  1  90 18                BCC     notfound
+0012E8  1  38                   SEC
+0012E9  1  A5 3B                LDA     temp
+0012EB  1  ED E4 16             SBC     huntlen
+0012EE  1  85 39                STA     curr
+0012F0  1  8D E1 16             STA     fpos
+0012F3  1  A5 3C                LDA     temp+1
+0012F5  1  E9 00                SBC     #0
+0012F7  1  85 3A                STA     curr+1
+0012F9  1  8D E2 16             STA     fpos+1
+0012FC  1  20 83 0A             JSR     check
+0012FF  1  60                   RTS
+001300  1               
+001300  1               
+001300  1               notfound:
+001300  1  20 34 14 A9          TOPPRINTMESSAGE nfmsg
+001304  1  13 A0 16 20  
+001308  1  32 09        
+00130A  1  A9 01                LDA     #1
+00130C  1  8D 47 16             STA     msgflg
+00130F  1  60                   RTS
+001310  1               
+001310  1               ;replace
+001310  1               repstart:
+001310  1  AD 8D 02 C9          B_UNLESS_SHIFT_CTRL repl
+001314  1  05 D0 23     
+001317  1               askrep:
+001317  1  20 34 14 A9          TOPPRINTMESSAGE repmsg
+00131B  1  1D A0 16 20  
+00131F  1  32 09        
+001321  1  20 88 10             JSR     input
+001324  1  8D 03 17             STA     replen
+001327  1  F0 0E                BEQ     norep
+001329  1  A0 00                LDY     #0
+00132B  1               repmov:
+00132B  1  B9 79 16             LDA     inbuff,y
+00132E  1  99 04 17             STA     repbuff,y
+001331  1  C8                   INY
+001332  1  CC 4E 16             CPY     inlen
+001335  1  D0 F4                BNE     repmov
+001337  1               norep:
+001337  1  4C 21 14             JMP     sysmsg
+00133A  1               repl:
+00133A  1  38                   SEC
+00133B  1  A5 39                LDA     curr
+00133D  1  85 28                STA     destl
+00133F  1  ED E1 16             SBC     fpos
+001342  1  85 3B                STA     temp
+001344  1  A5 3A                LDA     curr+1
+001346  1  85 29                STA     destl+1
+001348  1  ED E2 16             SBC     fpos+1
+00134B  1  05 3B                ORA     temp
+00134D  1  D0 60                BNE     norepl
+00134F  1  A9 FF                LDA     #$ff
+001351  1  8D E2 16             STA     fpos+1
+001354  1  18                   CLC
+001355  1  AD E4 16             LDA     huntlen
+001358  1  65 39                ADC     curr
+00135A  1  85 26                STA     froml
+00135C  1  A9 00                LDA     #0
+00135E  1  65 3A                ADC     curr+1
+001360  1  85 27                STA     fromh
+001362  1  38 AD 4B 16          SUB162  lastline,destl, llen
+001366  1  E5 28 85 2A  
+00136A  1  AD 4C 16 E5  
+001371  1  20 16 08             JSR     umove
+001374  1  38 AD 4B 16          SUB8    lastline,huntlen
+001378  1  ED E4 16 8D  
+00137C  1  4B 16 AD 4C  
+001386  1  AD 03 17             LDA     replen
+001389  1  F0 24                BEQ     norepl
+00138B  1  8D DD 16             STA     inslen
+00138E  1  9C DE 16             STZ     inslen+1
+001391  1  20 EA 0E             JSR     insblock
+001394  1  A0 00                LDY     #0
+001396  1               reploop:
+001396  1  B9 04 17             LDA     repbuff,y
+001399  1  91 39                STA     (curr),y
+00139B  1  C8                   INY
+00139C  1  CC 03 17             CPY     replen
+00139F  1  D0 F5                BNE     reploop
+0013A1  1  18                   CLC
+0013A2  1  A5 39                LDA     curr
+0013A4  1  6D 03 17             ADC     replen
+0013A7  1  85 39                STA     curr
+0013A9  1  A5 3A                LDA     curr+1
+0013AB  1  69 00                ADC     #0
+0013AD  1  85 3A                STA     curr+1
+0013AF  1               norepl:
+0013AF  1  4C 83 0A             JMP     check
+0013B2  1               
+0013B2  1               ;display free memory
+0013B2  1               FREEMEM:
+0013B2  1  20 34 14             JSR     topclr
+0013B5  1  38                   SEC
+0013B6  1  AD 3E 16             LDA     texend
+0013B9  1  ED 4B 16             SBC     lastline
+0013BC  1  AA                   TAX
+0013BD  1  AD 3F 16             LDA     texend+1
+0013C0  1  ED 4C 16             SBC     lastline+1
+0013C3  1  20 9E 08             DISPLAY_NUMBER
+0013C6  1  A9 01                LDA     #1
+0013C8  1  8D 47 16             STA     msgflg
+0013CB  1  60                   RTS
+0013CC  1               
+0013CC  1               	.include "screen.asm"
+0013CC  2               ;
+0013CC  2               ;
+0013CC  2               ;
+0013CC  2               
+0013CC  2               ;The initialization routine sets up the
+0013CC  2               ;memory map, clears out certain flags,
+0013CC  2               ;and enables the raster interrupt
+0013CC  2               
+0013CC  2               INIT:
+0013CC  2               	; set 80 col text mode here
+0013CC  2  A2 50                ldx 	#80
+0013CE  2  86 D9                STX     COLUMNS
+0013D0  2  A0 19        	ldy 	#25
+0013D2  2  84 DA                STY     ROWS
+0013D4  2               	; set colors here
+0013D4  2               	; clear screen here
+0013D4  2               
+0013D4  2  A9 01                LDA     #TOPFGCOLOR
+0013D6  2  8D 48 16             STA     INSMODE
+0013D9  2  9C 3C 16             STZ     texstart
+0013DC  2  9C 3E 16             STZ     texend
+0013DF  2  9C 40 16             STZ     texbuf
+0013E2  2  9C 42 16             STZ     bufend
+0013E5  2  9C E4 16             STZ     huntlen
+0013E8  2  9C 03 17             STZ     replen
+0013EB  2  A9 1A                LDA     #>END           ;
+0013ED  2  1A                   INC
+0013EE  2  8D 3D 16             STA     texstart+1
+0013F1  2  A9 90                LDA     #>TEXEND_INIT
+0013F3  2  8D 3F 16             STA     texend+1
+0013F6  2  A9 00                LDA     #<TEXBUF_INIT
+0013F8  2  8D 41 16             STA     texbuf+1
+0013FB  2  A9 00                LDA     #<BUFEND_INIT
+0013FD  2  8D 43 16             STA     bufend+1
+001400  2  8D E2 16             STA     fpos+1
+001403  2  60           	RTS
+001404  2               INIT2:
+001404  2  20 96 0C             JSR     killbuff
+001407  2               ; moved forward to match binary
+001407  2               ;       TODO: confirm or convert 650/$9D settings
+001407  2               INIT3:
+001407  2  A9 80                LDA     #128
+001409  2  AD 3C 16 85          COPY16  texstart,curr
+00140D  2  39 AD 3D 16  
+001411  2  85 3A        
+001413  2               ; display program title
+001413  2  20 21 14             JSR     sysmsg
+001416  2               ; display author name
+001416  2  A9 6E A0 14          PRINTMESSAGE MSG2
+00141A  2  20 32 09     
+00141D  2  EE 47 16             INC     msgflg
+001420  2  60                   RTS
+001421  2               
+001421  2               ;sysmsg displays "SpeedScript" and the version.
+001421  2               sysmsg:
+001421  2  AD 48 16             LDA     INSMODE
+001424  2  85 0C                STA     windcolr
+001426  2  20 34 14             JSR     topclr
+001429  2  A9 5A A0 14          PRINTMESSAGE MSG1
+00142D  2  20 32 09     
+001430  2  9C 47 16             STZ     msgflg
+001433  2  60                   RTS
+001434  2               
+001434  2               ;topclr keeps the command line clean.
+001434  2               ;It is called before most messages.
+001434  2               ;It's like a one-line clear-screen.
+001434  2               topclr:
+001434  2               ;        LDX     COLUMNS         ; columns
+001434  2               ;        LDA     #V_H_INC1       ; write both text & color
+001434  2               ;        STA     V_H
+001434  2               ;        STZ     V_M
+001434  2               ;        STZ     V_L
+001434  2               ;        LDA     #space
+001434  2               ;        LDY     windcolr
+001434  2               ;        STY     646
+001434  2               ;toploop:
+001434  2               ;        STA     V_1
+001434  2               ;        STY     V_1
+001434  2               ;        DEX
+001434  2               ;        BPL     toploop
+001434  2               ;        LDA     #19             ;HOME
+001434  2               ;        JMP     chrout
+001434  2               ;Converts PETSCII to screen codes.
+001434  2               ;astoin:
+001434  2               ;        PHA
+001434  2               ;        AND     #128
+001434  2               ;        LSR
+001434  2               ;        STA     temp
+001434  2               ;        PLA
+001434  2               ;        AND     #63
+001434  2               ;        ORA     temp
+001434  2               ;        RTS
+001434  2               
+001434  2               
+001434  2               chrin:
+001434  2  8E 4C 14             stx     chrouttmpx
+001437  2  A2 06                LDX     #6              ;
+001439  2  20 03 01             JSR     PEM             ;
+00143C  2  AE 4C 14             ldx     chrouttmpx
+00143F  2  60                   rts
+001440  2               
+001440  2               chrout:
+001440  2  8E 4C 14             stx     chrouttmpx
+001443  2  A2 02                LDX     #2              ;  OUTPUT THE CHAR TO THE CONSOLE
+001445  2  20 03 01             JSR     PEM             ;
+001448  2  AE 4C 14             ldx     chrouttmpx
+00144B  2  60                   rts
+00144C  2               chrouttmpx:
+00144C  2  00                   .byte 00
+00144D  2               
+00144D  2               
+00144D  2               ;refresh copies a screenful of text
+00144D  2               ;from the area of memory pointed to by
+00144D  2               ;toplin. It works like a printer routine,
+00144D  2               ;fitting a line of text between the screen
+00144D  2               ;margins, wrapping words, and restarts
+00144D  2               ;at the left margin after printing a car-
+00144D  2               ;riage return. SpeedScript constantly calls
+00144D  2               ;this routine while the cursor is blink-
+00144D  2               ;ing, so it has to be very fast. To elimi-
+00144D  2               ;nate flicker, it also clears out the end of
+00144D  2               ;each line instead of first clearing the
+00144D  2               ;screen. It stores the length of the first
+00144D  2               ;screen line for the sake of the check
+00144D  2               ;routine (which scrolls up by adding
+00144D  2               ;that length to toplin), the last text
+00144D  2               ;location referenced (so check can see
+00144D  2               ;if the cursor has moved off the visible
+00144D  2               ;screen).
+00144D  2               
+00144D  2               
+00144D  2               refresh:
+00144D  2               ; set topline and border color elsewhere
+00144D  2               
+00144D  2               ; set pointer tex to top of document
+00144D  2  AD 45 16 85          COPY16  toplin,tex
+001451  2  FB AD 46 16  
+001455  2  85 FC        
+001457  2               ; set VERA to skip color memory
+001457  2               ;        LDA     #$20
+001457  2               ;        STA     V_H
+001457  2               ;; set VERA pointer to beginning of 2nd line
+001457  2               ;        LDX     #1
+001457  2               ;        STX     V_M
+001457  2               ;        STZ     V_L
+001457  2               ;PPAGE:
+001457  2               ;        LDY     #0
+001457  2               ;PLINE:
+001457  2               ;        LDA     (tex),Y
+001457  2               ;        STA     lbuff,Y
+001457  2               ;        INY
+001457  2               ;        AND     #127
+001457  2               ;        CMP     #retchar
+001457  2               ;        BEQ     BREAK
+001457  2               ;        CPY     COLUMNS         ;COLUMNS
+001457  2               ;        BNE     PLINE
+001457  2               ; hit column 39 without end-of-paragraph
+001457  2               ; backspace until it hits a space
+001457  2               ;        DEY
+001457  2               ;SLOOP:
+001457  2               ;        LDA     (tex),Y
+001457  2               ;        AND     #127
+001457  2               ;NXCUR:
+001457  2               ;        CMP     #space
+001457  2               ;        BEQ     SBRK            ; wrap at this character
+001457  2               ;        DEY
+001457  2               ;        BNE     SLOOP
+001457  2               ;        LDY     COLUMNS         ; columns
+001457  2               ;        DEY
+001457  2               ;; copy line onto screen
+001457  2               ;SBRK:
+001457  2               ;        INY
+001457  2               ;BREAK:
+001457  2               ;        STY     temp
+001457  2               ;        LDY     #0
+001457  2               ;COPY:
+001457  2               ;        LDA     lbuff,Y
+001457  2               ;        STA     V_1
+001457  2               ;        INY
+001457  2               ;        CPY     temp
+001457  2               ;        BMI     COPY
+001457  2               ;        LDY     temp
+001457  2               ;        CLC
+001457  2               ;        TYA
+001457  2               ;        ADC     tex
+001457  2               ;        STA     tex
+001457  2               ;        LDA     tex+1
+001457  2               ;        ADC     #0
+001457  2               ;        STA     tex+1
+001457  2               ;        CPX     #1
+001457  2               ;        BNE     CLRLN
+001457  2               ;        STY     LENTABLE
+001457  2               ;; fill rest of line with spaces
+001457  2               ;CLRLN:
+001457  2               ;        CPY     COLUMNS         ; columns
+001457  2               ;        BEQ     CLEARED
+001457  2               ;        LDA     #32
+001457  2               ;        STA     V_1
+001457  2               ;        INY
+001457  2               ;        BRA     CLRLN
+001457  2               ;CLEARED:
+001457  2               ;; move screen pointer to next row
+001457  2               ;        STZ     V_L
+001457  2               ;        INC     V_M
+001457  2               ;        INX
+001457  2               ;        CPX     ROWS            ; rows
+001457  2               ;        BEQ     pdone
+001457  2               ;        BRA     PPAGE
+001457  2               ;pdone:
+001457  2               ;        COPY16  tex,BOTSCR
+001457  2  60                   RTS
+001458  2               
+001458  2               BORDER:
+001458  2               ;        LDA     TEXCOLR
+001458  2               ;        CLC
+001458  2               ;        ADC     #$10
+001458  2               ;        STA     TEXCOLR
+001458  2               COLORALL:
+001458  2               ;        LDA     #$20
+001458  2               ;        STA     V_H
+001458  2               ;        LDX     #1
+001458  2               ;        LDA     TEXCOLR
+001458  2               ;colorrow:
+001458  2               ;        STX     V_M
+001458  2               ;        LDY     #1
+001458  2               ;        STY     V_L
+001458  2               ;        LDY     COLUMNS         ;Columns
+001458  2               ;colorcol:
+001458  2               ;        STA     V_1
+001458  2               ;        DEY
+001458  2               ;        BNE     colorcol
+001458  2               ;        INX
+001458  2               ;        CPX     ROWS            ;ROWS
+001458  2               ;        BNE     colorrow
+001458  2  60                   RTS
+001459  2               
+001459  2               scrcol:
+001459  2               ;        .BYTE   12              ; gray
+001459  2               ;;TEXCOLR (text color) is used in the refresh routine
+001459  2               ;;and stored into color memory. Both SCRCOL and TEXCOLR
+001459  2               ;;are stored within the SpeedScript code so that after
+001459  2               ;;they're changed, you can resave SpeedScript and it
+001459  2               ;;will come up with your color choice in the future.
+001459  2               LETTERS:
+001459  2               ;        LDA     TEXCOLR
+001459  2               ;        INA
+001459  2               ;        AND     #$0F
+001459  2               ;        TAX
+001459  2               ;        LDA     TEXCOLR
+001459  2               ;        AND     #$F0
+001459  2               ;        STX     TEXCOLR
+001459  2               ;        ORA     TEXCOLR
+001459  2               ;        STA     TEXCOLR
+001459  2               ;        BRA     COLORALL
+001459  2               ;TEXCOLR:
+001459  2               ;        .BYTE   $cb             ;dark gray on light gray
+001459  2               
+001459  2               
+001459  2  60                   rts
+00145A  2               
+00145A  1               ;;;;	.include "io.asm"
+00145A  1               
+00145A  1               ; speedscript 3.1 by charles brannon
+00145A  1               MSG1:
+00145A  1  08 0E 9B 92          .BYTE   $08, $0e, $9b, $92
+00145E  1  53 70 65 65          .ASCIIZ "SpeedScript 3.1"
+001462  1  64 53 63 72  
+001466  1  69 70 74 20  
+00146E  1               MSG2:
+00146E  1  20 62 79 20          .ASCIIZ " by Charles Brannon"
+001472  1  43 68 61 72  
+001476  1  6C 65 73 20  
+001482  1               killmsg:
+001482  1  42 75 66 66          .ASCIIZ "Buffer Cleared"
+001486  1  65 72 20 43  
+00148A  1  6C 65 61 72  
+001491  1               buferr:
+001491  1  42 75 66 66          .ASCIIZ "Buffer Full"
+001495  1  65 72 20 46  
+001499  1  75 6C 6C 00  
+00149D  1               delmsg:
+00149D  1  44 65 6C 65          .ASCIIZ "Delete (S,W,P)"
+0014A1  1  74 65 20 28  
+0014A5  1  53 2C 57 2C  
+0014AC  1               ynmsg:
+0014AC  1  3A 20 41 72          .ASCIIZ ": Are you sure? (Y/N):"
+0014B0  1  65 20 79 6F  
+0014B4  1  75 20 73 75  
+0014C3  1               clrmsg:
+0014C3  1  45 52 41 53          .ASCIIZ "ERASE ALL TEXT"
+0014C7  1  45 20 41 4C  
+0014CB  1  4C 20 54 45  
+0014D2  1               erasmsg:
+0014D2  1  45 72 61 73          .BYTE   "Erase (S,W,P): "
+0014D6  1  65 20 28 53  
+0014DA  1  2C 57 2C 50  
+0014E1  1  12 52 45 54          RVS_TEXT "RETURN"
+0014E5  1  55 52 4E 92  
+0014E9  1  20 74 6F 20          .ASCIIZ " to exit"
+0014ED  1  65 78 69 74  
+0014F1  1  00           
+0014F2  1               formsg:
+0014F2  1  50 72 65 73          .ASCIIZ "Press format key:"
+0014F6  1  73 20 66 6F  
+0014FA  1  72 6D 61 74  
+001504  1               savmsg:
+001504  1  53 61 76 65          .ASCIIZ "Save:"
+001508  1  3A 00        
+00150A  1               FNF:
+00150A  1  54 61 70 65          .ASCIIZ "Tape ERROR"
+00150E  1  20 45 52 52  
+001512  1  4F 52 00     
+001515  1               brmsg:
+001515  1  53 74 6F 70          .ASCIIZ "Stopped"
+001519  1  70 65 64 00  
+00151D  1               vererr:
+00151D  1  56 65 72 69          .ASCIIZ "Verify Error"
+001521  1  66 79 20 45  
+001525  1  72 72 6F 72  
+00152A  1               okmsg:
+00152A  1  4E 6F 20 65          .ASCIIZ "No errors"
+00152E  1  72 72 6F 72  
+001532  1  73 00        
+001534  1               loadmsg:
+001534  1  4C 6F 61 64          .ASCIIZ "Load:"
+001538  1  3A 00        
+00153A  1               vermsg:
+00153A  1  56 65 72 69          .ASCIIZ "Verify:"
+00153E  1  66 79 3A 00  
+001542  1               dirmsg:
+001542  1  50 72 65 73          .BYTE   "Press "
+001546  1  73 20        
+001548  1  12 52 45 54          RVS_TEXT "RETURN"
+00154C  1  55 52 4E 92  
+001550  1  00                   .BYTE   0
+001551  1               dcmsg:
+001551  1  44 69 73 6B          .ASCIIZ "Disk command:"
+001555  1  20 63 6F 6D  
+001559  1  6D 61 6E 64  
+00155F  1               dirname:
+00155F  1  24                   .BYTE   "$"
+001560  1               inserr:
+001560  1  4E 6F 20 52          .ASCIIZ "No Room"
+001564  1  6F 6F 6D 00  
+001568  1               insmsg:
+001568  1  4E 6F 20 74          .ASCIIZ "No text in buffer."
+00156C  1  65 78 74 20  
+001570  1  69 6E 20 62  
+00157B  1               choosemsg:
+00157B  1  93                   .BYTE   PETSCII_CLR
+00157C  1  50 72 69 6E          .BYTE   "Print to: "
+001580  1  74 20 74 6F  
+001584  1  3A 20        
+001586  1  12 53 92             RVS_TEXT "S"
+001589  1  63 72 65 65          .BYTE   "creen,"
+00158D  1  6E 2C        
+00158F  1  12 44 92             RVS_TEXT "D"
+001592  1  69 73 6B 2C          .BYTE   "isk,"
+001596  1  12 50 92             RVS_TEXT "P"
+001599  1  72 69 6E 74          .ASCIIZ "rinter?"
+00159D  1  65 72 3F 00  
+0015A1  1               devmsg:
+0015A1  1  44 65 76 69          .ASCIIZ "Device number?"
+0015A5  1  63 65 20 6E  
+0015A9  1  75 6D 62 65  
+0015B0  1               sadrmsg:
+0015B0  1  53 65 63 6F          .ASCIIZ "Secondary Address #?"
+0015B4  1  6E 64 61 72  
+0015B8  1  79 20 41 64  
+0015C5  1               fnmsg:
+0015C5  1  50 72 69 6E          .ASCIIZ "Print to filename:"
+0015C9  1  74 20 74 6F  
+0015CD  1  20 66 69 6C  
+0015D8  1               prinmsg:
+0015D8  1  93                   .BYTE   PETSCII_CLR
+0015D9  1  50 72 69 6E          .BYTE   "Printing..."
+0015DD  1  74 69 6E 67  
+0015E1  1  2E 2E 2E     
+0015E4  1  0D 0D 00             .BYTE   $0d,$0d,$00
+0015E7  1               waitmsg:
+0015E7  1  49 6E 73 65          .BYTE   "Insert next sheet, press "
+0015EB  1  72 74 20 6E  
+0015EF  1  65 78 74 20  
+001600  1  12 52 45 54          RVS_TEXT "RETURN"
+001604  1  55 52 4E 92  
+001608  1  00                   .BYTE   0
+001609  1               srchmsg:
+001609  1  48 75 6E 74          .ASCIIZ "Hunt for:"
+00160D  1  20 66 6F 72  
+001611  1  3A 00        
+001613  1               nfmsg:
+001613  1  4E 6F 74 20          .ASCIIZ "Not Found"
+001617  1  46 6F 75 6E  
+00161B  1  64 00        
+00161D  1               repmsg:
+00161D  1  52 65 70 6C          .ASCIIZ "Replace with:"
+001621  1  61 63 65 20  
+001625  1  77 69 74 68  
+00162B  1               xitmsg:
+00162B  1               ;EXIT SpeedScript
+00162B  1  45 58 49 54          .ASCIIZ "EXIT SpeedScript"
+00162F  1  20 53 70 65  
+001633  1  65 64 53 63  
+00163C  1               
+00163C  1               texstart:
+00163C  1                       .ORG    *+2
+00163E  1               texend:
+00163E  1                       .ORG    *+2
+001640  1               texbuf:
+001640  1                       .ORG    *+2
+001642  1               bufend:
+001642  1                       .ORG    *+2
+001644  1               LENTABLE:
+001644  1                       .ORG    *+1
+001645  1               toplin:
+001645  1                       .ORG    *+2
+001647  1               msgflg:
+001647  1                       .ORG    *+1
+001648  1               INSMODE:
+001648  1                       .ORG    *+1
+001649  1               endpos:
+001649  1                       .ORG    *+1
+00164A  1               finpos:
+00164A  1                       .ORG    *+1
+00164B  1               lastline:
+00164B  1                       .ORG    *+2
+00164D  1               limit:
+00164D  1                       .ORG    *+1
+00164E  1               inlen:
+00164E  1                       .ORG    *+1
+00164F  1               BOTSCR:
+00164F  1                       .ORG    *+2
+001651  1               lbuff:
+001651  1                       .ORG    *+40
+001679  1               inbuff:
+001679  1                       .ORG    *+40
+0016A1  1               filename:
+0016A1  1                       .ORG    *+24
+0016B9  1               fnlen:
+0016B9  1                       .ORG    *+1
+0016BA  1               savcurr:
+0016BA  1                       .ORG    *+2
+0016BC  1               bcd:
+0016BC  1                       .ORG    *+2
+0016BE  1               hex:
+0016BE  1                       .ORG    *+2
+0016C0  1               tptr:
+0016C0  1                       .ORG    *+2
+0016C2  1               buflen:
+0016C2  1                       .ORG    *+2
+0016C4  1               goblen:
+0016C4  1                       .ORG    *+2
+0016C6  1               fromsav:
+0016C6  1                       .ORG    *+2
+0016C8  1               destsav:
+0016C8  1                       .ORG    *+2
+0016CA  1               hdlen:
+0016CA  1                       .ORG    *+1
+0016CB  1               ftlen:
+0016CB  1                       .ORG    *+1
+0016CC  1               lmargin:
+0016CC  1                       .ORG    *+1
+0016CD  1               rmargin:
+0016CD  1                       .ORG    *+1
+0016CE  1               pagelength:
+0016CE  1                       .ORG    *+1
+0016CF  1               topmarg:
+0016CF  1                       .ORG    *+1
+0016D0  1               botmarg:
+0016D0  1                       .ORG    *+1
+0016D1  1               spacing:
+0016D1  1                       .ORG    *+1
+0016D2  1               continuous:
+0016D2  1                       .ORG    *+1
+0016D3  1               pagenum:
+0016D3  1                       .ORG    *+2
+0016D5  1               startnum:
+0016D5  1                       .ORG    *+2
+0016D7  1               pagewidth:
+0016D7  1                       .ORG    *+1
+0016D8  1               nomarg:
+0016D8  1                       .ORG    *+1
+0016D9  1               pos:
+0016D9  1                       .ORG    *+1
+0016DA  1               line:
+0016DA  1                       .ORG    *+1
+0016DB  1               ysave:
+0016DB  1                       .ORG    *+1
+0016DC  1               savchar:
+0016DC  1                       .ORG    *+1
+0016DD  1               inslen:
+0016DD  1                       .ORG    *+1
+0016DE  1               devno:
+0016DE  1                       .ORG    *+1
+0016DF  1               needasc:
+0016DF  1                       .ORG    *+1
+0016E0  1               underline:
+0016E0  1                       .ORG    *+1
+0016E1  1               fpos:
+0016E1  1                       .ORG    *+2
+0016E3  1               pcr:
+0016E3  1                       .ORG    *+1
+0016E4  1               huntlen:
+0016E4  1                       .ORG    *+1
+0016E5  1               huntbuff:
+0016E5  1                       .ORG    *+30
+001703  1               replen:
+001703  1                       .ORG    *+1
+001704  1               repbuff:
+001704  1                       .ORG    *+30
+001722  1               codebuffer:
+001722  1                       .ORG    *+128
+0017A2  1               prbuff:
+0017A2  1                       .ORG    *+256
+0018A2  1               hdbuff:
+0018A2  1                       .ORG    *+256
+0019A2  1               firstrun:
+0019A2  1                       .ORG    *+1
+0019A3  1               ftbuff:
+0019A3  1                       .ORG    *+256
+001AA3  1               savcol:
+001AA3  1                       .ORG    *+1
+001AA4  1               linefeed:
+001AA4  1                       .ORG    *+1
+001AA5  1               blinkflag:
+001AA5  1                       .ORG    *+1
+001AA6  1               END:
+001AA6  1               

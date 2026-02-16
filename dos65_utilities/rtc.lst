@@ -2,7 +2,6 @@ ca65 V2.18 - Ubuntu 2.19-1
 Main file   : rtc.asm
 Current file: rtc.asm
 
-000000r 1               
 000000r 1               ;
 000000r 1               ; Program:	rtc.asm
 000000r 1               ; Author:		Andrew Lynch
