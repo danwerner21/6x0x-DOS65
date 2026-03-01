@@ -29,6 +29,7 @@ LAB_BAER:
         .WORD   ERR_UF          ;$20 undefined function
         .WORD   ERR_LD          ;$22 LOOP without DO
         .WORD   ERR_IO          ;$24 IO ERROR
+        .WORD   ERR_DR          ;$26 MISSING DRIVE ERROR
 
 ; I may implement these two errors to force definition of variables and
 ; dimensioning of arrays before use.
@@ -77,7 +78,7 @@ ERR_LD:
         .BYTE   "LOOP without DO",$00
 ERR_IO:
         .BYTE   "I/O",$00
-ERR_DRVM:
+ERR_DR:
         .BYTE   "Drive missing",$00
 
 ;ERR_UV	.byte	"Undefined variable",$00
