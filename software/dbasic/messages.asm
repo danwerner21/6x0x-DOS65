@@ -28,6 +28,7 @@ LAB_BAER:
         .WORD   ERR_CN          ;$1E continue error
         .WORD   ERR_UF          ;$20 undefined function
         .WORD   ERR_LD          ;$22 LOOP without DO
+        .WORD   ERR_IO          ;$24 IO ERROR
 
 ; I may implement these two errors to force definition of variables and
 ; dimensioning of arrays before use.
@@ -74,6 +75,8 @@ ERR_UF:
         .BYTE   "Undefined function",$00
 ERR_LD:
         .BYTE   "LOOP without DO",$00
+ERR_IO:
+        .BYTE   "I/O error",$00
 
 ;ERR_UV	.byte	"Undefined variable",$00
 

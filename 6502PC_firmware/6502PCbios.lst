@@ -103,6 +103,13 @@ Current file: 6502PCbios.asm
 000000r 2               Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
 000000r 2               Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 000000r 2               Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
+000000r 2               CURX            = $0647         ; CURRENT CURSOR POSITION (MEMORY MAPPED)
+000000r 2               CURY            = $0648
+000000r 2               SHOWCRSR        = $0649         ; SHOW CURSOR (1-YES, 0-NO) (MEMORY MAPPED)
+000000r 2               CURCOLOR        = $064A         ; CURRENT PRINT COLOR (MEMORY MAPPED)
+000000r 2               CSRCOLOR        = $064B         ; CURRENT CURSOR COLOR (MEMORY MAPPED)
+000000r 2               VIDEOMODE       = $064C         ; CURRENT VIDEO MODE (MEMORY MAPPED) 00=40 COL, 01=80 COL
+000000r 2               UNDERCRSR       = $064D         ; ORIGINAL COLOR UNDER CURSOR
 000000r 2               
 000000r 2               tea             = $800          ;tea start
 000000r 2               

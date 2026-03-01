@@ -53,6 +53,13 @@ DSKY_PRESENT    = $0643
 Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
 Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
+CURX            = $0647         ; CURRENT CURSOR POSITION (MEMORY MAPPED)
+CURY            = $0648
+SHOWCRSR        = $0649         ; SHOW CURSOR (1-YES, 0-NO) (MEMORY MAPPED)
+CURCOLOR        = $064A         ; CURRENT PRINT COLOR (MEMORY MAPPED)
+CSRCOLOR        = $064B         ; CURRENT CURSOR COLOR (MEMORY MAPPED)
+VIDEOMODE       = $064C         ; CURRENT VIDEO MODE (MEMORY MAPPED) 00=40 COL, 01=80 COL
+UNDERCRSR       = $064D         ; ORIGINAL COLOR UNDER CURSOR
 
 tea             = $800          ;tea start
 

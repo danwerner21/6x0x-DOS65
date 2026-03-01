@@ -53,6 +53,16 @@ BASICBEGIN:
         LDA     $0105
         STA     PEMVEC+1
 
+        .IFDEF  MEMORYMAPPEDSCREEN
+        LDA     #0
+        STA     SHOWCRSR        ; TURN OFF CURSOR
+        LDA     #38
+        STA     farfunct
+        JSR     DO_FARCALL      ; CLEAR SCREEN
+        LDA     #59
+        STA     farfunct
+        JSR     DO_FARCALL      ; UNPAINT CURSOR
+        .ENDIF
 
 LAB_COLD:
         LDY     #PG2_TABE-PG2_TABS-1
@@ -553,6 +563,17 @@ LAB_134B:
 ; call for BASIC input (main entry point)
 
 LAB_1357:
+        .IFDEF  MEMORYMAPPEDSCREEN
+; Do screen editor
+        JSR     ScreenEditor
+        LDX     #<Ibuffs        ; set X to buffer start-1 low byte
+        LDY     #>Ibuffs        ; set Y to buffer start-1 high byte
+        LDA     #$00
+        RTS
+        .ENDIF
+
+
+SimpleSerialEditor:
         LDX     #$00            ; clear BASIC line buffer pointer
 LAB_1359:
         JSR     V_INPT          ; call scan input device
@@ -584,6 +605,7 @@ LAB_1378:
 
         STA     Ibuffs,X        ; else store in buffer
         INX                     ; increment pointer
+
 LAB_137F:
         JSR     LAB_PRNA        ; go print the character
         BNE     LAB_1359        ; always loop for next character
@@ -5347,6 +5369,8 @@ LAB_CALL
         NOP                     ; NEEDED FOR ASSEMBLER BUG?
         NOP                     ; NEEDED FOR ASSEMBLER BUG?
         NOP                     ; NEEDED FOR ASSEMBLER BUG?
+        NOP                     ; NEEDED FOR ASSEMBLER BUG?
+        NOP                     ; NEEDED FOR ASSEMBLER BUG?
 
 ; if the called routine exits correctly then it will return to here. this will then get
 ; the next byte for the interpreter and return
@@ -8010,6 +8034,7 @@ LAB_TWOPI:
 
 AA_end_basic:
 FCBBUFFER:
+        .res    128, $00
 ENDOFBASIC:
         .BYTE   "DERIVED FROM ehBASIC"
 

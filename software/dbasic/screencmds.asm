@@ -1,27 +1,8 @@
-HIRES PLOT DOES NOT WORK
-NEED TO TEST HIRES MONO PLOT
-NEED TO TEST PATTERN
-
-THEN OTHER SCREEN COMMANDS (PRINT, COLOR, CLEAR, LOCATE, ETC . . . )
-SCREEN EDITOR
-CIRCLE?
-BOX?
-LINE?
-
-SID COMMANDS
-RTC COMMANDS
-
-DOS COMMANDS
-FILE IO . . .
-DIRECTORY . . .
-
-
-
 
         .IFDEF  MEMORYMAPPEDSCREEN
 
 ;* MEMORY MAP
-;  VIDEO CARD IS A 32K AREA
+;  VIDEO CARD IS A 32K AREA (MAPPED IN BANKS TO $AXXX)
 ;  $0x00 0x01=soft_scanline_emulation, 0x02 NO soft_scanline_emulation
 ;  $0x01 0x01=page1, 0x02 page2
 ;  $0x02  character generator write offset (data << 3)
@@ -58,18 +39,25 @@ PC6502_MAP_SETUP = PC6502_IOSPACE+$E1
 PC6502_MMU_ENA  = PC6502_IOSPACE+$E2
 PC6502_MAP_SPACE = PC6502_IOSPACE+$D0
 
-VideoDisplayPage = $B001
-VideoCharGenOffset = $B002
-VideoCharGenData = $B003
-VideoTextMode   = $B005
-VideoLoresMode  = $B006
-VideoDoubleLores = $B007
-VideoHiresMode  = $B008
-VideoDoubleHires = $B009
-Video80col      = $B00A
-VideoMixedMode  = $B00b
-VideoQuadHires  = $B00c
-VideoMonoHires  = $B00d
+VideoDisplayPage = $A001
+VideoCharGenOffset = $A002
+VideoCharGenData = $A003
+VideoTextMode   = $A005
+VideoLoresMode  = $A006
+VideoDoubleLores = $A007
+VideoHiresMode  = $A008
+VideoDoubleHires = $A009
+Video80col      = $A00A
+VideoMixedMode  = $A00b
+VideoQuadHires  = $A00c
+VideoMonoHires  = $A00d
+
+CURX            = $0647         ; CURRENT CURSOR POSITION (MEMORY MAPPED)
+CURY            = $0648
+SHOWCRSR        = $0649         ; SHOW CURSOR (1-YES, 0-NO) (MEMORY MAPPED)
+CURCOLOR        = $064A         ; CURRENT PRINT COLOR (MEMORY MAPPED)
+CSRCOLOR        = $064B         ; CURRENT CURSOR COLOR (MEMORY MAPPED)
+BVIDEOMODE      = $064C         ; CURRENT VIDEO MODE (MEMORY MAPPED) 00=40 COL, 01=80 COL
 
 
 VIDEOMODE:
@@ -77,7 +65,7 @@ VIDEOMODE:
 CLRTMP:
         .BYTE   $00
 VIDEOWIDTH:
-        .BYTE   $00
+        .BYTE   80
 
 PTEMPW:
         .BYTE   $00,$00
@@ -89,6 +77,99 @@ PTEMPW3:
         .BYTE   $00,$00
 PTEMP:
         .BYTE   $00
+PTEMP4:
+        .BYTE   $00
+
+
+;___V_SCRCLR________________________________________________
+;
+; CLEAR SCREEN
+;
+;__________________________________________________________
+LAB_SCRCLR:
+V_SCNCLR:
+        STA     DBGA
+        STY     DBGY
+        STX     DBGX
+        LDA     #38
+        STA     farfunct
+        JSR     DO_FARCALL
+        LDA     #59
+        STA     farfunct
+        JSR     DO_FARCALL
+        LDA     DBGA
+        LDY     DBGY
+        LDX     DBGX
+        RTS
+
+
+
+;___V_LOCATE________________________________________________
+;
+; SET CURSOR LOCATION
+;
+;       LOCATE X,Y
+;
+;__________________________________________________________
+V_LOCATE:
+LAB_LOCATE:
+        JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X (MODE)
+        STX     DBGX
+        JSR     LAB_1C01        ; GET THE SECOND PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; GET THE SECOND PARAMETER, RETURN IN X
+        TXA
+        TAY
+        LDX     DBGX
+        LDA     #37
+        STA     farfunct
+        JSR     DO_FARCALL
+        RTS
+
+;___V_COLOR_________________________________________________
+;
+; SET COLOR FG,BG,CFG,CBG
+;
+;__________________________________________________________
+LAB_COLOR:
+V_COLOR:
+        LDA     #$00            ; CLEAR TEMP SPACE
+        STA     PTEMPW
+        STA     PTEMPW+1
+        JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X (MODE)
+        TXA
+        AND     #$0F
+        STA     PTEMPW
+        JSR     LAB_1C01        ; GET THE SECOND PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; GET THE SECOND PARAMETER, RETURN IN X
+        TXA
+        ASL     A
+        ASL     A
+        ASL     A
+        ASL     A
+        ORA     PTEMPW
+        STA     PTEMPW
+        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; GET THE THIRD PARAMETER, RETURN IN X
+        TXA
+        AND     #$0F
+        STA     PTEMPW+1
+        JSR     LAB_1C01        ; GET THE FOURTH PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; GET THE FOURTH PARAMETER, RETURN IN X
+        TXA
+        ASL     A
+        ASL     A
+        ASL     A
+        ASL     A
+        ORA     PTEMPW+1
+        STA     PTEMPW+1
+        LDX     PTEMPW
+        LDY     PTEMPW+1
+        LDA     #39
+        STA     farfunct
+        JSR     DO_FARCALL
+        RTS
+
+
 
 ;___V_SPEEK()______________________________________________
 ;
@@ -101,12 +182,10 @@ LAB_SPEEK:
 V_SPEEK:
         JSR     LAB_F2FX        ; save integer part of FAC1 in temporary integer
         LDA     Itemph
-        JSR     PRINT_BYTE
         TAY
         AND     #$0F
-        ORA     #$B0
+        ORA     #$A0
         STA     Itemph
-        JSR     PRINT_BYTE
         TYA
         AND     #$F0
         LSR     A
@@ -117,15 +196,13 @@ V_SPEEK:
         CLC
         ADC     #VIDEOBANK
         TAY
-        JSR     PRINT_BYTE
         LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
-        LDX     #$0B            ; MAP $BXXX
-        JSR     $FFF6           ; CALL SETPAGE
+        LDX     #$0A            ; MAP $AXXX
+        JSR     SETPAGE         ; CALL SETPAGE
         LDA     #$01
         STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 01
         LDY     #0
         LDA     (Itempl),Y
-        JSR     PRINT_BYTE
         TAY
         LDA     #$00
         STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
@@ -148,7 +225,7 @@ V_SPOKE:
         LDA     Itemph
         TAY
         AND     #$0F
-        ORA     #$B0
+        ORA     #$A0
         STA     Itemph
         TYA
         AND     #$F0
@@ -160,7 +237,11 @@ V_SPOKE:
         CLC
         ADC     #VIDEOBANK
         TAY
-
+        LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
+        LDX     #$0A            ; MAP $AXXX
+        JSR     SETPAGE         ; CALL SETPAGE
+        LDA     #$01
+        STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 01
         LDY     #0
         PLA                     ; PULL BYTE ARGUMENT
         STA     (Itempl),Y
@@ -241,6 +322,8 @@ SETUPMODE0:                     ; TEXT MODE
         JSR     PAGE_EXIT
         LDA     #40
         STA     VIDEOWIDTH
+        LDA     #0
+        STA     BVIDEOMODE
         JMP     SETUPMODE0_CLEAR
 SETUPMODE0_80:
         LDY     #$00+VIDEOBANK  ; AREA $0000-$0FFF
@@ -250,6 +333,8 @@ SETUPMODE0_80:
         JSR     PAGE_EXIT
         LDA     #80
         STA     VIDEOWIDTH
+        LDA     #1
+        STA     BVIDEOMODE
 SETUPMODE0_CLEAR:
         JMP     V_SCNCLR
         RTS
@@ -288,7 +373,7 @@ SETUPMODE1_CLEAR:               ;    ($2000-$2800)
         JSR     PAGE_ENTER
         LDA     #$00
         STA     TEMPW
-        LDA     #$B0
+        LDA     #$A0
         STA     TEMPW+1
         LDY     #$00
         LDA     #$00
@@ -299,7 +384,7 @@ SETUPMODE1_CLEAR:               ;    ($2000-$2800)
         INC     TEMPW+1
 
         LDX     TEMPW+1
-        CPX     #$B8
+        CPX     #$A8
         BNE     :-
         JSR     PAGE_EXIT
         JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
@@ -401,7 +486,7 @@ SETUPMODE2_CLEAR:               ; ($2000-$7FFF)
         LDA     #$00
         TAY
         STA     TEMPW
-        LDA     #$B0
+        LDA     #$A0
         STA     TEMPW+1
         LDA     #$00
 :
@@ -410,9 +495,9 @@ SETUPMODE2_CLEAR:               ; ($2000-$7FFF)
         BNE     :-
         INC     TEMPW+1
         LDX     TEMPW+1
-        CPX     #$C0
+        CPX     #$B0
         BNE     :-
-        LDX     #$B0
+        LDX     #$A0
         INC     CLRTMP
         LDX     CLRTMP
         CPX     #$00
@@ -439,9 +524,7 @@ SETUPMODE2_MIXED:
         STA     VIDEOMODE
         RTS
 
-LAB_SCRCLR:
-V_SCNCLR:
-        RTS
+
 
 PAGE_EXIT:
         LDA     #$00
@@ -451,8 +534,8 @@ PAGE_EXIT:
 PAGE_ENTER:
 ; Set "Y" register to video page ($YXXX)
         LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
-        LDX     #$0B            ; MAP $BXXX
-        JSR     $FFF6           ; CALL SETPAGE
+        LDX     #$0A            ; MAP $AXXX
+        JSR     SETPAGE         ; CALL SETPAGE
         LDA     #$01
         STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 01
         RTS
@@ -473,7 +556,7 @@ V_PLOT:
         AND     #$2F
         CMP     #$02
         BNE     :+
-        JMP    V_PLOT_HIRES_COLOR
+        JMP     V_PLOT_HIRES_COLOR
 :
         CMP     #$22
         BNE     :+
@@ -530,7 +613,7 @@ V_PLOT_LORES:
         ROL     PTEMPW1+1       ; *2
 :
                                 ; OK, Y OFFSET IS IN PTEMPW1, X IS IN PTEMPW
-        LDA     #$B0            ; ADD THE MEMORY OFFSET TO PTEMPW (BECAUSE IT IS EASY)
+        LDA     #$A0            ; ADD THE MEMORY OFFSET TO PTEMPW (BECAUSE IT IS EASY)
         STA     PTEMPW+1        ; THEN ADD PTEMPW1 TO PTEMPW THAT SHOULD BE THE MEMORY ADDRESS TO UPDATE
                                 ;
         CLC                     ; Clear the Carry flag before the first addition
@@ -581,21 +664,33 @@ V_PLOT_LORES:
         RTS
 
 V_PLOT_HIRES_COLOR:
-        JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X
-        TXA
-        PHA
-        LSR     A               ; 2 PIXEL PER BYTE
-        STA     PTEMPW          ; STORE X COORD IN OFFSET ADDRESS
-        LDA     #$00
+        JSR     LAB_EVNM        ; evaluate expression and check is numeric,
+; else do type mismatch
+        JSR     LAB_F2FX        ; save integer part of FAC1 in temporary integer
+        LDA     Itemph
         STA     PTEMPW+1
+        LDA     Itempl
+        PHA                     ; PUSH LOW BYTE OF X (FOR EVEN/ODD LATER)
+        LSR     Itemph
+        ROR     Itempl          ; 2 PIXEL PER BYTE
+        LDA     Itempl          ;
+        STA     PTEMPW          ;
+        LDA     Itemph          ;
+        STA     PTEMPW+1        ; STORE X COORD IN OFFSET ADDRESS;
+        LDA     #$00
         STA     PTEMPW1+1
         JSR     LAB_1C01        ; GET THE SECOND PARAMETER (AFTER ',') OR SYN ERR
         JSR     LAB_GTBY        ; GET THE SECOND PARAMETER, RETURN IN X
                                 ; FIGURE THE BUFFER OFFSET
         LDA     #$00
-
         TXA                     ; GET Y COORD
         STX     PTEMPW1
+
+        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; GET THE THIRD PARAMETER, RETURN IN X (PATTERN)
+        TXA
+        AND     #$0F
+        STA     PTEMP4          ; SAVE COLOR IN PTEMP4
         CLC                     ; MULTIPLY Y COORD BY 70 OR 140 (SINGLE OR DOUBLE HIRES)
         ASL     PTEMPW1
         ROL     PTEMPW1+1       ; *2
@@ -622,15 +717,14 @@ V_PLOT_HIRES_COLOR:
         LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
         ADC     PTEMPW2         ; Add the low byte of the second number (plus carry)
         STA     PTEMPW1         ; Store the low byte of the result
-
         LDA     PTEMPW1+1       ; Load the high byte of the first number
         ADC     PTEMPW2+1       ; Add the high byte of the second number (plus carry from previous op)
         STA     PTEMPW1+1       ; Store the high byte of the result
+
         CLC                     ; Clear the Carry flag before the first addition
         LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
         ADC     PTEMPW3         ; Add the low byte of the second number (plus carry)
         STA     PTEMPW1         ; Store the low byte of the result
-
         LDA     PTEMPW1+1       ; Load the high byte of the first number
         ADC     PTEMPW3+1       ; Add the high byte of the second number (plus carry from previous op)
         STA     PTEMPW1+1       ; Store the high byte of the result
@@ -641,24 +735,18 @@ V_PLOT_HIRES_COLOR:
         CMP     #00
         BEQ     :+
         ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*4)
+        ROL     PTEMPW1+1       ; *2
 :
                                 ; PTEMPW1 IS NOW Y OFFSET, ADD X OFFSET FOR MEMORY ADDRESS INTO TEMPW
         CLC                     ; Clear the Carry flag before the first addition
         LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
         ADC     PTEMPW          ; Add the low byte of the second number (plus carry)
         STA     TEMPW           ; Store the low byte of the result
-
-        LDA     PTEMPW1+1        ; Load the high byte of the first number
+        LDA     PTEMPW1+1       ; Load the high byte of the first number
         ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
         STA     TEMPW+1         ; Store the high byte of the result
 
-        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
-        JSR     LAB_GTBY        ; GET THE THIRD PARAMETER, RETURN IN X (PATTERN)
-        TXA
-        AND     #$0F
-        STA     PTEMP          ; SAVE COLOR IN TEMP
-        LDA     TEMPW           ; OK, LET'S CALCULATE THE BANK
+        LDA     TEMPW+1         ; OK, LET'S CALCULATE THE BANK
         AND     #$F0
         LSR     A
         LSR     A
@@ -666,28 +754,31 @@ V_PLOT_HIRES_COLOR:
         LSR     A
         CLC
         ADC     #$02+VIDEOBANK  ; AREA $2000-?
+        CMP     #$F8
+        BCC     V_PLOT_HIRES_COLOR_RANGE
         TAY                     ; VIDEO BANK SHOULD BE IN Y
         JSR     PAGE_ENTER
+
         LDA     TEMPW+1
         AND     #$0F
-        ORA     #$B0
+        ORA     #$A0
         STA     TEMPW+1         ; TEMPW NOW REFLECTS MAPPED ADDRESSS
         PLA
         LSR     A               ; LEFT OR RIGHT PIXEL?
-        BCC     :+
+        BCS     :+
                                 ; LEFT PIXEL
         LDY     #$00
         LDA     (TEMPW),Y       ; GET EXISTING DOUBLE PIXEL
         AND     #$0F
         PHA
-        LDA     PTEMP
+        LDA     PTEMP4
         ASL     A
         ASL     A
         ASL     A
         ASL     A
-        STA     PTEMP
+        STA     PTEMP4
         PLA
-        ORA     PTEMP
+        ORA     PTEMP4
         STA     (TEMPW),Y       ; WRITE THE PIXEL BACK OUT
         JSR     PAGE_EXIT
         RTS
@@ -696,20 +787,28 @@ V_PLOT_HIRES_COLOR:
         LDY     #$00
         LDA     (TEMPW),Y       ; GET EXISTING DOUBLE PIXEL
         AND     #$F0
-        ORA     PTEMP
+        ORA     PTEMP4
         STA     (TEMPW),Y       ; WRITE THE PIXEL BACK OUT
         JSR     PAGE_EXIT
         RTS
 
-V_PLOT_HIRES_MONO:
-        JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X
-        TXA
-        PHA
-        LSR     A               ; 8 PIXEL PER BYTE
-        LSR     A
-        LSR     A
+V_PLOT_HIRES_COLOR_RANGE:
+        JMP     LAB_2564
 
-        STA     PTEMPW         ; STORE X COORD IN OFFSET ADDRESS
+V_PLOT_HIRES_MONO:
+        JSR     LAB_EVNM        ; evaluate expression and check is numeric,
+                                ; else do type mismatch
+        JSR     LAB_F2FX        ; save integer part of FAC1 in temporary integer
+        LDA     Itempl
+        PHA
+        LSR     Itemph
+        ROR     Itempl
+        LSR     Itemph
+        ROR     Itempl
+        LSR     Itemph
+        ROR     Itempl          ; 8 PIXEL PER BYTE
+        LDA     Itempl
+        STA     PTEMPW          ; STORE X COORD IN OFFSET ADDRESS
         LDA     #00
         STA     PTEMPW+1
         STA     PTEMPW1+1
@@ -717,9 +816,14 @@ V_PLOT_HIRES_MONO:
         JSR     LAB_1C01        ; GET THE SECOND PARAMETER (AFTER ',') OR SYN ERR
         JSR     LAB_GTBY        ; GET THE SECOND PARAMETER, RETURN IN X
                                 ; FIGURE THE BUFFER OFFSET
-        TXA                     ; GET Y COORD
-        STX     PTEMPW1
+        STX     PTEMPW1         ; STORE Y COORD
         STX     PTEMPW3
+        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; GET THE THIRD PARAMETER, RETURN IN X (PATTERN)
+        TXA
+        AND     #$01
+        STA     PTEMP4          ; STORE COLOR IN PTEMP4
+        LDA     PTEMPW3
                                 ; MULTIPLY Y COORD BY 35 OR 70 (MONO OR QUAD HIRES)
         ASL     PTEMPW1
         ROL     PTEMPW1+1       ; *2
@@ -773,9 +877,8 @@ V_PLOT_HIRES_MONO:
         ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
         STA     TEMPW+1         ; Store the high byte of the result
                                 ; TEMPW IS NOW THE MEMORY ADDRESS
-        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
-        JSR     LAB_GTBY        ; GET THE THIRD PARAMETER, RETURN IN X (PATTERN)
-        LDA     TEMPW           ; OK, LET'S CALCULATE THE BANK
+
+        LDA     TEMPW+1         ; OK, LET'S CALCULATE THE BANK
         AND     #$F0
         LSR     A
         LSR     A
@@ -783,19 +886,18 @@ V_PLOT_HIRES_MONO:
         LSR     A
         CLC
         ADC     #$02+VIDEOBANK  ; AREA $2000-?
+        CMP     #$F8
+        BCC     V_PLOT_HIRES_COLOR_RANGE1
         TAY                     ; VIDEO BANK SHOULD BE IN Y
         JSR     PAGE_ENTER
         LDA     TEMPW+1
         AND     #$0F
-        ORA     #$B0
+        ORA     #$A0
         STA     TEMPW+1         ; TEMPW NOW REFLECTS MAPPED ADDRESSS
-        TXA
-        AND     #$01
-        STA     PTEMP          ; SAVE COLOR IN TEMP
         PLA
         AND     #$07            ; WHICH BIT?
         TAX
-        LDA     PTEMP
+        LDA     PTEMP4
         CMP     #$01
         BNE     :+
         LDA     HIRES_BIT_LOOKUP_SET,X
@@ -812,6 +914,8 @@ V_PLOT_HIRES_MONO:
         STA     (TEMPW),Y
         JSR     PAGE_EXIT
         RTS
+V_PLOT_HIRES_COLOR_RANGE1:
+        JMP     LAB_2564
 HIRES_BIT_LOOKUP_SET:
         .BYTE   %10000000,%01000000,%00100000,%00010000,%00001000,%00000100,%00000010,%00000001
 HIRES_BIT_LOOKUP_RESET:
@@ -828,9 +932,11 @@ HIRES_BIT_LOOKUP_RESET:
 LAB_PATTERN
 V_PATTERN:
         JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X
+        TXA
+        PHA
         LDY     #$00+VIDEOBANK  ; AREA $0000-$0FFF
         JSR     PAGE_ENTER
-        TXA
+        PLA
         STA     VideoCharGenOffset
         LDY     #8
 :
@@ -849,7 +955,8 @@ V_PATTERN:
         RTS
 
 
-
+LAB_LINE:
+        rts
         .ELSE
 
 
@@ -860,6 +967,9 @@ LAB_SCRCLR:
 LAB_SCREEN:
 LAB_PATTERN:
 LAB_PLOT:
+LAB_LOCATE:
+LAB_COLOR:
+LAB_LINE:
         LDX     #$02            ; error code $02 ("SYNTAX" error)
         JMP     LAB_XERR        ; do error #X, then warm start
 

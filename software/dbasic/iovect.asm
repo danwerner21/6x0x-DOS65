@@ -37,40 +37,223 @@ BYTEOUT:
 
         .ELSE
 
-; Serial port IO
-V_INPT: ; non halting scan input device
-BYTEIN:
-        STY     DBGY            ;
-        STX     DBGX            ;
-        LDX     #11             ;
-        JSR     PEM             ;
-        CMP     #$00            ;
-        BEQ     LAB_nobyw       ; branch if no byte waiting
-        LDX     #6              ;
-        JSR     PEM             ;
-        LDY     DBGY
-        LDX     DBGX
-        SEC                     ; flag byte received
-        RTS
-LAB_nobyw:
-        LDY     DBGY
-        LDX     DBGX
-        CLC                     ; flag no byte received
-        RTS                     ;
-
-V_OUTP: ; send byte to output device
+V_OUTP: ; send byte to memory mapped video device
 BYTEOUT:
         STA     DBGA
         STY     DBGY
         STX     DBGX
-        LDX     #2              ;
-        JSR     PEM             ;
+        LDA     #19
+        STA     farfunct
+        LDA     DBGA
+        JSR     DO_FARCALL
         LDA     DBGA
         LDY     DBGY
         LDX     DBGX
         RTS
 
+V_INPT: ; non halting keyboard scan
+BYTEIN:
+        STY     DBGY            ;
+        STX     DBGX            ;
+        LDA     #20
+        STA     farfunct
+        JSR     DO_FARCALL
+        CMP     #$FF            ;
+        BEQ     LAB_nobyw       ; branch if no byte waiting
+        LDY     DBGY
+        LDX     DBGX
+        SEC                     ; flag byte received
+        RTS
+LAB_nobyw:
+        LDA     #$00
+        LDY     DBGY
+        LDX     DBGX
+        CLC                     ; flag no byte received
+        RTS                     ;
 
+;___ScreenEditor____________________________________________
+;
+; Basic Screen editor code
+;
+;__________________________________________________________
+ScreenEditor:
+; allow prepopulate of screen
+ploop:
+        LDA     #58
+        STA     farfunct
+        JSR     DO_FARCALL      ; PAINT cursor
+ploop1:
+        LDA     #20
+        STA     farfunct
+        JSR     DO_FARCALL      ; GET KEYSTROKE
+        CMP     #$FF
+        BEQ     ploop1
+        PHA
+        LDA     #59
+        STA     farfunct
+        JSR     DO_FARCALL      ; UNPAINT cursor
+        PLA
+        CMP     #$F6
+        BEQ     crsrup
+        CMP     #$F7
+        BEQ     crsrdn
+        CMP     #$F8
+        BEQ     crsrlt
+        CMP     #$F9
+        BEQ     Lcrsrrt
+        CMP     #$0A
+        BEQ     ploop
+        CMP     #13
+        BEQ     Lpexit
+
+        PHA
+        LDA     #19
+        STA     farfunct
+        PLA
+        JSR     DO_FARCALL
+        JMP     ploop
+Lpexit:
+        JMP     pexit
+Lcrsrrt:
+        JMP     crsrrt
+
+crsrup:
+        LDA     CURY
+        CMP     #00
+        BEQ     ploop
+        DEC     CURY
+        JMP     ploop
+crsrdn:
+        LDA     CURY
+        CMP     #23
+        BEQ     crsrdn_1
+        INC     CURY
+        JMP     ploop
+crsrdn_1:
+        LDA     #56
+        STA     farfunct
+        JSR     DO_FARCALL
+        JMP     ploop
+crsrlt:
+        LDA     CURX
+        CMP     #00
+        BEQ     crsrlt_1
+        DEC     CURX
+        JMP     ploop
+crsrlt_1:
+        LDA     CURY
+        CMP     #00
+        BEQ     :+
+        LDX     VIDEOWIDTH
+        DEX
+        STX     CURX
+        LDY     CURY
+        DEY
+        STY     CURY
+:
+        JMP     ploop
+crsrrt:
+        LDX     VIDEOWIDTH
+        DEX
+        CPX     CURX
+        BEQ     crsrrt_1
+        INC     CURX
+        JMP     ploop
+crsrrt_1:
+        LDA     #00
+        STA     CURX
+        JMP     crsrdn
+pexit:
+        JSR     LdKbBuffer
+        LDX     #80
+        LDA     #$00
+        STA     Ibuffs,X
+TERMLOOP:
+        DEX
+        LDA     Ibuffs,X
+        CMP     #32
+        BEQ     TERMLOOP_B
+        CMP     #00
+        BEQ     TERMLOOP_C
+        JMP     TERMLOOP_A
+TERMLOOP_B:
+        LDA     #00
+        STA     Ibuffs,X
+TERMLOOP_C:
+        CPX     #00
+        BNE     TERMLOOP
+TERMLOOP_A:
+        LDA     #19
+        STA     farfunct
+        LDA     #13
+        JSR     DO_FARCALL
+        LDA     #19
+        STA     farfunct
+        LDA     #10
+        JSR     DO_FARCALL
+        RTS
+
+LdKbBuffer:
+; clear input buffer
+        LDX     #81
+:
+        LDA     #00
+        STA     Ibuffs-1,X
+        DEX
+        BNE     :-
+
+        LDY     CURY
+
+        STY     PTEMPW
+        LDA     #0
+        STA     PTEMPW+1
+        CLC
+        ASL     PTEMPW
+        ROL     PTEMPW+1        ; *2
+        ASL     PTEMPW
+        ROL     PTEMPW+1        ; *4
+        ASL     PTEMPW
+        ROL     PTEMPW+1        ; *8
+        LDA     PTEMPW
+        STA     PTEMPW1
+        LDA     PTEMPW+1
+        STA     PTEMPW1+1       ; PTEMPW1=Y*8
+        ASL     PTEMPW
+        ROL     PTEMPW+1        ; *16
+        ASL     PTEMPW
+        ROL     PTEMPW+1        ; *32
+                                ; TEMPW  = Y*8 + Y*32  (Y*40)
+        CLC                     ; Clear the Carry flag before the first addition
+        LDA     PTEMPW          ; Load the low byte of the first number into the accumulator
+        ADC     PTEMPW1         ; Add the low byte of the second number (plus carry)
+        STA     TEMPW           ; Store the low byte of the result
+        LDA     PTEMPW+1        ; Load the high byte of the first number
+        ADC     PTEMPW1+1       ; Add the high byte of the second number (plus carry from previous op)
+        STA     TEMPW+1         ; Store the high byte of the result
+
+        LDA     VIDEOWIDTH      ; If 80 col, double again
+        CMP     #80
+        BNE     :+
+        ASL     TEMPW
+        ROL     TEMPW+1         ; *2  (80)
+:
+        LDA     TEMPW+1
+        ORA     #$A0            ; add in the bank#
+        STA     TEMPW+1
+
+        LDY     #$01+VIDEOBANK  ; SCREEN AREA $1000-$1FFF
+        JSR     PAGE_ENTER
+        LDY     #0
+:
+        LDA     (TEMPW),Y
+        STA     Ibuffs,Y
+        INY
+        CPY     VIDEOWIDTH
+        BNE     :-
+
+        JSR     PAGE_EXIT
+        RTS
+        RTS
 
         .ENDIF
 
@@ -81,6 +264,31 @@ UART1DATA       = $EF84         ; SERIAL PORT 1 (I/O Card)
 UART1STATUS     = $EF85         ; SERIAL PORT 1 (I/O Card)
 UART1COMMAND    = $EF86         ; SERIAL PORT 1 (I/O Card)
 UART1CONTROL    = $EF87         ; SERIAL PORT 1 (I/O Card)
+
+PRINT_CRLF:
+        STX     TTX
+        STY     TTY
+        STA     TTA
+        LDA     #13
+        JSR     WRSER1          ; output upper nybble
+        LDA     #10
+        JSR     WRSER1          ; output upper nybble
+        LDX     TTX
+        LDY     TTY
+        LDA     TTA
+        RTS
+
+PRINT_SPACE:
+        STX     TTX
+        STY     TTY
+        STA     TTA
+        LDA     #32
+        JSR     WRSER1          ; output upper nybble
+        LDX     TTX
+        LDY     TTY
+        LDA     TTA
+        RTS
+
 
 PRINT_BYTE:
         STX     TTX

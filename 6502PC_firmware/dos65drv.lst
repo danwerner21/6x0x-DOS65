@@ -67,6 +67,13 @@ Current file: dos65drv.asm
 000000r 2               Cdebcyll        = $0644         ; DEBLOCKED CYLINDER LSB (IN CACHE)
 000000r 2               Cdebcylm        = $0645         ; DEBLOCKED CYLINDER MSB (IN CACHE)
 000000r 2               Cdebsehd        = $0646         ; DEBLOCKED SECTOR AND HEAD (HS)  (IN CACHE)
+000000r 2               CURX            = $0647         ; CURRENT CURSOR POSITION (MEMORY MAPPED)
+000000r 2               CURY            = $0648
+000000r 2               SHOWCRSR        = $0649         ; SHOW CURSOR (1-YES, 0-NO) (MEMORY MAPPED)
+000000r 2               CURCOLOR        = $064A         ; CURRENT PRINT COLOR (MEMORY MAPPED)
+000000r 2               CSRCOLOR        = $064B         ; CURRENT CURSOR COLOR (MEMORY MAPPED)
+000000r 2               VIDEOMODE       = $064C         ; CURRENT VIDEO MODE (MEMORY MAPPED) 00=40 COL, 01=80 COL
+000000r 2               UNDERCRSR       = $064D         ; ORIGINAL COLOR UNDER CURSOR
 000000r 2               
 000000r 2               tea             = $800          ;tea start
 000000r 2               
@@ -176,10 +183,10 @@ Current file: dos65drv.asm
 00C018  1  6C 33 00             JMP     (farpointer)
 00C01B  1               
 00C01B  1               DISPATCHTABLE:
-00C01B  1  F7 D4                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
-00C01D  1  F7 D4                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
-00C01F  1  F7 D4                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
-00C021  1  F7 D4                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
+00C01B  1  4F D5                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
+00C01D  1  4F D5                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
+00C01F  1  4F D5                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
+00C021  1  4F D5                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
 00C023  1               
 00C023  1  B5 C0                .WORD   WRSER1          ; FUNCTION 04 - WRITE SERIAL PORT
 00C025  1  C2 C0                .WORD   RDSER1          ; FUNCTION 05 - READ SERIAL PORT
@@ -197,43 +204,43 @@ Current file: dos65drv.asm
 00C039  1  22 CC                .WORD   KBD_GETKEY      ; FUNCTION 15 - READ KEYBOARD
 00C03B  1  41 CC                .WORD   KBD_GETKEYB     ; FUNCTION 16 - READ KEYBOARD (BLOCKING)
 00C03D  1  5D CC                .WORD   KBD_GETSTATUS   ; FUNCTION 17 - GET KEYBOARD STATUS
-00C03F  1  0A D5                .WORD   drv_noop        ; FUNCTION 18 - INIT INTERFACE
+00C03F  1  62 D5                .WORD   drv_noop        ; FUNCTION 18 - INIT INTERFACE
 00C041  1               
-00C041  1  BE D2                .WORD   WRVID           ; FUNCTION 19 - WRITE VIDEO
+00C041  1  CC D2                .WORD   WRVID           ; FUNCTION 19 - WRITE VIDEO
 00C043  1  22 CC                .WORD   KBD_GETKEY      ; FUNCTION 20 - READ KEYBOARD
 00C045  1  41 CC                .WORD   KBD_GETKEYB     ; FUNCTION 21 - READ KEYBOARD (BLOCKING)
 00C047  1  5D CC                .WORD   KBD_GETSTATUS   ; FUNCTION 22 - GET KEYBOARD STATUS
-00C049  1  BF D1                .WORD   VIDEOINIT       ; FUNCTION 23 - INIT INTERFACE
+00C049  1  B9 D1                .WORD   VIDEOINIT       ; FUNCTION 23 - INIT INTERFACE
 00C04B  1               
-00C04B  1  0A D5                .WORD   drv_noop        ; FUNCTION 24
-00C04D  1  0A D5                .WORD   drv_noop        ; FUNCTION 25
-00C04F  1  0A D5                .WORD   drv_noop        ; FUNCTION 26
-00C051  1  0A D5                .WORD   drv_noop        ; FUNCTION 27
-00C053  1  0A D5                .WORD   drv_noop        ; FUNCTION 28
+00C04B  1  62 D5                .WORD   drv_noop        ; FUNCTION 24
+00C04D  1  62 D5                .WORD   drv_noop        ; FUNCTION 25
+00C04F  1  62 D5                .WORD   drv_noop        ; FUNCTION 26
+00C051  1  62 D5                .WORD   drv_noop        ; FUNCTION 27
+00C053  1  62 D5                .WORD   drv_noop        ; FUNCTION 28
 00C055  1               
-00C055  1  0A D5                .WORD   drv_noop        ; FUNCTION 29
-00C057  1  0A D5                .WORD   drv_noop        ; FUNCTION 30
-00C059  1  0A D5                .WORD   drv_noop        ; FUNCTION 31
-00C05B  1  0A D5                .WORD   drv_noop        ; FUNCTION 32
-00C05D  1  0A D5                .WORD   drv_noop        ; FUNCTION 33
+00C055  1  62 D5                .WORD   drv_noop        ; FUNCTION 29
+00C057  1  62 D5                .WORD   drv_noop        ; FUNCTION 30
+00C059  1  62 D5                .WORD   drv_noop        ; FUNCTION 31
+00C05B  1  62 D5                .WORD   drv_noop        ; FUNCTION 32
+00C05D  1  62 D5                .WORD   drv_noop        ; FUNCTION 33
 00C05F  1               
 00C05F  1  6A D0                .WORD   LPT_OUT         ; SEND BYTE TO LPT PORT ; FUNCTION 34
 00C061  1  22 CC                .WORD   KBD_GETKEY      ; GET a character from the MULTI IO ps/2 keyboard ; FUNCTION 35
 00C063  1  75 CA                .WORD   MULTIOINIT      ; INIT MULTI IO CARD   ; FUNCTION 36
-00C065  1  B6 D2                .WORD   SETXY           ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 37
-00C067  1  6C D2                .WORD   CLEARSCREEN     ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 38
-00C069  1  AF D2                .WORD   SETCOLOR        ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 39
+00C065  1  C4 D2                .WORD   SETXY           ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 37
+00C067  1  7A D2                .WORD   CLEARSCREEN     ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 38
+00C069  1  BD D2                .WORD   SETCOLOR        ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 39
 00C06B  1               
-00C06B  1  0A D5                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
-00C06D  1  0A D5                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
-00C06F  1  0A D5                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
-00C071  1  0A D5                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
-00C073  1  0A D5                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
-00C075  1  0A D5                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
-00C077  1  0A D5                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
-00C079  1  0A D5                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
-00C07B  1  0A D5                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
-00C07D  1  0A D5                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
+00C06B  1  62 D5                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
+00C06D  1  62 D5                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
+00C06F  1  62 D5                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
+00C071  1  62 D5                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
+00C073  1  62 D5                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
+00C075  1  62 D5                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
+00C077  1  62 D5                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
+00C079  1  62 D5                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
+00C07B  1  62 D5                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
+00C07D  1  62 D5                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
 00C07F  1               ;
 00C07F  1  9D D0                .WORD   RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
 00C081  1  E7 D0                .WORD   RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
@@ -242,10 +249,10 @@ Current file: dos65drv.asm
 00C087  1  0C D1                .WORD   RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
 00C089  1  0B D1                .WORD   RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
 00C08B  1               
-00C08B  1  D5 D3                .WORD   SCROLLUP        ; Scroll the screen up one line  ; FUNCTION 56
-00C08D  1  41 D2                .WORD   SETMODE         ; Set video 40/80 mode ; FUNCTION 57
-00C08F  1  0A D5                .WORD   drv_noop        ; FUNCTION 58
-00C091  1  0A D5                .WORD   drv_noop        ; FUNCTION 59
+00C08B  1  29 D4                .WORD   SCROLLUP        ; Scroll the screen up one line  ; FUNCTION 56
+00C08D  1  4F D2                .WORD   SETMODE         ; Set video 40/80 mode ; FUNCTION 57
+00C08F  1  DC D3                .WORD   FPAINTCURSOR    ; FUNCTION 58
+00C091  1  11 D4                .WORD   UNPAINTCURSOR   ; FUNCTION 59
 00C093  1               
 00C093  1  E9 C0                .WORD   XTIDE_INIT      ; FUNCTION 60 - called during OS init
 00C095  1  20 C2                .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
@@ -255,9 +262,9 @@ Current file: dos65drv.asm
 00C09B  1  4D C6                .WORD   CH_READSEC      ; FUNCTION 64 - read a sector from the memory device
 00C09D  1  9C C6                .WORD   CH_WRITESEC     ; FUNCTION 65 - write a sector to the memory device
 00C09F  1               ;
-00C09F  1  0A D5                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
-00C0A1  1  0A D5                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
-00C0A3  1  0A D5                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
+00C09F  1  62 D5                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
+00C0A1  1  62 D5                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
+00C0A3  1  62 D5                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
 00C0A5  1               
 00C0A5  1               ;______________________________________________________________________________
 00C0A5  1               
@@ -511,24 +518,24 @@ Current file: dos65drv.asm
 00C0E9  2               ;____________________________________________________________________________________________________
 00C0E9  2               ;
 00C0E9  2               XTIDE_INIT:
-00C0E9  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C0E9  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C0EC  2  A9 4D                LDA     #<MESSAGE1      ;
 00C0EE  2  85 41                STA     STRPTR          ;
 00C0F0  2  A9 C3                LDA     #>MESSAGE1      ;
 00C0F2  2  85 42                STA     STRPTR+1        ;
-00C0F4  2  20 1F D5             JSR     WRSTR
-00C0F7  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C0F4  2  20 77 D5             JSR     WRSTR
+00C0F7  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C0FA  2               ;
 00C0FA  2  A9 55                LDA     #<MESSAGE2      ;
 00C0FC  2  85 41                STA     STRPTR          ;
 00C0FE  2  A9 C3                LDA     #>MESSAGE2      ;
 00C100  2  85 42                STA     STRPTR+1        ;
-00C102  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
+00C102  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
 00C105  2               
 00C105  2  A9 E3                LDA     #>XTIDE_DATA_LO ; GET BASE PORT
-00C107  2  20 34 D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C107  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C10A  2  A9 00                LDA     #<XTIDE_DATA_LO ; GET BASE PORT
-00C10C  2  20 34 D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C10C  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C10F  2               ;
 00C10F  2  20 4B C1             JSR     XTIDE_PROBE     ; DETECT AN ATA DEVICE, ABORT IF NOT FOUND
 00C112  2  C9 00                CMP     #$00
@@ -539,22 +546,22 @@ Current file: dos65drv.asm
 00C11B  2  85 41                STA     STRPTR          ;
 00C11D  2  A9 C3                LDA     #>MESSAGE3      ;
 00C11F  2  85 42                STA     STRPTR+1        ;
-00C121  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
+00C121  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
 00C124  2  4C 4A C1             JMP     IDE_INITA
 00C127  2               IDE_PRINT_INFO:
-00C127  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C127  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C12A  2  A9 69                LDA     #<MESSAGE4      ;
 00C12C  2  85 41                STA     STRPTR          ;
 00C12E  2  A9 C3                LDA     #>MESSAGE4      ;
 00C130  2  85 42                STA     STRPTR+1        ;
-00C132  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
+00C132  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
 00C135  2  A9 00                LDA     #$00
 00C137  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
 00C13A  2  A9 7B                LDA     #<MESSAGE5      ;
 00C13C  2  85 41                STA     STRPTR          ;
 00C13E  2  A9 C3                LDA     #>MESSAGE5      ;
 00C140  2  85 42                STA     STRPTR+1        ;
-00C142  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
+00C142  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
 00C145  2  A9 01                LDA     #$01
 00C147  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
 00C14A  2               IDE_INITA:
@@ -680,27 +687,27 @@ Current file: dos65drv.asm
 00C1E5  2  85 41                STA     STRPTR          ;
 00C1E7  2  A9 C3                LDA     #>MESSAGE6      ;
 00C1E9  2  85 42                STA     STRPTR+1        ;
-00C1EB  2  20 1F D5             JSR     WRSTR
+00C1EB  2  20 77 D5             JSR     WRSTR
 00C1EE  2  AD 7B 04             LDA     hstbuf+123
-00C1F1  2  20 34 D5             JSR     PRINT_BYTE
+00C1F1  2  20 8C D5             JSR     PRINT_BYTE
 00C1F4  2  AD 7A 04             LDA     hstbuf+122
-00C1F7  2  20 34 D5             JSR     PRINT_BYTE
+00C1F7  2  20 8C D5             JSR     PRINT_BYTE
 00C1FA  2  AD 79 04             LDA     hstbuf+121
-00C1FD  2  20 34 D5             JSR     PRINT_BYTE
+00C1FD  2  20 8C D5             JSR     PRINT_BYTE
 00C200  2  AD 78 04             LDA     hstbuf+120
-00C203  2  20 34 D5             JSR     PRINT_BYTE
+00C203  2  20 8C D5             JSR     PRINT_BYTE
 00C206  2  4C 1A C2             JMP     IDE_READ_INFO_OK
 00C209  2               IDE_READ_INFO_ABORT:
 00C209  2  A9 5C                LDA     #<MESSAGE3      ;
 00C20B  2  85 41                STA     STRPTR          ;
 00C20D  2  A9 C3                LDA     #>MESSAGE3      ;
 00C20F  2  85 42                STA     STRPTR+1        ;
-00C211  2  20 1F D5             JSR     WRSTR           ;DO PROMPT
-00C214  2  20 14 D5             JSR     LFCR            ;AND CRLF
+00C211  2  20 77 D5             JSR     WRSTR           ;DO PROMPT
+00C214  2  20 6C D5             JSR     LFCR            ;AND CRLF
 00C217  2  A9 FF                LDA     #$FF
 00C219  2  60                   RTS                     ;
 00C21A  2               IDE_READ_INFO_OK:
-00C21A  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C21A  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C21D  2  A9 00                LDA     #$00
 00C21F  2  60                   RTS
 00C220  2                       .ENDIF
@@ -1235,7 +1242,7 @@ Current file: dos65drv.asm
 00C45A  2               
 00C45A  2               
 00C45A  2               CH375INIT:
-00C45A  2  20 14 D5             JSR     LFCR
+00C45A  2  20 6C D5             JSR     LFCR
 00C45D  2  20 C0 C4             JSR     CH_DETECT
 00C460  2  D0 4D                BNE     NOTDETECTED
 00C462  2               
@@ -1243,8 +1250,8 @@ Current file: dos65drv.asm
 00C464  2  85 41                STA     STRPTR          ;
 00C466  2  A9 C7                LDA     #>CHMESSAGE2    ;
 00C468  2  85 42                STA     STRPTR+1        ;
-00C46A  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
-00C46D  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C46A  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C46D  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C470  2               
 00C470  2  20 5C C5             JSR     CH_DISKINIT
 00C473  2  B0 29                BCS     :+
@@ -1253,19 +1260,19 @@ Current file: dos65drv.asm
 00C477  2  85 41                STA     STRPTR          ;
 00C479  2  A9 C7                LDA     #>CHMESSAGE3    ;
 00C47B  2  85 42                STA     STRPTR+1        ;
-00C47D  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
+00C47D  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
 00C480  2               
 00C480  2  AD 00 04             LDA     hstbuf
-00C483  2  20 34 D5             JSR     PRINT_BYTE
+00C483  2  20 8C D5             JSR     PRINT_BYTE
 00C486  2  AD 01 04             LDA     hstbuf+1
-00C489  2  20 34 D5             JSR     PRINT_BYTE
+00C489  2  20 8C D5             JSR     PRINT_BYTE
 00C48C  2  AD 02 04             LDA     hstbuf+2
-00C48F  2  20 34 D5             JSR     PRINT_BYTE
+00C48F  2  20 8C D5             JSR     PRINT_BYTE
 00C492  2  AD 03 04             LDA     hstbuf+3
-00C495  2  20 34 D5             JSR     PRINT_BYTE
+00C495  2  20 8C D5             JSR     PRINT_BYTE
 00C498  2               
 00C498  2               
-00C498  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C498  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C49B  2  A9 00                LDA     #$00
 00C49D  2  60                   RTS
 00C49E  2               :
@@ -1273,8 +1280,8 @@ Current file: dos65drv.asm
 00C4A0  2  85 41                STA     STRPTR          ;
 00C4A2  2  A9 C7                LDA     #>CHMESSAGE5    ;
 00C4A4  2  85 42                STA     STRPTR+1        ;
-00C4A6  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
-00C4A9  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C4A6  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C4A9  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C4AC  2  A9 FF                LDA     #$FF
 00C4AE  2  60                   RTS
 00C4AF  2               NOTDETECTED:
@@ -1282,8 +1289,8 @@ Current file: dos65drv.asm
 00C4B1  2  85 41                STA     STRPTR          ;
 00C4B3  2  A9 C7                LDA     #>CHMESSAGE6    ;
 00C4B5  2  85 42                STA     STRPTR+1        ;
-00C4B7  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
-00C4BA  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C4B7  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C4BA  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C4BD  2  A9 FF                LDA     #$FF
 00C4BF  2  60                   RTS
 00C4C0  2               
@@ -1292,18 +1299,18 @@ Current file: dos65drv.asm
 00C4C2  2  85 41                STA     STRPTR          ;
 00C4C4  2  A9 C7                LDA     #>CHMESSAGE1    ;
 00C4C6  2  85 42                STA     STRPTR+1        ;
-00C4C8  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
-00C4CB  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C4C8  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C4CB  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C4CE  2               
 00C4CE  2  A9 55                LDA     #<MESSAGE2      ;
 00C4D0  2  85 41                STA     STRPTR          ;
 00C4D2  2  A9 C3                LDA     #>MESSAGE2      ;
 00C4D4  2  85 42                STA     STRPTR+1        ;
-00C4D6  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
+00C4D6  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
 00C4D9  2  A9 E2                LDA     #>CH0BASE       ; GET BASE PORT
-00C4DB  2  20 34 D5             JSR     PRINT_BYTE
+00C4DB  2  20 8C D5             JSR     PRINT_BYTE
 00C4DE  2  A9 60                LDA     #<CH0BASE       ; GET BASE PORT
-00C4E0  2  20 34 D5             JSR     PRINT_BYTE
+00C4E0  2  20 8C D5             JSR     PRINT_BYTE
 00C4E3  2               
 00C4E3  2  20 1B C5             JSR     CH_RESET
 00C4E6  2               
@@ -1473,10 +1480,10 @@ Current file: dos65drv.asm
 00C5BA  2  85 41                STA     STRPTR          ;
 00C5BC  2  A9 C7                LDA     #>CHMESSAGE8    ;
 00C5BE  2  85 42                STA     STRPTR+1        ;
-00C5C0  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
+00C5C0  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
 00C5C3  2  68                   PLA
-00C5C4  2  20 34 D5             JSR     PRINT_BYTE
-00C5C7  2  20 14 D5             JSR     LFCR
+00C5C4  2  20 8C D5             JSR     PRINT_BYTE
+00C5C7  2  20 6C D5             JSR     LFCR
 00C5CA  2  4C D4 C5             JMP     CH_DISKINIT_TO
 00C5CD  2               
 00C5CD  2               CHUSB_RESET1B:
@@ -1503,8 +1510,8 @@ Current file: dos65drv.asm
 00C5DD  2  85 41                STA     STRPTR          ;
 00C5DF  2  A9 C7                LDA     #>CHMESSAGE7    ;
 00C5E1  2  85 42                STA     STRPTR+1        ;
-00C5E3  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
-00C5E6  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C5E3  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C5E6  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C5E9  2  68                   PLA
 00C5EA  2  A8                   TAY
 00C5EB  2  68                   PLA
@@ -1790,31 +1797,31 @@ Current file: dos65drv.asm
 00C796  2               ;
 00C796  2               ESPINIT:
 00C796  2               ;
-00C796  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C796  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C799  2  A9 40                LDA     #<ESPMESSAGE1   ;
 00C79B  2  85 41                STA     STRPTR          ;
 00C79D  2  A9 CA                LDA     #>ESPMESSAGE1   ;
 00C79F  2  85 42                STA     STRPTR+1        ;
-00C7A1  2  20 1F D5             JSR     WRSTR
-00C7A4  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C7A1  2  20 77 D5             JSR     WRSTR
+00C7A4  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C7A7  2               ; KEYBOARD INITIALIZATION
 00C7A7  2  A9 55                LDA     #<MESSAGE2      ;
 00C7A9  2  85 41                STA     STRPTR          ;
 00C7AB  2  A9 C3                LDA     #>MESSAGE2      ;
 00C7AD  2  85 42                STA     STRPTR+1        ;
-00C7AF  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
+00C7AF  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
 00C7B2  2  A9 E1                LDA     #>ESP_BASE      ; GET BASE PORT
-00C7B4  2  20 34 D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C7B4  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C7B7  2  A9 00                LDA     #<ESP_BASE      ; GET BASE PORT
-00C7B9  2  20 34 D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
-00C7BC  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C7B9  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C7BC  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C7BF  2  20 2E C8             JSR     ESP_RESET0      ;
 00C7C2  2  20 A4 C8             JSR     ESP_RESET1      ;
 00C7C5  2               ;
 00C7C5  2  20 D2 C7             JSR     ESP0_PROBE      ; DETECT ESP0
-00C7C8  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C7C8  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C7CB  2  20 48 C8             JSR     ESP1_PROBE      ; DETECT ESP1
-00C7CE  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00C7CE  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00C7D1  2  60                   RTS                     ; DONE
 00C7D2  2               
 00C7D2  2               
@@ -1824,7 +1831,7 @@ Current file: dos65drv.asm
 00C7D4  2  85 41                STA     STRPTR          ;
 00C7D6  2  A9 CA                LDA     #>ESPMESSAGE2   ;
 00C7D8  2  85 42                STA     STRPTR+1        ;
-00C7DA  2  20 1F D5             JSR     WRSTR
+00C7DA  2  20 77 D5             JSR     WRSTR
 00C7DD  2               
 00C7DD  2  A9 FF                LDA     #$FF            ; ESP IDENTITY PROBE
 00C7DF  2  20 64 C9             JSR     PUTESP0         ; SEND IT
@@ -1862,7 +1869,7 @@ Current file: dos65drv.asm
 00C825  2  85 41                STA     STRPTR          ;
 00C827  2  A9 CA                LDA     #>ESPMESSAGE5   ;
 00C829  2  85 42                STA     STRPTR+1        ;
-00C82B  2  20 1F D5             JSR     WRSTR
+00C82B  2  20 77 D5             JSR     WRSTR
 00C82E  2               
 00C82E  2               ESP_RESET0:
 00C82E  2  A2 20                LDX     #$20
@@ -1881,7 +1888,7 @@ Current file: dos65drv.asm
 00C83E  2  85 41                STA     STRPTR          ;
 00C840  2  A9 CA                LDA     #>ESPMESSAGE4   ;
 00C842  2  85 42                STA     STRPTR+1        ;
-00C844  2  20 1F D5             JSR     WRSTR
+00C844  2  20 77 D5             JSR     WRSTR
 00C847  2  60                   RTS
 00C848  2               
 00C848  2               ;
@@ -1891,7 +1898,7 @@ Current file: dos65drv.asm
 00C84A  2  85 41                STA     STRPTR          ;
 00C84C  2  A9 CA                LDA     #>ESPMESSAGE3   ;
 00C84E  2  85 42                STA     STRPTR+1        ;
-00C850  2  20 1F D5             JSR     WRSTR
+00C850  2  20 77 D5             JSR     WRSTR
 00C853  2               
 00C853  2  A9 FF                LDA     #$FF            ; ESP IDENTITY PROBE
 00C855  2  20 D2 C9             JSR     PUTESP1         ; SEND IT
@@ -1929,7 +1936,7 @@ Current file: dos65drv.asm
 00C89B  2  85 41                STA     STRPTR          ;
 00C89D  2  A9 CA                LDA     #>ESPMESSAGE5   ;
 00C89F  2  85 42                STA     STRPTR+1        ;
-00C8A1  2  20 1F D5             JSR     WRSTR
+00C8A1  2  20 77 D5             JSR     WRSTR
 00C8A4  2               ESP_RESET1:
 00C8A4  2  A2 20                LDX     #$20
 00C8A6  2               :
@@ -2448,24 +2455,24 @@ Current file: dos65drv.asm
 00CA75  2               ;
 00CA75  2               MULTIOINIT:
 00CA75  2               ;
-00CA75  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00CA75  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00CA78  2  A9 74                LDA     #<MIOMESSAGE1   ;
 00CA7A  2  85 41                STA     STRPTR          ;
 00CA7C  2  A9 CE                LDA     #>MIOMESSAGE1   ;
 00CA7E  2  85 42                STA     STRPTR+1        ;
-00CA80  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
-00CA83  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00CA80  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00CA83  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00CA86  2               ; KEYBOARD INITIALIZATION
 00CA86  2  A9 55                LDA     #<MESSAGE2      ;
 00CA88  2  85 41                STA     STRPTR          ;
 00CA8A  2  A9 C3                LDA     #>MESSAGE2      ;
 00CA8C  2  85 42                STA     STRPTR+1        ;
-00CA8E  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
+00CA8E  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
 00CA91  2  A9 E3                LDA     #>MULTIO_BASE   ; GET BASE PORT
-00CA93  2  20 34 D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00CA93  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00CA96  2  A9 E0                LDA     #<MULTIO_BASE   ; GET BASE PORT
-00CA98  2  20 34 D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
-00CA9B  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00CA98  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00CA9B  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00CA9E  2               ;
 00CA9E  2  20 C5 CA             JSR     KBD_PROBE       ; DETECT A KEYBOARD
 00CAA1  2               
@@ -2474,8 +2481,8 @@ Current file: dos65drv.asm
 00CAA3  2  85 41                STA     STRPTR          ;
 00CAA5  2  A9 CE                LDA     #>MIOMESSAGE5   ;
 00CAA7  2  85 42                STA     STRPTR+1        ;
-00CAA9  2  20 1F D5             JSR     WRSTR           ; DO PROMPT
-00CAAC  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00CAA9  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00CAAC  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00CAAF  2               
 00CAAF  2  A9 00                LDA     #$00
 00CAB1  2  8D F0 E3             STA     LPT_0           ; PORT 0 (DATA)
@@ -2506,8 +2513,8 @@ Current file: dos65drv.asm
 00CAD7  2  85 41                STA     STRPTR          ;
 00CAD9  2  A9 CE                LDA     #>MIOMESSAGE3   ;
 00CADB  2  85 42                STA     STRPTR+1        ;
-00CADD  2  20 1F D5             JSR     WRSTR
-00CAE0  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00CADD  2  20 77 D5             JSR     WRSTR
+00CAE0  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00CAE3  2               ;
 00CAE3  2               KBD_ERROR:
 00CAE3  2  38                   SEC                     ; SET ERROR
@@ -2517,16 +2524,16 @@ Current file: dos65drv.asm
 00CAE7  2  85 41                STA     STRPTR          ;
 00CAE9  2  A9 CE                LDA     #>MIOMESSAGE6   ;
 00CAEB  2  85 42                STA     STRPTR+1        ;
-00CAED  2  20 1F D5             JSR     WRSTR
-00CAF0  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00CAED  2  20 77 D5             JSR     WRSTR
+00CAF0  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00CAF3  2  4C E3 CA             JMP     KBD_ERROR
 00CAF6  2               KBD_TIMEOUT2:
 00CAF6  2  A9 E2                LDA     #<MIOMESSAGE7   ;
 00CAF8  2  85 41                STA     STRPTR          ;
 00CAFA  2  A9 CE                LDA     #>MIOMESSAGE7   ;
 00CAFC  2  85 42                STA     STRPTR+1        ;
-00CAFE  2  20 1F D5             JSR     WRSTR
-00CB01  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00CAFE  2  20 77 D5             JSR     WRSTR
+00CB01  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00CB04  2  4C E3 CA             JMP     KBD_ERROR
 00CB07  2               
 00CB07  2               ;
@@ -2535,8 +2542,8 @@ Current file: dos65drv.asm
 00CB09  2  85 41                STA     STRPTR          ;
 00CB0B  2  A9 CE                LDA     #>MIOMESSAGE4   ;
 00CB0D  2  85 42                STA     STRPTR+1        ;
-00CB0F  2  20 1F D5             JSR     WRSTR
-00CB12  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00CB0F  2  20 77 D5             JSR     WRSTR
+00CB12  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00CB15  2               
 00CB15  2               ;
 00CB15  2  A9 60                LDA     #$60            ; SET COMMAND REGISTER
@@ -3600,63 +3607,63 @@ Current file: dos65drv.asm
 00D110  2               ;____________________________________________________________________________________________________
 00D110  2               ;
 00D110  2               RTC_INIT:
-00D110  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00D110  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00D113  2  A9 98                LDA     #<RTCMESSAGE1   ;
 00D115  2  85 41                STA     STRPTR          ;
 00D117  2  A9 D1                LDA     #>RTCMESSAGE1   ;
 00D119  2  85 42                STA     STRPTR+1        ;
-00D11B  2  20 1F D5             JSR     WRSTR
-00D11E  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00D11B  2  20 77 D5             JSR     WRSTR
+00D11E  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00D121  2  A9 55                LDA     #<MESSAGE2      ;
 00D123  2  85 41                STA     STRPTR          ;
 00D125  2  A9 C3                LDA     #>MESSAGE2      ;
 00D127  2  85 42                STA     STRPTR+1        ;
-00D129  2  20 1F D5             JSR     WRSTR
+00D129  2  20 77 D5             JSR     WRSTR
 00D12C  2  A9 EF                LDA     #>RTCBASE
-00D12E  2  20 34 D5             JSR     PRINT_BYTE
+00D12E  2  20 8C D5             JSR     PRINT_BYTE
 00D131  2  A9 90                LDA     #<RTCBASE
-00D133  2  20 34 D5             JSR     PRINT_BYTE
-00D136  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00D133  2  20 8C D5             JSR     PRINT_BYTE
+00D136  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00D139  2  A9 9D                LDA     #<RTCMESSAGE2   ;
 00D13B  2  85 41                STA     STRPTR          ;
 00D13D  2  A9 D1                LDA     #>RTCMESSAGE2   ;
 00D13F  2  85 42                STA     STRPTR+1        ;
-00D141  2  20 1F D5             JSR     WRSTR
+00D141  2  20 77 D5             JSR     WRSTR
 00D144  2  A2 02                LDX     #2
 00D146  2  20 E7 D0             JSR     RTC_READ
 00D149  2  98                   TYA
-00D14A  2  20 34 D5             JSR     PRINT_BYTE
+00D14A  2  20 8C D5             JSR     PRINT_BYTE
 00D14D  2  A9 3A                LDA     #':'
-00D14F  2  20 0B D5             JSR     DFT_CONSOLE_OUT
+00D14F  2  20 63 D5             JSR     DFT_CONSOLE_OUT
 00D152  2  A2 01                LDX     #1
 00D154  2  20 E7 D0             JSR     RTC_READ
 00D157  2  98                   TYA
-00D158  2  20 34 D5             JSR     PRINT_BYTE
+00D158  2  20 8C D5             JSR     PRINT_BYTE
 00D15B  2  A9 3A                LDA     #':'
-00D15D  2  20 0B D5             JSR     DFT_CONSOLE_OUT
+00D15D  2  20 63 D5             JSR     DFT_CONSOLE_OUT
 00D160  2  A2 00                LDX     #0
 00D162  2  20 E7 D0             JSR     RTC_READ
 00D165  2  98                   TYA
-00D166  2  20 34 D5             JSR     PRINT_BYTE
+00D166  2  20 8C D5             JSR     PRINT_BYTE
 00D169  2  A9 20                LDA     #' '
-00D16B  2  20 0B D5             JSR     DFT_CONSOLE_OUT
+00D16B  2  20 63 D5             JSR     DFT_CONSOLE_OUT
 00D16E  2  A2 04                LDX     #4
 00D170  2  20 E7 D0             JSR     RTC_READ
 00D173  2  98                   TYA
-00D174  2  20 34 D5             JSR     PRINT_BYTE
+00D174  2  20 8C D5             JSR     PRINT_BYTE
 00D177  2  A9 2F                LDA     #'/'
-00D179  2  20 0B D5             JSR     DFT_CONSOLE_OUT
+00D179  2  20 63 D5             JSR     DFT_CONSOLE_OUT
 00D17C  2  A2 03                LDX     #3
 00D17E  2  20 E7 D0             JSR     RTC_READ
 00D181  2  98                   TYA
-00D182  2  20 34 D5             JSR     PRINT_BYTE
+00D182  2  20 8C D5             JSR     PRINT_BYTE
 00D185  2  A9 2F                LDA     #'/'
-00D187  2  20 0B D5             JSR     DFT_CONSOLE_OUT
+00D187  2  20 63 D5             JSR     DFT_CONSOLE_OUT
 00D18A  2  A2 06                LDX     #6
 00D18C  2  20 E7 D0             JSR     RTC_READ
 00D18F  2  98                   TYA
-00D190  2  20 34 D5             JSR     PRINT_BYTE
-00D193  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00D190  2  20 8C D5             JSR     PRINT_BYTE
+00D193  2  20 6C D5             JSR     LFCR            ; AND CRLF
 00D196  2  60                   RTS
 00D197  2               
 00D197  2               
@@ -3691,645 +3698,676 @@ Current file: dos65drv.asm
 00D1B3  2               ;
 00D1B3  2               
 00D1B3  2               VIDEOBANK       = $F8
+00D1B3  2               
 00D1B3  2               ; DATA STORAGE
-00D1B3  2               CURX:
-00D1B3  2  00                   .BYTE   00
-00D1B4  2               CURY:
-00D1B4  2  00                   .BYTE   00
-00D1B5  2               SHOWCRSR:
-00D1B5  2  01                   .BYTE   01
-00D1B6  2               
-00D1B6  2               CURCOLOR:
-00D1B6  2  1E                   .BYTE   $1E
-00D1B7  2               CSRCOLOR:
-00D1B7  2  E1                   .BYTE   $E1
-00D1B8  2               
-00D1B8  2               VIDEOMODE:
-00D1B8  2  01                   .BYTE   01              ; 00=40 COL, 01=80 COL
+00D1B3  2               VIDEOWORK:
+00D1B3  2  00 00 00 00          .BYTE   00,00,00,00,00,00
+00D1B7  2  00 00        
+00D1B9  2               ;*
+00D1B9  2               ;* MEMORY MAP
+00D1B9  2               ;  VIDEO CARD IS A 32K AREA
+00D1B9  2               ;  $0x00 0x01=soft_scanline_emulation, 0x02 NO soft_scanline_emulation
+00D1B9  2               ;  $0x01 0x01=page1, 0x02 page2
+00D1B9  2               ;  $0x02  character generator write offset (data << 3)
+00D1B9  2               ;  $0x03 character generator write DATA
+00D1B9  2               ;  $0x04 EXECUTE device command
+00D1B9  2               ;        0x00- reset to the default configuration
+00D1B9  2               ;        0x01- reset to the saved configuration
+00D1B9  2               ;	0x02- save the current configuration
+00D1B9  2               ;
+00D1B9  2               ;  $0x05  0x01=soft_text=true, 0x02=soft_text=false
+00D1B9  2               ;  $0x06 Lores Mode=0X01,NO lores Mode=0x02
+00D1B9  2               ;  $0x07 Double Lores Mode=0X01,NO Double lores Mode=0x02
+00D1B9  2               ;  $0x08 Hires Mode=0X01,NO Hires Mode=0x02
+00D1B9  2               ;  $0x09 Double Hires Mode=0X01,NO Double Hires lores Mode=0x02
+00D1B9  2               ;  $0x0A 80COL Mode=0X01,NO 80COL Mode=0x02
+00D1B9  2               ;  $0x0B MIXED Mode=0X01,NO MIXED Mode=0x02
+00D1B9  2               ;  $0x0C QUAD Hires Mode=0X01,NO QUAD Hires lores Mode=0x02
+00D1B9  2               ;  $0x0D MONO Hires Mode=0X01,NO MONO Hires lores Mode=0x02
+00D1B9  2               ;
+00D1B9  2               ; 	VRAM Memory Map
+00D1B9  2               ;	$1000-$177F	40/80 Text Page 1
+00D1B9  2               ;	$1800-$1F7F	40/80 Color Page 1
+00D1B9  2               ;	$2000-$277F	40/80 Text Page 2
+00D1B9  2               ;	$2800-$2F7F	40/80 Color Page 2
+00D1B9  2               ;	$2000-$5FFF	HIRES PAGE 1
+00D1B9  2               ;	$6000-$8FFF	HIRES PAGE 2
+00D1B9  2               ;	$2000-$BFFF	DOUBLE HIRES
+00D1B9  2               ;*
 00D1B9  2               
-00D1B9  2               VIDEOWORK:
-00D1B9  2  00 00 00 00          .BYTE   00,00,00,00,00,00
-00D1BD  2  00 00        
-00D1BF  2               ;*
-00D1BF  2               ;* MEMORY MAP
-00D1BF  2               ;  VIDEO CARD IS A 32K AREA
-00D1BF  2               ;  $0x00 0x01=soft_scanline_emulation, 0x02 NO soft_scanline_emulation
-00D1BF  2               ;  $0x01 0x01=page1, 0x02 page2
-00D1BF  2               ;  $0x02  character generator write offset (data << 3)
-00D1BF  2               ;  $0x03 character generator write DATA
-00D1BF  2               ;  $0x04 EXECUTE device command
-00D1BF  2               ;        0x00- reset to the default configuration
-00D1BF  2               ;        0x01- reset to the saved configuration
-00D1BF  2               ;	0x02- save the current configuration
-00D1BF  2               ;
-00D1BF  2               ;  $0x05  0x01=soft_text=true, 0x02=soft_text=false
-00D1BF  2               ;  $0x06 Lores Mode=0X01,NO lores Mode=0x02
-00D1BF  2               ;  $0x07 Double Lores Mode=0X01,NO Double lores Mode=0x02
-00D1BF  2               ;  $0x08 Hires Mode=0X01,NO Hires Mode=0x02
-00D1BF  2               ;  $0x09 Double Hires Mode=0X01,NO Double Hires lores Mode=0x02
-00D1BF  2               ;  $0x0A 80COL Mode=0X01,NO 80COL Mode=0x02
-00D1BF  2               ;  $0x0B MIXED Mode=0X01,NO MIXED Mode=0x02
-00D1BF  2               ;  $0x0C QUAD Hires Mode=0X01,NO QUAD Hires lores Mode=0x02
-00D1BF  2               ;  $0x0D MONO Hires Mode=0X01,NO MONO Hires lores Mode=0x02
-00D1BF  2               ;
-00D1BF  2               ; 	VRAM Memory Map
-00D1BF  2               ;	$1000-$177F	40/80 Text Page 1
-00D1BF  2               ;	$1800-$1F7F	40/80 Color Page 1
-00D1BF  2               ;	$2000-$277F	40/80 Text Page 2
-00D1BF  2               ;	$2800-$2F7F	40/80 Color Page 2
-00D1BF  2               ;	$2000-$5FFF	HIRES PAGE 1
-00D1BF  2               ;	$6000-$8FFF	HIRES PAGE 2
-00D1BF  2               ;	$2000-$BFFF	DOUBLE HIRES
-00D1BF  2               ;*
-00D1BF  2               
-00D1BF  2               ;__VIDEOINIT____________________________________________________________________________________________________________________
-00D1BF  2               ;
-00D1BF  2               ;	INITIALIZE VIDEO CARD
-00D1BF  2               ;________________________________________________________________________________________________________________________________
-00D1BF  2               ;
-00D1BF  2               VIDEOINIT:
-00D1BF  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
-00D1C1  2  A2 0B                LDX     #$0B            ; MAP $BXXX
-00D1C3  2  A0 F8                LDY     #VIDEOBANK      ; TO $F8XXX
-00D1C5  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
-00D1C8  2               
-00D1C8  2  A9 00                LDA     #$00
-00D1CA  2  8D 06 B0             STA     $B006
-00D1CD  2  AD 06 B0             LDA     $B006
-00D1D0  2  C9 00                CMP     #$00
-00D1D2  2  D0 50                BNE     VIDEOINIT_FAIL
-00D1D4  2  A9 FF                LDA     #$FF
-00D1D6  2  8D 06 B0             STA     $B006
-00D1D9  2  AD 06 B0             LDA     $B006
-00D1DC  2  C9 FF                CMP     #$FF
-00D1DE  2  D0 44                BNE     VIDEOINIT_FAIL
-00D1E0  2               
-00D1E0  2  A9 02                LDA     #$02
-00D1E2  2  8D 06 B0             STA     $B006           ; CLEAR LORES MODE
-00D1E5  2  8D 07 B0             STA     $B007           ; CLEAR DOUBLE LORES MODE
-00D1E8  2  8D 08 B0             STA     $B008           ; CLEAR HIRES MODE
-00D1EB  2  8D 09 B0             STA     $B009           ; CLEAR DOUBLE HIRES MODE
-00D1EE  2  8D 0B B0             STA     $B00B           ; CLEAR MIXED MODE
-00D1F1  2  8D 0C B0             STA     $B00C           ; CLEAR QUAD HIRES MODE
-00D1F4  2  8D 0D B0             STA     $B00D           ; CLEAR MONO MODE
-00D1F7  2               
-00D1F7  2  A9 01                LDA     #$01
-00D1F9  2  8D 01 B0             STA     $B001           ; SET TEXT MODE PAGE 1
-00D1FC  2  8D 05 B0             STA     $B005           ; SET TEXT MODE
-00D1FF  2  A9 01                LDA     #$01
-00D201  2  8D 0A B0             STA     $B00A           ; SET 80COL MODE
-00D204  2               
-00D204  2  20 6C D2             JSR     CLEARSCREEN
-00D207  2               
-00D207  2  20 14 D5             JSR     LFCR            ; CRLF
-00D20A  2  A9 CA                LDA     #<VIDEOMESSAGE1 ;
-00D20C  2  85 41                STA     STRPTR          ;
-00D20E  2  A9 D4                LDA     #>VIDEOMESSAGE1 ;
-00D210  2  85 42                STA     STRPTR+1        ;
-00D212  2  20 1F D5             JSR     WRSTR
+00D1B9  2               ;__VIDEOINIT____________________________________________________________________________________________________________________
+00D1B9  2               ;
+00D1B9  2               ;	INITIALIZE VIDEO CARD
+00D1B9  2               ;________________________________________________________________________________________________________________________________
+00D1B9  2               ;
+00D1B9  2               VIDEOINIT:
+00D1B9  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
+00D1BB  2  A2 0B                LDX     #$0B            ; MAP $BXXX
+00D1BD  2  A0 F8                LDY     #VIDEOBANK      ; TO $F8XXX
+00D1BF  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
+00D1C2  2               
+00D1C2  2  A9 00                LDA     #$00
+00D1C4  2  8D 06 B0             STA     $B006
+00D1C7  2  AD 06 B0             LDA     $B006
+00D1CA  2  C9 00                CMP     #$00
+00D1CC  2  D0 64                BNE     VIDEOINIT_FAIL
+00D1CE  2  A9 FF                LDA     #$FF
+00D1D0  2  8D 06 B0             STA     $B006
+00D1D3  2  AD 06 B0             LDA     $B006
+00D1D6  2  C9 FF                CMP     #$FF
+00D1D8  2  D0 58                BNE     VIDEOINIT_FAIL
+00D1DA  2               
+00D1DA  2  A9 02                LDA     #$02
+00D1DC  2  8D 06 B0             STA     $B006           ; CLEAR LORES MODE
+00D1DF  2  8D 07 B0             STA     $B007           ; CLEAR DOUBLE LORES MODE
+00D1E2  2  8D 08 B0             STA     $B008           ; CLEAR HIRES MODE
+00D1E5  2  8D 09 B0             STA     $B009           ; CLEAR DOUBLE HIRES MODE
+00D1E8  2  8D 0B B0             STA     $B00B           ; CLEAR MIXED MODE
+00D1EB  2  8D 0C B0             STA     $B00C           ; CLEAR QUAD HIRES MODE
+00D1EE  2  8D 0D B0             STA     $B00D           ; CLEAR MONO MODE
+00D1F1  2               
+00D1F1  2  A9 01                LDA     #$01
+00D1F3  2  8D 01 B0             STA     $B001           ; SET TEXT MODE PAGE 1
+00D1F6  2  8D 05 B0             STA     $B005           ; SET TEXT MODE
+00D1F9  2  A9 01                LDA     #$01
+00D1FB  2  8D 0A B0             STA     $B00A           ; SET 80COL MODE
+00D1FE  2               
+00D1FE  2  A9 01                LDA     #$01
+00D200  2  8D 49 06             STA     SHOWCRSR        ; SHOW CURSOR (1-YES, 0-NO)
+00D203  2  A9 1E                LDA     #$1E
+00D205  2  8D 4A 06             STA     CURCOLOR        ; CURRENT PRINT COLOR
+00D208  2  A9 E1                LDA     #$E1
+00D20A  2  8D 4B 06             STA     CSRCOLOR        ; CURRENT CURSOR COLOR
+00D20D  2  A9 01                LDA     #$01
+00D20F  2  8D 4C 06             STA     VIDEOMODE       ; 00=40 COL, 01=80 COL
+00D212  2               
+00D212  2  20 7A D2             JSR     CLEARSCREEN
 00D215  2               
-00D215  2  A9 F0                LDA     #<VIDEOMESSAGE3 ;
-00D217  2  85 41                STA     STRPTR          ;
-00D219  2  A9 D4                LDA     #>VIDEOMESSAGE3 ;
-00D21B  2  85 42                STA     STRPTR+1        ;
-00D21D  2  20 1F D5             JSR     WRSTR
-00D220  2  20 14 D5             JSR     LFCR            ; AND CRLF
+00D215  2  20 6C D5             JSR     LFCR            ; CRLF
+00D218  2  A9 22                LDA     #<VIDEOMESSAGE1 ;
+00D21A  2  85 41                STA     STRPTR          ;
+00D21C  2  A9 D5                LDA     #>VIDEOMESSAGE1 ;
+00D21E  2  85 42                STA     STRPTR+1        ;
+00D220  2  20 77 D5             JSR     WRSTR
 00D223  2               
-00D223  2  60                   RTS
-00D224  2               
-00D224  2               VIDEOINIT_FAIL:
-00D224  2  20 14 D5             JSR     LFCR            ; CRLF
-00D227  2  A9 CA                LDA     #<VIDEOMESSAGE1 ;
-00D229  2  85 41                STA     STRPTR          ;
-00D22B  2  A9 D4                LDA     #>VIDEOMESSAGE1 ;
-00D22D  2  85 42                STA     STRPTR+1        ;
-00D22F  2  20 1F D5             JSR     WRSTR
+00D223  2  A9 48                LDA     #<VIDEOMESSAGE3 ;
+00D225  2  85 41                STA     STRPTR          ;
+00D227  2  A9 D5                LDA     #>VIDEOMESSAGE3 ;
+00D229  2  85 42                STA     STRPTR+1        ;
+00D22B  2  20 77 D5             JSR     WRSTR
+00D22E  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00D231  2               
+00D231  2  60                   RTS
 00D232  2               
-00D232  2  A9 F0                LDA     #<VIDEOMESSAGE3 ;
-00D234  2  85 41                STA     STRPTR          ;
-00D236  2  A9 D4                LDA     #>VIDEOMESSAGE3 ;
-00D238  2  85 42                STA     STRPTR+1        ;
-00D23A  2  20 1F D5             JSR     WRSTR
-00D23D  2  20 14 D5             JSR     LFCR            ; AND CRLF
-00D240  2  60                   RTS
-00D241  2               
-00D241  2               
-00D241  2               ;__SETMODE_______________________________________________________________________________________________________________________
-00D241  2               ;
-00D241  2               ;	SET 40/80 VIDEO MODE  (0=40/1=80)
-00D241  2               ;________________________________________________________________________________________________________________________________
-00D241  2               ;
-00D241  2               SETMODE:
-00D241  2  8D B8 D1             STA     VIDEOMODE
-00D244  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
-00D246  2  A2 0B                LDX     #$0B            ; MAP $BXXX
-00D248  2  A0 F8                LDY     #VIDEOBANK      ; TO $F8XXX
-00D24A  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
-00D24D  2  A9 01                LDA     #$01
-00D24F  2  8D 01 B0             STA     $B001           ; SET TEXT MODE PAGE 1
-00D252  2  8D 05 B0             STA     $B005           ; SET TEXT MODE
-00D255  2  AD B8 D1             LDA     VIDEOMODE
-00D258  2  C9 00                CMP     #$00
-00D25A  2  F0 08                BEQ     :+
-00D25C  2  A9 01                LDA     #$01
-00D25E  2  8D 0A B0             STA     $B00A           ; SET 80COL MODE
-00D261  2  4C 6C D2             JMP     CLEARSCREEN
-00D264  2               :
-00D264  2  A9 02                LDA     #$02
-00D266  2  8D 0A B0             STA     $B00A           ; SET 40COL MODE
-00D269  2  4C 6C D2             JMP     CLEARSCREEN
-00D26C  2               
-00D26C  2               
-00D26C  2               ;__CLEARSCREEN___________________________________________________________________________________________________________________
-00D26C  2               ;
-00D26C  2               ;	CLEAR VIDEO CARD SCREEN
-00D26C  2               ;________________________________________________________________________________________________________________________________
-00D26C  2               ;
-00D26C  2               CLEARSCREEN:
-00D26C  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
-00D26E  2  A2 0B                LDX     #$0B            ; MAP $BXXX
-00D270  2  A0 F9                LDY     #VIDEOBANK+1    ; TO $F8XXX
-00D272  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
-00D275  2               
-00D275  2  A9 00                LDA     #$00
-00D277  2  85 3B                STA     TEMPWORD
-00D279  2  A9 B0                LDA     #$B0
-00D27B  2  85 3C                STA     TEMPWORD+1
-00D27D  2  A0 00                LDY     #$00
-00D27F  2               ; CLEAR CHAR RAM
-00D27F  2               :
-00D27F  2  A9 20                LDA     #32
-00D281  2  91 3B                STA     (TEMPWORD),Y
-00D283  2  E6 3B                INC     TEMPWORD
-00D285  2  D0 F8                BNE     :-
-00D287  2  E6 3C                INC     TEMPWORD+1
-00D289  2  A5 3C                LDA     TEMPWORD+1
-00D28B  2  C9 B8                CMP     #$B8
-00D28D  2  D0 F0                BNE     :-
-00D28F  2               ; CLEAR COLOR   RAM
-00D28F  2               :
-00D28F  2  AD B6 D1             LDA     CURCOLOR
-00D292  2  91 3B                STA     (TEMPWORD),Y
-00D294  2  E6 3B                INC     TEMPWORD
-00D296  2  D0 F7                BNE     :-
-00D298  2  E6 3C                INC     TEMPWORD+1
-00D29A  2  A5 3C                LDA     TEMPWORD+1
-00D29C  2  C9 C0                CMP     #$C0
-00D29E  2  D0 EF                BNE     :-
-00D2A0  2               
-00D2A0  2  A9 00                LDA     #$00
-00D2A2  2  8D B3 D1             STA     CURX
-00D2A5  2  8D B4 D1             STA     CURY
-00D2A8  2               
-00D2A8  2  AD B7 D1             LDA     CSRCOLOR
-00D2AB  2  8D 00 B8             STA     $B800
-00D2AE  2  60                   RTS
-00D2AF  2               
-00D2AF  2               ;__SETCOLOR______________________________________________________________________________________________________________________
-00D2AF  2               ;
-00D2AF  2               ;	SET COLOR AND CURSOR COLOR
-00D2AF  2               ;       X= COLOR
-00D2AF  2               ;       Y= CURSOR COLOR
-00D2AF  2               ;________________________________________________________________________________________________________________________________
-00D2AF  2               ;
-00D2AF  2               SETCOLOR:
-00D2AF  2  8E B6 D1             STX     CURCOLOR
-00D2B2  2  8C B7 D1             STY     CSRCOLOR
-00D2B5  2  60                   RTS
+00D232  2               VIDEOINIT_FAIL:
+00D232  2  20 6C D5             JSR     LFCR            ; CRLF
+00D235  2  A9 22                LDA     #<VIDEOMESSAGE1 ;
+00D237  2  85 41                STA     STRPTR          ;
+00D239  2  A9 D5                LDA     #>VIDEOMESSAGE1 ;
+00D23B  2  85 42                STA     STRPTR+1        ;
+00D23D  2  20 77 D5             JSR     WRSTR
+00D240  2               
+00D240  2  A9 48                LDA     #<VIDEOMESSAGE3 ;
+00D242  2  85 41                STA     STRPTR          ;
+00D244  2  A9 D5                LDA     #>VIDEOMESSAGE3 ;
+00D246  2  85 42                STA     STRPTR+1        ;
+00D248  2  20 77 D5             JSR     WRSTR
+00D24B  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00D24E  2  60                   RTS
+00D24F  2               
+00D24F  2               
+00D24F  2               ;__SETMODE_______________________________________________________________________________________________________________________
+00D24F  2               ;
+00D24F  2               ;	SET 40/80 VIDEO MODE  (0=40/1=80)
+00D24F  2               ;________________________________________________________________________________________________________________________________
+00D24F  2               ;
+00D24F  2               SETMODE:
+00D24F  2  8D 4C 06             STA     VIDEOMODE
+00D252  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
+00D254  2  A2 0B                LDX     #$0B            ; MAP $BXXX
+00D256  2  A0 F8                LDY     #VIDEOBANK      ; TO $F8XXX
+00D258  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
+00D25B  2  A9 01                LDA     #$01
+00D25D  2  8D 01 B0             STA     $B001           ; SET TEXT MODE PAGE 1
+00D260  2  8D 05 B0             STA     $B005           ; SET TEXT MODE
+00D263  2  AD 4C 06             LDA     VIDEOMODE
+00D266  2  C9 00                CMP     #$00
+00D268  2  F0 08                BEQ     :+
+00D26A  2  A9 01                LDA     #$01
+00D26C  2  8D 0A B0             STA     $B00A           ; SET 80COL MODE
+00D26F  2  4C 7A D2             JMP     CLEARSCREEN
+00D272  2               :
+00D272  2  A9 02                LDA     #$02
+00D274  2  8D 0A B0             STA     $B00A           ; SET 40COL MODE
+00D277  2  4C 7A D2             JMP     CLEARSCREEN
+00D27A  2               
+00D27A  2               
+00D27A  2               ;__CLEARSCREEN___________________________________________________________________________________________________________________
+00D27A  2               ;
+00D27A  2               ;	CLEAR VIDEO CARD SCREEN
+00D27A  2               ;________________________________________________________________________________________________________________________________
+00D27A  2               ;
+00D27A  2               CLEARSCREEN:
+00D27A  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
+00D27C  2  A2 0B                LDX     #$0B            ; MAP $BXXX
+00D27E  2  A0 F9                LDY     #VIDEOBANK+1    ; TO $F8XXX
+00D280  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
+00D283  2               
+00D283  2  A9 00                LDA     #$00
+00D285  2  85 3B                STA     TEMPWORD
+00D287  2  A9 B0                LDA     #$B0
+00D289  2  85 3C                STA     TEMPWORD+1
+00D28B  2  A0 00                LDY     #$00
+00D28D  2               ; CLEAR CHAR RAM
+00D28D  2               :
+00D28D  2  A9 20                LDA     #32
+00D28F  2  91 3B                STA     (TEMPWORD),Y
+00D291  2  E6 3B                INC     TEMPWORD
+00D293  2  D0 F8                BNE     :-
+00D295  2  E6 3C                INC     TEMPWORD+1
+00D297  2  A5 3C                LDA     TEMPWORD+1
+00D299  2  C9 B8                CMP     #$B8
+00D29B  2  D0 F0                BNE     :-
+00D29D  2               ; CLEAR COLOR   RAM
+00D29D  2               :
+00D29D  2  AD 4A 06             LDA     CURCOLOR
+00D2A0  2  91 3B                STA     (TEMPWORD),Y
+00D2A2  2  E6 3B                INC     TEMPWORD
+00D2A4  2  D0 F7                BNE     :-
+00D2A6  2  E6 3C                INC     TEMPWORD+1
+00D2A8  2  A5 3C                LDA     TEMPWORD+1
+00D2AA  2  C9 C0                CMP     #$C0
+00D2AC  2  D0 EF                BNE     :-
+00D2AE  2               
+00D2AE  2  A9 00                LDA     #$00
+00D2B0  2  8D 47 06             STA     CURX
+00D2B3  2  8D 48 06             STA     CURY
 00D2B6  2               
-00D2B6  2               ;__SETXY_________________________________________________________________________________________________________________________
-00D2B6  2               ;
-00D2B6  2               ;	SET CURSOR POSITION
-00D2B6  2               ;       X= X POSITION
-00D2B6  2               ;       Y= Y POSITION
-00D2B6  2               ;________________________________________________________________________________________________________________________________
-00D2B6  2               ;
-00D2B6  2               SETXY:
-00D2B6  2  8E B3 D1             STX     CURX
-00D2B9  2  8C B4 D1             STY     CURY
+00D2B6  2  AD 4B 06             LDA     CSRCOLOR
+00D2B9  2  8D 00 B8             STA     $B800
 00D2BC  2  60                   RTS
 00D2BD  2               
-00D2BD  2               
-00D2BD  2               WRVIDTMP:
-00D2BD  2  00                   .BYTE    $00
-00D2BE  2               
-00D2BE  2               ;__WRVID_________________________________________________________________________________________________________________________
-00D2BE  2               ;
-00D2BE  2               ;	WRITE CHARACTER(A) TO VIDEO AT CURRENT X AND Y
-00D2BE  2               ;________________________________________________________________________________________________________________________________
-00D2BE  2               ;
-00D2BE  2               WRVID:
-00D2BE  2  8D BD D2             STA    WRVIDTMP
-00D2C1  2  48                   PHA
-00D2C2  2  8A                   TXA
-00D2C3  2  48                   PHA
-00D2C4  2  98                   TYA
-00D2C5  2  48                   PHA
-00D2C6  2  AD BD D2             LDA     WRVIDTMP
-00D2C9  2  C9 0D                CMP     #$0D
-00D2CB  2  D0 11                BNE     :+
-00D2CD  2  20 BD D3             JSR     UNPAINTCURSOR
-00D2D0  2  A9 00                LDA     #$00
-00D2D2  2  8D B3 D1             STA     CURX
-00D2D5  2  20 A5 D3             JSR     PAINTCURSOR
-00D2D8  2  68                   PLA
-00D2D9  2  A8                   TAY
-00D2DA  2  68                   PLA
-00D2DB  2  AA                   TAX
-00D2DC  2  68                   PLA
-00D2DD  2  60                   RTS
-00D2DE  2               :
-00D2DE  2  C9 0A                CMP     #$0A
-00D2E0  2  D0 16                BNE     :+
-00D2E2  2  20 BD D3             JSR     UNPAINTCURSOR
-00D2E5  2  EE B4 D1             INC     CURY
-00D2E8  2  AD B4 D1             LDA     CURY
-00D2EB  2  C9 18                CMP     #24
-00D2ED  2  F0 57                BEQ     SCROLLV
-00D2EF  2  20 A5 D3             JSR     PAINTCURSOR
-00D2F2  2  68                   PLA
-00D2F3  2  A8                   TAY
-00D2F4  2  68                   PLA
-00D2F5  2  AA                   TAX
-00D2F6  2  68                   PLA
-00D2F7  2  60                   RTS
-00D2F8  2               :
-00D2F8  2  C9 08                CMP     #$08
-00D2FA  2  D0 60                BNE     WRVIDGO
-00D2FC  2  20 BD D3             JSR     UNPAINTCURSOR
-00D2FF  2  AD B3 D1             LDA     CURX
-00D302  2  C9 00                CMP     #$00
-00D304  2  D0 1E                BNE     WRVID2
-00D306  2  AD B4 D1             LDA     CURY
-00D309  2  C9 00                CMP     #$00
-00D30B  2  F0 1A                BEQ     WRVIDX
-00D30D  2  CE B4 D1             DEC     CURY
-00D310  2  AD B8 D1             LDA     VIDEOMODE
-00D313  2  C9 01                CMP     #01
-00D315  2  D0 08                BNE     :+
-00D317  2  A9 50                LDA     #80
-00D319  2  8D B3 D1             STA     CURX
-00D31C  2  4C 24 D3             JMP     WRVID2
-00D31F  2               :
-00D31F  2  A9 28                LDA     #40
-00D321  2  8D B3 D1             STA     CURX
-00D324  2               WRVID2:
-00D324  2  CE B3 D1             DEC     CURX
-00D327  2               WRVIDX:
-00D327  2  20 56 D4             JSR     GETVIDEOADDRESS
-00D32A  2  AD B9 D1             LDA     VIDEOWORK
-00D32D  2  85 3B                STA     TEMPWORD
-00D32F  2  18                   CLC
-00D330  2  A9 B0                LDA     #$B0
-00D332  2  6D BA D1             ADC     VIDEOWORK+1
-00D335  2  85 3C                STA     TEMPWORD+1
-00D337  2  A0 00                LDY     #$00
-00D339  2  A9 20                LDA     #32
-00D33B  2  91 3B                STA     (TEMPWORD),Y
-00D33D  2  20 A5 D3             JSR     PAINTCURSOR
-00D340  2  68                   PLA
-00D341  2  A8                   TAY
-00D342  2  68                   PLA
-00D343  2  AA                   TAX
-00D344  2  68                   PLA
-00D345  2  60                   RTS
-00D346  2               
-00D346  2               
-00D346  2               SCROLLV:
-00D346  2  20 D5 D3             JSR     SCROLLUP
-00D349  2  A9 17                LDA     #23
-00D34B  2  8D B4 D1             STA     CURY
-00D34E  2  A9 00                LDA     #0
-00D350  2  8D B3 D1             STA     CURX
-00D353  2  20 A5 D3             JSR     PAINTCURSOR
-00D356  2  68                   PLA
-00D357  2  A8                   TAY
-00D358  2  68                   PLA
-00D359  2  AA                   TAX
-00D35A  2  68                   PLA
-00D35B  2  60                   RTS
-00D35C  2               
-00D35C  2               
-00D35C  2               
-00D35C  2               WRVIDGO:
-00D35C  2  48                   PHA
-00D35D  2  20 BD D3             JSR     UNPAINTCURSOR
-00D360  2  AD B9 D1             LDA     VIDEOWORK
-00D363  2  85 3B                STA     TEMPWORD
-00D365  2  18                   CLC
-00D366  2  A9 B0                LDA     #$B0
-00D368  2  6D BA D1             ADC     VIDEOWORK+1
-00D36B  2  85 3C                STA     TEMPWORD+1
-00D36D  2  68                   PLA
-00D36E  2  A0 00                LDY     #$00
-00D370  2  91 3B                STA     (TEMPWORD),Y
-00D372  2               
-00D372  2  AE B3 D1             LDX     CURX
-00D375  2  AD B8 D1             LDA     VIDEOMODE
-00D378  2  C9 00                CMP     #$00
-00D37A  2  D0 0C                BNE     :+
-00D37C  2  E0 27                CPX     #39
-00D37E  2  D0 11                BNE     :++
-00D380  2  EE B4 D1             INC     CURY
-00D383  2  A2 FF                LDX     #$FF
-00D385  2  4C 91 D3             JMP     :++
-00D388  2               :
-00D388  2  E0 4F                CPX     #79
-00D38A  2  D0 05                BNE     :+
-00D38C  2  EE B4 D1             INC     CURY
-00D38F  2  A2 FF                LDX     #$FF
-00D391  2               :
-00D391  2  E8                   INX
-00D392  2  8E B3 D1             STX     CURX
-00D395  2  AD B4 D1             LDA     CURY
-00D398  2  C9 18                CMP     #24
-00D39A  2  F0 AA                BEQ     SCROLLV
-00D39C  2  20 A5 D3             JSR     PAINTCURSOR
-00D39F  2  68                   PLA
-00D3A0  2  A8                   TAY
-00D3A1  2  68                   PLA
-00D3A2  2  AA                   TAX
-00D3A3  2  68                   PLA
-00D3A4  2  60                   RTS
-00D3A5  2               
-00D3A5  2               
-00D3A5  2               
-00D3A5  2               PAINTCURSOR:
-00D3A5  2  20 56 D4             JSR     GETVIDEOADDRESS
-00D3A8  2  AD B9 D1             LDA     VIDEOWORK
-00D3AB  2  85 3B                STA     TEMPWORD
-00D3AD  2  18                   CLC
-00D3AE  2  A9 B8                LDA     #$B8
-00D3B0  2  6D BA D1             ADC     VIDEOWORK+1
-00D3B3  2  85 3C                STA     TEMPWORD+1
-00D3B5  2  AD B7 D1             LDA     CSRCOLOR
-00D3B8  2  A0 00                LDY     #$00
-00D3BA  2  91 3B                STA     (TEMPWORD),Y
-00D3BC  2  60                   RTS
-00D3BD  2               
-00D3BD  2               UNPAINTCURSOR:
-00D3BD  2  20 56 D4             JSR     GETVIDEOADDRESS
-00D3C0  2  AD B9 D1             LDA     VIDEOWORK
-00D3C3  2  85 3B                STA     TEMPWORD
-00D3C5  2  18                   CLC
-00D3C6  2  A9 B8                LDA     #$B8
-00D3C8  2  6D BA D1             ADC     VIDEOWORK+1
-00D3CB  2  85 3C                STA     TEMPWORD+1
-00D3CD  2  AD B6 D1             LDA     CURCOLOR
-00D3D0  2  A0 00                LDY     #$00
-00D3D2  2  91 3B                STA     (TEMPWORD),Y
-00D3D4  2  60                   RTS
-00D3D5  2               
-00D3D5  2               
-00D3D5  2               ;__SCROLLUP______________________________________________________________________________________________________________________
-00D3D5  2               ;
-00D3D5  2               ;	SCROLL THE SCREEN UP
-00D3D5  2               ;
-00D3D5  2               ;
-00D3D5  2               ;________________________________________________________________________________________________________________________________
-00D3D5  2               ;
-00D3D5  2               SCROLLUP:
-00D3D5  2  A9 B0                LDA     #$B0
-00D3D7  2  85 3C                STA     TEMPWORD+1
-00D3D9  2  85 3E                STA     TEMPWORD1+1
-00D3DB  2  A9 B8                LDA     #$B8
-00D3DD  2  85 40                STA     TEMPWORD2+1
-00D3DF  2  85 45                STA     TEMPWORD3+1
-00D3E1  2  A9 00                LDA     #$00
-00D3E3  2  85 3B                STA     TEMPWORD
-00D3E5  2  85 3F                STA     TEMPWORD2
-00D3E7  2               
-00D3E7  2  AD B8 D1             LDA     VIDEOMODE
-00D3EA  2  C9 01                CMP     #01
-00D3EC  2  D0 09                BNE     :+
-00D3EE  2  A9 50                LDA     #80
-00D3F0  2  85 3D                STA     TEMPWORD1
-00D3F2  2  85 44                STA     TEMPWORD3
-00D3F4  2  4C FD D3             JMP     SCROLLUP_G
-00D3F7  2               :
-00D3F7  2  A9 28                LDA     #40
-00D3F9  2  85 3D                STA     TEMPWORD1
-00D3FB  2  85 44                STA     TEMPWORD3
-00D3FD  2               
-00D3FD  2               
-00D3FD  2               SCROLLUP_G:
-00D3FD  2  A0 00                LDY     #$00
-00D3FF  2               ; SCROLL UP 40/80 CHARACTERS AND COLOR
-00D3FF  2               :
-00D3FF  2  B1 3D                LDA     (TEMPWORD1),Y
-00D401  2  91 3B                STA     (TEMPWORD),Y
-00D403  2  B1 44                LDA     (TEMPWORD3),Y
-00D405  2  91 3F                STA     (TEMPWORD2),Y
-00D407  2               
-00D407  2  E6 3F                INC     TEMPWORD2
-00D409  2  E6 3B                INC     TEMPWORD
-00D40B  2  D0 04                BNE     :+
-00D40D  2  E6 40                INC     TEMPWORD2+1
-00D40F  2  E6 3C                INC     TEMPWORD+1
-00D411  2               :
-00D411  2  E6 44                INC     TEMPWORD3
-00D413  2  E6 3D                INC     TEMPWORD1
-00D415  2  D0 E8                BNE     :--
-00D417  2  E6 45                INC     TEMPWORD3+1
-00D419  2  E6 3E                INC     TEMPWORD1+1
-00D41B  2               
-00D41B  2  A5 3E                LDA     TEMPWORD1+1
-00D41D  2  C9 B8                CMP     #$B8
-00D41F  2  D0 DE                BNE     :--
-00D421  2               
-00D421  2               
-00D421  2               
-00D421  2               ; CLEAR BOTTOM LINE.
-00D421  2               
-00D421  2  AD B8 D1             LDA     VIDEOMODE
-00D424  2  C9 01                CMP     #01
-00D426  2  F0 11                BEQ     :+
-00D428  2  A9 98                LDA     #$98
-00D42A  2  85 3B                STA     TEMPWORD
-00D42C  2  85 3D                STA     TEMPWORD1
-00D42E  2  A9 B3                LDA     #$B3
-00D430  2  85 3C                STA     TEMPWORD+1
-00D432  2  A9 BF                LDA     #$BF
-00D434  2  85 3E                STA     TEMPWORD1+1
-00D436  2               
-00D436  2  4C 47 D4             JMP     SCROLLUP_C
-00D439  2               :
-00D439  2  A9 30                LDA     #$30
-00D43B  2  85 3B                STA     TEMPWORD
-00D43D  2  85 3D                STA     TEMPWORD1
-00D43F  2  A9 B7                LDA     #$B7
-00D441  2  85 3C                STA     TEMPWORD+1
-00D443  2  A9 BB                LDA     #$BB
-00D445  2  85 3E                STA     TEMPWORD1+1
-00D447  2               
-00D447  2               SCROLLUP_C:
-00D447  2  A9 20                LDA     #32
-00D449  2  91 3B                STA     (TEMPWORD),Y
-00D44B  2  AD B6 D1             LDA     CURCOLOR
-00D44E  2  91 3D                STA     (TEMPWORD1),Y
-00D450  2  C8                   INY
-00D451  2  C0 50                CPY     #80
-00D453  2  D0 F2                BNE     SCROLLUP_C
-00D455  2  60                   RTS
-00D456  2               
-00D456  2               
-00D456  2               GETVIDEOADDRESS:
-00D456  2  AD B4 D1             LDA     CURY
-00D459  2  8D B9 D1             STA     VIDEOWORK
-00D45C  2  A9 00                LDA     #$00
-00D45E  2  8D BA D1             STA     VIDEOWORK+1
-00D461  2               
-00D461  2  0E B9 D1             ASL     VIDEOWORK       ; TIMES 2
-00D464  2  2E BA D1             ROL     VIDEOWORK+1     ; TIMES 2
-00D467  2  0E B9 D1             ASL     VIDEOWORK       ; TIMES 4
-00D46A  2  2E BA D1             ROL     VIDEOWORK+1     ; TIMES 4
-00D46D  2  0E B9 D1             ASL     VIDEOWORK       ; TIMES 8
-00D470  2  2E BA D1             ROL     VIDEOWORK+1     ; TIMES 8
-00D473  2               
-00D473  2  AD B9 D1             LDA     VIDEOWORK       ; PARK THIS NUMBER FOR THE FUTURE
-00D476  2  8D BB D1             STA     VIDEOWORK+2
-00D479  2  AD BA D1             LDA     VIDEOWORK+1
-00D47C  2  8D BC D1             STA     VIDEOWORK+3
-00D47F  2               
-00D47F  2  0E B9 D1             ASL     VIDEOWORK       ; TIMES 16
-00D482  2  2E BA D1             ROL     VIDEOWORK+1     ; TIMES 16
-00D485  2  0E B9 D1             ASL     VIDEOWORK       ; TIMES 32
-00D488  2  2E BA D1             ROL     VIDEOWORK+1     ; TIMES 32
-00D48B  2               
-00D48B  2  18                   CLC                     ; ADD THE *32 VALUE WITH THE *8 VALUE TO GET *40 :)
-00D48C  2  AD B9 D1             LDA     VIDEOWORK
-00D48F  2  6D BB D1             ADC     VIDEOWORK+2
-00D492  2  8D BD D1             STA     VIDEOWORK+4
-00D495  2               
-00D495  2  AD BA D1             LDA     VIDEOWORK+1
-00D498  2  6D BC D1             ADC     VIDEOWORK+3
-00D49B  2  8D BE D1             STA     VIDEOWORK+5
-00D49E  2               
-00D49E  2  AD BD D1             LDA     VIDEOWORK+4     ; PLACE BACK IN VIDEOWORK(+1)
-00D4A1  2  8D B9 D1             STA     VIDEOWORK
-00D4A4  2  AD BE D1             LDA     VIDEOWORK+5
-00D4A7  2  8D BA D1             STA     VIDEOWORK+1
-00D4AA  2               
-00D4AA  2  AD B8 D1             LDA     VIDEOMODE       ; IF 40 COLUMN, WE ARE DONE, OTHERWISE DOUBLE AGAIN
-00D4AD  2  C9 00                CMP     #$00
-00D4AF  2  F0 06                BEQ     :+
-00D4B1  2  0E B9 D1             ASL     VIDEOWORK       ; TIMES 2
-00D4B4  2  2E BA D1             ROL     VIDEOWORK+1     ; TIMES 2
-00D4B7  2               :
-00D4B7  2  18                   CLC                     ; NOW ADD IN X COORD
-00D4B8  2  AD B3 D1             LDA     CURX
-00D4BB  2  6D B9 D1             ADC     VIDEOWORK
-00D4BE  2  8D B9 D1             STA     VIDEOWORK
-00D4C1  2  A9 00                LDA     #$00
-00D4C3  2  6D BA D1             ADC     VIDEOWORK+1
-00D4C6  2  8D BA D1             STA     VIDEOWORK+1
-00D4C9  2  60                   RTS
-00D4CA  2               
-00D4CA  2                       .IFNDEF PC6502BIOS
-00D4CA  2               ;
-00D4CA  2               ; DRIVER DATA
-00D4CA  2               ;__________________________________________________________________________________________________
-00D4CA  2               ; MESSAGES
-00D4CA  2               ;__________________________________________________________________________________________________
-00D4CA  2               VIDEOMESSAGE1:
-00D4CA  2  4D 45 4D 4F          .BYTE   "MEMORY MAPPED VIDEO:",$0D,$0A
-00D4CE  2  52 59 20 4D  
-00D4D2  2  41 50 50 45  
-00D4E0  2  20 42 41 4E          .BYTE   " BANK=0xF8 "
-00D4E4  2  4B 3D 30 78  
-00D4E8  2  46 38 20     
-00D4EB  2  00                   .BYTE   00
-00D4EC  2               VIDEOMESSAGE2:
-00D4EC  2  4E 4F 54 20          .BYTE   "NOT "
-00D4F0  2               VIDEOMESSAGE3:
-00D4F0  2  46 4F 55 4E          .BYTE   "FOUND."
-00D4F4  2  44 2E        
-00D4F6  2  00                   .BYTE   00
-00D4F7  2                       .ENDIF
-00D4F7  2               
-00D4F7  1               
-00D4F7  1               
-00D4F7  1               
-00D4F7  1               
-00D4F7  1               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
-00D4F7  1               ;
-00D4F7  1               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
-00D4F7  1               ;________________________________________________________________________________________________________________________________
-00D4F7  1               DFT_CONSOLE:
-00D4F7  1  8D 09 D5             STA     drvtmp
-00D4FA  1  A5 3A                LDA     CONSOLE
-00D4FC  1  18                   CLC
-00D4FD  1  65 32                ADC     farfunct
-00D4FF  1  85 32                STA     farfunct
-00D501  1  68                   PLA
-00D502  1  68                   PLA
-00D503  1  AD 09 D5             LDA     drvtmp
-00D506  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
-00D509  1               drvtmp:
-00D509  1  00                   .BYTE   00
-00D50A  1               
-00D50A  1               drv_noop:
-00D50A  1  60                   RTS
-00D50B  1               
-00D50B  1               DFT_CONSOLE_OUT:
-00D50B  1  48                   PHA
-00D50C  1  A5 3A                LDA     CONSOLE
-00D50E  1  85 32                STA     farfunct
-00D510  1  68                   PLA
-00D511  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
-00D514  1               
-00D514  1               ;------------------------------------------------------------------------
-00D514  1               LFCR:
-00D514  1  A9 0A                LDA     #10
-00D516  1  20 0B D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
-00D519  1  A9 0D                LDA     #13
-00D51B  1  20 0B D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
-00D51E  1  60                   RTS
-00D51F  1               
-00D51F  1               ;__WRSTR_______________________________________________________
-00D51F  1               ;
-00D51F  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00D51F  1               ;
-00D51F  1               ;______________________________________________________________
-00D51F  1               WRSTR:
-00D51F  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
-00D521  1               OUTSTRLP:
-00D521  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
-00D523  1  C9 00                CMP     #$00            ; IS NULL?
-00D525  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-00D527  1  20 0B D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
-00D52A  1  E6 41                INC     STRPTR
-00D52C  1  D0 F3                BNE     OUTSTRLP
-00D52E  1  E6 42                INC     STRPTR+1
-00D530  1  4C 21 D5             JMP     OUTSTRLP        ; DO NEXT CHAR
-00D533  1               ENDOUTSTR:
-00D533  1  60                   RTS                     ; RETURN
-00D534  1               
-00D534  1               PRINT_BYTE:
-00D534  1  8E 59 D5             STX     SAVX            ; save X
-00D537  1  20 44 D5             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
-00D53A  1  20 0B D5             JSR     DFT_CONSOLE_OUT ; output upper nybble
-00D53D  1  8A                   TXA                     ; transfer lower to A
-00D53E  1  AE 59 D5             LDX     SAVX            ; restore X
-00D541  1  4C 0B D5             JMP     DFT_CONSOLE_OUT ; output lower nybble
-00D544  1               ASCTWO:
-00D544  1  48                   PHA                     ; save byte
-00D545  1  20 4E D5             JSR     ASCII           ; do low nybble
-00D548  1  AA                   TAX                     ; save in X
-00D549  1  68                   PLA                     ; restore byte
-00D54A  1  4A                   LSR     A               ; shift upper nybble down
-00D54B  1  4A                   LSR     A
-00D54C  1  4A                   LSR     A
-00D54D  1  4A                   LSR     A
-00D54E  1               ; convert low nybble in A to hex digit
-00D54E  1               ASCII:
-00D54E  1  29 0F                AND     #$0F            ; clear upper nibble
-00D550  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
-00D552  1  90 02                BCC     ASC1
-00D554  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
-00D556  1               ASC1:
-00D556  1  69 30                ADC     #$30            ; add ascii char 0 to value
-00D558  1  60                   RTS
-00D559  1               SAVX:
-00D559  1  00                   .BYTE   00
-00D559  1               
+00D2BD  2               ;__SETCOLOR______________________________________________________________________________________________________________________
+00D2BD  2               ;
+00D2BD  2               ;	SET COLOR AND CURSOR COLOR
+00D2BD  2               ;       X= COLOR
+00D2BD  2               ;       Y= CURSOR COLOR
+00D2BD  2               ;________________________________________________________________________________________________________________________________
+00D2BD  2               ;
+00D2BD  2               SETCOLOR:
+00D2BD  2  8E 4A 06             STX     CURCOLOR
+00D2C0  2  8C 4B 06             STY     CSRCOLOR
+00D2C3  2  60                   RTS
+00D2C4  2               
+00D2C4  2               ;__SETXY_________________________________________________________________________________________________________________________
+00D2C4  2               ;
+00D2C4  2               ;	SET CURSOR POSITION
+00D2C4  2               ;       X= X POSITION
+00D2C4  2               ;       Y= Y POSITION
+00D2C4  2               ;________________________________________________________________________________________________________________________________
+00D2C4  2               ;
+00D2C4  2               SETXY:
+00D2C4  2  8E 47 06             STX     CURX
+00D2C7  2  8C 48 06             STY     CURY
+00D2CA  2  60                   RTS
+00D2CB  2               
+00D2CB  2               
+00D2CB  2               WRVIDTMP:
+00D2CB  2  00                   .BYTE    $00
+00D2CC  2               
+00D2CC  2               ;__WRVID_________________________________________________________________________________________________________________________
+00D2CC  2               ;
+00D2CC  2               ;	WRITE CHARACTER(A) TO VIDEO AT CURRENT X AND Y
+00D2CC  2               ;________________________________________________________________________________________________________________________________
+00D2CC  2               ;
+00D2CC  2               WRVID:
+00D2CC  2  8D CB D2             STA    WRVIDTMP
+00D2CF  2  48                   PHA
+00D2D0  2  8A                   TXA
+00D2D1  2  48                   PHA
+00D2D2  2  98                   TYA
+00D2D3  2  48                   PHA
+00D2D4  2  AD CB D2             LDA     WRVIDTMP
+00D2D7  2  C9 0D                CMP     #$0D
+00D2D9  2  D0 11                BNE     :+
+00D2DB  2  20 11 D4             JSR     UNPAINTCURSOR
+00D2DE  2  A9 00                LDA     #$00
+00D2E0  2  8D 47 06             STA     CURX
+00D2E3  2  20 D7 D3             JSR     PAINTCURSOR
+00D2E6  2  68                   PLA
+00D2E7  2  A8                   TAY
+00D2E8  2  68                   PLA
+00D2E9  2  AA                   TAX
+00D2EA  2  68                   PLA
+00D2EB  2  60                   RTS
+00D2EC  2               :
+00D2EC  2  C9 0A                CMP     #$0A
+00D2EE  2  D0 16                BNE     :+
+00D2F0  2  20 11 D4             JSR     UNPAINTCURSOR
+00D2F3  2  EE 48 06             INC     CURY
+00D2F6  2  AD 48 06             LDA     CURY
+00D2F9  2  C9 18                CMP     #24
+00D2FB  2  F0 69                BEQ     SCROLLV
+00D2FD  2  20 D7 D3             JSR     PAINTCURSOR
+00D300  2  68                   PLA
+00D301  2  A8                   TAY
+00D302  2  68                   PLA
+00D303  2  AA                   TAX
+00D304  2  68                   PLA
+00D305  2  60                   RTS
+00D306  2               :
+00D306  2  C9 08                CMP     #$08
+00D308  2  D0 72                BNE     WRVIDGO
+00D30A  2  20 11 D4             JSR     UNPAINTCURSOR
+00D30D  2  AD 47 06             LDA     CURX
+00D310  2  C9 00                CMP     #$00
+00D312  2  D0 1E                BNE     WRVID2
+00D314  2  AD 48 06             LDA     CURY
+00D317  2  C9 00                CMP     #$00
+00D319  2  F0 1A                BEQ     WRVIDX
+00D31B  2  CE 48 06             DEC     CURY
+00D31E  2  AD 4C 06             LDA     VIDEOMODE
+00D321  2  C9 01                CMP     #01
+00D323  2  D0 08                BNE     :+
+00D325  2  A9 50                LDA     #80
+00D327  2  8D 47 06             STA     CURX
+00D32A  2  4C 32 D3             JMP     WRVID2
+00D32D  2               :
+00D32D  2  A9 28                LDA     #40
+00D32F  2  8D 47 06             STA     CURX
+00D332  2               WRVID2:
+00D332  2  CE 47 06             DEC     CURX
+00D335  2               WRVIDX:
+00D335  2  20 AE D4             JSR     GETVIDEOADDRESS
+00D338  2  AD B3 D1             LDA     VIDEOWORK
+00D33B  2  85 3B                STA     TEMPWORD
+00D33D  2  18                   CLC
+00D33E  2  A9 B0                LDA     #$B0
+00D340  2  6D B4 D1             ADC     VIDEOWORK+1
+00D343  2  85 3C                STA     TEMPWORD+1
+00D345  2  A0 00                LDY     #$00
+00D347  2  A9 20                LDA     #32
+00D349  2  91 3B                STA     (TEMPWORD),Y
+00D34B  2  AD B3 D1             LDA     VIDEOWORK
+00D34E  2  85 3B                STA     TEMPWORD
+00D350  2  18                   CLC
+00D351  2  A9 B8                LDA     #$B8
+00D353  2  6D B4 D1             ADC     VIDEOWORK+1
+00D356  2  85 3C                STA     TEMPWORD+1
+00D358  2  AD 4A 06             LDA     CURCOLOR
+00D35B  2  91 3B                STA     (TEMPWORD),Y
+00D35D  2  20 D7 D3             JSR     PAINTCURSOR
+00D360  2  68                   PLA
+00D361  2  A8                   TAY
+00D362  2  68                   PLA
+00D363  2  AA                   TAX
+00D364  2  68                   PLA
+00D365  2  60                   RTS
+00D366  2               
+00D366  2               
+00D366  2               SCROLLV:
+00D366  2  20 29 D4             JSR     SCROLLUP
+00D369  2  A9 17                LDA     #23
+00D36B  2  8D 48 06             STA     CURY
+00D36E  2  A9 00                LDA     #0
+00D370  2  8D 47 06             STA     CURX
+00D373  2  20 D7 D3             JSR     PAINTCURSOR
+00D376  2  68                   PLA
+00D377  2  A8                   TAY
+00D378  2  68                   PLA
+00D379  2  AA                   TAX
+00D37A  2  68                   PLA
+00D37B  2  60                   RTS
+00D37C  2               
+00D37C  2               
+00D37C  2               
+00D37C  2               WRVIDGO:
+00D37C  2  48                   PHA
+00D37D  2  20 11 D4             JSR     UNPAINTCURSOR
+00D380  2  AD B3 D1             LDA     VIDEOWORK
+00D383  2  85 3B                STA     TEMPWORD
+00D385  2  18                   CLC
+00D386  2  A9 B0                LDA     #$B0
+00D388  2  6D B4 D1             ADC     VIDEOWORK+1
+00D38B  2  85 3C                STA     TEMPWORD+1
+00D38D  2  68                   PLA
+00D38E  2  A0 00                LDY     #$00
+00D390  2  91 3B                STA     (TEMPWORD),Y
+00D392  2  AD B3 D1             LDA     VIDEOWORK
+00D395  2  85 3B                STA     TEMPWORD
+00D397  2  18                   CLC
+00D398  2  A9 B8                LDA     #$B8
+00D39A  2  6D B4 D1             ADC     VIDEOWORK+1
+00D39D  2  85 3C                STA     TEMPWORD+1
+00D39F  2  AD 4A 06             LDA     CURCOLOR
+00D3A2  2  91 3B                STA     (TEMPWORD),Y
+00D3A4  2               
+00D3A4  2  AE 47 06             LDX     CURX
+00D3A7  2  AD 4C 06             LDA     VIDEOMODE
+00D3AA  2  C9 00                CMP     #$00
+00D3AC  2  D0 0C                BNE     :+
+00D3AE  2  E0 27                CPX     #39
+00D3B0  2  D0 11                BNE     :++
+00D3B2  2  EE 48 06             INC     CURY
+00D3B5  2  A2 FF                LDX     #$FF
+00D3B7  2  4C C3 D3             JMP     :++
+00D3BA  2               :
+00D3BA  2  E0 4F                CPX     #79
+00D3BC  2  D0 05                BNE     :+
+00D3BE  2  EE 48 06             INC     CURY
+00D3C1  2  A2 FF                LDX     #$FF
+00D3C3  2               :
+00D3C3  2  E8                   INX
+00D3C4  2  8E 47 06             STX     CURX
+00D3C7  2  AD 48 06             LDA     CURY
+00D3CA  2  C9 18                CMP     #24
+00D3CC  2  F0 98                BEQ     SCROLLV
+00D3CE  2  20 D7 D3             JSR     PAINTCURSOR
+00D3D1  2  68                   PLA
+00D3D2  2  A8                   TAY
+00D3D3  2  68                   PLA
+00D3D4  2  AA                   TAX
+00D3D5  2  68                   PLA
+00D3D6  2  60                   RTS
+00D3D7  2               
+00D3D7  2               
+00D3D7  2               
+00D3D7  2               PAINTCURSOR:
+00D3D7  2  AD 49 06             LDA     SHOWCRSR
+00D3DA  2  F0 1D                BEQ     :+
+00D3DC  2               FPAINTCURSOR:
+00D3DC  2  20 AE D4             JSR     GETVIDEOADDRESS
+00D3DF  2  AD B3 D1             LDA     VIDEOWORK
+00D3E2  2  85 3B                STA     TEMPWORD
+00D3E4  2  18                   CLC
+00D3E5  2  A9 B8                LDA     #$B8
+00D3E7  2  6D B4 D1             ADC     VIDEOWORK+1
+00D3EA  2  85 3C                STA     TEMPWORD+1
+00D3EC  2               
+00D3EC  2  A0 00                LDY     #$00
+00D3EE  2  B1 3B                LDA     (TEMPWORD),Y
+00D3F0  2  8D 4D 06             STA     UNDERCRSR
+00D3F3  2  AD 4B 06             LDA     CSRCOLOR
+00D3F6  2  91 3B                STA     (TEMPWORD),Y
+00D3F8  2  60                   RTS
+00D3F9  2               :
+00D3F9  2  20 AE D4             JSR     GETVIDEOADDRESS
+00D3FC  2  AD B3 D1             LDA     VIDEOWORK
+00D3FF  2  85 3B                STA     TEMPWORD
+00D401  2  18                   CLC
+00D402  2  A9 B8                LDA     #$B8
+00D404  2  6D B4 D1             ADC     VIDEOWORK+1
+00D407  2  85 3C                STA     TEMPWORD+1
+00D409  2  A0 00                LDY     #$00
+00D40B  2  B1 3B                LDA     (TEMPWORD),Y
+00D40D  2  8D 4D 06             STA     UNDERCRSR
+00D410  2  60                   RTS
+00D411  2               
+00D411  2               UNPAINTCURSOR:
+00D411  2  20 AE D4             JSR     GETVIDEOADDRESS
+00D414  2  AD B3 D1             LDA     VIDEOWORK
+00D417  2  85 3B                STA     TEMPWORD
+00D419  2  18                   CLC
+00D41A  2  A9 B8                LDA     #$B8
+00D41C  2  6D B4 D1             ADC     VIDEOWORK+1
+00D41F  2  85 3C                STA     TEMPWORD+1
+00D421  2  AD 4D 06             LDA     UNDERCRSR
+00D424  2  A0 00                LDY     #$00
+00D426  2  91 3B                STA     (TEMPWORD),Y
+00D428  2  60                   RTS
+00D429  2               
+00D429  2               
+00D429  2               ;__SCROLLUP______________________________________________________________________________________________________________________
+00D429  2               ;
+00D429  2               ;	SCROLL THE SCREEN UP
+00D429  2               ;
+00D429  2               ;
+00D429  2               ;________________________________________________________________________________________________________________________________
+00D429  2               ;
+00D429  2               SCROLLUP:
+00D429  2  A9 B0                LDA     #$B0                    ; SCREEN MEMORY STARTS AT $B000
+00D42B  2  85 3C                STA     TEMPWORD+1              ;
+00D42D  2  85 3E                STA     TEMPWORD1+1             ;
+00D42F  2  A9 B8                LDA     #$B8                    ; COLOR MEMORT STARTS AT $B800
+00D431  2  85 40                STA     TEMPWORD2+1             ;
+00D433  2  85 45                STA     TEMPWORD3+1             ;
+00D435  2  A9 00                LDA     #$00                    ;
+00D437  2  85 3B                STA     TEMPWORD                ;
+00D439  2  85 3F                STA     TEMPWORD2               ;
+00D43B  2               
+00D43B  2  AD 4C 06             LDA     VIDEOMODE               ; 1=80 COL, 0=40 COL
+00D43E  2  C9 01                CMP     #01
+00D440  2  D0 09                BNE     :+
+00D442  2  A9 50                LDA     #80
+00D444  2  85 3D                STA     TEMPWORD1
+00D446  2  85 44                STA     TEMPWORD3
+00D448  2  4C 51 D4             JMP     SCROLLUP_G
+00D44B  2               :
+00D44B  2  A9 28                LDA     #40
+00D44D  2  85 3D                STA     TEMPWORD1
+00D44F  2  85 44                STA     TEMPWORD3
+00D451  2               
+00D451  2               
+00D451  2               SCROLLUP_G:
+00D451  2  A0 00                LDY     #$00                    ; INDEX ALWAYS =0
+00D453  2               ; SCROLL UP 40/80 CHARACTERS AND COLOR
+00D453  2               SCROLLUP_G1:
+00D453  2  B1 3D                LDA     (TEMPWORD1),Y           ; READ FROM SCREEN+X
+00D455  2  91 3B                STA     (TEMPWORD),Y            ; WRITE TO SCREEN
+00D457  2  B1 44                LDA     (TEMPWORD3),Y           ; READ FROM COLOR+X
+00D459  2  91 3F                STA     (TEMPWORD2),Y           ; WRITE TO COLOR
+00D45B  2               
+00D45B  2  E6 3F                INC     TEMPWORD2
+00D45D  2  D0 02                BNE     :+
+00D45F  2  E6 40                INC     TEMPWORD2+1
+00D461  2               :
+00D461  2  E6 3B                INC     TEMPWORD
+00D463  2  D0 02                BNE     :+
+00D465  2  E6 3C                INC     TEMPWORD+1
+00D467  2               :
+00D467  2  E6 44                INC     TEMPWORD3
+00D469  2  D0 02                BNE     :+
+00D46B  2  E6 45                INC     TEMPWORD3+1
+00D46D  2               :
+00D46D  2  E6 3D                INC     TEMPWORD1
+00D46F  2  D0 02                BNE     :+
+00D471  2  E6 3E                INC     TEMPWORD1+1
+00D473  2               :
+00D473  2  A5 3E                LDA     TEMPWORD1+1
+00D475  2  C9 B8                CMP     #$B8
+00D477  2  D0 DA                BNE     SCROLLUP_G1
+00D479  2               
+00D479  2               
+00D479  2               ; CLEAR BOTTOM LINE.
+00D479  2  AD 4C 06             LDA     VIDEOMODE
+00D47C  2  C9 01                CMP     #01
+00D47E  2  F0 11                BEQ     :+
+00D480  2  A9 98                LDA     #$98
+00D482  2  85 3B                STA     TEMPWORD
+00D484  2  85 3D                STA     TEMPWORD1
+00D486  2  A9 B3                LDA     #$B3
+00D488  2  85 3C                STA     TEMPWORD+1
+00D48A  2  A9 BB                LDA     #$BB
+00D48C  2  85 3E                STA     TEMPWORD1+1
+00D48E  2               
+00D48E  2  4C 9F D4             JMP     SCROLLUP_C
+00D491  2               :
+00D491  2  A9 30                LDA     #$30
+00D493  2  85 3B                STA     TEMPWORD
+00D495  2  85 3D                STA     TEMPWORD1
+00D497  2  A9 B7                LDA     #$B7
+00D499  2  85 3C                STA     TEMPWORD+1
+00D49B  2  A9 BF                LDA     #$BF
+00D49D  2  85 3E                STA     TEMPWORD1+1
+00D49F  2               
+00D49F  2               SCROLLUP_C:
+00D49F  2  A9 20                LDA     #32
+00D4A1  2  91 3B                STA     (TEMPWORD),Y
+00D4A3  2  AD 4A 06             LDA     CURCOLOR
+00D4A6  2  91 3D                STA     (TEMPWORD1),Y
+00D4A8  2  C8                   INY
+00D4A9  2  C0 50                CPY     #80
+00D4AB  2  D0 F2                BNE     SCROLLUP_C
+00D4AD  2  60                   RTS
+00D4AE  2               
+00D4AE  2               
+00D4AE  2               GETVIDEOADDRESS:
+00D4AE  2  AD 48 06             LDA     CURY
+00D4B1  2  8D B3 D1             STA     VIDEOWORK
+00D4B4  2  A9 00                LDA     #$00
+00D4B6  2  8D B4 D1             STA     VIDEOWORK+1
+00D4B9  2               
+00D4B9  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 2
+00D4BC  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 2
+00D4BF  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 4
+00D4C2  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 4
+00D4C5  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 8
+00D4C8  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 8
+00D4CB  2               
+00D4CB  2  AD B3 D1             LDA     VIDEOWORK       ; PARK THIS NUMBER FOR THE FUTURE
+00D4CE  2  8D B5 D1             STA     VIDEOWORK+2
+00D4D1  2  AD B4 D1             LDA     VIDEOWORK+1
+00D4D4  2  8D B6 D1             STA     VIDEOWORK+3
+00D4D7  2               
+00D4D7  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 16
+00D4DA  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 16
+00D4DD  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 32
+00D4E0  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 32
+00D4E3  2               
+00D4E3  2  18                   CLC                     ; ADD THE *32 VALUE WITH THE *8 VALUE TO GET *40 :)
+00D4E4  2  AD B3 D1             LDA     VIDEOWORK
+00D4E7  2  6D B5 D1             ADC     VIDEOWORK+2
+00D4EA  2  8D B7 D1             STA     VIDEOWORK+4
+00D4ED  2               
+00D4ED  2  AD B4 D1             LDA     VIDEOWORK+1
+00D4F0  2  6D B6 D1             ADC     VIDEOWORK+3
+00D4F3  2  8D B8 D1             STA     VIDEOWORK+5
+00D4F6  2               
+00D4F6  2  AD B7 D1             LDA     VIDEOWORK+4     ; PLACE BACK IN VIDEOWORK(+1)
+00D4F9  2  8D B3 D1             STA     VIDEOWORK
+00D4FC  2  AD B8 D1             LDA     VIDEOWORK+5
+00D4FF  2  8D B4 D1             STA     VIDEOWORK+1
+00D502  2               
+00D502  2  AD 4C 06             LDA     VIDEOMODE       ; IF 40 COLUMN, WE ARE DONE, OTHERWISE DOUBLE AGAIN
+00D505  2  C9 00                CMP     #$00
+00D507  2  F0 06                BEQ     :+
+00D509  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 2
+00D50C  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 2
+00D50F  2               :
+00D50F  2  18                   CLC                     ; NOW ADD IN X COORD
+00D510  2  AD 47 06             LDA     CURX
+00D513  2  6D B3 D1             ADC     VIDEOWORK
+00D516  2  8D B3 D1             STA     VIDEOWORK
+00D519  2  A9 00                LDA     #$00
+00D51B  2  6D B4 D1             ADC     VIDEOWORK+1
+00D51E  2  8D B4 D1             STA     VIDEOWORK+1
+00D521  2  60                   RTS
+00D522  2               
+00D522  2                       .IFNDEF PC6502BIOS
+00D522  2               ;
+00D522  2               ; DRIVER DATA
+00D522  2               ;__________________________________________________________________________________________________
+00D522  2               ; MESSAGES
+00D522  2               ;__________________________________________________________________________________________________
+00D522  2               VIDEOMESSAGE1:
+00D522  2  4D 45 4D 4F          .BYTE   "MEMORY MAPPED VIDEO:",$0D,$0A
+00D526  2  52 59 20 4D  
+00D52A  2  41 50 50 45  
+00D538  2  20 42 41 4E          .BYTE   " BANK=0xF8 "
+00D53C  2  4B 3D 30 78  
+00D540  2  46 38 20     
+00D543  2  00                   .BYTE   00
+00D544  2               VIDEOMESSAGE2:
+00D544  2  4E 4F 54 20          .BYTE   "NOT "
+00D548  2               VIDEOMESSAGE3:
+00D548  2  46 4F 55 4E          .BYTE   "FOUND."
+00D54C  2  44 2E        
+00D54E  2  00                   .BYTE   00
+00D54F  2                       .ENDIF
+00D54F  2               
+00D54F  1               
+00D54F  1               
+00D54F  1               
+00D54F  1               
+00D54F  1               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
+00D54F  1               ;
+00D54F  1               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
+00D54F  1               ;________________________________________________________________________________________________________________________________
+00D54F  1               DFT_CONSOLE:
+00D54F  1  8D 61 D5             STA     drvtmp
+00D552  1  A5 3A                LDA     CONSOLE
+00D554  1  18                   CLC
+00D555  1  65 32                ADC     farfunct
+00D557  1  85 32                STA     farfunct
+00D559  1  68                   PLA
+00D55A  1  68                   PLA
+00D55B  1  AD 61 D5             LDA     drvtmp
+00D55E  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
+00D561  1               drvtmp:
+00D561  1  00                   .BYTE   00
+00D562  1               
+00D562  1               drv_noop:
+00D562  1  60                   RTS
+00D563  1               
+00D563  1               DFT_CONSOLE_OUT:
+00D563  1  48                   PHA
+00D564  1  A5 3A                LDA     CONSOLE
+00D566  1  85 32                STA     farfunct
+00D568  1  68                   PLA
+00D569  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
+00D56C  1               
+00D56C  1               ;------------------------------------------------------------------------
+00D56C  1               LFCR:
+00D56C  1  A9 0A                LDA     #10
+00D56E  1  20 63 D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
+00D571  1  A9 0D                LDA     #13
+00D573  1  20 63 D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
+00D576  1  60                   RTS
+00D577  1               
+00D577  1               ;__WRSTR_______________________________________________________
+00D577  1               ;
+00D577  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00D577  1               ;
+00D577  1               ;______________________________________________________________
+00D577  1               WRSTR:
+00D577  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+00D579  1               OUTSTRLP:
+00D579  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+00D57B  1  C9 00                CMP     #$00            ; IS NULL?
+00D57D  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00D57F  1  20 63 D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
+00D582  1  E6 41                INC     STRPTR
+00D584  1  D0 F3                BNE     OUTSTRLP
+00D586  1  E6 42                INC     STRPTR+1
+00D588  1  4C 79 D5             JMP     OUTSTRLP        ; DO NEXT CHAR
+00D58B  1               ENDOUTSTR:
+00D58B  1  60                   RTS                     ; RETURN
+00D58C  1               
+00D58C  1               PRINT_BYTE:
+00D58C  1  8E B1 D5             STX     SAVX            ; save X
+00D58F  1  20 9C D5             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
+00D592  1  20 63 D5             JSR     DFT_CONSOLE_OUT ; output upper nybble
+00D595  1  8A                   TXA                     ; transfer lower to A
+00D596  1  AE B1 D5             LDX     SAVX            ; restore X
+00D599  1  4C 63 D5             JMP     DFT_CONSOLE_OUT ; output lower nybble
+00D59C  1               ASCTWO:
+00D59C  1  48                   PHA                     ; save byte
+00D59D  1  20 A6 D5             JSR     ASCII           ; do low nybble
+00D5A0  1  AA                   TAX                     ; save in X
+00D5A1  1  68                   PLA                     ; restore byte
+00D5A2  1  4A                   LSR     A               ; shift upper nybble down
+00D5A3  1  4A                   LSR     A
+00D5A4  1  4A                   LSR     A
+00D5A5  1  4A                   LSR     A
+00D5A6  1               ; convert low nybble in A to hex digit
+00D5A6  1               ASCII:
+00D5A6  1  29 0F                AND     #$0F            ; clear upper nibble
+00D5A8  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
+00D5AA  1  90 02                BCC     ASC1
+00D5AC  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
+00D5AE  1               ASC1:
+00D5AE  1  69 30                ADC     #$30            ; add ascii char 0 to value
+00D5B0  1  60                   RTS
+00D5B1  1               SAVX:
+00D5B1  1  00                   .BYTE   00
+00D5B1  1               

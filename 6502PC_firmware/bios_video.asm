@@ -14,22 +14,8 @@
 ;
 
 VIDEOBANK       = $F8
+
 ; DATA STORAGE
-CURX:
-        .BYTE   00
-CURY:
-        .BYTE   00
-SHOWCRSR:
-        .BYTE   01
-
-CURCOLOR:
-        .BYTE   $1E
-CSRCOLOR:
-        .BYTE   $E1
-
-VIDEOMODE:
-        .BYTE   01              ; 00=40 COL, 01=80 COL
-
 VIDEOWORK:
         .BYTE   00,00,00,00,00,00
 ;*
@@ -100,6 +86,15 @@ VIDEOINIT:
         STA     $B005           ; SET TEXT MODE
         LDA     #$01
         STA     $B00A           ; SET 80COL MODE
+
+        LDA     #$01
+        STA     SHOWCRSR        ; SHOW CURSOR (1-YES, 0-NO)
+        LDA     #$1E
+        STA     CURCOLOR        ; CURRENT PRINT COLOR
+        LDA     #$E1
+        STA     CSRCOLOR        ; CURRENT CURSOR COLOR
+        LDA     #$01
+        STA     VIDEOMODE       ; 00=40 COL, 01=80 COL
 
         JSR     CLEARSCREEN
 
@@ -308,6 +303,14 @@ WRVIDX:
         LDY     #$00
         LDA     #32
         STA     (TEMPWORD),Y
+        LDA     VIDEOWORK
+        STA     TEMPWORD
+        CLC
+        LDA     #$B8
+        ADC     VIDEOWORK+1
+        STA     TEMPWORD+1
+        LDA     CURCOLOR
+        STA     (TEMPWORD),Y
         JSR     PAINTCURSOR
         PLA
         TAY
@@ -345,6 +348,14 @@ WRVIDGO:
         PLA
         LDY     #$00
         STA     (TEMPWORD),Y
+        LDA     VIDEOWORK
+        STA     TEMPWORD
+        CLC
+        LDA     #$B8
+        ADC     VIDEOWORK+1
+        STA     TEMPWORD+1
+        LDA     CURCOLOR
+        STA     (TEMPWORD),Y
 
         LDX     CURX
         LDA     VIDEOMODE
@@ -377,6 +388,9 @@ WRVIDGO:
 
 
 PAINTCURSOR:
+        LDA     SHOWCRSR
+        BEQ     :+
+FPAINTCURSOR:
         JSR     GETVIDEOADDRESS
         LDA     VIDEOWORK
         STA     TEMPWORD
@@ -384,9 +398,24 @@ PAINTCURSOR:
         LDA     #$B8
         ADC     VIDEOWORK+1
         STA     TEMPWORD+1
-        LDA     CSRCOLOR
+
         LDY     #$00
+        LDA     (TEMPWORD),Y
+        STA     UNDERCRSR
+        LDA     CSRCOLOR
         STA     (TEMPWORD),Y
+        RTS
+:
+        JSR     GETVIDEOADDRESS
+        LDA     VIDEOWORK
+        STA     TEMPWORD
+        CLC
+        LDA     #$B8
+        ADC     VIDEOWORK+1
+        STA     TEMPWORD+1
+        LDY     #$00
+        LDA     (TEMPWORD),Y
+        STA     UNDERCRSR
         RTS
 
 UNPAINTCURSOR:
@@ -397,7 +426,7 @@ UNPAINTCURSOR:
         LDA     #$B8
         ADC     VIDEOWORK+1
         STA     TEMPWORD+1
-        LDA     CURCOLOR
+        LDA     UNDERCRSR
         LDY     #$00
         STA     (TEMPWORD),Y
         RTS
@@ -411,17 +440,17 @@ UNPAINTCURSOR:
 ;________________________________________________________________________________________________________________________________
 ;
 SCROLLUP:
-        LDA     #$B0
-        STA     TEMPWORD+1
-        STA     TEMPWORD1+1
-        LDA     #$B8
-        STA     TEMPWORD2+1
-        STA     TEMPWORD3+1
-        LDA     #$00
-        STA     TEMPWORD
-        STA     TEMPWORD2
+        LDA     #$B0                    ; SCREEN MEMORY STARTS AT $B000
+        STA     TEMPWORD+1              ;
+        STA     TEMPWORD1+1             ;
+        LDA     #$B8                    ; COLOR MEMORT STARTS AT $B800
+        STA     TEMPWORD2+1             ;
+        STA     TEMPWORD3+1             ;
+        LDA     #$00                    ;
+        STA     TEMPWORD                ;
+        STA     TEMPWORD2               ;
 
-        LDA     VIDEOMODE
+        LDA     VIDEOMODE               ; 1=80 COL, 0=40 COL
         CMP     #01
         BNE     :+
         LDA     #80
@@ -435,34 +464,36 @@ SCROLLUP:
 
 
 SCROLLUP_G:
-        LDY     #$00
+        LDY     #$00                    ; INDEX ALWAYS =0
 ; SCROLL UP 40/80 CHARACTERS AND COLOR
-:
-        LDA     (TEMPWORD1),Y
-        STA     (TEMPWORD),Y
-        LDA     (TEMPWORD3),Y
-        STA     (TEMPWORD2),Y
+SCROLLUP_G1:
+        LDA     (TEMPWORD1),Y           ; READ FROM SCREEN+X
+        STA     (TEMPWORD),Y            ; WRITE TO SCREEN
+        LDA     (TEMPWORD3),Y           ; READ FROM COLOR+X
+        STA     (TEMPWORD2),Y           ; WRITE TO COLOR
 
         INC     TEMPWORD2
-        INC     TEMPWORD
         BNE     :+
         INC     TEMPWORD2+1
+:
+        INC     TEMPWORD
+        BNE     :+
         INC     TEMPWORD+1
 :
         INC     TEMPWORD3
-        INC     TEMPWORD1
-        BNE     :--
+        BNE     :+
         INC     TEMPWORD3+1
+:
+        INC     TEMPWORD1
+        BNE     :+
         INC     TEMPWORD1+1
-
+:
         LDA     TEMPWORD1+1
         CMP     #$B8
-        BNE     :--
-
+        BNE     SCROLLUP_G1
 
 
 ; CLEAR BOTTOM LINE.
-
         LDA     VIDEOMODE
         CMP     #01
         BEQ     :+
@@ -471,7 +502,7 @@ SCROLLUP_G:
         STA     TEMPWORD1
         LDA     #$B3
         STA     TEMPWORD+1
-        LDA     #$BF
+        LDA     #$BB
         STA     TEMPWORD1+1
 
         JMP     SCROLLUP_C
@@ -481,7 +512,7 @@ SCROLLUP_G:
         STA     TEMPWORD1
         LDA     #$B7
         STA     TEMPWORD+1
-        LDA     #$BB
+        LDA     #$BF
         STA     TEMPWORD1+1
 
 SCROLLUP_C:

@@ -107,8 +107,8 @@ DISPATCHTABLE:
 
         .WORD   SCROLLUP        ; Scroll the screen up one line  ; FUNCTION 56
         .WORD   SETMODE         ; Set video 40/80 mode ; FUNCTION 57
-        .WORD   drv_noop        ; FUNCTION 58
-        .WORD   drv_noop        ; FUNCTION 59
+        .WORD   FPAINTCURSOR    ; FUNCTION 58
+        .WORD   UNPAINTCURSOR   ; FUNCTION 59
 
         .WORD   XTIDE_INIT      ; FUNCTION 60 - called during OS init
         .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
