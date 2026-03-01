@@ -1,11 +1,11 @@
 
 
-RTCSECONDS = 0
-RTCMINUTES = 1
-RTCHOUR = 2
-RTCDATE = 3
-RTCMONTH = 4
-RTCYEAR = 6
+RTCSECONDS      = 0
+RTCMINUTES      = 1
+RTCHOUR         = 2
+RTCDATE         = 3
+RTCMONTH        = 4
+RTCYEAR         = 6
 
 ;___LAB_SECOND______________________________________________
 ;

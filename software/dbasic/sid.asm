@@ -81,7 +81,7 @@ LAB_SOUND:
         STA     (TEMPW),Y
         RTS
 SIDVOICELOOKUP:
-        .WORD  SID_BASE,SID_BASE+7,SID_BASE+$12
+        .WORD   SID_BASE,SID_BASE+7,SID_BASE+$12
 
 ;___FILTER_________________________________________________
 ;

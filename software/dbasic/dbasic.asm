@@ -847,6 +847,8 @@ LAB_1463:
 ; reset execution to start, clear vars and flush stack
 
 LAB_1477:
+        LDA     #$00
+        STA     printflag
         CLC                     ; clear carry
         LDA     Smeml           ; get start of mem low byte
         ADC     #$FF            ; -1
@@ -1365,11 +1367,6 @@ LAB_CONT:
 
 ; we can continue so ..
 LAB_166C:
-        LDA     #TK_ON          ; set token for ON
-        JSR     LAB_IRQ         ; set IRQ flags
-        LDA     #TK_ON          ; set token for ON
-        JSR     LAB_NMI         ; set NMI flags
-
         STY     Bpntrh          ; save BASIC execute pointer high byte
         LDA     Cpntrl          ; get continue pointer low byte
         STA     Bpntrl          ; save BASIC execute pointer low byte
@@ -1808,18 +1805,6 @@ LAB_16FD:
 ; perform ON
 
 LAB_ON:
-        CMP     #TK_IRQ         ; was it IRQ token ?
-        BNE     LAB_NOIN        ; if not go check NMI
-
-        JMP     LAB_SIRQ        ; else go set-up IRQ
-
-LAB_NOIN:
-        CMP     #TK_NMI         ; was it NMI token ?
-        BNE     LAB_NONM        ; if not go do normal ON command
-
-        JMP     LAB_SNMI        ; else go set-up NMI
-
-LAB_NONM:
         JSR     LAB_GTBY        ; get byte parameter
         PHA                     ; push GOTO/GOSUB token
         CMP     #TK_GOSUB       ; compare with GOSUB token
@@ -7638,76 +7623,6 @@ LAB_INEX:
         .ENDIF
         RTS
 
-; these routines set up the pointers and flags for the interrupt routines
-; note that the interrupts are also enabled by these commands
-
-; perform ON IRQ
-
-LAB_SIRQ:
-        CLI                     ; enable interrupts
-        LDX     #IrqBase        ; set pointer to IRQ values
-        .BYTE   $2C             ; make next line BIT abs.
-
-; perform ON NMI
-
-LAB_SNMI:
-        LDX     #NmiBase        ; set pointer to NMI values
-
-        STX     TempB           ; save interrupt pointer
-        .IFDEF  DUODYNE
-        JSL     LAB_IGBY        ; increment and scan memory
-        .ELSE
-        JSR     LAB_IGBY        ; increment and scan memory
-        .ENDIF
-
-        JSR     LAB_GFPN        ; get fixed-point number into temp integer
-        LDA     Smeml           ; get start of mem low byte
-        LDX     Smemh           ; get start of mem high byte
-        JSR     LAB_SHLN        ; search Basic for temp integer line number from AX
-        BCS     LAB_LFND        ; if carry set go set-up interrupt
-
-        JMP     LAB_16F7        ; else go do "Undefined statement" error and warm start
-
-LAB_LFND:
-        LDX     TempB           ; get interrupt pointer
-        LDA     Baslnl          ; get pointer low byte
-        SBC     #$01            ; -1 (carry already set for subtract)
-        STA     PLUS_1,X        ; save as interrupt pointer low byte
-        LDA     Baslnh          ; get pointer high byte
-        SBC     #$00            ; subtract carry
-        STA     PLUS_2,X        ; save as interrupt pointer high byte
-
-        LDA     #$C0            ; set interrupt enabled/setup bits
-        STA     PLUS_0,X        ; set interrupt flags
-LAB_IRTS:
-        RTS
-
-; return from IRQ service, restores the enabled flag.
-
-; perform RETIRQ
-
-LAB_RETIRQ:
-        BNE     LAB_IRTS        ; exit if following token (to allow syntax error)
-
-        LDA     IrqBase         ; get interrupt flags
-        ASL     A               ; copy setup to enabled (b7)
-        ORA     IrqBase         ; OR in setup flag
-        STA     IrqBase         ; save enabled flag
-        JMP     LAB_16E8        ; go do rest of RETURN
-
-; return from NMI service, restores the enabled flag.
-
-; perform RETNMI
-
-LAB_RETNMI:
-        BNE     LAB_IRTS        ; exit if following token (to allow syntax error)
-
-        LDA     NmiBase         ; get set-up flag
-        ASL     A               ; copy setup to enabled (b7)
-        ORA     NmiBase         ; OR in setup flag
-        STA     NmiBase         ; save enabled flag
-        JMP     LAB_16E8        ; go do rest of RETURN
-
 ; MAX() MIN() pre process
 
 LAB_MMPP:
@@ -8034,7 +7949,6 @@ LAB_TWOPI:
 
 AA_end_basic:
 FCBBUFFER:
-        .res    128, $00
 ENDOFBASIC:
         .BYTE   "DERIVED FROM ehBASIC"
 

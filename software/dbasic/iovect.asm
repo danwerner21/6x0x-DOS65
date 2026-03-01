@@ -1,6 +1,9 @@
 ; system dependant i/o vectors
 ; these are in RAM and are set by the monitor at start-up
 
+printflag:
+        .BYTE   00
+
         .IFNDEF MEMORYMAPPEDSCREEN
 ; Serial port IO
 V_INPT: ; non halting scan input device
@@ -28,7 +31,19 @@ BYTEOUT:
         STA     DBGA
         STY     DBGY
         STX     DBGX
+        LDA     printflag
+        CMP     #00
+        BNE     :+
+        LDA     DBGA
         LDX     #2              ;
+        JSR     PEM             ;
+        LDA     DBGA
+        LDY     DBGY
+        LDX     DBGX
+        RTS
+:
+        LDA     DBGA
+        LDX     #5              ;
         JSR     PEM             ;
         LDA     DBGA
         LDY     DBGY
@@ -42,10 +57,21 @@ BYTEOUT:
         STA     DBGA
         STY     DBGY
         STX     DBGX
+        LDA     printflag
+        CMP     #00
+        BNE     :+
         LDA     #19
         STA     farfunct
         LDA     DBGA
         JSR     DO_FARCALL
+        LDA     DBGA
+        LDY     DBGY
+        LDX     DBGX
+        RTS
+:
+        LDA     DBGA
+        LDX     #5              ;
+        JSR     PEM             ;
         LDA     DBGA
         LDY     DBGY
         LDX     DBGX
@@ -257,7 +283,24 @@ LdKbBuffer:
 
         .ENDIF
 
-
+V_LPRINT:
+        PHP
+        LDA     #$01
+        STA     printflag
+        PLP
+        JSR     LAB_PRINT
+        LDA     #$00
+        STA     printflag
+        RTS
+V_LLIST:
+        PHP
+        LDA     #$01
+        STA     printflag
+        PLP
+        JSR     LAB_LIST
+        LDA     #$00
+        STA     printflag
+        RTS
 
 
 UART1DATA       = $EF84         ; SERIAL PORT 1 (I/O Card)

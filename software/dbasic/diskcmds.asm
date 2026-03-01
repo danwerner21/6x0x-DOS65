@@ -329,7 +329,7 @@ LAB_DIR:
         LDX     #26             ; Setup Buffer
         JSR     PEM             ;
 
-       .IFDEF  DUODYNE
+        .IFDEF  DUODYNE
         JSL     LAB_GBYT        ; scan memory
         .ELSE
         JSR     LAB_GBYT        ; scan memory
@@ -363,7 +363,7 @@ DIR_LOOP:
         CMP     #$FF
         BEQ     DIR_EXIT
 
-                                ; PRINT DIR ENTRY
+; PRINT DIR ENTRY
         ASL     A               ; *2
         ASL     A               ; *4
         ASL     A               ; *8
@@ -421,7 +421,7 @@ DIR_EXIT:
 ; FILENAME$ = FILENAME STRING
 ;__________________________________________________________
 V_OPEN:
-                                ; CLEAR FCB
+; CLEAR FCB
         LDA     #0              ; FILL WITH NULL
         LDY     #0              ;
 :
@@ -539,7 +539,7 @@ V_OPEN_FNEND:
         DEX
         DEY
         LDA     FCB,X
-        STA     (str_pl),Y       ;
+        STA     (str_pl),Y      ;
         CPX     #0              ;
         BNE     :-              ;
                                 ;
@@ -547,7 +547,7 @@ V_OPEN_FNEND:
         JMP     LAB_17D5        ; do string LET and return
 
 OPNTMP:
-        .BYTE 00
+        .BYTE   00
 
 ;___CLOSE____________________________________________________
 ;
@@ -697,17 +697,17 @@ V_FILEREAD:
         JSR     LAB_XERR
         JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
 :
-        LDA     #129          ;
+        LDA     #129            ;
         JSR     LAB_MSSP        ; make string space A bytes long A=$AC=length,
                                 ; X=$AD=<Sutill=ptr low byte, Y=$AE=<Sutilh=ptr high byte
                                 ; COPY FCB TO STRING
-        LDX     #128          ;
-        LDY     #128          ;
+        LDX     #128            ;
+        LDY     #128            ;
 :
         DEX
         DEY
         LDA     FCBBUFFER,X
-        STA     (str_pl),Y       ;
+        STA     (str_pl),Y      ;
         CPX     #0              ;
         BNE     :-              ;
                                 ;

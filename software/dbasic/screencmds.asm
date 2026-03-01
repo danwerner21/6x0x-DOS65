@@ -956,7 +956,7 @@ V_PATTERN:
 
 
 LAB_LINE:
-        rts
+        RTS
         .ELSE
 
 

@@ -17,9 +17,7 @@ TK_RUN          = TK_GOTO+1     ; RUN token
 TK_IF           = TK_RUN+1      ; IF token
 TK_RESTORE      = TK_IF+1       ; RESTORE token
 TK_GOSUB        = TK_RESTORE+1  ; GOSUB token
-TK_RETIRQ       = TK_GOSUB+1    ; RETIRQ token
-TK_RETNMI       = TK_RETIRQ+1   ; RETNMI token
-TK_RETURN       = TK_RETNMI+1   ; RETURN token
+TK_RETURN       = TK_GOSUB+1    ; RETURN token
 TK_REM          = TK_RETURN+1   ; REM token
 TK_STOP         = TK_REM+1      ; STOP token
 TK_ON           = TK_STOP+1     ; ON token
@@ -47,9 +45,7 @@ TK_GET          = TK_WIDTH+1    ; GET token
 TK_SWAP         = TK_GET+1      ; SWAP token
 TK_BITSET       = TK_SWAP+1     ; BITSET token
 TK_BITCLR       = TK_BITSET+1   ; BITCLR token
-TK_IRQ          = TK_BITCLR+1   ; IRQ token
-TK_NMI          = TK_IRQ+1      ; NMI token
-TK_KILL         = TK_NMI+1      ; KILL token
+TK_KILL         = TK_BITCLR+1   ; KILL token
 TK_SCREEN       = TK_KILL+1     ; SCREEN token
 TK_SCRCLR       = TK_SCREEN+1   ; SCRCLR token
 TK_COLOR        = TK_SCRCLR+1   ; COLOR token
@@ -60,10 +56,13 @@ TK_OPEN         = TK_LOCATE+1   ; OPEN token
 TK_CLOSE        = TK_OPEN+1     ; CLOSE token
 TK_FILEREAD     = TK_CLOSE+1    ; FILEREAD token
 TK_FILEWRITE    = TK_FILEREAD+1 ; FILEWRITE token
+TK_LPRINT       = TK_FILEWRITE+1; LPRINT token
+TK_LLIST        = TK_LPRINT+1   ; LLIST token
+
 
 ; secondary command tokens, can't start a statement
 
-TK_TAB          = TK_FILEWRITE+1; TAB token
+TK_TAB          = TK_LLIST+1    ; TAB token
 TK_ELSE         = TK_TAB+1      ; ELSE token
 TK_TO           = TK_ELSE+1     ; TO token
 TK_FN           = TK_TO+1       ; FN token
@@ -130,7 +129,7 @@ TK_HOUR         = TK_MINUTE+1   ; HOUR token
 TK_DAY          = TK_HOUR+1     ; DAY token
 TK_MONTH        = TK_DAY+1      ; MONTH token
 TK_YEAR         = TK_MONTH+1    ; YEAR token
-TK_VPTR         = TK_YEAR+1    ; VARPTR token
+TK_VPTR         = TK_YEAR+1     ; VARPTR token
 TK_LEFTS        = TK_VPTR+1     ; LEFT$ token
 TK_RIGHTS       = TK_LEFTS+1    ; RIGHT$ token
 TK_MIDS         = TK_RIGHTS+1   ; MID$ token
@@ -151,13 +150,11 @@ LAB_CTBL:
         .WORD   LAB_IF-1        ; IF
         .WORD   LAB_RESTORE-1   ; RESTORE		modified command
         .WORD   LAB_GOSUB-1     ; GOSUB
-        .WORD   LAB_RETIRQ-1    ; RETIRQ		new command
-        .WORD   LAB_RETNMI-1    ; RETNMI		new command
         .WORD   LAB_RETURN-1    ; RETURN
         .WORD   LAB_REM-1       ; REM
         .WORD   LAB_STOP-1      ; STOP
         .WORD   LAB_ON-1        ; ON			modified command
-        .WORD   LAB_NULL-1      ; NULL		modified command
+        .WORD   LAB_NULL-1      ; NULL		        modified command
         .WORD   LAB_INC-1       ; INC			new command
         .WORD   LAB_WAIT-1      ; WAIT
         .WORD   V_LOAD-1        ; LOAD
@@ -166,11 +163,11 @@ LAB_CTBL:
         .WORD   LAB_PATTERN-1   ; PATTERN
         .WORD   LAB_PLOT-1      ; PLOT
         .WORD   LAB_POKE-1      ; POKE
-        .WORD   LAB_SPOKE-1     ; SPOKE         NEW COMMAND
-        .WORD   LAB_DOKE-1      ; DOKE		new command
-        .WORD   LAB_CALL-1      ; CALL		new command
-        .WORD   LAB_DO-1        ; DO			new command
-        .WORD   LAB_LOOP-1      ; LOOP		new command
+        .WORD   LAB_SPOKE-1     ; SPOKE                 NEW COMMAND
+        .WORD   LAB_DOKE-1      ; DOKE		        new command
+        .WORD   LAB_CALL-1      ; CALL		        new command
+        .WORD   LAB_DO-1        ; DO		        new command
+        .WORD   LAB_LOOP-1      ; LOOP		        new command
         .WORD   LAB_PRINT-1     ; PRINT
         .WORD   LAB_CONT-1      ; CONT
         .WORD   LAB_LIST-1      ; LIST
@@ -181,8 +178,6 @@ LAB_CTBL:
         .WORD   LAB_SWAP-1      ; SWAP		        new command
         .WORD   LAB_BITSET-1    ; BITSET		new command
         .WORD   LAB_BITCLR-1    ; BITCLR		new command
-        .WORD   LAB_IRQ-1       ; IRQ			new command
-        .WORD   LAB_NMI-1       ; NMI			new command
         .WORD   LAB_KILL-1      ; KILL			new command
         .WORD   LAB_SCREEN-1    ; SCREEN		new command
         .WORD   LAB_SCRCLR-1    ; SCRCLR		new command
@@ -194,6 +189,8 @@ LAB_CTBL:
         .WORD   V_CLOSE-1       ; CLOSE 		new command
         .WORD   V_FILEREAD-1    ; FILEREAD 		new command
         .WORD   V_FILEWRITE-1   ; FILEWRITE 		new command
+        .WORD   V_LPRINT-1      ; LPRINT 		new command
+        .WORD   V_LLIST-1       ; LLIST 		new command
 
 ; function pre process routine table
 
@@ -487,11 +484,11 @@ LBB_EXP:
         .BYTE   $00
 TAB_ASCF:
 LBB_FILEREAD:
-        .BYTE   "ILEREAD",TK_FILEREAD ; FILEREAD
+        .BYTE   "ILEREAD",TK_FILEREAD; FILEREAD
 LBB_FILEWRITE:
-        .BYTE   "ILEWRITE",TK_FILEWRITE ; FILEWRITE
+        .BYTE   "ILEWRITE",TK_FILEWRITE; FILEWRITE
 LBB_FILTER:
-        .BYTE   "ILTER",TK_FILTER ; FILTER
+        .BYTE   "ILTER",TK_FILTER; FILTER
 LBB_FN:
         .BYTE   "N",TK_FN       ; FN
 LBB_FOR:
@@ -522,8 +519,6 @@ LBB_INPUT:
         .BYTE   "NPUT",TK_INPUT ; INPUT
 LBB_INT:
         .BYTE   "NT(",TK_INT    ; INT(
-LBB_IRQ:
-        .BYTE   "RQ",TK_IRQ     ; IRQ
         .BYTE   $00
 TAB_ASCK:
 LBB_KILL:
@@ -538,9 +533,10 @@ LBB_LEN:
         .BYTE   "EN(",TK_LEN    ; LEN(
 LBB_LET:
         .BYTE   "ET",TK_LET     ; LET
-
 LBB_LIST:
         .BYTE   "IST",TK_LIST   ; LIST
+LBB_LLIST:
+        .BYTE   "LIST",TK_LLIST ; LLIST
 LBB_LOAD:
         .BYTE   "OAD",TK_LOAD   ; LOAD
 LBB_LOCATE:
@@ -549,6 +545,8 @@ LBB_LOG:
         .BYTE   "OG(",TK_LOG    ; LOG(
 LBB_LOOP:
         .BYTE   "OOP",TK_LOOP   ; LOOP
+LBB_LPRINT:
+        .BYTE   "PRINT",TK_LPRINT ; LPRINT
         .BYTE   $00
 TAB_ASCM:
 LBB_MAX:
@@ -567,8 +565,6 @@ LBB_NEW:
         .BYTE   "EW",TK_NEW     ; NEW
 LBB_NEXT:
         .BYTE   "EXT",TK_NEXT   ; NEXT
-LBB_NMI:
-        .BYTE   "MI",TK_NMI     ; NMI
 LBB_NOT:
         .BYTE   "OT",TK_NOT     ; NOT
 LBB_NULL:
@@ -608,10 +604,6 @@ LBB_REM:
 LBB_RESTORE:
         .BYTE   "ESTORE",TK_RESTORE
 ; RESTORE
-LBB_RETIRQ:
-        .BYTE   "ETIRQ",TK_RETIRQ; RETIRQ
-LBB_RETNMI:
-        .BYTE   "ETNMI",TK_RETNMI; RETNMI
 LBB_RETURN:
         .BYTE   "ETURN",TK_RETURN; RETURN
 LBB_RIGHTS:
@@ -735,10 +727,6 @@ LAB_KEYT:
         .BYTE   5,'G'
         .WORD   LBB_GOSUB       ; GOSUB
         .BYTE   6,'R'
-        .WORD   LBB_RETIRQ      ; RETIRQ
-        .BYTE   6,'R'
-        .WORD   LBB_RETNMI      ; RETNMI
-        .BYTE   6,'R'
         .WORD   LBB_RETURN      ; RETURN
         .BYTE   3,'R'
         .WORD   LBB_REM         ; REM
@@ -794,10 +782,6 @@ LAB_KEYT:
         .WORD   LBB_BITSET      ; BITSET
         .BYTE   6,'B'
         .WORD   LBB_BITCLR      ; BITCLR
-        .BYTE   3,'I'
-        .WORD   LBB_IRQ         ; IRQ
-        .BYTE   3,'N'
-        .WORD   LBB_NMI         ; NMI
         .BYTE   4,'K'
         .WORD   LBB_KILL        ; KILL
         .BYTE   6,'S'
@@ -820,6 +804,10 @@ LAB_KEYT:
         .WORD   LBB_FILEREAD    ; FILEREAD
         .BYTE   9,'F'
         .WORD   LBB_FILEWRITE   ; FILEWRITE
+        .BYTE   6,'L'
+        .WORD   LBB_LPRINT      ; LPRINT
+        .BYTE   5,'L'
+        .WORD   LBB_LLIST       ; LLIST
 
 
 ; secondary commands (can't start a statement)
