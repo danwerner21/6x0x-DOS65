@@ -55,10 +55,9 @@ DOS65SAVE:
         CMP     #$FF            ; error?, if NOT, continue
         BNE     DOS65SAVE_1     ;
 DOS65SAVE_ERR:
-        LDA     #<FILEERROR2    ; NO, ERROR OUT
-        LDY     #>FILEERROR2
-        LDX     #9              ; Print error message
-        JSR     PEM             ;
+        LDX     #$24            ; IO ERROR
+        JSR     LAB_XERR
+        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
 DOS65SAVE_ERR1:
         JMP     LAB_REM         ; comment out the remainder of the line (if any)
 DOS65SAVE_1:
@@ -162,10 +161,9 @@ DOS65LOAD:
         CMP     #$FF            ; error?, if NOT, continue
         BNE     DOS65LOAD_1     ;
 DOS65LOAD_ERR:
-        LDA     #<FILEERROR2    ; NO, ERROR OUT
-        LDY     #>FILEERROR2
-        LDX     #9              ; Print error message
-        JSR     PEM             ;
+        LDX     #$26            ; IO ERROR
+        JSR     LAB_XERR
+        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
 DOS65LOAD_ERR1:
         JMP     LAB_REM         ; comment out the remainder of the line (if any)
 DOS65LOAD_1:
@@ -264,13 +262,10 @@ DOS65FCBPREP:
 
         CMP     #':'            ;
         BEQ     DOS65FCBPREP_1  ; YES, IT WAS A DRIVE, CONTINUE
-        LDA     #<FILEERROR1    ; NO, ERROR OUT
-        LDY     #>FILEERROR1
-        LDX     #9
-        JSR     PEM
-        JSR     LAB_REM
-        SEC
-        RTS
+        LDX     #$26            ; IO ERROR
+        JSR     LAB_XERR
+        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
+
 DOS65FCBPREP_1:
         LDA     #<FCB           ; SETUP FCBPTR
         STA     FCBPTR          ;
@@ -346,13 +341,9 @@ LAB_DIR:
 
         CMP     #':'            ;
         BEQ     :+              ; YES, IT WAS A DRIVE, CONTINUE
-        LDA     #<FILEERROR1    ; NO, ERROR OUT
-        LDY     #>FILEERROR1
-        LDX     #9
-        JSR     PEM
-        JSR     LAB_REM
-        JMP     DIR_EXIT
-
+        LDX     #$26            ; IO ERROR
+        JSR     LAB_XERR
+        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
 :
         LDA     #<DIRFCB        ; GET FIRST DIR ENTRY
         LDY     #>DIRFCB        ;

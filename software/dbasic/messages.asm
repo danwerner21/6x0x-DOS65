@@ -76,7 +76,9 @@ ERR_UF:
 ERR_LD:
         .BYTE   "LOOP without DO",$00
 ERR_IO:
-        .BYTE   "I/O error",$00
+        .BYTE   "I/O",$00
+ERR_DRVM:
+        .BYTE   "Drive missing",$00
 
 ;ERR_UV	.byte	"Undefined variable",$00
 
@@ -97,10 +99,3 @@ LAB_IMSG:
         .BYTE   " Extra ignored",$0D,$0A,$00
 LAB_REDO:
         .BYTE   " Redo from start",$0D,$0A,$00
-
-FILEERROR1:
-        .BYTE   "** NO DRIVE SPECIFIED, OPERATION ABORTED"
-        .BYTE   $0D,$0A,'$'
-FILEERROR2:
-        .BYTE   "** DOS/65 ERROR, OPERATION ABORTED"
-        .BYTE   $0D,$0A,'$'
