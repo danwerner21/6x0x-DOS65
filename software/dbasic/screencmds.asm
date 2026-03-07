@@ -741,7 +741,7 @@ V_PLOT_HIRES_COLOR:
         ADC     PLOTX           ; Add the low byte of the second number (plus carry)
         STA     TEMPW           ; Store the low byte of the result
         LDA     PLOTY+1         ; Load the high byte of the first number
-        ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
+        ADC     PLOTX+1         ; Add the high byte of the second number (plus carry from previous op)
         STA     TEMPW+1         ; Store the high byte of the result
 
         LDA     TEMPW+1         ; OK, LET'S CALCULATE THE BANK

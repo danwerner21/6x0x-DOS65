@@ -3808,7 +3808,7 @@ Current file: dbasic.asm
 001591  3                       ADC     PLOTX           ; Add the low byte of the second number (plus carry)
 001591  3                       STA     TEMPW           ; Store the low byte of the result
 001591  3                       LDA     PLOTY+1         ; Load the high byte of the first number
-001591  3                       ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
+001591  3                       ADC     PLOTX+1         ; Add the high byte of the second number (plus carry from previous op)
 001591  3                       STA     TEMPW+1         ; Store the high byte of the result
 001591  3               
 001591  3                       LDA     TEMPW+1         ; OK, LET'S CALCULATE THE BANK

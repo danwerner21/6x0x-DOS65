@@ -3808,7 +3808,7 @@ Current file: dbasic.asm
 001B64  3  6D E8 16             ADC     PLOTX           ; Add the low byte of the second number (plus carry)
 001B67  3  85 FD                STA     TEMPW           ; Store the low byte of the result
 001B69  3  AD EB 16             LDA     PLOTY+1         ; Load the high byte of the first number
-001B6C  3  6D FB 16             ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
+001B6C  3  6D E9 16             ADC     PLOTX+1         ; Add the high byte of the second number (plus carry from previous op)
 001B6F  3  85 FE                STA     TEMPW+1         ; Store the high byte of the result
 001B71  3               
 001B71  3  A5 FE                LDA     TEMPW+1         ; OK, LET'S CALCULATE THE BANK
