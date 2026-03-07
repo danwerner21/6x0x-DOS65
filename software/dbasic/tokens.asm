@@ -37,7 +37,8 @@ TK_DO           = TK_CALL+1     ; DO token
 TK_LOOP         = TK_DO+1       ; LOOP token
 TK_PRINT        = TK_LOOP+1     ; PRINT token
 TK_CONT         = TK_PRINT+1    ; CONT token
-TK_LIST         = TK_CONT+1     ; LIST token
+TK_LINE         = TK_CONT+1     ; LINE token
+TK_LIST         = TK_LINE+1     ; LIST token
 TK_CLEAR        = TK_LIST+1     ; CLEAR token
 TK_NEW          = TK_CLEAR+1    ; NEW token
 TK_WIDTH        = TK_NEW+1      ; WIDTH token
@@ -170,6 +171,7 @@ LAB_CTBL:
         .WORD   LAB_LOOP-1      ; LOOP		        new command
         .WORD   LAB_PRINT-1     ; PRINT
         .WORD   LAB_CONT-1      ; CONT
+        .WORD   LAB_LINE-1      ; LINE
         .WORD   LAB_LIST-1      ; LIST
         .WORD   LAB_CLEAR-1     ; CLEAR
         .WORD   LAB_NEW-1       ; NEW
@@ -443,10 +445,10 @@ LBB_CHRS:
         .BYTE   "HR$(",TK_CHRS  ; CHR$(
 LBB_CLEAR:
         .BYTE   "LEAR",TK_CLEAR ; CLEAR
-LBB_COLOR:
-        .BYTE   "OLOR",TK_COLOR ; COLOR
 LBB_CLOSE:
         .BYTE   "LOSE",TK_CLOSE ; CLOSE
+LBB_COLOR:
+        .BYTE   "OLOR",TK_COLOR ; COLOR
 LBB_CONT:
         .BYTE   "ONT",TK_CONT   ; CONT
 LBB_COS:
@@ -533,6 +535,8 @@ LBB_LEN:
         .BYTE   "EN(",TK_LEN    ; LEN(
 LBB_LET:
         .BYTE   "ET",TK_LET     ; LET
+LBB_LINE:
+        .BYTE   "INE",TK_LINE   ; LINE
 LBB_LIST:
         .BYTE   "IST",TK_LIST   ; LIST
 LBB_LLIST:
@@ -766,6 +770,8 @@ LAB_KEYT:
         .WORD   LBB_PRINT       ; PRINT
         .BYTE   4,'C'
         .WORD   LBB_CONT        ; CONT
+        .BYTE   4,'L'
+        .WORD   LBB_LINE        ; LINE
         .BYTE   4,'L'
         .WORD   LBB_LIST        ; LIST
         .BYTE   5,'C'

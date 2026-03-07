@@ -66,19 +66,34 @@ CLRTMP:
         .BYTE   $00
 VIDEOWIDTH:
         .BYTE   80
-
+PLOTX:
+        .BYTE   $00,$00
+PLOTY:
+        .BYTE   $00,$00
+PLOTCOLOR:
+        .BYTE   $00
+LINECOLOR:
+        .BYTE   $00
+LINEX1:
+        .BYTE   $00,$00
+LINEY1:
+        .BYTE   $00,$00
+LINEX2:
+        .BYTE   $00,$00
+LINEY2:
+        .BYTE   $00,$00
+DELTAX:
+        .BYTE   $00,$00
+DELTAY:
+        .BYTE   $00,$00
 PTEMPW:
         .BYTE   $00,$00
 PTEMPW1:
         .BYTE   $00,$00
-PTEMPW2:
-        .BYTE   $00,$00
-PTEMPW3:
-        .BYTE   $00,$00
 PTEMP:
         .BYTE   $00
-PTEMP4:
-        .BYTE   $00
+LINEERR:
+        .BYTE   $00,$00
 
 
 ;___V_SCRCLR________________________________________________
@@ -548,6 +563,23 @@ PAGE_ENTER:
 ;__________________________________________________________
 LAB_PLOT:
 V_PLOT:
+        JSR     LAB_EVNM        ; evaluate expression and check is numeric,
+                                ; else do type mismatch
+        JSR     LAB_F2FX        ; save integer part of FAC1 in temporary integer
+        LDA     Itemph
+        STA     PLOTX+1
+        LDA     Itempl
+        STA     PLOTX
+        JSR     LAB_1C01        ; GET THE SECOND PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; GET THE SECOND PARAMETER, RETURN IN X
+        STX     PLOTY           ; STORE IN PLOTY
+        LDA     #$00
+        STA     PLOTY+1
+        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; RETURN IN X
+        STX     PLOTCOLOR
+DOPLOTXY:
+                                ; PARAMETERS PARSED, GO TO PROPER MODE CODE
         LDA     VIDEOMODE
         AND     #$0F
         CMP     #$01
@@ -565,71 +597,58 @@ V_PLOT:
         RTS
 
 V_PLOT_LORES:
-        JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X
-        STX     PTEMPW          ; STORE X COORD IN OFFSET ADDRESS
-        LDA     #00
-        STA     PTEMPW+1
-        STA     PTEMPW1+1
-        JSR     LAB_1C01        ; GET THE SECOND PARAMETER (AFTER ',') OR SYN ERR
-        JSR     LAB_GTBY        ; GET THE SECOND PARAMETER, RETURN IN X
-                                ; FIGURE THE BUFFER OFFSET
-        TXA                     ; Y COORD IN X
+        LDA     PLOTY
         PHA
         LSR     A               ; 2 LINES PER BYTE
-        STA     PTEMPW1
+        STA     PLOTY
                                 ; MULTIPLY Y (PTEMPW) COORD BY 40 OR 80 (SINGLE OR DOUBLE LORES)
         CLC
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*4)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*8)
-        LDA     PTEMPW1
-        STA     PTEMPW2
-        LDA     PTEMPW1+1
-        STA     PTEMPW2+1       ; STORE Y*8 INTO PTEMPW2
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*16)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*32)
-                                ; NOW TAKE Y*8(PTEMPW2) + Y*32(PTEMPW1) == Y*40 STORE IN PTEMPW1
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*4)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*8)
+        LDA     PLOTY
+        STA     PTEMPW
+        LDA     PLOTY+1
+        STA     PTEMPW+1        ; STORE Y*8 INTO PTEMPW
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*16)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*32)
+; NOW TAKE Y*8(PTEMPW) + Y*32(PLOTY) == Y*40 STORE IN PLOTY
         CLC                     ; Clear the Carry flag before the first addition
 
-        LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
-        ADC     PTEMPW2         ; Add the low byte of the second number (plus carry)
-        STA     PTEMPW1         ; Store the low byte of the result
+        LDA     PLOTY           ; Load the low byte of the first number into the accumulator
+        ADC     PTEMPW          ; Add the low byte of the second number (plus carry)
+        STA     PLOTY           ; Store the low byte of the result
 
-        LDA     PTEMPW1+1       ; Load the high byte of the first number
-        ADC     PTEMPW2+1       ; Add the high byte of the second number (plus carry from previous op)
-        STA     PTEMPW1+1       ; Store the high byte of the result
+        LDA     PLOTY+1         ; Load the high byte of the first number
+        ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
+        STA     PLOTY+1         ; Store the high byte of the result
 
 ; if double lores columns double it.
         LDA     VIDEOMODE
         AND     #$10
         CMP     #00
         BEQ     :+
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2
 :
-                                ; OK, Y OFFSET IS IN PTEMPW1, X IS IN PTEMPW
+; OK, Y OFFSET IS IN PTEMPW1, X IS IN PTEMPW
         LDA     #$A0            ; ADD THE MEMORY OFFSET TO PTEMPW (BECAUSE IT IS EASY)
-        STA     PTEMPW+1        ; THEN ADD PTEMPW1 TO PTEMPW THAT SHOULD BE THE MEMORY ADDRESS TO UPDATE
+        STA     PLOTX+1         ; THEN ADD PTEMPW1 TO PTEMPW THAT SHOULD BE THE MEMORY ADDRESS TO UPDATE
                                 ;
         CLC                     ; Clear the Carry flag before the first addition
-        LDA     PTEMPW          ; Load the low byte of the first number into the accumulator
-        ADC     PTEMPW1         ; Add the low byte of the second number (plus carry)
+        LDA     PLOTX           ; Load the low byte of the first number into the accumulator
+        ADC     PLOTY           ; Add the low byte of the second number (plus carry)
         STA     TEMPW           ; Store the low byte of the result
 
-        LDA     PTEMPW+1        ; Load the high byte of the first number
-        ADC     PTEMPW1+1       ; Add the high byte of the second number (plus carry from previous op)
+        LDA     PLOTX+1         ; Load the high byte of the first number
+        ADC     PLOTY+1         ; Add the high byte of the second number (plus carry from previous op)
         STA     TEMPW+1         ; Store the high byte of the result
                                 ; PTEMPW IS THE MEMORY OFFSET TO UPDATE
-        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
-        JSR     LAB_GTBY        ; GET THE THIRD PARAMETER, RETURN IN X (PATTERN)
-        TXA
-        AND     #$0F
-        STA     PTEMP           ; SAVE COLOR IN PTEMP
         PLA
         LSR     A               ; TOP OR BOTTOM PIXEL?
         BCC     :+
@@ -640,14 +659,14 @@ V_PLOT_LORES:
         LDA     (TEMPW),Y       ; GET EXISTING DOUBLE PIXEL
         AND     #$0F
         PHA
-        LDA     PTEMP
+        LDA     PLOTCOLOR
         ASL     A
         ASL     A
         ASL     A
         ASL     A
-        STA     PTEMP
+        STA     PLOTCOLOR
         PLA
-        ORA     PTEMP
+        ORA     PLOTCOLOR
         STA     (TEMPW),Y       ; STORE  DOUBLE PIXEL
         JSR     PAGE_EXIT
         RTS
@@ -658,91 +677,70 @@ V_PLOT_LORES:
         LDY     #$00
         LDA     (TEMPW),Y       ; GET EXISTING DOUBLE PIXEL
         AND     #$F0
-        ORA     PTEMP
+        ORA     PLOTCOLOR
         STA     (TEMPW),Y       ; STORE  DOUBLE PIXEL
         JSR     PAGE_EXIT
         RTS
 
 V_PLOT_HIRES_COLOR:
-        JSR     LAB_EVNM        ; evaluate expression and check is numeric,
-; else do type mismatch
-        JSR     LAB_F2FX        ; save integer part of FAC1 in temporary integer
-        LDA     Itemph
-        STA     PTEMPW+1
-        LDA     Itempl
+        LDA     PLOTX
         PHA                     ; PUSH LOW BYTE OF X (FOR EVEN/ODD LATER)
-        LSR     Itemph
-        ROR     Itempl          ; 2 PIXEL PER BYTE
-        LDA     Itempl          ;
-        STA     PTEMPW          ;
-        LDA     Itemph          ;
-        STA     PTEMPW+1        ; STORE X COORD IN OFFSET ADDRESS;
-        LDA     #$00
-        STA     PTEMPW1+1
-        JSR     LAB_1C01        ; GET THE SECOND PARAMETER (AFTER ',') OR SYN ERR
-        JSR     LAB_GTBY        ; GET THE SECOND PARAMETER, RETURN IN X
+        LSR     PLOTX+1
+        ROR     PLOTX           ; 2 PIXEL PER BYTE
+        LDA     PLOTX           ;
                                 ; FIGURE THE BUFFER OFFSET
-        LDA     #$00
-        TXA                     ; GET Y COORD
-        STX     PTEMPW1
-
-        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
-        JSR     LAB_GTBY        ; GET THE THIRD PARAMETER, RETURN IN X (PATTERN)
-        TXA
-        AND     #$0F
-        STA     PTEMP4          ; SAVE COLOR IN PTEMP4
         CLC                     ; MULTIPLY Y COORD BY 70 OR 140 (SINGLE OR DOUBLE HIRES)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2
-        LDA     PTEMPW1
-        STA     PTEMPW2
-        LDA     PTEMPW1+1
-        STA     PTEMPW2+1       ; STORE Y*2 INTO PTEMPW2
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*4)
-        LDA     PTEMPW1
-        STA     PTEMPW3
-        LDA     PTEMPW1+1
-        STA     PTEMPW3+1       ; STORE Y*4 INTO PTEMPW3
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*8)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*16)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*32)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*64)
-                                ; RESULT OFFSET PTEMPW1 = PTEMPW1(Y*64)+PTEMPW2(Y*2)+PTEMPW3(Y*4)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2
+        LDA     PLOTY
+        STA     PTEMPW
+        LDA     PLOTY+1
+        STA     PTEMPW+1        ; STORE Y*2 INTO PTEMPW
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*4)
+        LDA     PLOTY
+        STA     PTEMPW1
+        LDA     PLOTY+1
+        STA     PTEMPW1+1       ; STORE Y*4 INTO PTEMPW1
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*8)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*16)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*32)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*64)
+                                ; RESULT OFFSET PLOTY = PLOTY(Y*64)+PTEMPW(Y*2)+PTEMPW1(Y*4)
         CLC                     ; Clear the Carry flag before the first addition
-        LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
-        ADC     PTEMPW2         ; Add the low byte of the second number (plus carry)
-        STA     PTEMPW1         ; Store the low byte of the result
-        LDA     PTEMPW1+1       ; Load the high byte of the first number
-        ADC     PTEMPW2+1       ; Add the high byte of the second number (plus carry from previous op)
-        STA     PTEMPW1+1       ; Store the high byte of the result
+        LDA     PLOTY           ; Load the low byte of the first number into the accumulator
+        ADC     PTEMPW          ; Add the low byte of the second number (plus carry)
+        STA     PLOTY           ; Store the low byte of the result
+        LDA     PLOTY+1         ; Load the high byte of the first number
+        ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
+        STA     PLOTY+1         ; Store the high byte of the result
 
         CLC                     ; Clear the Carry flag before the first addition
-        LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
-        ADC     PTEMPW3         ; Add the low byte of the second number (plus carry)
-        STA     PTEMPW1         ; Store the low byte of the result
-        LDA     PTEMPW1+1       ; Load the high byte of the first number
-        ADC     PTEMPW3+1       ; Add the high byte of the second number (plus carry from previous op)
-        STA     PTEMPW1+1       ; Store the high byte of the result
+        LDA     PLOTY           ; Load the low byte of the first number into the accumulator
+        ADC     PTEMPW1         ; Add the low byte of the second number (plus carry)
+        STA     PLOTY           ; Store the low byte of the result
+        LDA     PLOTY+1         ; Load the high byte of the first number
+        ADC     PTEMPW1+1       ; Add the high byte of the second number (plus carry from previous op)
+        STA     PLOTY+1         ; Store the high byte of the result
 
 ; if double hires double it.
         LDA     VIDEOMODE
         AND     #$10
         CMP     #00
         BEQ     :+
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2
 :
-                                ; PTEMPW1 IS NOW Y OFFSET, ADD X OFFSET FOR MEMORY ADDRESS INTO TEMPW
+; PLOTY IS NOW Y OFFSET, ADD X OFFSET FOR MEMORY ADDRESS INTO TEMPW
         CLC                     ; Clear the Carry flag before the first addition
-        LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
-        ADC     PTEMPW          ; Add the low byte of the second number (plus carry)
+        LDA     PLOTY           ; Load the low byte of the first number into the accumulator
+        ADC     PLOTX           ; Add the low byte of the second number (plus carry)
         STA     TEMPW           ; Store the low byte of the result
-        LDA     PTEMPW1+1       ; Load the high byte of the first number
+        LDA     PLOTY+1         ; Load the high byte of the first number
         ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
         STA     TEMPW+1         ; Store the high byte of the result
 
@@ -765,20 +763,20 @@ V_PLOT_HIRES_COLOR:
         STA     TEMPW+1         ; TEMPW NOW REFLECTS MAPPED ADDRESSS
         PLA
         LSR     A               ; LEFT OR RIGHT PIXEL?
-        BCS     :+
+        BCC     :+
                                 ; LEFT PIXEL
         LDY     #$00
         LDA     (TEMPW),Y       ; GET EXISTING DOUBLE PIXEL
         AND     #$0F
         PHA
-        LDA     PTEMP4
+        LDA     PLOTCOLOR
         ASL     A
         ASL     A
         ASL     A
         ASL     A
-        STA     PTEMP4
+        STA     PLOTCOLOR
         PLA
-        ORA     PTEMP4
+        ORA     PLOTCOLOR
         STA     (TEMPW),Y       ; WRITE THE PIXEL BACK OUT
         JSR     PAGE_EXIT
         RTS
@@ -787,7 +785,7 @@ V_PLOT_HIRES_COLOR:
         LDY     #$00
         LDA     (TEMPW),Y       ; GET EXISTING DOUBLE PIXEL
         AND     #$F0
-        ORA     PTEMP4
+        ORA     PLOTCOLOR
         STA     (TEMPW),Y       ; WRITE THE PIXEL BACK OUT
         JSR     PAGE_EXIT
         RTS
@@ -796,85 +794,70 @@ V_PLOT_HIRES_COLOR_RANGE:
         JMP     LAB_2564
 
 V_PLOT_HIRES_MONO:
-        JSR     LAB_EVNM        ; evaluate expression and check is numeric,
-                                ; else do type mismatch
-        JSR     LAB_F2FX        ; save integer part of FAC1 in temporary integer
-        LDA     Itempl
+        LDA     PLOTX
         PHA
-        LSR     Itemph
-        ROR     Itempl
-        LSR     Itemph
-        ROR     Itempl
-        LSR     Itemph
-        ROR     Itempl          ; 8 PIXEL PER BYTE
-        LDA     Itempl
-        STA     PTEMPW          ; STORE X COORD IN OFFSET ADDRESS
+        LSR     PLOTX+1
+        ROR     PLOTX
+        LSR     PLOTX+1
+        ROR     PLOTX
+        LSR     PLOTX+1
+        ROR     PLOTX           ; 8 PIXEL PER BYTE
         LDA     #00
-        STA     PTEMPW+1
+        STA     PLOTX+1
         STA     PTEMPW1+1
-        STA     PTEMPW3+1
-        JSR     LAB_1C01        ; GET THE SECOND PARAMETER (AFTER ',') OR SYN ERR
-        JSR     LAB_GTBY        ; GET THE SECOND PARAMETER, RETURN IN X
-                                ; FIGURE THE BUFFER OFFSET
-        STX     PTEMPW1         ; STORE Y COORD
-        STX     PTEMPW3
-        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
-        JSR     LAB_GTBY        ; GET THE THIRD PARAMETER, RETURN IN X (PATTERN)
-        TXA
-        AND     #$01
-        STA     PTEMP4          ; STORE COLOR IN PTEMP4
-        LDA     PTEMPW3
+        LDA     PLOTY
+        STA     PTEMPW1
                                 ; MULTIPLY Y COORD BY 35 OR 70 (MONO OR QUAD HIRES)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2
-        LDA     PTEMPW1
-        STA     PTEMPW2
-        LDA     PTEMPW1+1
-        STA     PTEMPW2+1       ; STORE *2 INTO PTEMPW2
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*4)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*8)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*16)
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2 (*32)
-                                ;
-                                ; PTEMPW1(Y*35) = PTEMPW1(Y*32)+PTEMPW2(Y*2)+PTEMPW3(Y)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2
+        LDA     PLOTY
+        STA     PTEMPW
+        LDA     PLOTY+1
+        STA     PTEMPW+1        ; STORE *2 INTO PTEMPW
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*4)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*8)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*16)
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2 (*32)
+;
+; PLOTY(Y*35) = PLOTY(Y*32)+PTEMPW(Y*2)+PTEMPW1(Y)
         CLC                     ; Clear the Carry flag before the first addition
-        LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
-        ADC     PTEMPW2         ; Add the low byte of the second number (plus carry)
-        STA     PTEMPW1         ; Store the low byte of the result
+        LDA     PLOTY           ; Load the low byte of the first number into the accumulator
+        ADC     PTEMPW          ; Add the low byte of the second number (plus carry)
+        STA     PLOTY           ; Store the low byte of the result
 
-        LDA     PTEMPW1+1       ; Load the high byte of the first number
-        ADC     PTEMPW2+1       ; Add the high byte of the second number (plus carry from previous op)
-        STA     PTEMPW1+1       ; Store the high byte of the result
+        LDA     PLOTY+1         ; Load the high byte of the first number
+        ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
+        STA     PLOTY+1         ; Store the high byte of the result
         CLC                     ; Clear the Carry flag before the first addition
-        LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
-        ADC     PTEMPW3         ; Add the low byte of the second number (plus carry)
-        STA     PTEMPW1         ; Store the low byte of the result
+        LDA     PLOTY           ; Load the low byte of the first number into the accumulator
+        ADC     PTEMPW1         ; Add the low byte of the second number (plus carry)
+        STA     PLOTY           ; Store the low byte of the result
 
-        LDA     PTEMPW1+1       ; Load the high byte of the first number
-        ADC     PTEMPW3+1       ; Add the high byte of the second number (plus carry from previous op)
-        STA     PTEMPW1+1       ; Store the high byte of the result
-                                ;
-                                ; PTEMPW1 IS NOW THE Y OFFSET
-                                ; if quad hires double it.
+        LDA     PLOTY+1         ; Load the high byte of the first number
+        ADC     PTEMPW1+1       ; Add the high byte of the second number (plus carry from previous op)
+        STA     PLOTY+1         ; Store the high byte of the result
+;
+; PLOTY IS NOW THE Y OFFSET
+; if quad hires double it.
         LDA     VIDEOMODE
         AND     #$10
         CMP     #00
         BNE     :+
-        ASL     PTEMPW1
-        ROL     PTEMPW1+1       ; *2
+        ASL     PLOTY
+        ROL     PLOTY+1         ; *2
 :
-                                ; ADD THE X OFFSET
+; ADD THE X OFFSET
         CLC                     ; Clear the Carry flag before the first addition
-        LDA     PTEMPW1         ; Load the low byte of the first number into the accumulator
-        ADC     PTEMPW          ; Add the low byte of the second number (plus carry)
+        LDA     PLOTY           ; Load the low byte of the first number into the accumulator
+        ADC     PLOTX           ; Add the low byte of the second number (plus carry)
         STA     TEMPW           ; Store the low byte of the result
 
-        LDA     PTEMPW1+1       ; Load the high byte of the first number
-        ADC     PTEMPW+1        ; Add the high byte of the second number (plus carry from previous op)
+        LDA     PLOTY+1         ; Load the high byte of the first number
+        ADC     PLOTX+1         ; Add the high byte of the second number (plus carry from previous op)
         STA     TEMPW+1         ; Store the high byte of the result
                                 ; TEMPW IS NOW THE MEMORY ADDRESS
 
@@ -897,7 +880,7 @@ V_PLOT_HIRES_MONO:
         PLA
         AND     #$07            ; WHICH BIT?
         TAX
-        LDA     PTEMP4
+        LDA     PLOTCOLOR
         CMP     #$01
         BNE     :+
         LDA     HIRES_BIT_LOOKUP_SET,X
@@ -954,8 +937,270 @@ V_PATTERN:
         JSR     PAGE_EXIT
         RTS
 
-
+;___LAB_LINE_______________________________________________
+;
+;  DRAW LINE USING THE BRESENHAM LINE DRAWING ALGORITHM
+;
+;  TAKES 5 PARAMETERS
+;       START X,Y
+;       DESTINATION X,Y
+;       COLOR
+;__________________________________________________________
 LAB_LINE:
+; GET X1
+        JSR     LAB_EVNM        ; evaluate expression and check is numeric,
+                                ; else do type mismatch
+        JSR     LAB_F2FX        ; save integer part of FAC1 in temporary integer
+        LDA     Itemph
+        STA     LINEX1+1
+        LDA     Itempl
+        STA     LINEX1
+                                ; GET Y1
+        JSR     LAB_1C01        ; GET THE SECOND PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; GET THE SECOND PARAMETER, RETURN IN X
+        STX     LINEY1          ; STORE IN LINEY1
+
+; GET X2
+        JSR     LAB_1C01        ; GET THE THIRD PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_EVNM        ; evaluate expression and check is numeric,
+                                ; else do type mismatch
+        JSR     LAB_F2FX        ; save integer part of FAC1 in temporary integer
+        LDA     Itemph
+        STA     LINEX2+1
+        LDA     Itempl
+        STA     LINEX2
+                                ; GET Y2
+        JSR     LAB_1C01        ; GET THE FOURTH PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; RETURN IN X
+        STX     LINEY2          ; STORE IN LINEY2
+                                ; GET COLOR
+        JSR     LAB_1C01        ; GET THE FIFTH PARAMETER (AFTER ',') OR SYN ERR
+        JSR     LAB_GTBY        ; RETURN IN X
+        STX     LINECOLOR       ; STORE IN COLOR
+        LDA     #$00
+        STA     LINEY1+1
+        STA     LINEY2+1
+                                ; LINE COORDS AND COLOR STORED IN PROPER PLACE
+                                ; CALCULATE DELTAX
+        SEC                     ; Set Carry flag (represents "no borrow" for 1st byte)
+        LDA     LINEX1          ; Load low byte of number 1
+        SBC     LINEX2          ; Subtract low byte of number 2 with carry
+        STA     DELTAX          ; Store result low byte
+        LDA     LINEX1+1        ; Load high byte of number 1
+        SBC     LINEX2+1        ; Subtract high byte of number 2 with borrow
+        STA     DELTAX+1        ; Store result high byte
+        BCS     :+              ; BRANCH IF X1>=X2
+                                ; X1 < X2
+        LDA     #0
+        STA     PTEMP           ; IF X2>X1 (PTEMP=x0)
+        LDA     #$FF            ; TAKE ABSOLUTE VALUE OF DELTAX
+        EOR     DELTAX+1        ; Invert high byte (one's complement)
+        STA     DELTAX+1
+        LDA     #$FF            ;
+        EOR     DELTAX          ; Invert low byte
+        STA     DELTAX          ;
+        INC     DELTAX          ; Add 1 to the low byte
+        BNE     :++             ; If no carry from low byte INC, we are done
+        INC     DELTAX+1        ; Increment high byte if carry occurred
+        JMP     :++
+:
+        LDA     #1
+        STA     PTEMP           ; IF X1>X2 (PTEMP=x1)
+:
+                                ; CALCULATE DELTAY
+        LDA     #0
+        STA     DELTAY+1
+        SEC                     ; Set Carry flag
+        LDA     LINEY1          ; Load low byte of number 1
+        SBC     LINEY2          ; Subtract low byte of number 2 with carry
+        STA     DELTAY          ; Store result low byte
+        BCS     :+              ; BRANCH IF Y1>=Y2
+                                ; Y1 < Y2
+        LDA     PTEMP
+        AND     #1
+        STA     PTEMP           ; IF Y2>Y1 (PTEMP=0x)
+                                ; TAKE ABSOLUTE VALUE OF DELTAY
+        LDA     #$FF
+        EOR     DELTAY          ; Flip all bits (one's complement)
+        STA     DELTAY
+        INC     DELTAY          ; Add 1 (two's complement)
+        JMP     :++
+:
+        LDA     PTEMP
+        ORA     #$10
+        STA     PTEMP           ; IF Y1>Y2 (PTEMP=1x)
+:
+                                ; SLOPE DETERMINED, AND DELTAS CALCULATED
+                                ; OK, LET'S FIND OUT IF THIS IS A HORIZONTAL-ISH
+                                ; OR VERTICAL-ISH LINE
+        SEC                     ; Set Carry Flag (for subtraction)
+        LDA     DELTAX          ; Load low byte of DELTAX
+        SBC     DELTAY          ; Subtract low byte of DELTAY
+        LDA     DELTAX+1        ; Load high byte of DELTAX
+        SBC     DELTAY+1        ; Subtract high byte of DELTAY (with borrow)
+                                ; Flags now reflect the 16-bit comparison
+        BCC     LINEVERT        ; If Carry clear, LINE IS VERTICAL-ISH
+        JMP     LINEHORZ
+LINEVERT:
+                                ; FOR A VERTICAL-ISH LINE WE STEP ALONG THE
+                                ; Y AXIS (STEEP GRADIENT)
+                                ; FIND LARGER Y . . .
+        LDA     LINEY1
+        CMP     LINEY2
+        BCS     :+
+        JSR     LINESWAPXY
+:
+                                ; Initialize error = DELTAY / 2
+        LDA     DELTAY
+        STA     LINEERR
+        LDA     DELTAY+1
+        STA     LINEERR+1
+        LSR     LINEERR+1
+        ROR     LINEERR
+LINEVERTLOOP:
+        LDA     LINEY1          ; OK LET'S PLOT A POINT
+        STA     PLOTY
+        LDA     LINEY1+1
+        STA     PLOTY+1
+        LDA     LINEX1
+        STA     PLOTX
+        LDA     LINEX1+1
+        STA     PLOTX+1
+        LDA     LINECOLOR
+        STA     PLOTCOLOR
+        JSR     DOPLOTXY
+                                ; NOW MOVE LINE1 CLOSER TO LINE2
+        DEC     LINEY1          ; BY STEPPING ALONG Y AXIS
+
+                                ; BRESENHAM: err -= DELTAX
+        SEC
+        LDA     LINEERR
+        SBC     DELTAX
+        STA     LINEERR
+        LDA     LINEERR+1
+        SBC     DELTAX+1
+        STA     LINEERR+1
+        BPL     LINEVERT_NOSTEP ; IF ERR >= 0, NO X STEP NEEDED
+                                ; ERR += DELTAY (RESTORE ERROR)
+        CLC
+        LDA     LINEERR
+        ADC     DELTAY
+        STA     LINEERR
+        LDA     LINEERR+1
+        ADC     DELTAY+1
+        STA     LINEERR+1
+                                ; STEP X TOWARD X2 (16-BIT)
+        LDA     LINEX2
+        CMP     LINEX1
+        LDA     LINEX2+1
+        SBC     LINEX1+1
+        BCC     LINEVERT_DECX   ; X2 < X1, DECREMENT X1
+        INC     LINEX1          ; X2 >= X1, INCREMENT X1
+        BNE     LINEVERT_NOSTEP
+        INC     LINEX1+1
+        JMP     LINEVERT_NOSTEP
+LINEVERT_DECX:
+        LDA     LINEX1
+        BNE     :+
+        DEC     LINEX1+1
+:       DEC     LINEX1
+LINEVERT_NOSTEP:
+
+        LDA     LINEY1
+        CMP     LINEY2
+        BNE     LINEVERTLOOP
+        RTS                     ; DONE
+
+LINEHORZ:
+; FOR A HORIZONTAL-ISH LINE WE STEP ALONG THE
+; X AXIS (SHALLOW GRADIENT)
+; FIND LARGER X . . .
+        SEC                     ; Set carry flag for subtraction
+        LDA     LINEX2          ; Load low byte of first number
+        SBC     LINEX1          ; Subtract low byte of second number
+        LDA     LINEX2+1        ; Load high byte of first number
+        SBC     LINEX1+1        ; Subtract high byte of second number
+                                ; Result flags (N, Z, C) now reflect: Val1 - Val2
+        BCS     :+              ; If carry is set, LINEX2 >= LINEX1
+        JSR     LINESWAPXY
+:
+                                ; Initialize error = DELTAX / 2
+        LDA     DELTAX
+        STA     LINEERR
+        LDA     DELTAX+1
+        STA     LINEERR+1
+        LSR     LINEERR+1
+        ROR     LINEERR
+LINEHORZLOOP:
+        LDA     LINEY1          ; OK LET'S PLOT A POINT
+        STA     PLOTY
+        LDA     LINEY1+1
+        STA     PLOTY+1
+        LDA     LINEX1
+        STA     PLOTX
+        LDA     LINEX1+1
+        STA     PLOTX+1
+        LDA     LINECOLOR
+        STA     PLOTCOLOR
+        JSR     DOPLOTXY
+                                ; NOW MOVE LINE1 CLOSER TO LINE2
+        INC     LINEX1          ; BY STEPPING ALONG X AXIS
+        BNE     :+
+        INC     LINEX1+1
+:
+                                ; BRESENHAM: err -= DELTAY
+        SEC
+        LDA     LINEERR
+        SBC     DELTAY
+        STA     LINEERR
+        LDA     LINEERR+1
+        SBC     DELTAY+1
+        STA     LINEERR+1
+        BPL     LINEHORZ_NOSTEP ; IF ERR >= 0, NO Y STEP NEEDED
+                                ; ERR += DELTAX (RESTORE ERROR)
+        CLC
+        LDA     LINEERR
+        ADC     DELTAX
+        STA     LINEERR
+        LDA     LINEERR+1
+        ADC     DELTAX+1
+        STA     LINEERR+1
+                                ; STEP Y TOWARD Y2
+        LDA     LINEY2
+        CMP     LINEY1
+        BCC     LINEHORZ_DECY   ; Y2 < Y1, DECREMENT
+        INC     LINEY1          ; Y2 >= Y1, INCREMENT
+        JMP     LINEHORZ_NOSTEP
+LINEHORZ_DECY:
+        DEC     LINEY1
+LINEHORZ_NOSTEP:
+
+        LDA     LINEX1
+        CMP     LINEX2
+        BNE     LINEHORZLOOP
+        LDA     LINEX1+1
+        CMP     LINEX2+1
+        BNE     LINEHORZLOOP
+        RTS                     ; DONE
+
+LINESWAPXY:
+        LDA     LINEX1
+        LDY     LINEX2
+        STY     LINEX1
+        STA     LINEX2
+        LDA     LINEX1+1
+        LDY     LINEX2+1
+        STY     LINEX1+1
+        STA     LINEX2+1
+;
+        LDA     LINEY1
+        LDY     LINEY2
+        STY     LINEY1
+        STA     LINEY2
+        LDA     LINEY1+1
+        LDY     LINEY2+1
+        STY     LINEY1+1
+        STA     LINEY2+1
         RTS
         .ELSE
 
