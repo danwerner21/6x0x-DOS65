@@ -146,7 +146,10 @@ Lpexit:
         JMP     pexit
 Lcrsrrt:
         JMP     crsrrt
-
+insert:
+        JMP     DOINSERT
+delete:
+        JMP     DODELETE
 crsrup:
         LDA     CURY
         CMP     #00
@@ -222,7 +225,45 @@ TERMLOOP_A:
         LDA     #10
         JSR     DO_FARCALL
         RTS
+DOINSERT:
+        JSR     GETVIDEOADDRESS
+        LDY     #$01+VIDEOBANK  ; SCREEN AREA $1000-$1FFF
+        JSR     PAGE_ENTER
+        LDY     VIDEOWIDTH
+        DEY
+:
+        DEY
+        LDA     (TEMPW),Y
+        INY
+        STA     (TEMPW),Y
+        DEY
+        CPY     CURX
+        BNE     :-
+        LDA     #32
+        STA     (TEMPW),Y
 
+        JSR     PAGE_EXIT
+        JMP     ploop
+DODELETE:
+        JSR     GETVIDEOADDRESS
+        LDY     #$01+VIDEOBANK  ; SCREEN AREA $1000-$1FFF
+        JSR     PAGE_ENTER
+        LDY     CURX
+:
+        INY
+        LDA     (TEMPW),Y
+        DEY
+        STA     (TEMPW),Y
+        INY
+        CPY     VIDEOWIDTH
+        BNE     :-
+        LDY     VIDEOWIDTH
+        DEY
+        LDA     #32
+        STA     (TEMPW),Y
+
+        JSR     PAGE_EXIT
+        JMP     ploop
 LdKbBuffer:
 ; clear input buffer
         LDX     #81
@@ -232,6 +273,21 @@ LdKbBuffer:
         DEX
         BNE     :-
 
+        JSR     GETVIDEOADDRESS
+        LDY     #$01+VIDEOBANK  ; SCREEN AREA $1000-$1FFF
+        JSR     PAGE_ENTER
+        LDY     #0
+:
+        LDA     (TEMPW),Y
+        STA     Ibuffs,Y
+        INY
+        CPY     VIDEOWIDTH
+        BNE     :-
+
+        JSR     PAGE_EXIT
+        RTS
+
+GETVIDEOADDRESS:
         LDY     CURY
 
         STY     PTEMPW
@@ -270,20 +326,8 @@ LdKbBuffer:
         LDA     TEMPW+1
         ORA     #$A0            ; add in the bank#
         STA     TEMPW+1
-
-        LDY     #$01+VIDEOBANK  ; SCREEN AREA $1000-$1FFF
-        JSR     PAGE_ENTER
-        LDY     #0
-:
-        LDA     (TEMPW),Y
-        STA     Ibuffs,Y
-        INY
-        CPY     VIDEOWIDTH
-        BNE     :-
-
-        JSR     PAGE_EXIT
         RTS
-        RTS
+
 
         .ENDIF
 

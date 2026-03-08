@@ -2054,6 +2054,10 @@ Current file: dbasic.asm
 0010B1  2                       STA     farfunct
 0010B1  2                       JSR     DO_FARCALL      ; UNPAINT cursor
 0010B1  2                       PLA
+0010B1  2                       CMP     #$F0
+0010B1  2                       BEQ     insert
+0010B1  2                       CMP     #$F1
+0010B1  2                       BEQ     delete
 0010B1  2                       CMP     #$F6
 0010B1  2                       BEQ     crsrup
 0010B1  2                       CMP     #$F7
@@ -2077,7 +2081,10 @@ Current file: dbasic.asm
 0010B1  2                       JMP     pexit
 0010B1  2               Lcrsrrt:
 0010B1  2                       JMP     crsrrt
-0010B1  2               
+0010B1  2               insert:
+0010B1  2                       JMP     DOINSERT
+0010B1  2               delete:
+0010B1  2                       JMP     DODELETE
 0010B1  2               crsrup:
 0010B1  2                       LDA     CURY
 0010B1  2                       CMP     #00
@@ -2153,7 +2160,45 @@ Current file: dbasic.asm
 0010B1  2                       LDA     #10
 0010B1  2                       JSR     DO_FARCALL
 0010B1  2                       RTS
+0010B1  2               DOINSERT:
+0010B1  2                       JSR     GETVIDEOADDRESS
+0010B1  2                       LDY     #$01+VIDEOBANK  ; SCREEN AREA $1000-$1FFF
+0010B1  2                       JSR     PAGE_ENTER
+0010B1  2                       LDY     VIDEOWIDTH
+0010B1  2                       DEY
+0010B1  2               :
+0010B1  2                       DEY
+0010B1  2                       LDA     (TEMPW),Y
+0010B1  2                       INY
+0010B1  2                       STA     (TEMPW),Y
+0010B1  2                       DEY
+0010B1  2                       CPY     CURX
+0010B1  2                       BNE     :-
+0010B1  2                       LDA     #32
+0010B1  2                       STA     (TEMPW),Y
 0010B1  2               
+0010B1  2                       JSR     PAGE_EXIT
+0010B1  2                       JMP     ploop
+0010B1  2               DODELETE:
+0010B1  2                       JSR     GETVIDEOADDRESS
+0010B1  2                       LDY     #$01+VIDEOBANK  ; SCREEN AREA $1000-$1FFF
+0010B1  2                       JSR     PAGE_ENTER
+0010B1  2                       LDY     CURX
+0010B1  2               :
+0010B1  2                       INY
+0010B1  2                       LDA     (TEMPW),Y
+0010B1  2                       DEY
+0010B1  2                       STA     (TEMPW),Y
+0010B1  2                       INY
+0010B1  2                       CPY     VIDEOWIDTH
+0010B1  2                       BNE     :-
+0010B1  2                       LDY     VIDEOWIDTH
+0010B1  2                       DEY
+0010B1  2                       LDA     #32
+0010B1  2                       STA     (TEMPW),Y
+0010B1  2               
+0010B1  2                       JSR     PAGE_EXIT
+0010B1  2                       JMP     ploop
 0010B1  2               LdKbBuffer:
 0010B1  2               ; clear input buffer
 0010B1  2                       LDX     #81
@@ -2163,6 +2208,21 @@ Current file: dbasic.asm
 0010B1  2                       DEX
 0010B1  2                       BNE     :-
 0010B1  2               
+0010B1  2                       JSR     GETVIDEOADDRESS
+0010B1  2                       LDY     #$01+VIDEOBANK  ; SCREEN AREA $1000-$1FFF
+0010B1  2                       JSR     PAGE_ENTER
+0010B1  2                       LDY     #0
+0010B1  2               :
+0010B1  2                       LDA     (TEMPW),Y
+0010B1  2                       STA     Ibuffs,Y
+0010B1  2                       INY
+0010B1  2                       CPY     VIDEOWIDTH
+0010B1  2                       BNE     :-
+0010B1  2               
+0010B1  2                       JSR     PAGE_EXIT
+0010B1  2                       RTS
+0010B1  2               
+0010B1  2               GETVIDEOADDRESS:
 0010B1  2                       LDY     CURY
 0010B1  2               
 0010B1  2                       STY     PTEMPW
@@ -2201,20 +2261,8 @@ Current file: dbasic.asm
 0010B1  2                       LDA     TEMPW+1
 0010B1  2                       ORA     #$A0            ; add in the bank#
 0010B1  2                       STA     TEMPW+1
-0010B1  2               
-0010B1  2                       LDY     #$01+VIDEOBANK  ; SCREEN AREA $1000-$1FFF
-0010B1  2                       JSR     PAGE_ENTER
-0010B1  2                       LDY     #0
-0010B1  2               :
-0010B1  2                       LDA     (TEMPW),Y
-0010B1  2                       STA     Ibuffs,Y
-0010B1  2                       INY
-0010B1  2                       CPY     VIDEOWIDTH
-0010B1  2                       BNE     :-
-0010B1  2               
-0010B1  2                       JSR     PAGE_EXIT
 0010B1  2                       RTS
-0010B1  2                       RTS
+0010B1  2               
 0010B1  2               
 0010B1  2                       .ENDIF
 0010B1  2               
