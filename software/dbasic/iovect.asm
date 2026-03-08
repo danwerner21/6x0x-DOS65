@@ -119,6 +119,10 @@ ploop1:
         STA     farfunct
         JSR     DO_FARCALL      ; UNPAINT cursor
         PLA
+        CMP     #$F0
+        BEQ     insert
+        CMP     #$F1
+        BEQ     delete
         CMP     #$F6
         BEQ     crsrup
         CMP     #$F7

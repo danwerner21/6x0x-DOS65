@@ -472,6 +472,7 @@ V_OPEN1:
         STA     FCB,Y
         CPY     #8
         BNE     :-
+        DEY
 :
         INY
         LDA     (str_pl),Y
@@ -765,6 +766,7 @@ V_DELETE:
         STA     FCB,Y
         CPY     #8
         BNE     :-
+        DEY
 :
         INY
         LDA     (str_pl),Y
@@ -797,12 +799,6 @@ V_DEL_FNEND:
         LDA     #<FCB           ; FCB
         LDY     #>FCB           ; FCB
         JSR     PEM
-        CMP     #$FF
-        BNE     :+
-        LDX     #$24            ; IO ERROR
-        JSR     LAB_XERR
-        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
-:
         RTS
 
 ;___RENAME_________________________________________________
@@ -873,6 +869,7 @@ V_RENAME:
         STA     FCB,Y
         CPY     #8
         BNE     :-
+        DEY
 :
         INY
         LDA     (str_pl),Y
@@ -926,6 +923,7 @@ V_REN_FNEND:
         STA     FCB+16,Y
         CPY     #8
         BNE     :-
+        DEY
 :
         INY
         LDA     (str_pl),Y
@@ -952,19 +950,12 @@ V_REN_EXTENSION1:
         CPX     #12
         BNE     :-
 V_REN_FNEND1:
-
         LDX     #13             ; INITIALIZE SYSTEM
         JSR     PEM             ;
         LDX     #23             ; RENAME
         LDA     #<FCB           ; FCB
         LDY     #>FCB           ; FCB
         JSR     PEM
-        CMP     #$FF
-        BNE     :+
-        LDX     #$24            ; IO ERROR
-        JSR     LAB_XERR
-        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
-:
         RTS
 
 

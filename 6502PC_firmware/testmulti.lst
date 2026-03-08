@@ -503,7 +503,7 @@ Current file: testmulti.asm
 0010E6  2               MULTIOINIT:
 0010E6  2               ;
 0010E6  2  20 8C 10             JSR     LFCR            ; AND CRLF
-0010E9  2  A9 E5                LDA     #<MIOMESSAGE1   ;
+0010E9  2  A9 E4                LDA     #<MIOMESSAGE1   ;
 0010EB  2  85 41                STA     STRPTR          ;
 0010ED  2  A9 14                LDA     #>MIOMESSAGE1   ;
 0010EF  2  85 42                STA     STRPTR+1        ;
@@ -524,7 +524,7 @@ Current file: testmulti.asm
 00110F  2  20 36 11             JSR     KBD_PROBE       ; DETECT A KEYBOARD
 001112  2               
 001112  2               ; LPT INITIALIZATION ROUTINE
-001112  2  A9 21                LDA     #<MIOMESSAGE5   ;
+001112  2  A9 20                LDA     #<MIOMESSAGE5   ;
 001114  2  85 41                STA     STRPTR          ;
 001116  2  A9 15                LDA     #>MIOMESSAGE5   ;
 001118  2  85 42                STA     STRPTR+1        ;
@@ -535,7 +535,7 @@ Current file: testmulti.asm
 001122  2  8D F0 E3             STA     LPT_0           ; PORT 0 (DATA)
 001125  2  A9 08                LDA     #%00001000      ; SELECT AND ASSERT RESET, LEDS OFF
 001127  2  8D F2 E3             STA     LPT_2           ; PORT 2 (STATUS)
-00112A  2  20 C9 14             JSR     LDELAY          ; HALF SECOND DELAY
+00112A  2  20 C8 14             JSR     LDELAY          ; HALF SECOND DELAY
 00112D  2  A9 0C                LDA     #%00001100      ; SELECT AND DEASSERT RESET, LEDS OFF
 00112F  2  8D F2 E3             STA     LPT_2           ; PORT 2 (STATUS)
 001132  2               ;
@@ -556,7 +556,7 @@ Current file: testmulti.asm
 001142  2               ;
 001142  2  C9 55                CMP     #$55            ; IS IT THERE?
 001144  2  F0 32                BEQ     :+              ; IF SO, CONTINUE
-001146  2  A9 F3                LDA     #<MIOMESSAGE3   ;
+001146  2  A9 F2                LDA     #<MIOMESSAGE3   ;
 001148  2  85 41                STA     STRPTR          ;
 00114A  2  A9 14                LDA     #>MIOMESSAGE3   ;
 00114C  2  85 42                STA     STRPTR+1        ;
@@ -567,7 +567,7 @@ Current file: testmulti.asm
 001154  2  38                   SEC                     ; SET ERROR
 001155  2  60                   RTS                     ; BAIL OUT
 001156  2               KBD_TIMEOUT1:
-001156  2  A9 35                LDA     #<MIOMESSAGE6   ;
+001156  2  A9 34                LDA     #<MIOMESSAGE6   ;
 001158  2  85 41                STA     STRPTR          ;
 00115A  2  A9 15                LDA     #>MIOMESSAGE6   ;
 00115C  2  85 42                STA     STRPTR+1        ;
@@ -575,7 +575,7 @@ Current file: testmulti.asm
 001161  2  20 8C 10             JSR     LFCR            ; AND CRLF
 001164  2  4C 54 11             JMP     KBD_ERROR
 001167  2               KBD_TIMEOUT2:
-001167  2  A9 53                LDA     #<MIOMESSAGE7   ;
+001167  2  A9 52                LDA     #<MIOMESSAGE7   ;
 001169  2  85 41                STA     STRPTR          ;
 00116B  2  A9 15                LDA     #>MIOMESSAGE7   ;
 00116D  2  85 42                STA     STRPTR+1        ;
@@ -585,7 +585,7 @@ Current file: testmulti.asm
 001178  2               
 001178  2               ;
 001178  2               :
-001178  2  A9 0D                LDA     #<MIOMESSAGE4   ;
+001178  2  A9 0C                LDA     #<MIOMESSAGE4   ;
 00117A  2  85 41                STA     STRPTR          ;
 00117C  2  A9 15                LDA     #>MIOMESSAGE4   ;
 00117E  2  85 42                STA     STRPTR+1        ;
@@ -604,7 +604,7 @@ Current file: testmulti.asm
 001197  2  B0 BB                BCS     KBD_ERROR
 001199  2               
 001199  2  20 2B 12             JSR     KBD_RESET       ; RESET THE KEYBOARD
-00119C  2  20 C9 14             JSR     LDELAY          ; WAIT A BIT
+00119C  2  20 C8 14             JSR     LDELAY          ; WAIT A BIT
 00119F  2  20 4A 12             JSR     KBD_SETLEDS     ; UPDATE LEDS BASED ON CURRENT TOGGLE STATE BITS
 0011A2  2  20 74 12             JSR     KBD_SETRPT      ; UPDATE REPEAT RATE BASED ON CURRENT SETTING
 0011A5  2               
@@ -655,7 +655,7 @@ Current file: testmulti.asm
 0011AF  2  29 02                AND     #$02            ; ISOLATE EMPTY BIT
 0011B1  2  C9 00                CMP     #$00
 0011B3  2  F0 10                BEQ     KBD_PUTCMD1     ; EMPTY, GO TO WRITE
-0011B5  2  20 B7 14             JSR     DELAY           ; WAIT A BIT
+0011B5  2  20 B6 14             JSR     DELAY           ; WAIT A BIT
 0011B8  2  CA                   DEX
 0011B9  2  E0 00                CPX     #$00
 0011BB  2  D0 EF                BNE     KBD_PUTCMD0     ; LOOP UNTIL COUNTER EXHAUSTED
@@ -684,7 +684,7 @@ Current file: testmulti.asm
 0011D3  2  29 02                AND     #$02            ; ISOLATE OUTPUT EMPTY BIT
 0011D5  2  C9 00                CMP     #$00
 0011D7  2  F0 10                BEQ     KBD_PUTDATA1    ; EMPTY, GO TO WRITE
-0011D9  2  20 B7 14             JSR     DELAY           ; WAIT A BIT
+0011D9  2  20 B6 14             JSR     DELAY           ; WAIT A BIT
 0011DC  2  CA                   DEX
 0011DD  2  E0 00                CPX     #$00
 0011DF  2  D0 EF                BNE     KBD_PUTDATA0    ; LOOP UNTIL COUNTER EXHAUSTED
@@ -716,7 +716,7 @@ Current file: testmulti.asm
 0011FA  2  29 01                AND     #$01            ; ISOLATE INPUT PENDING BIT
 0011FC  2  C9 00                CMP     #$00
 0011FE  2  D0 15                BNE     KBD_GETDATA1    ; READY, GET DATA
-001200  2  20 B7 14             JSR     DELAY           ; WAIT A BIT
+001200  2  20 B6 14             JSR     DELAY           ; WAIT A BIT
 001203  2  CA                   DEX
 001204  2  E0 00                CPX     #$00
 001206  2  D0 EF                BNE     KBD_GETDATA0    ; LOOP UNTIL COUNTER EXHAUSTED
@@ -842,7 +842,7 @@ Current file: testmulti.asm
 001293  2               ;__________________________________________________________________________________________________
 001293  2               KBD_GETKEY:
 001293  2  20 D5 12             JSR     KBD_DECODE
-001296  2  AD C8 16             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
+001296  2  AD C7 16             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
 001299  2  C9 00                CMP     #$00
 00129B  2  D0 04                BNE     :+
 00129D  2  A9 FF                LDA     #$FF            ;
@@ -850,9 +850,9 @@ Current file: testmulti.asm
 0012A0  2  60                   RTS
 0012A1  2               :
 0012A1  2  8E CD 12             STX     TMPX
-0012A4  2  AE C8 16             LDX     KBD_BUFFERPTR
-0012A7  2  BD C9 16             LDA     KBD_BUFFER,X
-0012AA  2  CE C8 16             DEC     KBD_BUFFERPTR
+0012A4  2  AE C7 16             LDX     KBD_BUFFERPTR
+0012A7  2  BD C8 16             LDA     KBD_BUFFER,X
+0012AA  2  CE C7 16             DEC     KBD_BUFFERPTR
 0012AD  2  AE CD 12             LDX     TMPX
 0012B0  2  18                   CLC
 0012B1  2  60                   RTS
@@ -862,14 +862,14 @@ Current file: testmulti.asm
 0012B2  2               ;__________________________________________________________________________________________________
 0012B2  2               KBD_GETKEYB:
 0012B2  2  20 D5 12             JSR     KBD_DECODE
-0012B5  2  AD C8 16             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
+0012B5  2  AD C7 16             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
 0012B8  2  C9 00                CMP     #$00
 0012BA  2  F0 F6                BEQ     KBD_GETKEYB
 0012BC  2               
 0012BC  2  8E CD 12             STX     TMPX
-0012BF  2  AE C8 16             LDX     KBD_BUFFERPTR
-0012C2  2  BD C9 16             LDA     KBD_BUFFER,X
-0012C5  2  CE C8 16             DEC     KBD_BUFFERPTR
+0012BF  2  AE C7 16             LDX     KBD_BUFFERPTR
+0012C2  2  BD C8 16             LDA     KBD_BUFFER,X
+0012C5  2  CE C7 16             DEC     KBD_BUFFERPTR
 0012C8  2  AE CD 12             LDX     TMPX
 0012CB  2  18                   CLC
 0012CC  2  60                   RTS
@@ -882,7 +882,7 @@ Current file: testmulti.asm
 0012CE  2               ;__________________________________________________________________________________________________
 0012CE  2               KBD_GETSTATUS:
 0012CE  2  20 D5 12             JSR     KBD_DECODE
-0012D1  2  AD C8 16             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
+0012D1  2  AD C7 16             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
 0012D4  2  60                   RTS
 0012D5  2               
 0012D5  2               
@@ -1009,12 +1009,12 @@ Current file: testmulti.asm
 0012DC  2  8D DC 10             STA     KBD_SCANCODE    ; SAVE SCANCODE
 0012DF  2  C9 AA                CMP     #$AA            ; KEYBOARD INSERTION?
 0012E1  2  D0 12                BNE     KBD_DEC3        ; NOPE, BYPASS
-0012E3  2  20 C9 14             JSR     LDELAY          ; WAIT A BIT
+0012E3  2  20 C8 14             JSR     LDELAY          ; WAIT A BIT
 0012E6  2  20 2B 12             JSR     KBD_RESET       ; RESET KEYBOARD
-0012E9  2  20 C9 14             JSR     LDELAY          ; WAIT A BIT
+0012E9  2  20 C8 14             JSR     LDELAY          ; WAIT A BIT
 0012EC  2  20 4A 12             JSR     KBD_SETLEDS     ; SET LEDS
 0012EF  2  20 74 12             JSR     KBD_SETRPT      ; SET REPEAT RATE
-0012F2  2  4C AF 14             JMP     KBD_DECNEW      ; RESTART THE ENGINE
+0012F2  2  4C AE 14             JMP     KBD_DECNEW      ; RESTART THE ENGINE
 0012F5  2               
 0012F5  2               KBD_DEC3:                       ; DETECT AND HANDLE SCANCODE PREFIXES
 0012F5  2  C9 E0                CMP     #$E0            ; EXTENDED KEY PREFIX $E0?
@@ -1037,7 +1037,7 @@ Current file: testmulti.asm
 001311  2  20 EF 11             JSR     KBD_GETDATA     ; RETRIEVE NEXT SCANCODE
 001314  2  CA                   DEX
 001315  2  D0 FA                BNE     KBD_DEC3B1      ; LOOP AS NEEDED
-001317  2  4C 74 13             JMP     KBD_DEC6        ; RESUME AFTER MAPPING
+001317  2  4C 73 13             JMP     KBD_DEC6        ; RESUME AFTER MAPPING
 00131A  2               
 00131A  2               KBD_DEC4:                       ; DETECT AND FLAG BREAK EVENT
 00131A  2  C9 F0                CMP     #$F0            ; BREAK (KEY UP) PREFIX?
@@ -1052,483 +1052,484 @@ Current file: testmulti.asm
 00132B  2               KBD_DEC5:                       ; MAP SCANCODE TO KEYCODE
 00132B  2  AD E1 10             LDA     KBD_STATUS      ; GET STATUS
 00132E  2  29 01                AND     #KBD_EXT        ; EXTENDED BIT SET?
-001330  2  F0 20                BEQ     KBD_DEC5C       ; NOPE, MOVE ON
+001330  2  F0 1F                BEQ     KBD_DEC5C       ; NOPE, MOVE ON
 001332  2               
 001332  2               ; PERFORM EXTENDED KEY MAPPING
-001332  2  AE DC 10             LDX     KBD_SCANCODE    ; GET SCANCODE
-001335  2               KBD_DEC5A:
-001335  2  BD 7A 16             LDA     KBD_MAPEXT,X    ; GET FIRST BYTE OF PAIR FROM EXT MAP TABLE
-001338  2  E8                   INX
-001339  2  C9 00                CMP     #$00            ; END OF TABLE?
-00133B  2  F0 09                BEQ     :+              ; UNKNOWN OR BOGUS, START OVER
-00133D  2  CD DC 10             CMP     KBD_SCANCODE    ; DOES MATCH BYTE EQUAL SCANCODE?
-001340  2  F0 07                BEQ     KBD_DEC5B       ; YES! JUMP OUT
-001342  2  E8                   INX                     ; BUMP TO START OF NEXT PAIR
-001343  2  4C 35 13             JMP     KBD_DEC5A       ; LOOP TO CHECK NEXT TABLE ENTRY
-001346  2               :
-001346  2  4C AF 14             JMP     KBD_DECNEW
-001349  2               KBD_DEC5B:
-001349  2  BD 7A 16             LDA     KBD_MAPEXT,X    ; GET THE KEYCODE VIA MAPPING TABLE
-00134C  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE IT
-00134F  2  4C 74 13             JMP     KBD_DEC6
-001352  2               
-001352  2               KBD_DEC5C:                      ; PERFORM REGULAR KEY (NOT EXTENDED) KEY MAPPING
-001352  2  AD DC 10             LDA     KBD_SCANCODE    ; GET THE SCANCODE
-001355  2  C9 85                CMP     #KBD_MAPSIZ     ; COMPARE TO SIZE OF TABLE
-001357  2  F0 02                BEQ     :+
-001359  2  B0 19                BCS     KBD_DEC6        ; PAST END, SKIP OVER LOOKUP
-00135B  2               :
-00135B  2               ; SETUP POINTER TO MAPPING TABLE BASED ON SHIFTED OR UNSHIFTED STATE
-00135B  2  AD DE 10             LDA     KBD_STATE       ; GET STATE
-00135E  2  29 01                AND     #KBD_SHIFT      ; SHIFT ACTIVE?
-001360  2  F0 09                BEQ     KBD_DEC5D       ; NON-SHIFTED, MOVE ON
-001362  2               
-001362  2  AE DC 10             LDX     KBD_SCANCODE    ; GET THE SCANCODE
-001365  2  BD F5 15             LDA     KBD_MAPSHIFT,X  ; GET SHIFTED
-001368  2  4C 71 13             JMP     :+
-00136B  2               KBD_DEC5D:
-00136B  2  AE DC 10             LDX     KBD_SCANCODE    ; GET THE SCANCODE
-00136E  2  BD 70 15             LDA     KBD_MAPSTD,X    ; GET STANDARD
-001371  2               :
-001371  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE KEYCODE
-001374  2               
-001374  2               KBD_DEC6:                       ; HANDLE MODIFIER KEYS
-001374  2  AD DD 10             LDA     KBD_KEYCODE     ; MAKE SURE WE HAVE KEYCODE
-001377  2  C9 B8                CMP     #$B8            ; END OF MODIFIER KEYS
-001379  2  B0 5F                BCS     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
-00137B  2  C9 B0                CMP     #$B0            ; START OF MODIFIER KEYS
-00137D  2  90 5B                BCC     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
-00137F  2  A2 04                LDX     #4              ; LOOP COUNTER TO LOOP THRU 4 MODIFIER BITS
-001381  2  38                   SEC
-001382  2  E9 AF                SBC     #$AF            ; SETUP A TO DECREMENT THROUGH MODIFIER VALUES
-001384  2  8D DB 10             STA     TMPKEY
-001387  2  A9 00                LDA     #$00            ; SETUP A TO ROATE THROUGH MODIFIER STATE BITS
-001389  2  38                   SEC                     ; SET CARRY FOR ROTATE
-00138A  2               
-00138A  2               KBD_DEC6A:
-00138A  2  2A                   ROL     A               ; SHIFT TO NEXT MODIFIER STATE BIT
-00138B  2  CE DB 10             DEC     TMPKEY          ; L-MODIFIER?
-00138E  2  F0 0B                BEQ     KBD_DEC6B       ; YES, HANDLE L-MODIFIER MAKE/BREAK
-001390  2  CE DB 10             DEC     TMPKEY          ; R-MODIFIER?
-001393  2  F0 0B                BEQ     KBD_DEC6C       ; YES, HANDLE R-MODIFIER MAKE/BREAK
-001395  2  CA                   DEX
-001396  2  D0 F2                BNE     KBD_DEC6A       ; LOOP THRU 4 MODIFIER BITS
-001398  2  4C DA 13             JMP     KBD_DEC7        ; FAILSAFE, SHOULD NEVER GET HERE!
-00139B  2               
-00139B  2               KBD_DEC6B:
-00139B  2  A2 00                LDX     #0              ; POINT TO LEFT STATE BYTE
-00139D  2  4C A2 13             JMP     KBD_DEC6D       ; CONTINUE
-0013A0  2               
-0013A0  2               KBD_DEC6C:
-0013A0  2  A2 01                LDX     #1              ; POINT TO RIGHT STATE BYTE
-0013A2  2               
-0013A2  2               KBD_DEC6D:                      ; BRANCH BASED ON WHETHER THIS IS A MAKE OR BREAK EVENT
-0013A2  2  8D DB 10             STA     TMPKEY
-0013A5  2  AD E1 10             LDA     KBD_STATUS      ; GET STATUS FLAGS
-0013A8  2  29 02                AND     #KBD_BREAK      ; BREAK EVENT?
-0013AA  2  F0 03                BEQ     KBD_DEC6E       ; NO, HANDLE A MODIFIER KEY MAKE EVENT
-0013AC  2  4C BB 13             JMP     KBD_DEC6F       ; YES, HANDLE A MODIFIER BREAK EVENT
-0013AF  2               
-0013AF  2               KBD_DEC6E:                      ; HANDLE STATE KEY MAKE EVENT
-0013AF  2  AD DB 10             LDA     TMPKEY
-0013B2  2  1D DF 10             ORA     KBD_LSTATE,X    ; OR IN THE BIT TO SET
-0013B5  2  9D DF 10             STA     KBD_LSTATE,X    ; SAVE THE RESULT
-0013B8  2  4C C9 13             JMP     KBD_DEC6G       ; CONTINUE
-0013BB  2               
-0013BB  2               KBD_DEC6F:                      ; HANDLE STATE KEY BREAK EVENT
-0013BB  2  AD DB 10             LDA     TMPKEY
-0013BE  2  49 FF                EOR     #$FF            ; FLIP ALL BITS TO SETUP FOR A CLEAR OPERATION
-0013C0  2  3D DF 10             AND     KBD_LSTATE,X    ; AND IN THE FLIPPED BITS TO CLEAR DESIRED BIT
-0013C3  2  9D DF 10             STA     KBD_LSTATE,X    ; SAVE THE RESULT
-0013C6  2  4C C9 13             JMP     KBD_DEC6G       ; CONTINUE
-0013C9  2               
-0013C9  2               KBD_DEC6G:                      ; COALESCE L/R STATE FLAGS
-0013C9  2  AD DE 10             LDA     KBD_STATE       ; GET EXISTING STATE BITS
-0013CC  2  29 F0                AND     #$F0            ; GET RID OF OLD MODIFIER BITS
-0013CE  2  0D DF 10             ORA     KBD_LSTATE      ; MERGE IN LEFT STATE BITS
-0013D1  2  0D E0 10             ORA     KBD_RSTATE      ; MERGE IN RIGHT STATE BITS
-0013D4  2  8D DE 10             STA     KBD_STATE       ; SAVE IT
-0013D7  2               :
-0013D7  2  4C AF 14             JMP     KBD_DECNEW      ; DONE WITH CURRENT KEYSTROKE
-0013DA  2               
-0013DA  2               KBD_DEC7:                       ; COMPLETE PROCESSING OF EXTENDED AND KEY BREAK EVENTS
-0013DA  2  AD E1 10             LDA     KBD_STATUS      ; GET CURRENT STATUS FLAGS
-0013DD  2  29 02                AND     #KBD_BREAK      ; IS THIS A KEY BREAK EVENT?
-0013DF  2  D0 F6                BNE     :-              ; PROCESS NEXT KEY
-0013E1  2               
-0013E1  2               KBD_DEC8:                       ; HANDLE TOGGLE KEYS
-0013E1  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE INTO A
-0013E4  2  A0 40                LDY     #KBD_CAPSLCK    ; SETUP E WITH CAPS LOCK STATE BIT
-0013E6  2  C9 BC                CMP     #$BC            ; IS THIS THE CAPS LOCK KEY?
-0013E8  2  F0 0F                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
-0013EA  2  A0 20                LDY     #KBD_NUMLCK     ; SETUP E WITH NUM LOCK STATE BIT
-0013EC  2  C9 BD                CMP     #$BD            ; IS THIS THE NUM LOCK KEY?
-0013EE  2  F0 09                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
-0013F0  2  A0 10                LDY     #KBD_SCRLCK     ; SETUP E WITH SCROLL LOCK STATE BIT
-0013F2  2  C9 BE                CMP     #$BE            ; IS THIS THE SCROLL LOCK KEY?
-0013F4  2  F0 03                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
-0013F6  2  4C 06 14             JMP     KBD_DEC9        ; NOT A TOGGLE KEY, CONTINUE
-0013F9  2               
-0013F9  2               KBD_DEC8A:                      ; RECORD THE TOGGLE
-0013F9  2  98                   TYA
-0013FA  2  4D DE 10             EOR     KBD_STATE       ; SET THE TOGGLE KEY BIT FROM ABOVE
-0013FD  2  8D DE 10             STA     KBD_STATE       ; SAVE IT
-001400  2  20 4A 12             JSR     KBD_SETLEDS     ; UPDATE LED LIGHTS ON KBD
-001403  2  4C AF 14             JMP     KBD_DECNEW      ; RESTART DECODER FOR A NEW KEY
-001406  2               
-001406  2               KBD_DEC9:                       ; ADJUST KEYCODE FOR CONTROL MODIFIER
-001406  2  AD DE 10             LDA     KBD_STATE       ; GET THE CURRENT STATE BITS
-001409  2  29 02                AND     #KBD_CTRL       ; CHECK THE CONTROL BIT
-00140B  2  F0 1E                BEQ     KBD_DEC10       ; CONTROL KEY NOT PRESSED, MOVE ON
-00140D  2  AD DD 10             LDA     KBD_KEYCODE     ; GET CURRENT KEYCODE IN A
-001410  2  C9 61                CMP     #'a'            ; COMPARE TO LOWERCASE A
-001412  2  90 08                BCC     KBD_DEC9A       ; BELOW IT, BYPASS
-001414  2  C9 7A                CMP     #'z'            ; COMPARE TO LOWERCASE Z+1
-001416  2  F0 02                BEQ     :+
-001418  2  B0 02                BCS     KBD_DEC9A       ; ABOVE IT, BYPASS
-00141A  2               :
-00141A  2  29 DF                AND     #$DF            ; KEYCODE IN LOWERCASE A-Z RANGE CLEAR BIT 5 TO MAKE IT UPPERCASE
-00141C  2               KBD_DEC9A:
-00141C  2  C9 40                CMP     #'@'            ; COMPARE TO @
-00141E  2  90 0B                BCC     KBD_DEC10       ; BELOW IT, BYPASS
-001420  2  C9 5F                CMP     #'_'            ; COMPARE TO _+1
-001422  2  F0 02                BEQ     :+
-001424  2  B0 05                BCS     KBD_DEC10       ; ABOVE IT, BYPASS
-001426  2               :
-001426  2  29 BF                AND     #$BF            ; CONVERT TO CONTROL VALUE BY CLEARING BIT 6
-001428  2  8D DD 10             STA     KBD_KEYCODE     ; UPDATE KEYCODE TO CONTROL VALUE
-00142B  2               
-00142B  2               KBD_DEC10:                      ; ADJUST KEYCODE FOR CAPS LOCK
-00142B  2  AD DE 10             LDA     KBD_STATE       ; LOAD THE STATE FLAGS
-00142E  2  29 40                AND     #KBD_CAPSLCK    ; CHECK CAPS LOCK
-001430  2  F0 25                BEQ     KBD_DEC11       ; CAPS LOCK NOT ACTIVE, MOVE ON
-001432  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE VALUE
-001435  2  C9 61                CMP     #'a'            ; COMPARE TO LOWERCASE A
-001437  2  90 09                BCC     KBD_DEC10A      ; BELOW IT, BYPASS
-001439  2  C9 7A                CMP     #'z'            ; COMPARE TO LOWERCASE Z+1
-00143B  2  F0 02                BEQ     :+
-00143D  2  B0 03                BCS     KBD_DEC10A      ; ABOVE IT, BYPASS
-00143F  2               :
-00143F  2  4C 4F 14             JMP     KBD_DEC10B      ; IN RANGE LOWERCASE A-Z, GO TO CASE SWAPPING LOGIC
-001442  2               KBD_DEC10A:
-001442  2  C9 41                CMP     #'A'            ; COMPARE TO UPPERCASE A
-001444  2  90 11                BCC     KBD_DEC11       ; BELOW IT, BYPASS
-001446  2  C9 5A                CMP     #'Z'            ; COMPARE TO UPPERCASE Z+1
-001448  2  F0 02                BEQ     :+
-00144A  2  B0 0B                BCS     KBD_DEC11       ; ABOVE IT, BYPASS
-00144C  2               :
-00144C  2  4C 4F 14             JMP     KBD_DEC10B      ; IN RANGE UPPERCASE A-Z, GO TO CASE SWAPPING LOGIC
-00144F  2               KBD_DEC10B:
-00144F  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
-001452  2  49 20                EOR     #$20            ; FLIP BIT 5 TO SWAP UPPER/LOWER CASE
-001454  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE IT
-001457  2               
-001457  2               KBD_DEC11:                      ; HANDLE NUM PAD KEYS
-001457  2  AD DE 10             LDA     KBD_STATE       ; GET THE CURRENT STATE FLAGS
-00145A  2  29 7F                AND     #NOT_KBD_NUMPAD ; ASSUME NOT A NUMPAD KEY, CLEAR THE NUMPAD BIT
-00145C  2  8D DE 10             STA     KBD_STATE       ; SAVE IT
-00145F  2               
-00145F  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
-001462  2  29 E0                AND     #%11100000      ; ISOLATE TOP 3 BITS
-001464  2  C9 C0                CMP     #%11000000      ; IS IN NUMPAD RANGE?
-001466  2  D0 21                BNE     KBD_DEC12       ; NOPE, GET OUT
-001468  2               
-001468  2  AD DE 10             LDA     KBD_STATE       ; LOAD THE CURRENT STATE FLAGS
-00146B  2  09 80                ORA     #KBD_NUMPAD     ; TURN ON THE NUMPAD BIT
-00146D  2  8D DE 10             STA     KBD_STATE       ; SAVE IT
-001470  2               
-001470  2  29 20                AND     #KBD_NUMLCK     ; IS NUM LOCK BIT SET?
-001472  2  F0 08                BEQ     KBD_DEC11A      ; NO, SKIP NUMLOCK PROCESSING
-001474  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE KEYCODE
-001477  2  49 10                EOR     #$10            ; FLIP VALUES FOR NUMLOCK
-001479  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE IT
-00147C  2               
-00147C  2               KBD_DEC11A:                     ; APPLY NUMPAD MAPPING
-00147C  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
-00147F  2  38                   SEC
-001480  2  E9 C0                SBC     #$C0            ; KEYCODES START AT $C0
-001482  2  AA                   TAX
-001483  2  BD A8 16             LDA     KBD_MAPNUMPAD,X ; GET IT IN A
-001486  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE IT
-001489  2               
-001489  2               KBD_DEC12:                      ; DETECT UNKNOWN/INVALID KEYCODES
-001489  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE FINAL KEYCODE
-00148C  2  C9 FF                CMP     #$FF            ; IS IT $FF (UNKNOWN/INVALID)
-00148E  2  F0 1F                BEQ     KBD_DECNEW      ; IF SO, JUST RESTART THE ENGINE
-001490  2               
-001490  2               KBD_DEC13:                      ; DONE - RECORD RESULTS INTO BUFFER
-001490  2  AE C8 16             LDX     KBD_BUFFERPTR
-001493  2  E0 10                CPX     #16
-001495  2  F0 16                BEQ     KBD_DEC13A
-001497  2               :
-001497  2  BD C9 16             LDA     KBD_BUFFER,X
-00149A  2  9D CA 16             STA     KBD_BUFFER+1,X
-00149D  2  CA                   DEX
-00149E  2  E0 FF                CPX     #$FF
-0014A0  2  D0 F5                BNE     :-
-0014A2  2  AD DD 10             LDA     KBD_KEYCODE
-0014A5  2  8D CA 16             STA     KBD_BUFFER+1
-0014A8  2  EE C8 16             INC     KBD_BUFFERPTR
-0014AB  2  A9 00                LDA     #$00            ; A=0
-0014AD  2               KBD_DEC13A:
-0014AD  2  18                   CLC                     ; SIGNAL SUCCESS WITH A=1, CARRY CLEAR
-0014AE  2  60                   RTS
-0014AF  2               
-0014AF  2               KBD_DECNEW:                     ; START NEW KEYPRESS (CLEAR ALL STATUS BITS)
-0014AF  2  A9 00                LDA     #$00            ; A=0
-0014B1  2  8D E1 10             STA     KBD_STATUS      ; CLEAR STATUS
-0014B4  2  4C D5 12             JMP     KBD_DEC1        ; RESTART THE ENGINE
-0014B7  2               
-0014B7  2               DELAY:
-0014B7  2  48                   PHA
-0014B8  2  98                   TYA
-0014B9  2  48                   PHA
-0014BA  2  8A                   TXA
-0014BB  2  48                   PHA
-0014BC  2  A2 25                LDX     #$25
-0014BE  2               :
-0014BE  2  CA                   DEX
-0014BF  2  E0 00                CPX     #$00
-0014C1  2  D0 FB                BNE     :-
-0014C3  2  68                   PLA
-0014C4  2  AA                   TAX
-0014C5  2  68                   PLA
-0014C6  2  A8                   TAY
-0014C7  2  68                   PLA
-0014C8  2  60                   RTS
-0014C9  2               
-0014C9  2               LDELAY:
-0014C9  2  48                   PHA
-0014CA  2  8A                   TXA
-0014CB  2  48                   PHA
-0014CC  2  98                   TYA
-0014CD  2  48                   PHA
-0014CE  2  A2 00                LDX     #$00
-0014D0  2  A0 03                LDY     #$03
-0014D2  2               :
-0014D2  2  20 B7 14             JSR     DELAY
-0014D5  2  CA                   DEX
-0014D6  2  E0 00                CPX     #$00
-0014D8  2  D0 F8                BNE     :-
-0014DA  2  88                   DEY
-0014DB  2  C0 00                CPY     #$00
-0014DD  2  D0 F3                BNE     :-
-0014DF  2  68                   PLA
-0014E0  2  A8                   TAY
-0014E1  2  68                   PLA
-0014E2  2  AA                   TAX
-0014E3  2  68                   PLA
-0014E4  2  60                   RTS
-0014E5  2               
-0014E5  2               
-0014E5  2                       .IFNDEF PC6502BIOS
-0014E5  2               ;
-0014E5  2               ; DRIVER DATA
-0014E5  2               ;__________________________________________________________________________________________________
-0014E5  2               ; MESSAGES
-0014E5  2               ;__________________________________________________________________________________________________
-0014E5  2               MIOMESSAGE1:
-0014E5  2  49 53 41 20          .BYTE   "ISA MULTI-IO:"
-0014E9  2  4D 55 4C 54  
-0014ED  2  49 2D 49 4F  
-0014F2  2  00                   .BYTE   00
-0014F3  2               MIOMESSAGE3:
-0014F3  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 NOT FOUND."
-0014F7  2  44 3A 20 56  
-0014FB  2  54 38 32 43  
-00150C  2  00                   .BYTE   00
-00150D  2               MIOMESSAGE4:
-00150D  2  20 20 4B 42          .BYTE   "  KBD: INITIALIZED."
-001511  2  44 3A 20 49  
-001515  2  4E 49 54 49  
-001520  2  00                   .BYTE   00
-001521  2               MIOMESSAGE5:
-001521  2  20 20 4C 50          .BYTE   "  LPT: INITIALIZED."
-001525  2  54 3A 20 49  
-001529  2  4E 49 54 49  
-001534  2  00                   .BYTE   00
-001535  2               MIOMESSAGE6:
-001535  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 WRITE TIMEOUT."
-001539  2  44 3A 20 56  
-00153D  2  54 38 32 43  
-001552  2  00                   .BYTE   00
-001553  2               MIOMESSAGE7:
-001553  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 READ TIMEOUT."
-001557  2  44 3A 20 56  
-00155B  2  54 38 32 43  
-00156F  2  00                   .BYTE   00
-001570  2                       .ENDIF
-001570  2               ;
-001570  2               ; MAPPING
-001570  2               ;__________________________________________________________________________________________________
-001570  2               ;
-001570  2               KBD_MAPSTD:                     ; SCANCODE IS INDEX INTO TABLE TO RESULTANT LOOKUP KEYCODE
-001570  2  FF E8 FF E4          .BYTE   $FF,$E8,$FF,$E4,$E2,$E0,$E1,$EB,$FF,$E9,$E7,$E5,$E3,$09,'`',$FF
-001574  2  E2 E0 E1 EB  
-001578  2  FF E9 E7 E5  
-001580  2  FF B4 B0 FF          .BYTE   $FF,$B4,$B0,$FF,$B2,'q','1',$FF,$FF,$FF,'z','s','a','w','2',$FF
-001584  2  B2 71 31 FF  
-001588  2  FF FF 7A 73  
-001590  2  FF 63 78 64          .BYTE   $FF,'c','x','d','e','4','3',$FF,$FF,' ','v','f','t','r','5',$FF
-001594  2  65 34 33 FF  
-001598  2  FF 20 76 66  
-0015A0  2  FF 6E 62 68          .BYTE   $FF,'n','b','h','g','y','6',$FF,$FF,$FF,'m','j','u','7','8',$FF
-0015A4  2  67 79 36 FF  
-0015A8  2  FF FF 6D 6A  
-0015B0  2  FF 2C 6B 69          .BYTE   $FF,',','k','i','o','0','9',$FF,$FF,'.','/','l',';','p','-',$FF
-0015B4  2  6F 30 39 FF  
-0015B8  2  FF 2E 2F 6C  
-0015C0  2  FF FF 27 FF          .BYTE   $FF,$FF,$27,$FF,'[','=',$FF,$FF,$BC,$B1,$0D,']',$FF,'\',$FF,$FF
-0015C4  2  5B 3D FF FF  
-0015C8  2  BC B1 0D 5D  
-0015D0  2  FF FF FF FF          .BYTE   $FF,$FF,$FF,$FF,$FF,$FF,$08,$FF,$FF,$C0,$FF,$C3,$C6,$FF,$FF,$FF
-0015D4  2  FF FF 08 FF  
-0015D8  2  FF C0 FF C3  
-0015E0  2  C9 CA C1 C4          .BYTE   $C9,$CA,$C1,$C4,$C5,$C7,$1B,$BD,$FA,$CE,$C2,$CD,$CC,$C8,$BE,$FF
-0015E4  2  C5 C7 1B BD  
-0015E8  2  FA CE C2 CD  
-0015F0  2  FF FF FF E6          .BYTE   $FF,$FF,$FF,$E6,$EC
-0015F4  2  EC           
-0015F5  2               BD_MAPSTDEND:
-0015F5  2               ;
-0015F5  2               KBD_MAPSIZ      = BD_MAPSTDEND-KBD_MAPSTD
-0015F5  2               ;
-0015F5  2               KBD_MAPSHIFT:                   ; SCANCODE IS INDEX INTO TABLE TO RESULTANT LOOKUP KEYCODE WHEN SHIFT ACTIVE
-0015F5  2  FF E8 FF E4          .BYTE   $FF,$E8,$FF,$E4,$E2,$E0,$E1,$EB,$FF,$E9,$E7,$E5,$E3,$09,'~',$FF
-0015F9  2  E2 E0 E1 EB  
-0015FD  2  FF E9 E7 E5  
-001605  2  FF B4 B0 FF          .BYTE   $FF,$B4,$B0,$FF,$B2,'Q','!',$FF,$FF,$FF,'Z','S','A','W','@',$FF
-001609  2  B2 51 21 FF  
-00160D  2  FF FF 5A 53  
-001615  2  FF 43 58 44          .BYTE   $FF,'C','X','D','E','$','#',$FF,$FF,' ','V','F','T','R','%',$FF
-001619  2  45 24 23 FF  
-00161D  2  FF 20 56 46  
-001625  2  FF 4E 42 48          .BYTE   $FF,'N','B','H','G','Y','^',$FF,$FF,$FF,'M','J','U','&','*',$FF
-001629  2  47 59 5E FF  
-00162D  2  FF FF 4D 4A  
-001635  2  FF 3C 4B 49          .BYTE   $FF,'<','K','I','O',')','(',$FF,$FF,'>','?','L',':','P','_',$FF
-001639  2  4F 29 28 FF  
-00163D  2  FF 3E 3F 4C  
-001645  2  FF FF 22 FF          .BYTE   $FF,$FF,$22,$FF,'{','+',$FF,$FF,$BC,$B1,$0D,'}',$FF,'|',$FF,$FF
-001649  2  7B 2B FF FF  
-00164D  2  BC B1 0D 7D  
-001655  2  FF FF FF FF          .BYTE   $FF,$FF,$FF,$FF,$FF,$FF,$08,$FF,$FF,$D0,$FF,$D3,$D6,$FF,$FF,$FF
-001659  2  FF FF 08 FF  
-00165D  2  FF D0 FF D3  
-001665  2  D9 DA D1 D4          .BYTE   $D9,$DA,$D1,$D4,$D5,$D7,$1B,$BD,$FA,$DE,$D2,$DD,$DC,$D8,$BE,$FF
-001669  2  D5 D7 1B BD  
-00166D  2  FA DE D2 DD  
-001675  2  FF FF FF E6          .BYTE   $FF,$FF,$FF,$E6,$EC
-001679  2  EC           
-00167A  2               ;
-00167A  2               KBD_MAPEXT:                     ; PAIRS ARE [SCANCODE,KEYCODE] FOR EXTENDED SCANCODES
-00167A  2  11 B5 14 B3          .BYTE   $11,$B5,$14,$B3,$1F,$B6,$27,$B7
-00167E  2  1F B6 27 B7  
-001682  2  2F EF 37 FA          .BYTE   $2F,$EF,$37,$FA,$3F,$FB,$4A,$CB
-001686  2  3F FB 4A CB  
-00168A  2  5A CF 5E FC          .BYTE   $5A,$CF,$5E,$FC,$69,$F3,$6B,$F8
-00168E  2  69 F3 6B F8  
-001692  2  6C F2 70 F0          .BYTE   $6C,$F2,$70,$F0,$71,$F1,$72,$F7
-001696  2  71 F1 72 F7  
-00169A  2  74 F9 75 F6          .BYTE   $74,$F9,$75,$F6,$7A,$F5,$7C,$ED
-00169E  2  7A F5 7C ED  
-0016A2  2  7D F4 7E FD          .BYTE   $7D,$F4,$7E,$FD,$00,$00
-0016A6  2  00 00        
-0016A8  2               ;
-0016A8  2               KBD_MAPNUMPAD:                  ; KEYCODE TRANSLATION FROM NUMPAD RANGE TO STD ASCII/KEYCODES
-0016A8  2  F3 F7 F5 F8          .BYTE   $F3,$F7,$F5,$F8,$FF,$F9,$F2,$F6,$F4,$F0,$F1,$2F,$2A,$2D,$2B,$0D
-0016AC  2  FF F9 F2 F6  
-0016B0  2  F4 F0 F1 2F  
-0016B8  2  31 32 33 34          .BYTE   $31,$32,$33,$34,$35,$36,$37,$38,$39,$30,$2E,$2F,$2A,$2D,$2B,$0D
-0016BC  2  35 36 37 38  
-0016C0  2  39 30 2E 2F  
-0016C8  2               
-0016C8  2               
-0016C8  2               KBD_BUFFERPTR:
-0016C8  2  00                   .BYTE $00
-0016C9  2               KBD_BUFFER:
-0016C9  2  00 00 00 00          .BYTE $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-0016CD  2  00 00 00 00  
-0016D1  2  00 00 00 00  
-0016DB  2               
-0016DB  2               ;
-0016DB  2               ;
-0016DB  2               ;__________________________________________________________________________________________________
-0016DB  2               ; KEYCODE VALUES RETURNED BY THE DECODER
-0016DB  2               ;__________________________________________________________________________________________________
-0016DB  2               ;
-0016DB  2               ; VALUES 0-127 ARE STANDARD ASCII, SPECIAL KEYS WILL HAVE THE FOLLOWING VALUES:
-0016DB  2               ;
-0016DB  2               ; F1		$E0
-0016DB  2               ; F2		$E1
-0016DB  2               ; F3		$E2
-0016DB  2               ; F4		$E3
-0016DB  2               ; F5		$E4
-0016DB  2               ; F6		$E5
-0016DB  2               ; F7		$E6
-0016DB  2               ; F8		$E7
-0016DB  2               ; F9		$E8
-0016DB  2               ; F10		$E9
-0016DB  2               ; F11		$EA
-0016DB  2               ; F12		$EB
-0016DB  2               ; SYSRQ		$EC
-0016DB  2               ; PRTSC		$ED
-0016DB  2               ; PAUSE		$EE
-0016DB  2               ; APP		$EF
-0016DB  2               ; INS		$F0
-0016DB  2               ; DEL		$F1
-0016DB  2               ; HOME		$F2
-0016DB  2               ; END		$F3
-0016DB  2               ; PGUP		$F4
-0016DB  2               ; PGDN		$F5
-0016DB  2               ; UP		$F6
-0016DB  2               ; DOWN		$F7
-0016DB  2               ; LEFT		$F8
-0016DB  2               ; RIGHT		$F9
-0016DB  2               ; POWER		$FA
-0016DB  2               ; SLEEP		$FB
-0016DB  2               ; WAKE		$FC
-0016DB  2               ; BREAK		$FD
-0016DB  2               ;___________________________________________________________________________________________________________________
-0016DB  2               ;
-0016DB  2               ; CENTRONICS (LPT) INTERFACE DRIVER
-0016DB  2               ;___________________________________________________________________________________________________________________
-0016DB  2               ;
-0016DB  2               ; BYTE OUTPUT
-0016DB  2               ;
-0016DB  2               LPT_OUT:
-0016DB  2  48                   PHA
-0016DC  2  A2 FF                LDX     #<LPT_WAITTO
-0016DE  2  A0 30                LDY     #>LPT_WAITTO
-0016E0  2               :
-0016E0  2  20 08 17             JSR     LPT_OST         ; READY TO SEND?
-0016E3  2  D0 0D                BNE     :+              ; GO IF READY
-0016E5  2  CA                   DEX
-0016E6  2  E0 00                CPX     #$00
-0016E8  2  D0 F6                BNE     :-              ; LOOP IF NOT READY
-0016EA  2  88                   DEY
-0016EB  2  C0 00                CPY     #$00
-0016ED  2  D0 F1                BNE     :-              ; LOOP IF NOT READY
-0016EF  2  68                   PLA
-0016F0  2  38                   SEC                     ; SIGNAL ERROR
-0016F1  2  60                   RTS
-0016F2  2               :
-0016F2  2  68                   PLA
-0016F3  2  8D F0 E3             STA     LPT_0           ; OUTPUT TO PORT 0 (DATA)
-0016F6  2  A9 0D                LDA     #%00001101      ; SELECT & STROBE, LEDS OFF
-0016F8  2  8D F2 E3             STA     LPT_2           ; OUTPUT DATA TO PORT
-0016FB  2  20 B7 14             JSR     DELAY
-0016FE  2  A9 0C                LDA     #%00001100      ; SELECT, LEDS OFF
-001700  2  8D F2 E3             STA     LPT_2           ; OUTPUT DATA TO PORT
-001703  2  20 B7 14             JSR     DELAY
-001706  2  18                   CLC
-001707  2  60                   RTS
-001708  2               ;
-001708  2               ; OUTPUT STATUS
-001708  2               ;
-001708  2               LPT_OST:
-001708  2  AD F1 E3             LDA     LPT_1           ; GET STATUS INFO
-00170B  2  29 80                AND     #%10000000      ; ISOLATE /BUSY
-00170D  2  60                   RTS                     ; DONE
-00170E  2               
-00170E  1               
+001332  2               ;        LDX     KBD_SCANCODE    ; GET SCANCODE
+001332  2  A2 00                LDX     #$00             ; GET SCANCODE
+001334  2               KBD_DEC5A:
+001334  2  BD 79 16             LDA     KBD_MAPEXT,X    ; GET FIRST BYTE OF PAIR FROM EXT MAP TABLE
+001337  2  E8                   INX
+001338  2  C9 00                CMP     #$00            ; END OF TABLE?
+00133A  2  F0 09                BEQ     :+              ; UNKNOWN OR BOGUS, START OVER
+00133C  2  CD DC 10             CMP     KBD_SCANCODE    ; DOES MATCH BYTE EQUAL SCANCODE?
+00133F  2  F0 07                BEQ     KBD_DEC5B       ; YES! JUMP OUT
+001341  2  E8                   INX                     ; BUMP TO START OF NEXT PAIR
+001342  2  4C 34 13             JMP     KBD_DEC5A       ; LOOP TO CHECK NEXT TABLE ENTRY
+001345  2               :
+001345  2  4C AE 14             JMP     KBD_DECNEW
+001348  2               KBD_DEC5B:
+001348  2  BD 79 16             LDA     KBD_MAPEXT,X    ; GET THE KEYCODE VIA MAPPING TABLE
+00134B  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE IT
+00134E  2  4C 73 13             JMP     KBD_DEC6
+001351  2               
+001351  2               KBD_DEC5C:                      ; PERFORM REGULAR KEY (NOT EXTENDED) KEY MAPPING
+001351  2  AD DC 10             LDA     KBD_SCANCODE    ; GET THE SCANCODE
+001354  2  C9 85                CMP     #KBD_MAPSIZ     ; COMPARE TO SIZE OF TABLE
+001356  2  F0 02                BEQ     :+
+001358  2  B0 19                BCS     KBD_DEC6        ; PAST END, SKIP OVER LOOKUP
+00135A  2               :
+00135A  2               ; SETUP POINTER TO MAPPING TABLE BASED ON SHIFTED OR UNSHIFTED STATE
+00135A  2  AD DE 10             LDA     KBD_STATE       ; GET STATE
+00135D  2  29 01                AND     #KBD_SHIFT      ; SHIFT ACTIVE?
+00135F  2  F0 09                BEQ     KBD_DEC5D       ; NON-SHIFTED, MOVE ON
+001361  2               
+001361  2  AE DC 10             LDX     KBD_SCANCODE    ; GET THE SCANCODE
+001364  2  BD F4 15             LDA     KBD_MAPSHIFT,X  ; GET SHIFTED
+001367  2  4C 70 13             JMP     :+
+00136A  2               KBD_DEC5D:
+00136A  2  AE DC 10             LDX     KBD_SCANCODE    ; GET THE SCANCODE
+00136D  2  BD 6F 15             LDA     KBD_MAPSTD,X    ; GET STANDARD
+001370  2               :
+001370  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE KEYCODE
+001373  2               
+001373  2               KBD_DEC6:                       ; HANDLE MODIFIER KEYS
+001373  2  AD DD 10             LDA     KBD_KEYCODE     ; MAKE SURE WE HAVE KEYCODE
+001376  2  C9 B8                CMP     #$B8            ; END OF MODIFIER KEYS
+001378  2  B0 5F                BCS     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
+00137A  2  C9 B0                CMP     #$B0            ; START OF MODIFIER KEYS
+00137C  2  90 5B                BCC     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
+00137E  2  A2 04                LDX     #4              ; LOOP COUNTER TO LOOP THRU 4 MODIFIER BITS
+001380  2  38                   SEC
+001381  2  E9 AF                SBC     #$AF            ; SETUP A TO DECREMENT THROUGH MODIFIER VALUES
+001383  2  8D DB 10             STA     TMPKEY
+001386  2  A9 00                LDA     #$00            ; SETUP A TO ROATE THROUGH MODIFIER STATE BITS
+001388  2  38                   SEC                     ; SET CARRY FOR ROTATE
+001389  2               
+001389  2               KBD_DEC6A:
+001389  2  2A                   ROL     A               ; SHIFT TO NEXT MODIFIER STATE BIT
+00138A  2  CE DB 10             DEC     TMPKEY          ; L-MODIFIER?
+00138D  2  F0 0B                BEQ     KBD_DEC6B       ; YES, HANDLE L-MODIFIER MAKE/BREAK
+00138F  2  CE DB 10             DEC     TMPKEY          ; R-MODIFIER?
+001392  2  F0 0B                BEQ     KBD_DEC6C       ; YES, HANDLE R-MODIFIER MAKE/BREAK
+001394  2  CA                   DEX
+001395  2  D0 F2                BNE     KBD_DEC6A       ; LOOP THRU 4 MODIFIER BITS
+001397  2  4C D9 13             JMP     KBD_DEC7        ; FAILSAFE, SHOULD NEVER GET HERE!
+00139A  2               
+00139A  2               KBD_DEC6B:
+00139A  2  A2 00                LDX     #0              ; POINT TO LEFT STATE BYTE
+00139C  2  4C A1 13             JMP     KBD_DEC6D       ; CONTINUE
+00139F  2               
+00139F  2               KBD_DEC6C:
+00139F  2  A2 01                LDX     #1              ; POINT TO RIGHT STATE BYTE
+0013A1  2               
+0013A1  2               KBD_DEC6D:                      ; BRANCH BASED ON WHETHER THIS IS A MAKE OR BREAK EVENT
+0013A1  2  8D DB 10             STA     TMPKEY
+0013A4  2  AD E1 10             LDA     KBD_STATUS      ; GET STATUS FLAGS
+0013A7  2  29 02                AND     #KBD_BREAK      ; BREAK EVENT?
+0013A9  2  F0 03                BEQ     KBD_DEC6E       ; NO, HANDLE A MODIFIER KEY MAKE EVENT
+0013AB  2  4C BA 13             JMP     KBD_DEC6F       ; YES, HANDLE A MODIFIER BREAK EVENT
+0013AE  2               
+0013AE  2               KBD_DEC6E:                      ; HANDLE STATE KEY MAKE EVENT
+0013AE  2  AD DB 10             LDA     TMPKEY
+0013B1  2  1D DF 10             ORA     KBD_LSTATE,X    ; OR IN THE BIT TO SET
+0013B4  2  9D DF 10             STA     KBD_LSTATE,X    ; SAVE THE RESULT
+0013B7  2  4C C8 13             JMP     KBD_DEC6G       ; CONTINUE
+0013BA  2               
+0013BA  2               KBD_DEC6F:                      ; HANDLE STATE KEY BREAK EVENT
+0013BA  2  AD DB 10             LDA     TMPKEY
+0013BD  2  49 FF                EOR     #$FF            ; FLIP ALL BITS TO SETUP FOR A CLEAR OPERATION
+0013BF  2  3D DF 10             AND     KBD_LSTATE,X    ; AND IN THE FLIPPED BITS TO CLEAR DESIRED BIT
+0013C2  2  9D DF 10             STA     KBD_LSTATE,X    ; SAVE THE RESULT
+0013C5  2  4C C8 13             JMP     KBD_DEC6G       ; CONTINUE
+0013C8  2               
+0013C8  2               KBD_DEC6G:                      ; COALESCE L/R STATE FLAGS
+0013C8  2  AD DE 10             LDA     KBD_STATE       ; GET EXISTING STATE BITS
+0013CB  2  29 F0                AND     #$F0            ; GET RID OF OLD MODIFIER BITS
+0013CD  2  0D DF 10             ORA     KBD_LSTATE      ; MERGE IN LEFT STATE BITS
+0013D0  2  0D E0 10             ORA     KBD_RSTATE      ; MERGE IN RIGHT STATE BITS
+0013D3  2  8D DE 10             STA     KBD_STATE       ; SAVE IT
+0013D6  2               :
+0013D6  2  4C AE 14             JMP     KBD_DECNEW      ; DONE WITH CURRENT KEYSTROKE
+0013D9  2               
+0013D9  2               KBD_DEC7:                       ; COMPLETE PROCESSING OF EXTENDED AND KEY BREAK EVENTS
+0013D9  2  AD E1 10             LDA     KBD_STATUS      ; GET CURRENT STATUS FLAGS
+0013DC  2  29 02                AND     #KBD_BREAK      ; IS THIS A KEY BREAK EVENT?
+0013DE  2  D0 F6                BNE     :-              ; PROCESS NEXT KEY
+0013E0  2               
+0013E0  2               KBD_DEC8:                       ; HANDLE TOGGLE KEYS
+0013E0  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE INTO A
+0013E3  2  A0 40                LDY     #KBD_CAPSLCK    ; SETUP E WITH CAPS LOCK STATE BIT
+0013E5  2  C9 BC                CMP     #$BC            ; IS THIS THE CAPS LOCK KEY?
+0013E7  2  F0 0F                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
+0013E9  2  A0 20                LDY     #KBD_NUMLCK     ; SETUP E WITH NUM LOCK STATE BIT
+0013EB  2  C9 BD                CMP     #$BD            ; IS THIS THE NUM LOCK KEY?
+0013ED  2  F0 09                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
+0013EF  2  A0 10                LDY     #KBD_SCRLCK     ; SETUP E WITH SCROLL LOCK STATE BIT
+0013F1  2  C9 BE                CMP     #$BE            ; IS THIS THE SCROLL LOCK KEY?
+0013F3  2  F0 03                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
+0013F5  2  4C 05 14             JMP     KBD_DEC9        ; NOT A TOGGLE KEY, CONTINUE
+0013F8  2               
+0013F8  2               KBD_DEC8A:                      ; RECORD THE TOGGLE
+0013F8  2  98                   TYA
+0013F9  2  4D DE 10             EOR     KBD_STATE       ; SET THE TOGGLE KEY BIT FROM ABOVE
+0013FC  2  8D DE 10             STA     KBD_STATE       ; SAVE IT
+0013FF  2  20 4A 12             JSR     KBD_SETLEDS     ; UPDATE LED LIGHTS ON KBD
+001402  2  4C AE 14             JMP     KBD_DECNEW      ; RESTART DECODER FOR A NEW KEY
+001405  2               
+001405  2               KBD_DEC9:                       ; ADJUST KEYCODE FOR CONTROL MODIFIER
+001405  2  AD DE 10             LDA     KBD_STATE       ; GET THE CURRENT STATE BITS
+001408  2  29 02                AND     #KBD_CTRL       ; CHECK THE CONTROL BIT
+00140A  2  F0 1E                BEQ     KBD_DEC10       ; CONTROL KEY NOT PRESSED, MOVE ON
+00140C  2  AD DD 10             LDA     KBD_KEYCODE     ; GET CURRENT KEYCODE IN A
+00140F  2  C9 61                CMP     #'a'            ; COMPARE TO LOWERCASE A
+001411  2  90 08                BCC     KBD_DEC9A       ; BELOW IT, BYPASS
+001413  2  C9 7A                CMP     #'z'            ; COMPARE TO LOWERCASE Z+1
+001415  2  F0 02                BEQ     :+
+001417  2  B0 02                BCS     KBD_DEC9A       ; ABOVE IT, BYPASS
+001419  2               :
+001419  2  29 DF                AND     #$DF            ; KEYCODE IN LOWERCASE A-Z RANGE CLEAR BIT 5 TO MAKE IT UPPERCASE
+00141B  2               KBD_DEC9A:
+00141B  2  C9 40                CMP     #'@'            ; COMPARE TO @
+00141D  2  90 0B                BCC     KBD_DEC10       ; BELOW IT, BYPASS
+00141F  2  C9 5F                CMP     #'_'            ; COMPARE TO _+1
+001421  2  F0 02                BEQ     :+
+001423  2  B0 05                BCS     KBD_DEC10       ; ABOVE IT, BYPASS
+001425  2               :
+001425  2  29 BF                AND     #$BF            ; CONVERT TO CONTROL VALUE BY CLEARING BIT 6
+001427  2  8D DD 10             STA     KBD_KEYCODE     ; UPDATE KEYCODE TO CONTROL VALUE
+00142A  2               
+00142A  2               KBD_DEC10:                      ; ADJUST KEYCODE FOR CAPS LOCK
+00142A  2  AD DE 10             LDA     KBD_STATE       ; LOAD THE STATE FLAGS
+00142D  2  29 40                AND     #KBD_CAPSLCK    ; CHECK CAPS LOCK
+00142F  2  F0 25                BEQ     KBD_DEC11       ; CAPS LOCK NOT ACTIVE, MOVE ON
+001431  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE VALUE
+001434  2  C9 61                CMP     #'a'            ; COMPARE TO LOWERCASE A
+001436  2  90 09                BCC     KBD_DEC10A      ; BELOW IT, BYPASS
+001438  2  C9 7A                CMP     #'z'            ; COMPARE TO LOWERCASE Z+1
+00143A  2  F0 02                BEQ     :+
+00143C  2  B0 03                BCS     KBD_DEC10A      ; ABOVE IT, BYPASS
+00143E  2               :
+00143E  2  4C 4E 14             JMP     KBD_DEC10B      ; IN RANGE LOWERCASE A-Z, GO TO CASE SWAPPING LOGIC
+001441  2               KBD_DEC10A:
+001441  2  C9 41                CMP     #'A'            ; COMPARE TO UPPERCASE A
+001443  2  90 11                BCC     KBD_DEC11       ; BELOW IT, BYPASS
+001445  2  C9 5A                CMP     #'Z'            ; COMPARE TO UPPERCASE Z+1
+001447  2  F0 02                BEQ     :+
+001449  2  B0 0B                BCS     KBD_DEC11       ; ABOVE IT, BYPASS
+00144B  2               :
+00144B  2  4C 4E 14             JMP     KBD_DEC10B      ; IN RANGE UPPERCASE A-Z, GO TO CASE SWAPPING LOGIC
+00144E  2               KBD_DEC10B:
+00144E  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
+001451  2  49 20                EOR     #$20            ; FLIP BIT 5 TO SWAP UPPER/LOWER CASE
+001453  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE IT
+001456  2               
+001456  2               KBD_DEC11:                      ; HANDLE NUM PAD KEYS
+001456  2  AD DE 10             LDA     KBD_STATE       ; GET THE CURRENT STATE FLAGS
+001459  2  29 7F                AND     #NOT_KBD_NUMPAD ; ASSUME NOT A NUMPAD KEY, CLEAR THE NUMPAD BIT
+00145B  2  8D DE 10             STA     KBD_STATE       ; SAVE IT
+00145E  2               
+00145E  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
+001461  2  29 E0                AND     #%11100000      ; ISOLATE TOP 3 BITS
+001463  2  C9 C0                CMP     #%11000000      ; IS IN NUMPAD RANGE?
+001465  2  D0 21                BNE     KBD_DEC12       ; NOPE, GET OUT
+001467  2               
+001467  2  AD DE 10             LDA     KBD_STATE       ; LOAD THE CURRENT STATE FLAGS
+00146A  2  09 80                ORA     #KBD_NUMPAD     ; TURN ON THE NUMPAD BIT
+00146C  2  8D DE 10             STA     KBD_STATE       ; SAVE IT
+00146F  2               
+00146F  2  29 20                AND     #KBD_NUMLCK     ; IS NUM LOCK BIT SET?
+001471  2  F0 08                BEQ     KBD_DEC11A      ; NO, SKIP NUMLOCK PROCESSING
+001473  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE KEYCODE
+001476  2  49 10                EOR     #$10            ; FLIP VALUES FOR NUMLOCK
+001478  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE IT
+00147B  2               
+00147B  2               KBD_DEC11A:                     ; APPLY NUMPAD MAPPING
+00147B  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
+00147E  2  38                   SEC
+00147F  2  E9 C0                SBC     #$C0            ; KEYCODES START AT $C0
+001481  2  AA                   TAX
+001482  2  BD A7 16             LDA     KBD_MAPNUMPAD,X ; GET IT IN A
+001485  2  8D DD 10             STA     KBD_KEYCODE     ; SAVE IT
+001488  2               
+001488  2               KBD_DEC12:                      ; DETECT UNKNOWN/INVALID KEYCODES
+001488  2  AD DD 10             LDA     KBD_KEYCODE     ; GET THE FINAL KEYCODE
+00148B  2  C9 FF                CMP     #$FF            ; IS IT $FF (UNKNOWN/INVALID)
+00148D  2  F0 1F                BEQ     KBD_DECNEW      ; IF SO, JUST RESTART THE ENGINE
+00148F  2               
+00148F  2               KBD_DEC13:                      ; DONE - RECORD RESULTS INTO BUFFER
+00148F  2  AE C7 16             LDX     KBD_BUFFERPTR
+001492  2  E0 10                CPX     #16
+001494  2  F0 16                BEQ     KBD_DEC13A
+001496  2               :
+001496  2  BD C8 16             LDA     KBD_BUFFER,X
+001499  2  9D C9 16             STA     KBD_BUFFER+1,X
+00149C  2  CA                   DEX
+00149D  2  E0 FF                CPX     #$FF
+00149F  2  D0 F5                BNE     :-
+0014A1  2  AD DD 10             LDA     KBD_KEYCODE
+0014A4  2  8D C9 16             STA     KBD_BUFFER+1
+0014A7  2  EE C7 16             INC     KBD_BUFFERPTR
+0014AA  2  A9 00                LDA     #$00            ; A=0
+0014AC  2               KBD_DEC13A:
+0014AC  2  18                   CLC                     ; SIGNAL SUCCESS WITH A=1, CARRY CLEAR
+0014AD  2  60                   RTS
+0014AE  2               
+0014AE  2               KBD_DECNEW:                     ; START NEW KEYPRESS (CLEAR ALL STATUS BITS)
+0014AE  2  A9 00                LDA     #$00            ; A=0
+0014B0  2  8D E1 10             STA     KBD_STATUS      ; CLEAR STATUS
+0014B3  2  4C D5 12             JMP     KBD_DEC1        ; RESTART THE ENGINE
+0014B6  2               
+0014B6  2               DELAY:
+0014B6  2  48                   PHA
+0014B7  2  98                   TYA
+0014B8  2  48                   PHA
+0014B9  2  8A                   TXA
+0014BA  2  48                   PHA
+0014BB  2  A2 25                LDX     #$25
+0014BD  2               :
+0014BD  2  CA                   DEX
+0014BE  2  E0 00                CPX     #$00
+0014C0  2  D0 FB                BNE     :-
+0014C2  2  68                   PLA
+0014C3  2  AA                   TAX
+0014C4  2  68                   PLA
+0014C5  2  A8                   TAY
+0014C6  2  68                   PLA
+0014C7  2  60                   RTS
+0014C8  2               
+0014C8  2               LDELAY:
+0014C8  2  48                   PHA
+0014C9  2  8A                   TXA
+0014CA  2  48                   PHA
+0014CB  2  98                   TYA
+0014CC  2  48                   PHA
+0014CD  2  A2 00                LDX     #$00
+0014CF  2  A0 03                LDY     #$03
+0014D1  2               :
+0014D1  2  20 B6 14             JSR     DELAY
+0014D4  2  CA                   DEX
+0014D5  2  E0 00                CPX     #$00
+0014D7  2  D0 F8                BNE     :-
+0014D9  2  88                   DEY
+0014DA  2  C0 00                CPY     #$00
+0014DC  2  D0 F3                BNE     :-
+0014DE  2  68                   PLA
+0014DF  2  A8                   TAY
+0014E0  2  68                   PLA
+0014E1  2  AA                   TAX
+0014E2  2  68                   PLA
+0014E3  2  60                   RTS
+0014E4  2               
+0014E4  2               
+0014E4  2                       .IFNDEF PC6502BIOS
+0014E4  2               ;
+0014E4  2               ; DRIVER DATA
+0014E4  2               ;__________________________________________________________________________________________________
+0014E4  2               ; MESSAGES
+0014E4  2               ;__________________________________________________________________________________________________
+0014E4  2               MIOMESSAGE1:
+0014E4  2  49 53 41 20          .BYTE   "ISA MULTI-IO:"
+0014E8  2  4D 55 4C 54  
+0014EC  2  49 2D 49 4F  
+0014F1  2  00                   .BYTE   00
+0014F2  2               MIOMESSAGE3:
+0014F2  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 NOT FOUND."
+0014F6  2  44 3A 20 56  
+0014FA  2  54 38 32 43  
+00150B  2  00                   .BYTE   00
+00150C  2               MIOMESSAGE4:
+00150C  2  20 20 4B 42          .BYTE   "  KBD: INITIALIZED."
+001510  2  44 3A 20 49  
+001514  2  4E 49 54 49  
+00151F  2  00                   .BYTE   00
+001520  2               MIOMESSAGE5:
+001520  2  20 20 4C 50          .BYTE   "  LPT: INITIALIZED."
+001524  2  54 3A 20 49  
+001528  2  4E 49 54 49  
+001533  2  00                   .BYTE   00
+001534  2               MIOMESSAGE6:
+001534  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 WRITE TIMEOUT."
+001538  2  44 3A 20 56  
+00153C  2  54 38 32 43  
+001551  2  00                   .BYTE   00
+001552  2               MIOMESSAGE7:
+001552  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 READ TIMEOUT."
+001556  2  44 3A 20 56  
+00155A  2  54 38 32 43  
+00156E  2  00                   .BYTE   00
+00156F  2                       .ENDIF
+00156F  2               ;
+00156F  2               ; MAPPING
+00156F  2               ;__________________________________________________________________________________________________
+00156F  2               ;
+00156F  2               KBD_MAPSTD:                     ; SCANCODE IS INDEX INTO TABLE TO RESULTANT LOOKUP KEYCODE
+00156F  2  FF E8 FF E4          .BYTE   $FF,$E8,$FF,$E4,$E2,$E0,$E1,$EB,$FF,$E9,$E7,$E5,$E3,$09,'`',$FF
+001573  2  E2 E0 E1 EB  
+001577  2  FF E9 E7 E5  
+00157F  2  FF B4 B0 FF          .BYTE   $FF,$B4,$B0,$FF,$B2,'q','1',$FF,$FF,$FF,'z','s','a','w','2',$FF
+001583  2  B2 71 31 FF  
+001587  2  FF FF 7A 73  
+00158F  2  FF 63 78 64          .BYTE   $FF,'c','x','d','e','4','3',$FF,$FF,' ','v','f','t','r','5',$FF
+001593  2  65 34 33 FF  
+001597  2  FF 20 76 66  
+00159F  2  FF 6E 62 68          .BYTE   $FF,'n','b','h','g','y','6',$FF,$FF,$FF,'m','j','u','7','8',$FF
+0015A3  2  67 79 36 FF  
+0015A7  2  FF FF 6D 6A  
+0015AF  2  FF 2C 6B 69          .BYTE   $FF,',','k','i','o','0','9',$FF,$FF,'.','/','l',';','p','-',$FF
+0015B3  2  6F 30 39 FF  
+0015B7  2  FF 2E 2F 6C  
+0015BF  2  FF FF 27 FF          .BYTE   $FF,$FF,$27,$FF,'[','=',$FF,$FF,$BC,$B1,$0D,']',$FF,'\',$FF,$FF
+0015C3  2  5B 3D FF FF  
+0015C7  2  BC B1 0D 5D  
+0015CF  2  FF FF FF FF          .BYTE   $FF,$FF,$FF,$FF,$FF,$FF,$08,$FF,$FF,$C0,$FF,$C3,$C6,$FF,$FF,$FF
+0015D3  2  FF FF 08 FF  
+0015D7  2  FF C0 FF C3  
+0015DF  2  C9 CA C1 C4          .BYTE   $C9,$CA,$C1,$C4,$C5,$C7,$1B,$BD,$FA,$CE,$C2,$CD,$CC,$C8,$BE,$FF
+0015E3  2  C5 C7 1B BD  
+0015E7  2  FA CE C2 CD  
+0015EF  2  FF FF FF E6          .BYTE   $FF,$FF,$FF,$E6,$EC
+0015F3  2  EC           
+0015F4  2               BD_MAPSTDEND:
+0015F4  2               ;
+0015F4  2               KBD_MAPSIZ      = BD_MAPSTDEND-KBD_MAPSTD
+0015F4  2               ;
+0015F4  2               KBD_MAPSHIFT:                   ; SCANCODE IS INDEX INTO TABLE TO RESULTANT LOOKUP KEYCODE WHEN SHIFT ACTIVE
+0015F4  2  FF E8 FF E4          .BYTE   $FF,$E8,$FF,$E4,$E2,$E0,$E1,$EB,$FF,$E9,$E7,$E5,$E3,$09,'~',$FF
+0015F8  2  E2 E0 E1 EB  
+0015FC  2  FF E9 E7 E5  
+001604  2  FF B4 B0 FF          .BYTE   $FF,$B4,$B0,$FF,$B2,'Q','!',$FF,$FF,$FF,'Z','S','A','W','@',$FF
+001608  2  B2 51 21 FF  
+00160C  2  FF FF 5A 53  
+001614  2  FF 43 58 44          .BYTE   $FF,'C','X','D','E','$','#',$FF,$FF,' ','V','F','T','R','%',$FF
+001618  2  45 24 23 FF  
+00161C  2  FF 20 56 46  
+001624  2  FF 4E 42 48          .BYTE   $FF,'N','B','H','G','Y','^',$FF,$FF,$FF,'M','J','U','&','*',$FF
+001628  2  47 59 5E FF  
+00162C  2  FF FF 4D 4A  
+001634  2  FF 3C 4B 49          .BYTE   $FF,'<','K','I','O',')','(',$FF,$FF,'>','?','L',':','P','_',$FF
+001638  2  4F 29 28 FF  
+00163C  2  FF 3E 3F 4C  
+001644  2  FF FF 22 FF          .BYTE   $FF,$FF,$22,$FF,'{','+',$FF,$FF,$BC,$B1,$0D,'}',$FF,'|',$FF,$FF
+001648  2  7B 2B FF FF  
+00164C  2  BC B1 0D 7D  
+001654  2  FF FF FF FF          .BYTE   $FF,$FF,$FF,$FF,$FF,$FF,$08,$FF,$FF,$D0,$FF,$D3,$D6,$FF,$FF,$FF
+001658  2  FF FF 08 FF  
+00165C  2  FF D0 FF D3  
+001664  2  D9 DA D1 D4          .BYTE   $D9,$DA,$D1,$D4,$D5,$D7,$1B,$BD,$FA,$DE,$D2,$DD,$DC,$D8,$BE,$FF
+001668  2  D5 D7 1B BD  
+00166C  2  FA DE D2 DD  
+001674  2  FF FF FF E6          .BYTE   $FF,$FF,$FF,$E6,$EC
+001678  2  EC           
+001679  2               ;
+001679  2               KBD_MAPEXT:                     ; PAIRS ARE [SCANCODE,KEYCODE] FOR EXTENDED SCANCODES
+001679  2  11 B5 14 B3          .BYTE   $11,$B5,$14,$B3,$1F,$B6,$27,$B7
+00167D  2  1F B6 27 B7  
+001681  2  2F EF 37 FA          .BYTE   $2F,$EF,$37,$FA,$3F,$FB,$4A,$CB
+001685  2  3F FB 4A CB  
+001689  2  5A CF 5E FC          .BYTE   $5A,$CF,$5E,$FC,$69,$F3,$6B,$F8
+00168D  2  69 F3 6B F8  
+001691  2  6C F2 70 F0          .BYTE   $6C,$F2,$70,$F0,$71,$F1,$72,$F7
+001695  2  71 F1 72 F7  
+001699  2  74 F9 75 F6          .BYTE   $74,$F9,$75,$F6,$7A,$F5,$7C,$ED
+00169D  2  7A F5 7C ED  
+0016A1  2  7D F4 7E FD          .BYTE   $7D,$F4,$7E,$FD,$00,$00
+0016A5  2  00 00        
+0016A7  2               ;
+0016A7  2               KBD_MAPNUMPAD:                  ; KEYCODE TRANSLATION FROM NUMPAD RANGE TO STD ASCII/KEYCODES
+0016A7  2  F3 F7 F5 F8          .BYTE   $F3,$F7,$F5,$F8,$FF,$F9,$F2,$F6,$F4,$F0,$F1,$2F,$2A,$2D,$2B,$0D
+0016AB  2  FF F9 F2 F6  
+0016AF  2  F4 F0 F1 2F  
+0016B7  2  31 32 33 34          .BYTE   $31,$32,$33,$34,$35,$36,$37,$38,$39,$30,$2E,$2F,$2A,$2D,$2B,$0D
+0016BB  2  35 36 37 38  
+0016BF  2  39 30 2E 2F  
+0016C7  2               
+0016C7  2               
+0016C7  2               KBD_BUFFERPTR:
+0016C7  2  00                   .BYTE $00
+0016C8  2               KBD_BUFFER:
+0016C8  2  00 00 00 00          .BYTE $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+0016CC  2  00 00 00 00  
+0016D0  2  00 00 00 00  
+0016DA  2               
+0016DA  2               ;
+0016DA  2               ;
+0016DA  2               ;__________________________________________________________________________________________________
+0016DA  2               ; KEYCODE VALUES RETURNED BY THE DECODER
+0016DA  2               ;__________________________________________________________________________________________________
+0016DA  2               ;
+0016DA  2               ; VALUES 0-127 ARE STANDARD ASCII, SPECIAL KEYS WILL HAVE THE FOLLOWING VALUES:
+0016DA  2               ;
+0016DA  2               ; F1		$E0
+0016DA  2               ; F2		$E1
+0016DA  2               ; F3		$E2
+0016DA  2               ; F4		$E3
+0016DA  2               ; F5		$E4
+0016DA  2               ; F6		$E5
+0016DA  2               ; F7		$E6
+0016DA  2               ; F8		$E7
+0016DA  2               ; F9		$E8
+0016DA  2               ; F10		$E9
+0016DA  2               ; F11		$EA
+0016DA  2               ; F12		$EB
+0016DA  2               ; SYSRQ		$EC
+0016DA  2               ; PRTSC		$ED
+0016DA  2               ; PAUSE		$EE
+0016DA  2               ; APP		$EF
+0016DA  2               ; INS		$F0
+0016DA  2               ; DEL		$F1
+0016DA  2               ; HOME		$F2
+0016DA  2               ; END		$F3
+0016DA  2               ; PGUP		$F4
+0016DA  2               ; PGDN		$F5
+0016DA  2               ; UP		$F6
+0016DA  2               ; DOWN		$F7
+0016DA  2               ; LEFT		$F8
+0016DA  2               ; RIGHT		$F9
+0016DA  2               ; POWER		$FA
+0016DA  2               ; SLEEP		$FB
+0016DA  2               ; WAKE		$FC
+0016DA  2               ; BREAK		$FD
+0016DA  2               ;___________________________________________________________________________________________________________________
+0016DA  2               ;
+0016DA  2               ; CENTRONICS (LPT) INTERFACE DRIVER
+0016DA  2               ;___________________________________________________________________________________________________________________
+0016DA  2               ;
+0016DA  2               ; BYTE OUTPUT
+0016DA  2               ;
+0016DA  2               LPT_OUT:
+0016DA  2  48                   PHA
+0016DB  2  A2 FF                LDX     #<LPT_WAITTO
+0016DD  2  A0 30                LDY     #>LPT_WAITTO
+0016DF  2               :
+0016DF  2  20 07 17             JSR     LPT_OST         ; READY TO SEND?
+0016E2  2  D0 0D                BNE     :+              ; GO IF READY
+0016E4  2  CA                   DEX
+0016E5  2  E0 00                CPX     #$00
+0016E7  2  D0 F6                BNE     :-              ; LOOP IF NOT READY
+0016E9  2  88                   DEY
+0016EA  2  C0 00                CPY     #$00
+0016EC  2  D0 F1                BNE     :-              ; LOOP IF NOT READY
+0016EE  2  68                   PLA
+0016EF  2  38                   SEC                     ; SIGNAL ERROR
+0016F0  2  60                   RTS
+0016F1  2               :
+0016F1  2  68                   PLA
+0016F2  2  8D F0 E3             STA     LPT_0           ; OUTPUT TO PORT 0 (DATA)
+0016F5  2  A9 0D                LDA     #%00001101      ; SELECT & STROBE, LEDS OFF
+0016F7  2  8D F2 E3             STA     LPT_2           ; OUTPUT DATA TO PORT
+0016FA  2  20 B6 14             JSR     DELAY
+0016FD  2  A9 0C                LDA     #%00001100      ; SELECT, LEDS OFF
+0016FF  2  8D F2 E3             STA     LPT_2           ; OUTPUT DATA TO PORT
+001702  2  20 B6 14             JSR     DELAY
+001705  2  18                   CLC
+001706  2  60                   RTS
+001707  2               ;
+001707  2               ; OUTPUT STATUS
+001707  2               ;
+001707  2               LPT_OST:
+001707  2  AD F1 E3             LDA     LPT_1           ; GET STATUS INFO
+00170A  2  29 80                AND     #%10000000      ; ISOLATE /BUSY
+00170C  2  60                   RTS                     ; DONE
+00170D  2               
+00170D  1               

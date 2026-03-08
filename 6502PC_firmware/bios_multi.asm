@@ -677,7 +677,7 @@ KBD_DEC5:                       ; MAP SCANCODE TO KEYCODE
         BEQ     KBD_DEC5C       ; NOPE, MOVE ON
 
 ; PERFORM EXTENDED KEY MAPPING
-        LDX     KBD_SCANCODE    ; GET SCANCODE
+        LDX     #$00             ; GET SCANCODE
 KBD_DEC5A:
         LDA     KBD_MAPEXT,X    ; GET FIRST BYTE OF PAIR FROM EXT MAP TABLE
         INX

@@ -183,10 +183,10 @@ Current file: dos65drv.asm
 00C018  1  6C 33 00             JMP     (farpointer)
 00C01B  1               
 00C01B  1               DISPATCHTABLE:
-00C01B  1  4F D5                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
-00C01D  1  4F D5                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
-00C01F  1  4F D5                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
-00C021  1  4F D5                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
+00C01B  1  4E D5                .WORD   DFT_CONSOLE     ; FUNCTION 00 - WRITE CONSOLE
+00C01D  1  4E D5                .WORD   DFT_CONSOLE     ; FUNCTION 01 - READ CONSOLE
+00C01F  1  4E D5                .WORD   DFT_CONSOLE     ; FUNCTION 02 - READ CONSOLE (BLOCKING)
+00C021  1  4E D5                .WORD   DFT_CONSOLE     ; FUNCTION 03 - GET CONSOLE STATUS
 00C023  1               
 00C023  1  B5 C0                .WORD   WRSER1          ; FUNCTION 04 - WRITE SERIAL PORT
 00C025  1  C2 C0                .WORD   RDSER1          ; FUNCTION 05 - READ SERIAL PORT
@@ -204,55 +204,55 @@ Current file: dos65drv.asm
 00C039  1  22 CC                .WORD   KBD_GETKEY      ; FUNCTION 15 - READ KEYBOARD
 00C03B  1  41 CC                .WORD   KBD_GETKEYB     ; FUNCTION 16 - READ KEYBOARD (BLOCKING)
 00C03D  1  5D CC                .WORD   KBD_GETSTATUS   ; FUNCTION 17 - GET KEYBOARD STATUS
-00C03F  1  62 D5                .WORD   drv_noop        ; FUNCTION 18 - INIT INTERFACE
+00C03F  1  61 D5                .WORD   drv_noop        ; FUNCTION 18 - INIT INTERFACE
 00C041  1               
-00C041  1  CC D2                .WORD   WRVID           ; FUNCTION 19 - WRITE VIDEO
+00C041  1  CB D2                .WORD   WRVID           ; FUNCTION 19 - WRITE VIDEO
 00C043  1  22 CC                .WORD   KBD_GETKEY      ; FUNCTION 20 - READ KEYBOARD
 00C045  1  41 CC                .WORD   KBD_GETKEYB     ; FUNCTION 21 - READ KEYBOARD (BLOCKING)
 00C047  1  5D CC                .WORD   KBD_GETSTATUS   ; FUNCTION 22 - GET KEYBOARD STATUS
-00C049  1  B9 D1                .WORD   VIDEOINIT       ; FUNCTION 23 - INIT INTERFACE
+00C049  1  B8 D1                .WORD   VIDEOINIT       ; FUNCTION 23 - INIT INTERFACE
 00C04B  1               
-00C04B  1  62 D5                .WORD   drv_noop        ; FUNCTION 24
-00C04D  1  62 D5                .WORD   drv_noop        ; FUNCTION 25
-00C04F  1  62 D5                .WORD   drv_noop        ; FUNCTION 26
-00C051  1  62 D5                .WORD   drv_noop        ; FUNCTION 27
-00C053  1  62 D5                .WORD   drv_noop        ; FUNCTION 28
+00C04B  1  61 D5                .WORD   drv_noop        ; FUNCTION 24
+00C04D  1  61 D5                .WORD   drv_noop        ; FUNCTION 25
+00C04F  1  61 D5                .WORD   drv_noop        ; FUNCTION 26
+00C051  1  61 D5                .WORD   drv_noop        ; FUNCTION 27
+00C053  1  61 D5                .WORD   drv_noop        ; FUNCTION 28
 00C055  1               
-00C055  1  62 D5                .WORD   drv_noop        ; FUNCTION 29
-00C057  1  62 D5                .WORD   drv_noop        ; FUNCTION 30
-00C059  1  62 D5                .WORD   drv_noop        ; FUNCTION 31
-00C05B  1  62 D5                .WORD   drv_noop        ; FUNCTION 32
-00C05D  1  62 D5                .WORD   drv_noop        ; FUNCTION 33
+00C055  1  61 D5                .WORD   drv_noop        ; FUNCTION 29
+00C057  1  61 D5                .WORD   drv_noop        ; FUNCTION 30
+00C059  1  61 D5                .WORD   drv_noop        ; FUNCTION 31
+00C05B  1  61 D5                .WORD   drv_noop        ; FUNCTION 32
+00C05D  1  61 D5                .WORD   drv_noop        ; FUNCTION 33
 00C05F  1               
-00C05F  1  6A D0                .WORD   LPT_OUT         ; SEND BYTE TO LPT PORT ; FUNCTION 34
+00C05F  1  69 D0                .WORD   LPT_OUT         ; SEND BYTE TO LPT PORT ; FUNCTION 34
 00C061  1  22 CC                .WORD   KBD_GETKEY      ; GET a character from the MULTI IO ps/2 keyboard ; FUNCTION 35
 00C063  1  75 CA                .WORD   MULTIOINIT      ; INIT MULTI IO CARD   ; FUNCTION 36
-00C065  1  C4 D2                .WORD   SETXY           ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 37
-00C067  1  7A D2                .WORD   CLEARSCREEN     ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 38
-00C069  1  BD D2                .WORD   SETCOLOR        ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 39
+00C065  1  C3 D2                .WORD   SETXY           ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 37
+00C067  1  79 D2                .WORD   CLEARSCREEN     ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 38
+00C069  1  BC D2                .WORD   SETCOLOR        ; Set the xy position of the cursor (X=X,Y=Y) ; FUNCTION 39
 00C06B  1               
-00C06B  1  62 D5                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
-00C06D  1  62 D5                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
-00C06F  1  62 D5                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
-00C071  1  62 D5                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
-00C073  1  62 D5                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
-00C075  1  62 D5                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
-00C077  1  62 D5                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
-00C079  1  62 D5                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
-00C07B  1  62 D5                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
-00C07D  1  62 D5                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
+00C06B  1  61 D5                .WORD   drv_noop        ; DSKY_INIT       ; FUNCTION 40 -
+00C06D  1  61 D5                .WORD   drv_noop        ; DSKY_SHOW       ; FUNCTION 41 -
+00C06F  1  61 D5                .WORD   drv_noop        ; DSKY_BIN2SEG    ; FUNCTION 42 -
+00C071  1  61 D5                .WORD   drv_noop        ; DSKY_RESET      ; FUNCTION 43 -
+00C073  1  61 D5                .WORD   drv_noop        ; DSKY_STAT       ; FUNCTION 44 -
+00C075  1  61 D5                .WORD   drv_noop        ; DSKY_GETKEY     ; FUNCTION 45 -
+00C077  1  61 D5                .WORD   drv_noop        ; DSKY_BEEP       ; FUNCTION 46 -
+00C079  1  61 D5                .WORD   drv_noop        ; DSKY_DSPL       ; FUNCTION 47 -
+00C07B  1  61 D5                .WORD   drv_noop        ; DSKY_PUTLED     ; FUNCTION 48 -
+00C07D  1  61 D5                .WORD   drv_noop        ; DSKY_BLANK      ; FUNCTION 49 -
 00C07F  1               ;
-00C07F  1  9D D0                .WORD   RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
-00C081  1  E7 D0                .WORD   RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
-00C083  1  10 D1                .WORD   RTC_INIT        ; FUNCTION 52 - INIT RTC
-00C085  1  0F D1                .WORD   RTC_LED         ; FUNCTION 53 - CONTROL LEDS
-00C087  1  0C D1                .WORD   RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
-00C089  1  0B D1                .WORD   RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
+00C07F  1  9C D0                .WORD   RTC_WRITE       ; FUNCTION 50 - WRITE RTC REGISTER
+00C081  1  E6 D0                .WORD   RTC_READ        ; FUNCTION 51 - READ RTC REGISTER
+00C083  1  0F D1                .WORD   RTC_INIT        ; FUNCTION 52 - INIT RTC
+00C085  1  0E D1                .WORD   RTC_LED         ; FUNCTION 53 - CONTROL LEDS
+00C087  1  0B D1                .WORD   RTC_BUTTON      ; FUNCTION 54 - READ BUTTON
+00C089  1  0A D1                .WORD   RTC_BEEP        ; FUNCTION 55 - MAKE SOME NOISE
 00C08B  1               
-00C08B  1  29 D4                .WORD   SCROLLUP        ; Scroll the screen up one line  ; FUNCTION 56
-00C08D  1  4F D2                .WORD   SETMODE         ; Set video 40/80 mode ; FUNCTION 57
-00C08F  1  DC D3                .WORD   FPAINTCURSOR    ; FUNCTION 58
-00C091  1  11 D4                .WORD   UNPAINTCURSOR   ; FUNCTION 59
+00C08B  1  28 D4                .WORD   SCROLLUP        ; Scroll the screen up one line  ; FUNCTION 56
+00C08D  1  4E D2                .WORD   SETMODE         ; Set video 40/80 mode ; FUNCTION 57
+00C08F  1  DB D3                .WORD   FPAINTCURSOR    ; FUNCTION 58
+00C091  1  10 D4                .WORD   UNPAINTCURSOR   ; FUNCTION 59
 00C093  1               
 00C093  1  E9 C0                .WORD   XTIDE_INIT      ; FUNCTION 60 - called during OS init
 00C095  1  20 C2                .WORD   IDE_READ_SECTOR ; FUNCTION 61 - read a sector from drive
@@ -262,9 +262,9 @@ Current file: dos65drv.asm
 00C09B  1  4D C6                .WORD   CH_READSEC      ; FUNCTION 64 - read a sector from the memory device
 00C09D  1  9C C6                .WORD   CH_WRITESEC     ; FUNCTION 65 - write a sector to the memory device
 00C09F  1               ;
-00C09F  1  62 D5                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
-00C0A1  1  62 D5                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
-00C0A3  1  62 D5                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
+00C09F  1  61 D5                .WORD   drv_noop        ; FL_SETUP        ; FUNCTION 66 - init floppy device
+00C0A1  1  61 D5                .WORD   drv_noop        ; FL_READ_SECTOR  ; FUNCTION 67 - read a sector from floppy device
+00C0A3  1  61 D5                .WORD   drv_noop        ; FL_WRITE_SECTOR ; FUNCTION 68 - write a sector to floppy device
 00C0A5  1               
 00C0A5  1               ;______________________________________________________________________________
 00C0A5  1               
@@ -518,24 +518,24 @@ Current file: dos65drv.asm
 00C0E9  2               ;____________________________________________________________________________________________________
 00C0E9  2               ;
 00C0E9  2               XTIDE_INIT:
-00C0E9  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C0E9  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C0EC  2  A9 4D                LDA     #<MESSAGE1      ;
 00C0EE  2  85 41                STA     STRPTR          ;
 00C0F0  2  A9 C3                LDA     #>MESSAGE1      ;
 00C0F2  2  85 42                STA     STRPTR+1        ;
-00C0F4  2  20 77 D5             JSR     WRSTR
-00C0F7  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C0F4  2  20 76 D5             JSR     WRSTR
+00C0F7  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C0FA  2               ;
 00C0FA  2  A9 55                LDA     #<MESSAGE2      ;
 00C0FC  2  85 41                STA     STRPTR          ;
 00C0FE  2  A9 C3                LDA     #>MESSAGE2      ;
 00C100  2  85 42                STA     STRPTR+1        ;
-00C102  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C102  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
 00C105  2               
 00C105  2  A9 E3                LDA     #>XTIDE_DATA_LO ; GET BASE PORT
-00C107  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C107  2  20 8B D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C10A  2  A9 00                LDA     #<XTIDE_DATA_LO ; GET BASE PORT
-00C10C  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C10C  2  20 8B D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C10F  2               ;
 00C10F  2  20 4B C1             JSR     XTIDE_PROBE     ; DETECT AN ATA DEVICE, ABORT IF NOT FOUND
 00C112  2  C9 00                CMP     #$00
@@ -546,22 +546,22 @@ Current file: dos65drv.asm
 00C11B  2  85 41                STA     STRPTR          ;
 00C11D  2  A9 C3                LDA     #>MESSAGE3      ;
 00C11F  2  85 42                STA     STRPTR+1        ;
-00C121  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C121  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
 00C124  2  4C 4A C1             JMP     IDE_INITA
 00C127  2               IDE_PRINT_INFO:
-00C127  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C127  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C12A  2  A9 69                LDA     #<MESSAGE4      ;
 00C12C  2  85 41                STA     STRPTR          ;
 00C12E  2  A9 C3                LDA     #>MESSAGE4      ;
 00C130  2  85 42                STA     STRPTR+1        ;
-00C132  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C132  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
 00C135  2  A9 00                LDA     #$00
 00C137  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
 00C13A  2  A9 7B                LDA     #<MESSAGE5      ;
 00C13C  2  85 41                STA     STRPTR          ;
 00C13E  2  A9 C3                LDA     #>MESSAGE5      ;
 00C140  2  85 42                STA     STRPTR+1        ;
-00C142  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C142  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
 00C145  2  A9 01                LDA     #$01
 00C147  2  20 AD C1             JSR     IDE_READ_INFO   ; GET DRIVE INFO, ABORT IF ERROR
 00C14A  2               IDE_INITA:
@@ -687,27 +687,27 @@ Current file: dos65drv.asm
 00C1E5  2  85 41                STA     STRPTR          ;
 00C1E7  2  A9 C3                LDA     #>MESSAGE6      ;
 00C1E9  2  85 42                STA     STRPTR+1        ;
-00C1EB  2  20 77 D5             JSR     WRSTR
+00C1EB  2  20 76 D5             JSR     WRSTR
 00C1EE  2  AD 7B 04             LDA     hstbuf+123
-00C1F1  2  20 8C D5             JSR     PRINT_BYTE
+00C1F1  2  20 8B D5             JSR     PRINT_BYTE
 00C1F4  2  AD 7A 04             LDA     hstbuf+122
-00C1F7  2  20 8C D5             JSR     PRINT_BYTE
+00C1F7  2  20 8B D5             JSR     PRINT_BYTE
 00C1FA  2  AD 79 04             LDA     hstbuf+121
-00C1FD  2  20 8C D5             JSR     PRINT_BYTE
+00C1FD  2  20 8B D5             JSR     PRINT_BYTE
 00C200  2  AD 78 04             LDA     hstbuf+120
-00C203  2  20 8C D5             JSR     PRINT_BYTE
+00C203  2  20 8B D5             JSR     PRINT_BYTE
 00C206  2  4C 1A C2             JMP     IDE_READ_INFO_OK
 00C209  2               IDE_READ_INFO_ABORT:
 00C209  2  A9 5C                LDA     #<MESSAGE3      ;
 00C20B  2  85 41                STA     STRPTR          ;
 00C20D  2  A9 C3                LDA     #>MESSAGE3      ;
 00C20F  2  85 42                STA     STRPTR+1        ;
-00C211  2  20 77 D5             JSR     WRSTR           ;DO PROMPT
-00C214  2  20 6C D5             JSR     LFCR            ;AND CRLF
+00C211  2  20 76 D5             JSR     WRSTR           ;DO PROMPT
+00C214  2  20 6B D5             JSR     LFCR            ;AND CRLF
 00C217  2  A9 FF                LDA     #$FF
 00C219  2  60                   RTS                     ;
 00C21A  2               IDE_READ_INFO_OK:
-00C21A  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C21A  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C21D  2  A9 00                LDA     #$00
 00C21F  2  60                   RTS
 00C220  2                       .ENDIF
@@ -1242,7 +1242,7 @@ Current file: dos65drv.asm
 00C45A  2               
 00C45A  2               
 00C45A  2               CH375INIT:
-00C45A  2  20 6C D5             JSR     LFCR
+00C45A  2  20 6B D5             JSR     LFCR
 00C45D  2  20 C0 C4             JSR     CH_DETECT
 00C460  2  D0 4D                BNE     NOTDETECTED
 00C462  2               
@@ -1250,8 +1250,8 @@ Current file: dos65drv.asm
 00C464  2  85 41                STA     STRPTR          ;
 00C466  2  A9 C7                LDA     #>CHMESSAGE2    ;
 00C468  2  85 42                STA     STRPTR+1        ;
-00C46A  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
-00C46D  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C46A  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
+00C46D  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C470  2               
 00C470  2  20 5C C5             JSR     CH_DISKINIT
 00C473  2  B0 29                BCS     :+
@@ -1260,19 +1260,19 @@ Current file: dos65drv.asm
 00C477  2  85 41                STA     STRPTR          ;
 00C479  2  A9 C7                LDA     #>CHMESSAGE3    ;
 00C47B  2  85 42                STA     STRPTR+1        ;
-00C47D  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C47D  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
 00C480  2               
 00C480  2  AD 00 04             LDA     hstbuf
-00C483  2  20 8C D5             JSR     PRINT_BYTE
+00C483  2  20 8B D5             JSR     PRINT_BYTE
 00C486  2  AD 01 04             LDA     hstbuf+1
-00C489  2  20 8C D5             JSR     PRINT_BYTE
+00C489  2  20 8B D5             JSR     PRINT_BYTE
 00C48C  2  AD 02 04             LDA     hstbuf+2
-00C48F  2  20 8C D5             JSR     PRINT_BYTE
+00C48F  2  20 8B D5             JSR     PRINT_BYTE
 00C492  2  AD 03 04             LDA     hstbuf+3
-00C495  2  20 8C D5             JSR     PRINT_BYTE
+00C495  2  20 8B D5             JSR     PRINT_BYTE
 00C498  2               
 00C498  2               
-00C498  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C498  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C49B  2  A9 00                LDA     #$00
 00C49D  2  60                   RTS
 00C49E  2               :
@@ -1280,8 +1280,8 @@ Current file: dos65drv.asm
 00C4A0  2  85 41                STA     STRPTR          ;
 00C4A2  2  A9 C7                LDA     #>CHMESSAGE5    ;
 00C4A4  2  85 42                STA     STRPTR+1        ;
-00C4A6  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
-00C4A9  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C4A6  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
+00C4A9  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C4AC  2  A9 FF                LDA     #$FF
 00C4AE  2  60                   RTS
 00C4AF  2               NOTDETECTED:
@@ -1289,8 +1289,8 @@ Current file: dos65drv.asm
 00C4B1  2  85 41                STA     STRPTR          ;
 00C4B3  2  A9 C7                LDA     #>CHMESSAGE6    ;
 00C4B5  2  85 42                STA     STRPTR+1        ;
-00C4B7  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
-00C4BA  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C4B7  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
+00C4BA  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C4BD  2  A9 FF                LDA     #$FF
 00C4BF  2  60                   RTS
 00C4C0  2               
@@ -1299,18 +1299,18 @@ Current file: dos65drv.asm
 00C4C2  2  85 41                STA     STRPTR          ;
 00C4C4  2  A9 C7                LDA     #>CHMESSAGE1    ;
 00C4C6  2  85 42                STA     STRPTR+1        ;
-00C4C8  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
-00C4CB  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C4C8  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
+00C4CB  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C4CE  2               
 00C4CE  2  A9 55                LDA     #<MESSAGE2      ;
 00C4D0  2  85 41                STA     STRPTR          ;
 00C4D2  2  A9 C3                LDA     #>MESSAGE2      ;
 00C4D4  2  85 42                STA     STRPTR+1        ;
-00C4D6  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C4D6  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
 00C4D9  2  A9 E2                LDA     #>CH0BASE       ; GET BASE PORT
-00C4DB  2  20 8C D5             JSR     PRINT_BYTE
+00C4DB  2  20 8B D5             JSR     PRINT_BYTE
 00C4DE  2  A9 60                LDA     #<CH0BASE       ; GET BASE PORT
-00C4E0  2  20 8C D5             JSR     PRINT_BYTE
+00C4E0  2  20 8B D5             JSR     PRINT_BYTE
 00C4E3  2               
 00C4E3  2  20 1B C5             JSR     CH_RESET
 00C4E6  2               
@@ -1480,10 +1480,10 @@ Current file: dos65drv.asm
 00C5BA  2  85 41                STA     STRPTR          ;
 00C5BC  2  A9 C7                LDA     #>CHMESSAGE8    ;
 00C5BE  2  85 42                STA     STRPTR+1        ;
-00C5C0  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C5C0  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
 00C5C3  2  68                   PLA
-00C5C4  2  20 8C D5             JSR     PRINT_BYTE
-00C5C7  2  20 6C D5             JSR     LFCR
+00C5C4  2  20 8B D5             JSR     PRINT_BYTE
+00C5C7  2  20 6B D5             JSR     LFCR
 00C5CA  2  4C D4 C5             JMP     CH_DISKINIT_TO
 00C5CD  2               
 00C5CD  2               CHUSB_RESET1B:
@@ -1510,8 +1510,8 @@ Current file: dos65drv.asm
 00C5DD  2  85 41                STA     STRPTR          ;
 00C5DF  2  A9 C7                LDA     #>CHMESSAGE7    ;
 00C5E1  2  85 42                STA     STRPTR+1        ;
-00C5E3  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
-00C5E6  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C5E3  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
+00C5E6  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C5E9  2  68                   PLA
 00C5EA  2  A8                   TAY
 00C5EB  2  68                   PLA
@@ -1797,31 +1797,31 @@ Current file: dos65drv.asm
 00C796  2               ;
 00C796  2               ESPINIT:
 00C796  2               ;
-00C796  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C796  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C799  2  A9 40                LDA     #<ESPMESSAGE1   ;
 00C79B  2  85 41                STA     STRPTR          ;
 00C79D  2  A9 CA                LDA     #>ESPMESSAGE1   ;
 00C79F  2  85 42                STA     STRPTR+1        ;
-00C7A1  2  20 77 D5             JSR     WRSTR
-00C7A4  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C7A1  2  20 76 D5             JSR     WRSTR
+00C7A4  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C7A7  2               ; KEYBOARD INITIALIZATION
 00C7A7  2  A9 55                LDA     #<MESSAGE2      ;
 00C7A9  2  85 41                STA     STRPTR          ;
 00C7AB  2  A9 C3                LDA     #>MESSAGE2      ;
 00C7AD  2  85 42                STA     STRPTR+1        ;
-00C7AF  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00C7AF  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
 00C7B2  2  A9 E1                LDA     #>ESP_BASE      ; GET BASE PORT
-00C7B4  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C7B4  2  20 8B D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00C7B7  2  A9 00                LDA     #<ESP_BASE      ; GET BASE PORT
-00C7B9  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
-00C7BC  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C7B9  2  20 8B D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00C7BC  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C7BF  2  20 2E C8             JSR     ESP_RESET0      ;
 00C7C2  2  20 A4 C8             JSR     ESP_RESET1      ;
 00C7C5  2               ;
 00C7C5  2  20 D2 C7             JSR     ESP0_PROBE      ; DETECT ESP0
-00C7C8  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C7C8  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C7CB  2  20 48 C8             JSR     ESP1_PROBE      ; DETECT ESP1
-00C7CE  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00C7CE  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00C7D1  2  60                   RTS                     ; DONE
 00C7D2  2               
 00C7D2  2               
@@ -1831,7 +1831,7 @@ Current file: dos65drv.asm
 00C7D4  2  85 41                STA     STRPTR          ;
 00C7D6  2  A9 CA                LDA     #>ESPMESSAGE2   ;
 00C7D8  2  85 42                STA     STRPTR+1        ;
-00C7DA  2  20 77 D5             JSR     WRSTR
+00C7DA  2  20 76 D5             JSR     WRSTR
 00C7DD  2               
 00C7DD  2  A9 FF                LDA     #$FF            ; ESP IDENTITY PROBE
 00C7DF  2  20 64 C9             JSR     PUTESP0         ; SEND IT
@@ -1869,7 +1869,7 @@ Current file: dos65drv.asm
 00C825  2  85 41                STA     STRPTR          ;
 00C827  2  A9 CA                LDA     #>ESPMESSAGE5   ;
 00C829  2  85 42                STA     STRPTR+1        ;
-00C82B  2  20 77 D5             JSR     WRSTR
+00C82B  2  20 76 D5             JSR     WRSTR
 00C82E  2               
 00C82E  2               ESP_RESET0:
 00C82E  2  A2 20                LDX     #$20
@@ -1888,7 +1888,7 @@ Current file: dos65drv.asm
 00C83E  2  85 41                STA     STRPTR          ;
 00C840  2  A9 CA                LDA     #>ESPMESSAGE4   ;
 00C842  2  85 42                STA     STRPTR+1        ;
-00C844  2  20 77 D5             JSR     WRSTR
+00C844  2  20 76 D5             JSR     WRSTR
 00C847  2  60                   RTS
 00C848  2               
 00C848  2               ;
@@ -1898,7 +1898,7 @@ Current file: dos65drv.asm
 00C84A  2  85 41                STA     STRPTR          ;
 00C84C  2  A9 CA                LDA     #>ESPMESSAGE3   ;
 00C84E  2  85 42                STA     STRPTR+1        ;
-00C850  2  20 77 D5             JSR     WRSTR
+00C850  2  20 76 D5             JSR     WRSTR
 00C853  2               
 00C853  2  A9 FF                LDA     #$FF            ; ESP IDENTITY PROBE
 00C855  2  20 D2 C9             JSR     PUTESP1         ; SEND IT
@@ -1936,7 +1936,7 @@ Current file: dos65drv.asm
 00C89B  2  85 41                STA     STRPTR          ;
 00C89D  2  A9 CA                LDA     #>ESPMESSAGE5   ;
 00C89F  2  85 42                STA     STRPTR+1        ;
-00C8A1  2  20 77 D5             JSR     WRSTR
+00C8A1  2  20 76 D5             JSR     WRSTR
 00C8A4  2               ESP_RESET1:
 00C8A4  2  A2 20                LDX     #$20
 00C8A6  2               :
@@ -2455,40 +2455,40 @@ Current file: dos65drv.asm
 00CA75  2               ;
 00CA75  2               MULTIOINIT:
 00CA75  2               ;
-00CA75  2  20 6C D5             JSR     LFCR            ; AND CRLF
-00CA78  2  A9 74                LDA     #<MIOMESSAGE1   ;
+00CA75  2  20 6B D5             JSR     LFCR            ; AND CRLF
+00CA78  2  A9 73                LDA     #<MIOMESSAGE1   ;
 00CA7A  2  85 41                STA     STRPTR          ;
 00CA7C  2  A9 CE                LDA     #>MIOMESSAGE1   ;
 00CA7E  2  85 42                STA     STRPTR+1        ;
-00CA80  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
-00CA83  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00CA80  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
+00CA83  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00CA86  2               ; KEYBOARD INITIALIZATION
 00CA86  2  A9 55                LDA     #<MESSAGE2      ;
 00CA88  2  85 41                STA     STRPTR          ;
 00CA8A  2  A9 C3                LDA     #>MESSAGE2      ;
 00CA8C  2  85 42                STA     STRPTR+1        ;
-00CA8E  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
+00CA8E  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
 00CA91  2  A9 E3                LDA     #>MULTIO_BASE   ; GET BASE PORT
-00CA93  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00CA93  2  20 8B D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
 00CA96  2  A9 E0                LDA     #<MULTIO_BASE   ; GET BASE PORT
-00CA98  2  20 8C D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
-00CA9B  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00CA98  2  20 8B D5             JSR     PRINT_BYTE      ; PRINT BASE PORT
+00CA9B  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00CA9E  2               ;
 00CA9E  2  20 C5 CA             JSR     KBD_PROBE       ; DETECT A KEYBOARD
 00CAA1  2               
 00CAA1  2               ; LPT INITIALIZATION ROUTINE
-00CAA1  2  A9 B0                LDA     #<MIOMESSAGE5   ;
+00CAA1  2  A9 AF                LDA     #<MIOMESSAGE5   ;
 00CAA3  2  85 41                STA     STRPTR          ;
 00CAA5  2  A9 CE                LDA     #>MIOMESSAGE5   ;
 00CAA7  2  85 42                STA     STRPTR+1        ;
-00CAA9  2  20 77 D5             JSR     WRSTR           ; DO PROMPT
-00CAAC  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00CAA9  2  20 76 D5             JSR     WRSTR           ; DO PROMPT
+00CAAC  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00CAAF  2               
 00CAAF  2  A9 00                LDA     #$00
 00CAB1  2  8D F0 E3             STA     LPT_0           ; PORT 0 (DATA)
 00CAB4  2  A9 08                LDA     #%00001000      ; SELECT AND ASSERT RESET, LEDS OFF
 00CAB6  2  8D F2 E3             STA     LPT_2           ; PORT 2 (STATUS)
-00CAB9  2  20 58 CE             JSR     LDELAY          ; HALF SECOND DELAY
+00CAB9  2  20 57 CE             JSR     LDELAY          ; HALF SECOND DELAY
 00CABC  2  A9 0C                LDA     #%00001100      ; SELECT AND DEASSERT RESET, LEDS OFF
 00CABE  2  8D F2 E3             STA     LPT_2           ; PORT 2 (STATUS)
 00CAC1  2               ;
@@ -2509,41 +2509,41 @@ Current file: dos65drv.asm
 00CAD1  2               ;
 00CAD1  2  C9 55                CMP     #$55            ; IS IT THERE?
 00CAD3  2  F0 32                BEQ     :+              ; IF SO, CONTINUE
-00CAD5  2  A9 82                LDA     #<MIOMESSAGE3   ;
+00CAD5  2  A9 81                LDA     #<MIOMESSAGE3   ;
 00CAD7  2  85 41                STA     STRPTR          ;
 00CAD9  2  A9 CE                LDA     #>MIOMESSAGE3   ;
 00CADB  2  85 42                STA     STRPTR+1        ;
-00CADD  2  20 77 D5             JSR     WRSTR
-00CAE0  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00CADD  2  20 76 D5             JSR     WRSTR
+00CAE0  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00CAE3  2               ;
 00CAE3  2               KBD_ERROR:
 00CAE3  2  38                   SEC                     ; SET ERROR
 00CAE4  2  60                   RTS                     ; BAIL OUT
 00CAE5  2               KBD_TIMEOUT1:
-00CAE5  2  A9 C4                LDA     #<MIOMESSAGE6   ;
+00CAE5  2  A9 C3                LDA     #<MIOMESSAGE6   ;
 00CAE7  2  85 41                STA     STRPTR          ;
 00CAE9  2  A9 CE                LDA     #>MIOMESSAGE6   ;
 00CAEB  2  85 42                STA     STRPTR+1        ;
-00CAED  2  20 77 D5             JSR     WRSTR
-00CAF0  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00CAED  2  20 76 D5             JSR     WRSTR
+00CAF0  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00CAF3  2  4C E3 CA             JMP     KBD_ERROR
 00CAF6  2               KBD_TIMEOUT2:
-00CAF6  2  A9 E2                LDA     #<MIOMESSAGE7   ;
+00CAF6  2  A9 E1                LDA     #<MIOMESSAGE7   ;
 00CAF8  2  85 41                STA     STRPTR          ;
 00CAFA  2  A9 CE                LDA     #>MIOMESSAGE7   ;
 00CAFC  2  85 42                STA     STRPTR+1        ;
-00CAFE  2  20 77 D5             JSR     WRSTR
-00CB01  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00CAFE  2  20 76 D5             JSR     WRSTR
+00CB01  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00CB04  2  4C E3 CA             JMP     KBD_ERROR
 00CB07  2               
 00CB07  2               ;
 00CB07  2               :
-00CB07  2  A9 9C                LDA     #<MIOMESSAGE4   ;
+00CB07  2  A9 9B                LDA     #<MIOMESSAGE4   ;
 00CB09  2  85 41                STA     STRPTR          ;
 00CB0B  2  A9 CE                LDA     #>MIOMESSAGE4   ;
 00CB0D  2  85 42                STA     STRPTR+1        ;
-00CB0F  2  20 77 D5             JSR     WRSTR
-00CB12  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00CB0F  2  20 76 D5             JSR     WRSTR
+00CB12  2  20 6B D5             JSR     LFCR            ; AND CRLF
 00CB15  2               
 00CB15  2               ;
 00CB15  2  A9 60                LDA     #$60            ; SET COMMAND REGISTER
@@ -2557,7 +2557,7 @@ Current file: dos65drv.asm
 00CB26  2  B0 BB                BCS     KBD_ERROR
 00CB28  2               
 00CB28  2  20 BA CB             JSR     KBD_RESET       ; RESET THE KEYBOARD
-00CB2B  2  20 58 CE             JSR     LDELAY          ; WAIT A BIT
+00CB2B  2  20 57 CE             JSR     LDELAY          ; WAIT A BIT
 00CB2E  2  20 D9 CB             JSR     KBD_SETLEDS     ; UPDATE LEDS BASED ON CURRENT TOGGLE STATE BITS
 00CB31  2  20 03 CC             JSR     KBD_SETRPT      ; UPDATE REPEAT RATE BASED ON CURRENT SETTING
 00CB34  2               
@@ -2608,7 +2608,7 @@ Current file: dos65drv.asm
 00CB3E  2  29 02                AND     #$02            ; ISOLATE EMPTY BIT
 00CB40  2  C9 00                CMP     #$00
 00CB42  2  F0 10                BEQ     KBD_PUTCMD1     ; EMPTY, GO TO WRITE
-00CB44  2  20 46 CE             JSR     DELAY           ; WAIT A BIT
+00CB44  2  20 45 CE             JSR     DELAY           ; WAIT A BIT
 00CB47  2  CA                   DEX
 00CB48  2  E0 00                CPX     #$00
 00CB4A  2  D0 EF                BNE     KBD_PUTCMD0     ; LOOP UNTIL COUNTER EXHAUSTED
@@ -2637,7 +2637,7 @@ Current file: dos65drv.asm
 00CB62  2  29 02                AND     #$02            ; ISOLATE OUTPUT EMPTY BIT
 00CB64  2  C9 00                CMP     #$00
 00CB66  2  F0 10                BEQ     KBD_PUTDATA1    ; EMPTY, GO TO WRITE
-00CB68  2  20 46 CE             JSR     DELAY           ; WAIT A BIT
+00CB68  2  20 45 CE             JSR     DELAY           ; WAIT A BIT
 00CB6B  2  CA                   DEX
 00CB6C  2  E0 00                CPX     #$00
 00CB6E  2  D0 EF                BNE     KBD_PUTDATA0    ; LOOP UNTIL COUNTER EXHAUSTED
@@ -2669,7 +2669,7 @@ Current file: dos65drv.asm
 00CB89  2  29 01                AND     #$01            ; ISOLATE INPUT PENDING BIT
 00CB8B  2  C9 00                CMP     #$00
 00CB8D  2  D0 15                BNE     KBD_GETDATA1    ; READY, GET DATA
-00CB8F  2  20 46 CE             JSR     DELAY           ; WAIT A BIT
+00CB8F  2  20 45 CE             JSR     DELAY           ; WAIT A BIT
 00CB92  2  CA                   DEX
 00CB93  2  E0 00                CPX     #$00
 00CB95  2  D0 EF                BNE     KBD_GETDATA0    ; LOOP UNTIL COUNTER EXHAUSTED
@@ -2795,7 +2795,7 @@ Current file: dos65drv.asm
 00CC22  2               ;__________________________________________________________________________________________________
 00CC22  2               KBD_GETKEY:
 00CC22  2  20 64 CC             JSR     KBD_DECODE
-00CC25  2  AD 57 D0             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
+00CC25  2  AD 56 D0             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
 00CC28  2  C9 00                CMP     #$00
 00CC2A  2  D0 04                BNE     :+
 00CC2C  2  A9 FF                LDA     #$FF            ;
@@ -2803,9 +2803,9 @@ Current file: dos65drv.asm
 00CC2F  2  60                   RTS
 00CC30  2               :
 00CC30  2  8E 5C CC             STX     TMPX
-00CC33  2  AE 57 D0             LDX     KBD_BUFFERPTR
-00CC36  2  BD 58 D0             LDA     KBD_BUFFER,X
-00CC39  2  CE 57 D0             DEC     KBD_BUFFERPTR
+00CC33  2  AE 56 D0             LDX     KBD_BUFFERPTR
+00CC36  2  BD 57 D0             LDA     KBD_BUFFER,X
+00CC39  2  CE 56 D0             DEC     KBD_BUFFERPTR
 00CC3C  2  AE 5C CC             LDX     TMPX
 00CC3F  2  18                   CLC
 00CC40  2  60                   RTS
@@ -2815,14 +2815,14 @@ Current file: dos65drv.asm
 00CC41  2               ;__________________________________________________________________________________________________
 00CC41  2               KBD_GETKEYB:
 00CC41  2  20 64 CC             JSR     KBD_DECODE
-00CC44  2  AD 57 D0             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
+00CC44  2  AD 56 D0             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
 00CC47  2  C9 00                CMP     #$00
 00CC49  2  F0 F6                BEQ     KBD_GETKEYB
 00CC4B  2               
 00CC4B  2  8E 5C CC             STX     TMPX
-00CC4E  2  AE 57 D0             LDX     KBD_BUFFERPTR
-00CC51  2  BD 58 D0             LDA     KBD_BUFFER,X
-00CC54  2  CE 57 D0             DEC     KBD_BUFFERPTR
+00CC4E  2  AE 56 D0             LDX     KBD_BUFFERPTR
+00CC51  2  BD 57 D0             LDA     KBD_BUFFER,X
+00CC54  2  CE 56 D0             DEC     KBD_BUFFERPTR
 00CC57  2  AE 5C CC             LDX     TMPX
 00CC5A  2  18                   CLC
 00CC5B  2  60                   RTS
@@ -2835,7 +2835,7 @@ Current file: dos65drv.asm
 00CC5D  2               ;__________________________________________________________________________________________________
 00CC5D  2               KBD_GETSTATUS:
 00CC5D  2  20 64 CC             JSR     KBD_DECODE
-00CC60  2  AD 57 D0             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
+00CC60  2  AD 56 D0             LDA     KBD_BUFFERPTR   ; GET CURRENT BUFFER LEN
 00CC63  2  60                   RTS
 00CC64  2               
 00CC64  2               
@@ -2962,12 +2962,12 @@ Current file: dos65drv.asm
 00CC6B  2  8D 6B CA             STA     KBD_SCANCODE    ; SAVE SCANCODE
 00CC6E  2  C9 AA                CMP     #$AA            ; KEYBOARD INSERTION?
 00CC70  2  D0 12                BNE     KBD_DEC3        ; NOPE, BYPASS
-00CC72  2  20 58 CE             JSR     LDELAY          ; WAIT A BIT
+00CC72  2  20 57 CE             JSR     LDELAY          ; WAIT A BIT
 00CC75  2  20 BA CB             JSR     KBD_RESET       ; RESET KEYBOARD
-00CC78  2  20 58 CE             JSR     LDELAY          ; WAIT A BIT
+00CC78  2  20 57 CE             JSR     LDELAY          ; WAIT A BIT
 00CC7B  2  20 D9 CB             JSR     KBD_SETLEDS     ; SET LEDS
 00CC7E  2  20 03 CC             JSR     KBD_SETRPT      ; SET REPEAT RATE
-00CC81  2  4C 3E CE             JMP     KBD_DECNEW      ; RESTART THE ENGINE
+00CC81  2  4C 3D CE             JMP     KBD_DECNEW      ; RESTART THE ENGINE
 00CC84  2               
 00CC84  2               KBD_DEC3:                       ; DETECT AND HANDLE SCANCODE PREFIXES
 00CC84  2  C9 E0                CMP     #$E0            ; EXTENDED KEY PREFIX $E0?
@@ -2990,7 +2990,7 @@ Current file: dos65drv.asm
 00CCA0  2  20 7E CB             JSR     KBD_GETDATA     ; RETRIEVE NEXT SCANCODE
 00CCA3  2  CA                   DEX
 00CCA4  2  D0 FA                BNE     KBD_DEC3B1      ; LOOP AS NEEDED
-00CCA6  2  4C 03 CD             JMP     KBD_DEC6        ; RESUME AFTER MAPPING
+00CCA6  2  4C 02 CD             JMP     KBD_DEC6        ; RESUME AFTER MAPPING
 00CCA9  2               
 00CCA9  2               KBD_DEC4:                       ; DETECT AND FLAG BREAK EVENT
 00CCA9  2  C9 F0                CMP     #$F0            ; BREAK (KEY UP) PREFIX?
@@ -3005,1369 +3005,1370 @@ Current file: dos65drv.asm
 00CCBA  2               KBD_DEC5:                       ; MAP SCANCODE TO KEYCODE
 00CCBA  2  AD 70 CA             LDA     KBD_STATUS      ; GET STATUS
 00CCBD  2  29 01                AND     #KBD_EXT        ; EXTENDED BIT SET?
-00CCBF  2  F0 20                BEQ     KBD_DEC5C       ; NOPE, MOVE ON
+00CCBF  2  F0 1F                BEQ     KBD_DEC5C       ; NOPE, MOVE ON
 00CCC1  2               
 00CCC1  2               ; PERFORM EXTENDED KEY MAPPING
-00CCC1  2  AE 6B CA             LDX     KBD_SCANCODE    ; GET SCANCODE
-00CCC4  2               KBD_DEC5A:
-00CCC4  2  BD 09 D0             LDA     KBD_MAPEXT,X    ; GET FIRST BYTE OF PAIR FROM EXT MAP TABLE
-00CCC7  2  E8                   INX
-00CCC8  2  C9 00                CMP     #$00            ; END OF TABLE?
-00CCCA  2  F0 09                BEQ     :+              ; UNKNOWN OR BOGUS, START OVER
-00CCCC  2  CD 6B CA             CMP     KBD_SCANCODE    ; DOES MATCH BYTE EQUAL SCANCODE?
-00CCCF  2  F0 07                BEQ     KBD_DEC5B       ; YES! JUMP OUT
-00CCD1  2  E8                   INX                     ; BUMP TO START OF NEXT PAIR
-00CCD2  2  4C C4 CC             JMP     KBD_DEC5A       ; LOOP TO CHECK NEXT TABLE ENTRY
-00CCD5  2               :
-00CCD5  2  4C 3E CE             JMP     KBD_DECNEW
-00CCD8  2               KBD_DEC5B:
-00CCD8  2  BD 09 D0             LDA     KBD_MAPEXT,X    ; GET THE KEYCODE VIA MAPPING TABLE
-00CCDB  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE IT
-00CCDE  2  4C 03 CD             JMP     KBD_DEC6
-00CCE1  2               
-00CCE1  2               KBD_DEC5C:                      ; PERFORM REGULAR KEY (NOT EXTENDED) KEY MAPPING
-00CCE1  2  AD 6B CA             LDA     KBD_SCANCODE    ; GET THE SCANCODE
-00CCE4  2  C9 85                CMP     #KBD_MAPSIZ     ; COMPARE TO SIZE OF TABLE
-00CCE6  2  F0 02                BEQ     :+
-00CCE8  2  B0 19                BCS     KBD_DEC6        ; PAST END, SKIP OVER LOOKUP
-00CCEA  2               :
-00CCEA  2               ; SETUP POINTER TO MAPPING TABLE BASED ON SHIFTED OR UNSHIFTED STATE
-00CCEA  2  AD 6D CA             LDA     KBD_STATE       ; GET STATE
-00CCED  2  29 01                AND     #KBD_SHIFT      ; SHIFT ACTIVE?
-00CCEF  2  F0 09                BEQ     KBD_DEC5D       ; NON-SHIFTED, MOVE ON
-00CCF1  2               
-00CCF1  2  AE 6B CA             LDX     KBD_SCANCODE    ; GET THE SCANCODE
-00CCF4  2  BD 84 CF             LDA     KBD_MAPSHIFT,X  ; GET SHIFTED
-00CCF7  2  4C 00 CD             JMP     :+
-00CCFA  2               KBD_DEC5D:
-00CCFA  2  AE 6B CA             LDX     KBD_SCANCODE    ; GET THE SCANCODE
-00CCFD  2  BD FF CE             LDA     KBD_MAPSTD,X    ; GET STANDARD
-00CD00  2               :
-00CD00  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE KEYCODE
-00CD03  2               
-00CD03  2               KBD_DEC6:                       ; HANDLE MODIFIER KEYS
-00CD03  2  AD 6C CA             LDA     KBD_KEYCODE     ; MAKE SURE WE HAVE KEYCODE
-00CD06  2  C9 B8                CMP     #$B8            ; END OF MODIFIER KEYS
-00CD08  2  B0 5F                BCS     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
-00CD0A  2  C9 B0                CMP     #$B0            ; START OF MODIFIER KEYS
-00CD0C  2  90 5B                BCC     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
-00CD0E  2  A2 04                LDX     #4              ; LOOP COUNTER TO LOOP THRU 4 MODIFIER BITS
-00CD10  2  38                   SEC
-00CD11  2  E9 AF                SBC     #$AF            ; SETUP A TO DECREMENT THROUGH MODIFIER VALUES
-00CD13  2  8D 6A CA             STA     TMPKEY
-00CD16  2  A9 00                LDA     #$00            ; SETUP A TO ROATE THROUGH MODIFIER STATE BITS
-00CD18  2  38                   SEC                     ; SET CARRY FOR ROTATE
-00CD19  2               
-00CD19  2               KBD_DEC6A:
-00CD19  2  2A                   ROL     A               ; SHIFT TO NEXT MODIFIER STATE BIT
-00CD1A  2  CE 6A CA             DEC     TMPKEY          ; L-MODIFIER?
-00CD1D  2  F0 0B                BEQ     KBD_DEC6B       ; YES, HANDLE L-MODIFIER MAKE/BREAK
-00CD1F  2  CE 6A CA             DEC     TMPKEY          ; R-MODIFIER?
-00CD22  2  F0 0B                BEQ     KBD_DEC6C       ; YES, HANDLE R-MODIFIER MAKE/BREAK
-00CD24  2  CA                   DEX
-00CD25  2  D0 F2                BNE     KBD_DEC6A       ; LOOP THRU 4 MODIFIER BITS
-00CD27  2  4C 69 CD             JMP     KBD_DEC7        ; FAILSAFE, SHOULD NEVER GET HERE!
-00CD2A  2               
-00CD2A  2               KBD_DEC6B:
-00CD2A  2  A2 00                LDX     #0              ; POINT TO LEFT STATE BYTE
-00CD2C  2  4C 31 CD             JMP     KBD_DEC6D       ; CONTINUE
-00CD2F  2               
-00CD2F  2               KBD_DEC6C:
-00CD2F  2  A2 01                LDX     #1              ; POINT TO RIGHT STATE BYTE
-00CD31  2               
-00CD31  2               KBD_DEC6D:                      ; BRANCH BASED ON WHETHER THIS IS A MAKE OR BREAK EVENT
-00CD31  2  8D 6A CA             STA     TMPKEY
-00CD34  2  AD 70 CA             LDA     KBD_STATUS      ; GET STATUS FLAGS
-00CD37  2  29 02                AND     #KBD_BREAK      ; BREAK EVENT?
-00CD39  2  F0 03                BEQ     KBD_DEC6E       ; NO, HANDLE A MODIFIER KEY MAKE EVENT
-00CD3B  2  4C 4A CD             JMP     KBD_DEC6F       ; YES, HANDLE A MODIFIER BREAK EVENT
-00CD3E  2               
-00CD3E  2               KBD_DEC6E:                      ; HANDLE STATE KEY MAKE EVENT
-00CD3E  2  AD 6A CA             LDA     TMPKEY
-00CD41  2  1D 6E CA             ORA     KBD_LSTATE,X    ; OR IN THE BIT TO SET
-00CD44  2  9D 6E CA             STA     KBD_LSTATE,X    ; SAVE THE RESULT
-00CD47  2  4C 58 CD             JMP     KBD_DEC6G       ; CONTINUE
-00CD4A  2               
-00CD4A  2               KBD_DEC6F:                      ; HANDLE STATE KEY BREAK EVENT
-00CD4A  2  AD 6A CA             LDA     TMPKEY
-00CD4D  2  49 FF                EOR     #$FF            ; FLIP ALL BITS TO SETUP FOR A CLEAR OPERATION
-00CD4F  2  3D 6E CA             AND     KBD_LSTATE,X    ; AND IN THE FLIPPED BITS TO CLEAR DESIRED BIT
-00CD52  2  9D 6E CA             STA     KBD_LSTATE,X    ; SAVE THE RESULT
-00CD55  2  4C 58 CD             JMP     KBD_DEC6G       ; CONTINUE
-00CD58  2               
-00CD58  2               KBD_DEC6G:                      ; COALESCE L/R STATE FLAGS
-00CD58  2  AD 6D CA             LDA     KBD_STATE       ; GET EXISTING STATE BITS
-00CD5B  2  29 F0                AND     #$F0            ; GET RID OF OLD MODIFIER BITS
-00CD5D  2  0D 6E CA             ORA     KBD_LSTATE      ; MERGE IN LEFT STATE BITS
-00CD60  2  0D 6F CA             ORA     KBD_RSTATE      ; MERGE IN RIGHT STATE BITS
-00CD63  2  8D 6D CA             STA     KBD_STATE       ; SAVE IT
-00CD66  2               :
-00CD66  2  4C 3E CE             JMP     KBD_DECNEW      ; DONE WITH CURRENT KEYSTROKE
-00CD69  2               
-00CD69  2               KBD_DEC7:                       ; COMPLETE PROCESSING OF EXTENDED AND KEY BREAK EVENTS
-00CD69  2  AD 70 CA             LDA     KBD_STATUS      ; GET CURRENT STATUS FLAGS
-00CD6C  2  29 02                AND     #KBD_BREAK      ; IS THIS A KEY BREAK EVENT?
-00CD6E  2  D0 F6                BNE     :-              ; PROCESS NEXT KEY
-00CD70  2               
-00CD70  2               KBD_DEC8:                       ; HANDLE TOGGLE KEYS
-00CD70  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE INTO A
-00CD73  2  A0 40                LDY     #KBD_CAPSLCK    ; SETUP E WITH CAPS LOCK STATE BIT
-00CD75  2  C9 BC                CMP     #$BC            ; IS THIS THE CAPS LOCK KEY?
-00CD77  2  F0 0F                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
-00CD79  2  A0 20                LDY     #KBD_NUMLCK     ; SETUP E WITH NUM LOCK STATE BIT
-00CD7B  2  C9 BD                CMP     #$BD            ; IS THIS THE NUM LOCK KEY?
-00CD7D  2  F0 09                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
-00CD7F  2  A0 10                LDY     #KBD_SCRLCK     ; SETUP E WITH SCROLL LOCK STATE BIT
-00CD81  2  C9 BE                CMP     #$BE            ; IS THIS THE SCROLL LOCK KEY?
-00CD83  2  F0 03                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
-00CD85  2  4C 95 CD             JMP     KBD_DEC9        ; NOT A TOGGLE KEY, CONTINUE
-00CD88  2               
-00CD88  2               KBD_DEC8A:                      ; RECORD THE TOGGLE
-00CD88  2  98                   TYA
-00CD89  2  4D 6D CA             EOR     KBD_STATE       ; SET THE TOGGLE KEY BIT FROM ABOVE
-00CD8C  2  8D 6D CA             STA     KBD_STATE       ; SAVE IT
-00CD8F  2  20 D9 CB             JSR     KBD_SETLEDS     ; UPDATE LED LIGHTS ON KBD
-00CD92  2  4C 3E CE             JMP     KBD_DECNEW      ; RESTART DECODER FOR A NEW KEY
-00CD95  2               
-00CD95  2               KBD_DEC9:                       ; ADJUST KEYCODE FOR CONTROL MODIFIER
-00CD95  2  AD 6D CA             LDA     KBD_STATE       ; GET THE CURRENT STATE BITS
-00CD98  2  29 02                AND     #KBD_CTRL       ; CHECK THE CONTROL BIT
-00CD9A  2  F0 1E                BEQ     KBD_DEC10       ; CONTROL KEY NOT PRESSED, MOVE ON
-00CD9C  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET CURRENT KEYCODE IN A
-00CD9F  2  C9 61                CMP     #'a'            ; COMPARE TO LOWERCASE A
-00CDA1  2  90 08                BCC     KBD_DEC9A       ; BELOW IT, BYPASS
-00CDA3  2  C9 7A                CMP     #'z'            ; COMPARE TO LOWERCASE Z+1
-00CDA5  2  F0 02                BEQ     :+
-00CDA7  2  B0 02                BCS     KBD_DEC9A       ; ABOVE IT, BYPASS
-00CDA9  2               :
-00CDA9  2  29 DF                AND     #$DF            ; KEYCODE IN LOWERCASE A-Z RANGE CLEAR BIT 5 TO MAKE IT UPPERCASE
-00CDAB  2               KBD_DEC9A:
-00CDAB  2  C9 40                CMP     #'@'            ; COMPARE TO @
-00CDAD  2  90 0B                BCC     KBD_DEC10       ; BELOW IT, BYPASS
-00CDAF  2  C9 5F                CMP     #'_'            ; COMPARE TO _+1
-00CDB1  2  F0 02                BEQ     :+
-00CDB3  2  B0 05                BCS     KBD_DEC10       ; ABOVE IT, BYPASS
-00CDB5  2               :
-00CDB5  2  29 BF                AND     #$BF            ; CONVERT TO CONTROL VALUE BY CLEARING BIT 6
-00CDB7  2  8D 6C CA             STA     KBD_KEYCODE     ; UPDATE KEYCODE TO CONTROL VALUE
-00CDBA  2               
-00CDBA  2               KBD_DEC10:                      ; ADJUST KEYCODE FOR CAPS LOCK
-00CDBA  2  AD 6D CA             LDA     KBD_STATE       ; LOAD THE STATE FLAGS
-00CDBD  2  29 40                AND     #KBD_CAPSLCK    ; CHECK CAPS LOCK
-00CDBF  2  F0 25                BEQ     KBD_DEC11       ; CAPS LOCK NOT ACTIVE, MOVE ON
-00CDC1  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE VALUE
-00CDC4  2  C9 61                CMP     #'a'            ; COMPARE TO LOWERCASE A
-00CDC6  2  90 09                BCC     KBD_DEC10A      ; BELOW IT, BYPASS
-00CDC8  2  C9 7A                CMP     #'z'            ; COMPARE TO LOWERCASE Z+1
-00CDCA  2  F0 02                BEQ     :+
-00CDCC  2  B0 03                BCS     KBD_DEC10A      ; ABOVE IT, BYPASS
-00CDCE  2               :
-00CDCE  2  4C DE CD             JMP     KBD_DEC10B      ; IN RANGE LOWERCASE A-Z, GO TO CASE SWAPPING LOGIC
-00CDD1  2               KBD_DEC10A:
-00CDD1  2  C9 41                CMP     #'A'            ; COMPARE TO UPPERCASE A
-00CDD3  2  90 11                BCC     KBD_DEC11       ; BELOW IT, BYPASS
-00CDD5  2  C9 5A                CMP     #'Z'            ; COMPARE TO UPPERCASE Z+1
-00CDD7  2  F0 02                BEQ     :+
-00CDD9  2  B0 0B                BCS     KBD_DEC11       ; ABOVE IT, BYPASS
-00CDDB  2               :
-00CDDB  2  4C DE CD             JMP     KBD_DEC10B      ; IN RANGE UPPERCASE A-Z, GO TO CASE SWAPPING LOGIC
-00CDDE  2               KBD_DEC10B:
-00CDDE  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
-00CDE1  2  49 20                EOR     #$20            ; FLIP BIT 5 TO SWAP UPPER/LOWER CASE
-00CDE3  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE IT
-00CDE6  2               
-00CDE6  2               KBD_DEC11:                      ; HANDLE NUM PAD KEYS
-00CDE6  2  AD 6D CA             LDA     KBD_STATE       ; GET THE CURRENT STATE FLAGS
-00CDE9  2  29 7F                AND     #NOT_KBD_NUMPAD ; ASSUME NOT A NUMPAD KEY, CLEAR THE NUMPAD BIT
-00CDEB  2  8D 6D CA             STA     KBD_STATE       ; SAVE IT
-00CDEE  2               
-00CDEE  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
-00CDF1  2  29 E0                AND     #%11100000      ; ISOLATE TOP 3 BITS
-00CDF3  2  C9 C0                CMP     #%11000000      ; IS IN NUMPAD RANGE?
-00CDF5  2  D0 21                BNE     KBD_DEC12       ; NOPE, GET OUT
-00CDF7  2               
-00CDF7  2  AD 6D CA             LDA     KBD_STATE       ; LOAD THE CURRENT STATE FLAGS
-00CDFA  2  09 80                ORA     #KBD_NUMPAD     ; TURN ON THE NUMPAD BIT
-00CDFC  2  8D 6D CA             STA     KBD_STATE       ; SAVE IT
-00CDFF  2               
-00CDFF  2  29 20                AND     #KBD_NUMLCK     ; IS NUM LOCK BIT SET?
-00CE01  2  F0 08                BEQ     KBD_DEC11A      ; NO, SKIP NUMLOCK PROCESSING
-00CE03  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE KEYCODE
-00CE06  2  49 10                EOR     #$10            ; FLIP VALUES FOR NUMLOCK
-00CE08  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE IT
-00CE0B  2               
-00CE0B  2               KBD_DEC11A:                     ; APPLY NUMPAD MAPPING
-00CE0B  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
-00CE0E  2  38                   SEC
-00CE0F  2  E9 C0                SBC     #$C0            ; KEYCODES START AT $C0
-00CE11  2  AA                   TAX
-00CE12  2  BD 37 D0             LDA     KBD_MAPNUMPAD,X ; GET IT IN A
-00CE15  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE IT
-00CE18  2               
-00CE18  2               KBD_DEC12:                      ; DETECT UNKNOWN/INVALID KEYCODES
-00CE18  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE FINAL KEYCODE
-00CE1B  2  C9 FF                CMP     #$FF            ; IS IT $FF (UNKNOWN/INVALID)
-00CE1D  2  F0 1F                BEQ     KBD_DECNEW      ; IF SO, JUST RESTART THE ENGINE
-00CE1F  2               
-00CE1F  2               KBD_DEC13:                      ; DONE - RECORD RESULTS INTO BUFFER
-00CE1F  2  AE 57 D0             LDX     KBD_BUFFERPTR
-00CE22  2  E0 10                CPX     #16
-00CE24  2  F0 16                BEQ     KBD_DEC13A
-00CE26  2               :
-00CE26  2  BD 58 D0             LDA     KBD_BUFFER,X
-00CE29  2  9D 59 D0             STA     KBD_BUFFER+1,X
-00CE2C  2  CA                   DEX
-00CE2D  2  E0 FF                CPX     #$FF
-00CE2F  2  D0 F5                BNE     :-
-00CE31  2  AD 6C CA             LDA     KBD_KEYCODE
-00CE34  2  8D 59 D0             STA     KBD_BUFFER+1
-00CE37  2  EE 57 D0             INC     KBD_BUFFERPTR
-00CE3A  2  A9 00                LDA     #$00            ; A=0
-00CE3C  2               KBD_DEC13A:
-00CE3C  2  18                   CLC                     ; SIGNAL SUCCESS WITH A=1, CARRY CLEAR
-00CE3D  2  60                   RTS
-00CE3E  2               
-00CE3E  2               KBD_DECNEW:                     ; START NEW KEYPRESS (CLEAR ALL STATUS BITS)
-00CE3E  2  A9 00                LDA     #$00            ; A=0
-00CE40  2  8D 70 CA             STA     KBD_STATUS      ; CLEAR STATUS
-00CE43  2  4C 64 CC             JMP     KBD_DEC1        ; RESTART THE ENGINE
-00CE46  2               
-00CE46  2               DELAY:
-00CE46  2  48                   PHA
-00CE47  2  98                   TYA
-00CE48  2  48                   PHA
-00CE49  2  8A                   TXA
-00CE4A  2  48                   PHA
-00CE4B  2  A2 25                LDX     #$25
-00CE4D  2               :
-00CE4D  2  CA                   DEX
-00CE4E  2  E0 00                CPX     #$00
-00CE50  2  D0 FB                BNE     :-
-00CE52  2  68                   PLA
-00CE53  2  AA                   TAX
-00CE54  2  68                   PLA
-00CE55  2  A8                   TAY
-00CE56  2  68                   PLA
-00CE57  2  60                   RTS
-00CE58  2               
-00CE58  2               LDELAY:
-00CE58  2  48                   PHA
-00CE59  2  8A                   TXA
-00CE5A  2  48                   PHA
-00CE5B  2  98                   TYA
-00CE5C  2  48                   PHA
-00CE5D  2  A2 00                LDX     #$00
-00CE5F  2  A0 03                LDY     #$03
-00CE61  2               :
-00CE61  2  20 46 CE             JSR     DELAY
-00CE64  2  CA                   DEX
-00CE65  2  E0 00                CPX     #$00
-00CE67  2  D0 F8                BNE     :-
-00CE69  2  88                   DEY
-00CE6A  2  C0 00                CPY     #$00
-00CE6C  2  D0 F3                BNE     :-
-00CE6E  2  68                   PLA
-00CE6F  2  A8                   TAY
-00CE70  2  68                   PLA
-00CE71  2  AA                   TAX
-00CE72  2  68                   PLA
-00CE73  2  60                   RTS
-00CE74  2               
-00CE74  2               
-00CE74  2                       .IFNDEF PC6502BIOS
-00CE74  2               ;
-00CE74  2               ; DRIVER DATA
-00CE74  2               ;__________________________________________________________________________________________________
-00CE74  2               ; MESSAGES
-00CE74  2               ;__________________________________________________________________________________________________
-00CE74  2               MIOMESSAGE1:
-00CE74  2  49 53 41 20          .BYTE   "ISA MULTI-IO:"
-00CE78  2  4D 55 4C 54  
-00CE7C  2  49 2D 49 4F  
-00CE81  2  00                   .BYTE   00
-00CE82  2               MIOMESSAGE3:
-00CE82  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 NOT FOUND."
-00CE86  2  44 3A 20 56  
-00CE8A  2  54 38 32 43  
-00CE9B  2  00                   .BYTE   00
-00CE9C  2               MIOMESSAGE4:
-00CE9C  2  20 20 4B 42          .BYTE   "  KBD: INITIALIZED."
-00CEA0  2  44 3A 20 49  
-00CEA4  2  4E 49 54 49  
-00CEAF  2  00                   .BYTE   00
-00CEB0  2               MIOMESSAGE5:
-00CEB0  2  20 20 4C 50          .BYTE   "  LPT: INITIALIZED."
-00CEB4  2  54 3A 20 49  
-00CEB8  2  4E 49 54 49  
-00CEC3  2  00                   .BYTE   00
-00CEC4  2               MIOMESSAGE6:
-00CEC4  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 WRITE TIMEOUT."
-00CEC8  2  44 3A 20 56  
-00CECC  2  54 38 32 43  
-00CEE1  2  00                   .BYTE   00
-00CEE2  2               MIOMESSAGE7:
-00CEE2  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 READ TIMEOUT."
-00CEE6  2  44 3A 20 56  
-00CEEA  2  54 38 32 43  
-00CEFE  2  00                   .BYTE   00
-00CEFF  2                       .ENDIF
-00CEFF  2               ;
-00CEFF  2               ; MAPPING
-00CEFF  2               ;__________________________________________________________________________________________________
-00CEFF  2               ;
-00CEFF  2               KBD_MAPSTD:                     ; SCANCODE IS INDEX INTO TABLE TO RESULTANT LOOKUP KEYCODE
-00CEFF  2  FF E8 FF E4          .BYTE   $FF,$E8,$FF,$E4,$E2,$E0,$E1,$EB,$FF,$E9,$E7,$E5,$E3,$09,'`',$FF
-00CF03  2  E2 E0 E1 EB  
-00CF07  2  FF E9 E7 E5  
-00CF0F  2  FF B4 B0 FF          .BYTE   $FF,$B4,$B0,$FF,$B2,'q','1',$FF,$FF,$FF,'z','s','a','w','2',$FF
-00CF13  2  B2 71 31 FF  
-00CF17  2  FF FF 7A 73  
-00CF1F  2  FF 63 78 64          .BYTE   $FF,'c','x','d','e','4','3',$FF,$FF,' ','v','f','t','r','5',$FF
-00CF23  2  65 34 33 FF  
-00CF27  2  FF 20 76 66  
-00CF2F  2  FF 6E 62 68          .BYTE   $FF,'n','b','h','g','y','6',$FF,$FF,$FF,'m','j','u','7','8',$FF
-00CF33  2  67 79 36 FF  
-00CF37  2  FF FF 6D 6A  
-00CF3F  2  FF 2C 6B 69          .BYTE   $FF,',','k','i','o','0','9',$FF,$FF,'.','/','l',';','p','-',$FF
-00CF43  2  6F 30 39 FF  
-00CF47  2  FF 2E 2F 6C  
-00CF4F  2  FF FF 27 FF          .BYTE   $FF,$FF,$27,$FF,'[','=',$FF,$FF,$BC,$B1,$0D,']',$FF,'\',$FF,$FF
-00CF53  2  5B 3D FF FF  
-00CF57  2  BC B1 0D 5D  
-00CF5F  2  FF FF FF FF          .BYTE   $FF,$FF,$FF,$FF,$FF,$FF,$08,$FF,$FF,$C0,$FF,$C3,$C6,$FF,$FF,$FF
-00CF63  2  FF FF 08 FF  
-00CF67  2  FF C0 FF C3  
-00CF6F  2  C9 CA C1 C4          .BYTE   $C9,$CA,$C1,$C4,$C5,$C7,$1B,$BD,$FA,$CE,$C2,$CD,$CC,$C8,$BE,$FF
-00CF73  2  C5 C7 1B BD  
-00CF77  2  FA CE C2 CD  
-00CF7F  2  FF FF FF E6          .BYTE   $FF,$FF,$FF,$E6,$EC
-00CF83  2  EC           
-00CF84  2               BD_MAPSTDEND:
-00CF84  2               ;
-00CF84  2               KBD_MAPSIZ      = BD_MAPSTDEND-KBD_MAPSTD
-00CF84  2               ;
-00CF84  2               KBD_MAPSHIFT:                   ; SCANCODE IS INDEX INTO TABLE TO RESULTANT LOOKUP KEYCODE WHEN SHIFT ACTIVE
-00CF84  2  FF E8 FF E4          .BYTE   $FF,$E8,$FF,$E4,$E2,$E0,$E1,$EB,$FF,$E9,$E7,$E5,$E3,$09,'~',$FF
-00CF88  2  E2 E0 E1 EB  
-00CF8C  2  FF E9 E7 E5  
-00CF94  2  FF B4 B0 FF          .BYTE   $FF,$B4,$B0,$FF,$B2,'Q','!',$FF,$FF,$FF,'Z','S','A','W','@',$FF
-00CF98  2  B2 51 21 FF  
-00CF9C  2  FF FF 5A 53  
-00CFA4  2  FF 43 58 44          .BYTE   $FF,'C','X','D','E','$','#',$FF,$FF,' ','V','F','T','R','%',$FF
-00CFA8  2  45 24 23 FF  
-00CFAC  2  FF 20 56 46  
-00CFB4  2  FF 4E 42 48          .BYTE   $FF,'N','B','H','G','Y','^',$FF,$FF,$FF,'M','J','U','&','*',$FF
-00CFB8  2  47 59 5E FF  
-00CFBC  2  FF FF 4D 4A  
-00CFC4  2  FF 3C 4B 49          .BYTE   $FF,'<','K','I','O',')','(',$FF,$FF,'>','?','L',':','P','_',$FF
-00CFC8  2  4F 29 28 FF  
-00CFCC  2  FF 3E 3F 4C  
-00CFD4  2  FF FF 22 FF          .BYTE   $FF,$FF,$22,$FF,'{','+',$FF,$FF,$BC,$B1,$0D,'}',$FF,'|',$FF,$FF
-00CFD8  2  7B 2B FF FF  
-00CFDC  2  BC B1 0D 7D  
-00CFE4  2  FF FF FF FF          .BYTE   $FF,$FF,$FF,$FF,$FF,$FF,$08,$FF,$FF,$D0,$FF,$D3,$D6,$FF,$FF,$FF
-00CFE8  2  FF FF 08 FF  
-00CFEC  2  FF D0 FF D3  
-00CFF4  2  D9 DA D1 D4          .BYTE   $D9,$DA,$D1,$D4,$D5,$D7,$1B,$BD,$FA,$DE,$D2,$DD,$DC,$D8,$BE,$FF
-00CFF8  2  D5 D7 1B BD  
-00CFFC  2  FA DE D2 DD  
-00D004  2  FF FF FF E6          .BYTE   $FF,$FF,$FF,$E6,$EC
-00D008  2  EC           
-00D009  2               ;
-00D009  2               KBD_MAPEXT:                     ; PAIRS ARE [SCANCODE,KEYCODE] FOR EXTENDED SCANCODES
-00D009  2  11 B5 14 B3          .BYTE   $11,$B5,$14,$B3,$1F,$B6,$27,$B7
-00D00D  2  1F B6 27 B7  
-00D011  2  2F EF 37 FA          .BYTE   $2F,$EF,$37,$FA,$3F,$FB,$4A,$CB
-00D015  2  3F FB 4A CB  
-00D019  2  5A CF 5E FC          .BYTE   $5A,$CF,$5E,$FC,$69,$F3,$6B,$F8
-00D01D  2  69 F3 6B F8  
-00D021  2  6C F2 70 F0          .BYTE   $6C,$F2,$70,$F0,$71,$F1,$72,$F7
-00D025  2  71 F1 72 F7  
-00D029  2  74 F9 75 F6          .BYTE   $74,$F9,$75,$F6,$7A,$F5,$7C,$ED
-00D02D  2  7A F5 7C ED  
-00D031  2  7D F4 7E FD          .BYTE   $7D,$F4,$7E,$FD,$00,$00
-00D035  2  00 00        
-00D037  2               ;
-00D037  2               KBD_MAPNUMPAD:                  ; KEYCODE TRANSLATION FROM NUMPAD RANGE TO STD ASCII/KEYCODES
-00D037  2  F3 F7 F5 F8          .BYTE   $F3,$F7,$F5,$F8,$FF,$F9,$F2,$F6,$F4,$F0,$F1,$2F,$2A,$2D,$2B,$0D
-00D03B  2  FF F9 F2 F6  
-00D03F  2  F4 F0 F1 2F  
-00D047  2  31 32 33 34          .BYTE   $31,$32,$33,$34,$35,$36,$37,$38,$39,$30,$2E,$2F,$2A,$2D,$2B,$0D
-00D04B  2  35 36 37 38  
-00D04F  2  39 30 2E 2F  
-00D057  2               
-00D057  2               
-00D057  2               KBD_BUFFERPTR:
-00D057  2  00                   .BYTE $00
-00D058  2               KBD_BUFFER:
-00D058  2  00 00 00 00          .BYTE $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-00D05C  2  00 00 00 00  
-00D060  2  00 00 00 00  
-00D06A  2               
-00D06A  2               ;
-00D06A  2               ;
-00D06A  2               ;__________________________________________________________________________________________________
-00D06A  2               ; KEYCODE VALUES RETURNED BY THE DECODER
-00D06A  2               ;__________________________________________________________________________________________________
-00D06A  2               ;
-00D06A  2               ; VALUES 0-127 ARE STANDARD ASCII, SPECIAL KEYS WILL HAVE THE FOLLOWING VALUES:
-00D06A  2               ;
-00D06A  2               ; F1		$E0
-00D06A  2               ; F2		$E1
-00D06A  2               ; F3		$E2
-00D06A  2               ; F4		$E3
-00D06A  2               ; F5		$E4
-00D06A  2               ; F6		$E5
-00D06A  2               ; F7		$E6
-00D06A  2               ; F8		$E7
-00D06A  2               ; F9		$E8
-00D06A  2               ; F10		$E9
-00D06A  2               ; F11		$EA
-00D06A  2               ; F12		$EB
-00D06A  2               ; SYSRQ		$EC
-00D06A  2               ; PRTSC		$ED
-00D06A  2               ; PAUSE		$EE
-00D06A  2               ; APP		$EF
-00D06A  2               ; INS		$F0
-00D06A  2               ; DEL		$F1
-00D06A  2               ; HOME		$F2
-00D06A  2               ; END		$F3
-00D06A  2               ; PGUP		$F4
-00D06A  2               ; PGDN		$F5
-00D06A  2               ; UP		$F6
-00D06A  2               ; DOWN		$F7
-00D06A  2               ; LEFT		$F8
-00D06A  2               ; RIGHT		$F9
-00D06A  2               ; POWER		$FA
-00D06A  2               ; SLEEP		$FB
-00D06A  2               ; WAKE		$FC
-00D06A  2               ; BREAK		$FD
-00D06A  2               ;___________________________________________________________________________________________________________________
-00D06A  2               ;
-00D06A  2               ; CENTRONICS (LPT) INTERFACE DRIVER
-00D06A  2               ;___________________________________________________________________________________________________________________
-00D06A  2               ;
-00D06A  2               ; BYTE OUTPUT
-00D06A  2               ;
-00D06A  2               LPT_OUT:
-00D06A  2  48                   PHA
-00D06B  2  A2 FF                LDX     #<LPT_WAITTO
-00D06D  2  A0 30                LDY     #>LPT_WAITTO
-00D06F  2               :
-00D06F  2  20 97 D0             JSR     LPT_OST         ; READY TO SEND?
-00D072  2  D0 0D                BNE     :+              ; GO IF READY
-00D074  2  CA                   DEX
-00D075  2  E0 00                CPX     #$00
-00D077  2  D0 F6                BNE     :-              ; LOOP IF NOT READY
-00D079  2  88                   DEY
-00D07A  2  C0 00                CPY     #$00
-00D07C  2  D0 F1                BNE     :-              ; LOOP IF NOT READY
-00D07E  2  68                   PLA
-00D07F  2  38                   SEC                     ; SIGNAL ERROR
-00D080  2  60                   RTS
-00D081  2               :
-00D081  2  68                   PLA
-00D082  2  8D F0 E3             STA     LPT_0           ; OUTPUT TO PORT 0 (DATA)
-00D085  2  A9 0D                LDA     #%00001101      ; SELECT & STROBE, LEDS OFF
-00D087  2  8D F2 E3             STA     LPT_2           ; OUTPUT DATA TO PORT
-00D08A  2  20 46 CE             JSR     DELAY
-00D08D  2  A9 0C                LDA     #%00001100      ; SELECT, LEDS OFF
-00D08F  2  8D F2 E3             STA     LPT_2           ; OUTPUT DATA TO PORT
-00D092  2  20 46 CE             JSR     DELAY
-00D095  2  18                   CLC
-00D096  2  60                   RTS
-00D097  2               ;
-00D097  2               ; OUTPUT STATUS
-00D097  2               ;
-00D097  2               LPT_OST:
-00D097  2  AD F1 E3             LDA     LPT_1           ; GET STATUS INFO
-00D09A  2  29 80                AND     #%10000000      ; ISOLATE /BUSY
-00D09C  2  60                   RTS                     ; DONE
-00D09D  2               
-00D09D  1                       .INCLUDE "bios_rtc.asm"
-00D09D  2               
-00D09D  2               
-00D09D  2               ;__RTC DRIVERS___________________________________________________________________________________________________________________
-00D09D  2               ;
-00D09D  2               ; 	DOS REAL TIME CLOCK drivers
-00D09D  2               ;
-00D09D  2               ;	Entry points:
-00D09D  2               ;		DOSREADRTC   - called to RETURN RTC
-00D09D  2               ;________________________________________________________________________________________________________________________________
-00D09D  2               ;
-00D09D  2               ;*
-00D09D  2               ;* HARDWARE I/O ADDRESSES
-00D09D  2               ;*
-00D09D  2               RTCBASE         = PC6502_IOSPACE+$90;
-00D09D  2               
-00D09D  2               
-00D09D  2               ;__RTC_WRITE____________________________________________________
-00D09D  2               ; write a value to the RTC
-00D09D  2               ; address in X
-00D09D  2               ; value in Y
-00D09D  2               ;_______________________________________________________________
-00D09D  2               RTC_WRITE:
-00D09D  2  E0 07                CPX     #7
-00D09F  2  B0 43                BCS     :++
-00D0A1  2  E0 06                CPX     #6
-00D0A3  2  D0 01                BNE     :+
-00D0A5  2  CA                   DEX
-00D0A6  2               :
-00D0A6  2  8C 97 D1             STY     RTCWORK
-00D0A9  2  8A                   TXA
-00D0AA  2  18                   CLC
-00D0AB  2  2A                   ROL     A               ; ADDRESS * 2
-00D0AC  2  29 0F                AND     #$0F            ; CLEAR UPPER BITS
-00D0AE  2  AA                   TAX                     ; address in x
-00D0AF  2  A9 02                LDA     #$02
-00D0B1  2  8D 9F EF             STA     RTCBASE+$0F
-00D0B4  2  AD 97 D1             LDA     RTCWORK         ; value in A
-00D0B7  2  29 0F                AND     #$0F
-00D0B9  2  9D 90 EF             STA     RTCBASE,X       ; SET LOW NIBBLE OF VALUE
-00D0BC  2  E8                   INX
-00D0BD  2  AD 97 D1             LDA     RTCWORK         ; value in A
-00D0C0  2  29 F0                AND     #$F0
-00D0C2  2  18                   CLC
+00CCC1  2               ;        LDX     KBD_SCANCODE    ; GET SCANCODE
+00CCC1  2  A2 00                LDX     #$00             ; GET SCANCODE
+00CCC3  2               KBD_DEC5A:
+00CCC3  2  BD 08 D0             LDA     KBD_MAPEXT,X    ; GET FIRST BYTE OF PAIR FROM EXT MAP TABLE
+00CCC6  2  E8                   INX
+00CCC7  2  C9 00                CMP     #$00            ; END OF TABLE?
+00CCC9  2  F0 09                BEQ     :+              ; UNKNOWN OR BOGUS, START OVER
+00CCCB  2  CD 6B CA             CMP     KBD_SCANCODE    ; DOES MATCH BYTE EQUAL SCANCODE?
+00CCCE  2  F0 07                BEQ     KBD_DEC5B       ; YES! JUMP OUT
+00CCD0  2  E8                   INX                     ; BUMP TO START OF NEXT PAIR
+00CCD1  2  4C C3 CC             JMP     KBD_DEC5A       ; LOOP TO CHECK NEXT TABLE ENTRY
+00CCD4  2               :
+00CCD4  2  4C 3D CE             JMP     KBD_DECNEW
+00CCD7  2               KBD_DEC5B:
+00CCD7  2  BD 08 D0             LDA     KBD_MAPEXT,X    ; GET THE KEYCODE VIA MAPPING TABLE
+00CCDA  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE IT
+00CCDD  2  4C 02 CD             JMP     KBD_DEC6
+00CCE0  2               
+00CCE0  2               KBD_DEC5C:                      ; PERFORM REGULAR KEY (NOT EXTENDED) KEY MAPPING
+00CCE0  2  AD 6B CA             LDA     KBD_SCANCODE    ; GET THE SCANCODE
+00CCE3  2  C9 85                CMP     #KBD_MAPSIZ     ; COMPARE TO SIZE OF TABLE
+00CCE5  2  F0 02                BEQ     :+
+00CCE7  2  B0 19                BCS     KBD_DEC6        ; PAST END, SKIP OVER LOOKUP
+00CCE9  2               :
+00CCE9  2               ; SETUP POINTER TO MAPPING TABLE BASED ON SHIFTED OR UNSHIFTED STATE
+00CCE9  2  AD 6D CA             LDA     KBD_STATE       ; GET STATE
+00CCEC  2  29 01                AND     #KBD_SHIFT      ; SHIFT ACTIVE?
+00CCEE  2  F0 09                BEQ     KBD_DEC5D       ; NON-SHIFTED, MOVE ON
+00CCF0  2               
+00CCF0  2  AE 6B CA             LDX     KBD_SCANCODE    ; GET THE SCANCODE
+00CCF3  2  BD 83 CF             LDA     KBD_MAPSHIFT,X  ; GET SHIFTED
+00CCF6  2  4C FF CC             JMP     :+
+00CCF9  2               KBD_DEC5D:
+00CCF9  2  AE 6B CA             LDX     KBD_SCANCODE    ; GET THE SCANCODE
+00CCFC  2  BD FE CE             LDA     KBD_MAPSTD,X    ; GET STANDARD
+00CCFF  2               :
+00CCFF  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE KEYCODE
+00CD02  2               
+00CD02  2               KBD_DEC6:                       ; HANDLE MODIFIER KEYS
+00CD02  2  AD 6C CA             LDA     KBD_KEYCODE     ; MAKE SURE WE HAVE KEYCODE
+00CD05  2  C9 B8                CMP     #$B8            ; END OF MODIFIER KEYS
+00CD07  2  B0 5F                BCS     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
+00CD09  2  C9 B0                CMP     #$B0            ; START OF MODIFIER KEYS
+00CD0B  2  90 5B                BCC     KBD_DEC7        ; BYPASS MODIFIER KEY CHECKING
+00CD0D  2  A2 04                LDX     #4              ; LOOP COUNTER TO LOOP THRU 4 MODIFIER BITS
+00CD0F  2  38                   SEC
+00CD10  2  E9 AF                SBC     #$AF            ; SETUP A TO DECREMENT THROUGH MODIFIER VALUES
+00CD12  2  8D 6A CA             STA     TMPKEY
+00CD15  2  A9 00                LDA     #$00            ; SETUP A TO ROATE THROUGH MODIFIER STATE BITS
+00CD17  2  38                   SEC                     ; SET CARRY FOR ROTATE
+00CD18  2               
+00CD18  2               KBD_DEC6A:
+00CD18  2  2A                   ROL     A               ; SHIFT TO NEXT MODIFIER STATE BIT
+00CD19  2  CE 6A CA             DEC     TMPKEY          ; L-MODIFIER?
+00CD1C  2  F0 0B                BEQ     KBD_DEC6B       ; YES, HANDLE L-MODIFIER MAKE/BREAK
+00CD1E  2  CE 6A CA             DEC     TMPKEY          ; R-MODIFIER?
+00CD21  2  F0 0B                BEQ     KBD_DEC6C       ; YES, HANDLE R-MODIFIER MAKE/BREAK
+00CD23  2  CA                   DEX
+00CD24  2  D0 F2                BNE     KBD_DEC6A       ; LOOP THRU 4 MODIFIER BITS
+00CD26  2  4C 68 CD             JMP     KBD_DEC7        ; FAILSAFE, SHOULD NEVER GET HERE!
+00CD29  2               
+00CD29  2               KBD_DEC6B:
+00CD29  2  A2 00                LDX     #0              ; POINT TO LEFT STATE BYTE
+00CD2B  2  4C 30 CD             JMP     KBD_DEC6D       ; CONTINUE
+00CD2E  2               
+00CD2E  2               KBD_DEC6C:
+00CD2E  2  A2 01                LDX     #1              ; POINT TO RIGHT STATE BYTE
+00CD30  2               
+00CD30  2               KBD_DEC6D:                      ; BRANCH BASED ON WHETHER THIS IS A MAKE OR BREAK EVENT
+00CD30  2  8D 6A CA             STA     TMPKEY
+00CD33  2  AD 70 CA             LDA     KBD_STATUS      ; GET STATUS FLAGS
+00CD36  2  29 02                AND     #KBD_BREAK      ; BREAK EVENT?
+00CD38  2  F0 03                BEQ     KBD_DEC6E       ; NO, HANDLE A MODIFIER KEY MAKE EVENT
+00CD3A  2  4C 49 CD             JMP     KBD_DEC6F       ; YES, HANDLE A MODIFIER BREAK EVENT
+00CD3D  2               
+00CD3D  2               KBD_DEC6E:                      ; HANDLE STATE KEY MAKE EVENT
+00CD3D  2  AD 6A CA             LDA     TMPKEY
+00CD40  2  1D 6E CA             ORA     KBD_LSTATE,X    ; OR IN THE BIT TO SET
+00CD43  2  9D 6E CA             STA     KBD_LSTATE,X    ; SAVE THE RESULT
+00CD46  2  4C 57 CD             JMP     KBD_DEC6G       ; CONTINUE
+00CD49  2               
+00CD49  2               KBD_DEC6F:                      ; HANDLE STATE KEY BREAK EVENT
+00CD49  2  AD 6A CA             LDA     TMPKEY
+00CD4C  2  49 FF                EOR     #$FF            ; FLIP ALL BITS TO SETUP FOR A CLEAR OPERATION
+00CD4E  2  3D 6E CA             AND     KBD_LSTATE,X    ; AND IN THE FLIPPED BITS TO CLEAR DESIRED BIT
+00CD51  2  9D 6E CA             STA     KBD_LSTATE,X    ; SAVE THE RESULT
+00CD54  2  4C 57 CD             JMP     KBD_DEC6G       ; CONTINUE
+00CD57  2               
+00CD57  2               KBD_DEC6G:                      ; COALESCE L/R STATE FLAGS
+00CD57  2  AD 6D CA             LDA     KBD_STATE       ; GET EXISTING STATE BITS
+00CD5A  2  29 F0                AND     #$F0            ; GET RID OF OLD MODIFIER BITS
+00CD5C  2  0D 6E CA             ORA     KBD_LSTATE      ; MERGE IN LEFT STATE BITS
+00CD5F  2  0D 6F CA             ORA     KBD_RSTATE      ; MERGE IN RIGHT STATE BITS
+00CD62  2  8D 6D CA             STA     KBD_STATE       ; SAVE IT
+00CD65  2               :
+00CD65  2  4C 3D CE             JMP     KBD_DECNEW      ; DONE WITH CURRENT KEYSTROKE
+00CD68  2               
+00CD68  2               KBD_DEC7:                       ; COMPLETE PROCESSING OF EXTENDED AND KEY BREAK EVENTS
+00CD68  2  AD 70 CA             LDA     KBD_STATUS      ; GET CURRENT STATUS FLAGS
+00CD6B  2  29 02                AND     #KBD_BREAK      ; IS THIS A KEY BREAK EVENT?
+00CD6D  2  D0 F6                BNE     :-              ; PROCESS NEXT KEY
+00CD6F  2               
+00CD6F  2               KBD_DEC8:                       ; HANDLE TOGGLE KEYS
+00CD6F  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE INTO A
+00CD72  2  A0 40                LDY     #KBD_CAPSLCK    ; SETUP E WITH CAPS LOCK STATE BIT
+00CD74  2  C9 BC                CMP     #$BC            ; IS THIS THE CAPS LOCK KEY?
+00CD76  2  F0 0F                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
+00CD78  2  A0 20                LDY     #KBD_NUMLCK     ; SETUP E WITH NUM LOCK STATE BIT
+00CD7A  2  C9 BD                CMP     #$BD            ; IS THIS THE NUM LOCK KEY?
+00CD7C  2  F0 09                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
+00CD7E  2  A0 10                LDY     #KBD_SCRLCK     ; SETUP E WITH SCROLL LOCK STATE BIT
+00CD80  2  C9 BE                CMP     #$BE            ; IS THIS THE SCROLL LOCK KEY?
+00CD82  2  F0 03                BEQ     KBD_DEC8A       ; YES, GO TO BIT SET ROUTINE
+00CD84  2  4C 94 CD             JMP     KBD_DEC9        ; NOT A TOGGLE KEY, CONTINUE
+00CD87  2               
+00CD87  2               KBD_DEC8A:                      ; RECORD THE TOGGLE
+00CD87  2  98                   TYA
+00CD88  2  4D 6D CA             EOR     KBD_STATE       ; SET THE TOGGLE KEY BIT FROM ABOVE
+00CD8B  2  8D 6D CA             STA     KBD_STATE       ; SAVE IT
+00CD8E  2  20 D9 CB             JSR     KBD_SETLEDS     ; UPDATE LED LIGHTS ON KBD
+00CD91  2  4C 3D CE             JMP     KBD_DECNEW      ; RESTART DECODER FOR A NEW KEY
+00CD94  2               
+00CD94  2               KBD_DEC9:                       ; ADJUST KEYCODE FOR CONTROL MODIFIER
+00CD94  2  AD 6D CA             LDA     KBD_STATE       ; GET THE CURRENT STATE BITS
+00CD97  2  29 02                AND     #KBD_CTRL       ; CHECK THE CONTROL BIT
+00CD99  2  F0 1E                BEQ     KBD_DEC10       ; CONTROL KEY NOT PRESSED, MOVE ON
+00CD9B  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET CURRENT KEYCODE IN A
+00CD9E  2  C9 61                CMP     #'a'            ; COMPARE TO LOWERCASE A
+00CDA0  2  90 08                BCC     KBD_DEC9A       ; BELOW IT, BYPASS
+00CDA2  2  C9 7A                CMP     #'z'            ; COMPARE TO LOWERCASE Z+1
+00CDA4  2  F0 02                BEQ     :+
+00CDA6  2  B0 02                BCS     KBD_DEC9A       ; ABOVE IT, BYPASS
+00CDA8  2               :
+00CDA8  2  29 DF                AND     #$DF            ; KEYCODE IN LOWERCASE A-Z RANGE CLEAR BIT 5 TO MAKE IT UPPERCASE
+00CDAA  2               KBD_DEC9A:
+00CDAA  2  C9 40                CMP     #'@'            ; COMPARE TO @
+00CDAC  2  90 0B                BCC     KBD_DEC10       ; BELOW IT, BYPASS
+00CDAE  2  C9 5F                CMP     #'_'            ; COMPARE TO _+1
+00CDB0  2  F0 02                BEQ     :+
+00CDB2  2  B0 05                BCS     KBD_DEC10       ; ABOVE IT, BYPASS
+00CDB4  2               :
+00CDB4  2  29 BF                AND     #$BF            ; CONVERT TO CONTROL VALUE BY CLEARING BIT 6
+00CDB6  2  8D 6C CA             STA     KBD_KEYCODE     ; UPDATE KEYCODE TO CONTROL VALUE
+00CDB9  2               
+00CDB9  2               KBD_DEC10:                      ; ADJUST KEYCODE FOR CAPS LOCK
+00CDB9  2  AD 6D CA             LDA     KBD_STATE       ; LOAD THE STATE FLAGS
+00CDBC  2  29 40                AND     #KBD_CAPSLCK    ; CHECK CAPS LOCK
+00CDBE  2  F0 25                BEQ     KBD_DEC11       ; CAPS LOCK NOT ACTIVE, MOVE ON
+00CDC0  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE VALUE
+00CDC3  2  C9 61                CMP     #'a'            ; COMPARE TO LOWERCASE A
+00CDC5  2  90 09                BCC     KBD_DEC10A      ; BELOW IT, BYPASS
+00CDC7  2  C9 7A                CMP     #'z'            ; COMPARE TO LOWERCASE Z+1
+00CDC9  2  F0 02                BEQ     :+
+00CDCB  2  B0 03                BCS     KBD_DEC10A      ; ABOVE IT, BYPASS
+00CDCD  2               :
+00CDCD  2  4C DD CD             JMP     KBD_DEC10B      ; IN RANGE LOWERCASE A-Z, GO TO CASE SWAPPING LOGIC
+00CDD0  2               KBD_DEC10A:
+00CDD0  2  C9 41                CMP     #'A'            ; COMPARE TO UPPERCASE A
+00CDD2  2  90 11                BCC     KBD_DEC11       ; BELOW IT, BYPASS
+00CDD4  2  C9 5A                CMP     #'Z'            ; COMPARE TO UPPERCASE Z+1
+00CDD6  2  F0 02                BEQ     :+
+00CDD8  2  B0 0B                BCS     KBD_DEC11       ; ABOVE IT, BYPASS
+00CDDA  2               :
+00CDDA  2  4C DD CD             JMP     KBD_DEC10B      ; IN RANGE UPPERCASE A-Z, GO TO CASE SWAPPING LOGIC
+00CDDD  2               KBD_DEC10B:
+00CDDD  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
+00CDE0  2  49 20                EOR     #$20            ; FLIP BIT 5 TO SWAP UPPER/LOWER CASE
+00CDE2  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE IT
+00CDE5  2               
+00CDE5  2               KBD_DEC11:                      ; HANDLE NUM PAD KEYS
+00CDE5  2  AD 6D CA             LDA     KBD_STATE       ; GET THE CURRENT STATE FLAGS
+00CDE8  2  29 7F                AND     #NOT_KBD_NUMPAD ; ASSUME NOT A NUMPAD KEY, CLEAR THE NUMPAD BIT
+00CDEA  2  8D 6D CA             STA     KBD_STATE       ; SAVE IT
+00CDED  2               
+00CDED  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
+00CDF0  2  29 E0                AND     #%11100000      ; ISOLATE TOP 3 BITS
+00CDF2  2  C9 C0                CMP     #%11000000      ; IS IN NUMPAD RANGE?
+00CDF4  2  D0 21                BNE     KBD_DEC12       ; NOPE, GET OUT
+00CDF6  2               
+00CDF6  2  AD 6D CA             LDA     KBD_STATE       ; LOAD THE CURRENT STATE FLAGS
+00CDF9  2  09 80                ORA     #KBD_NUMPAD     ; TURN ON THE NUMPAD BIT
+00CDFB  2  8D 6D CA             STA     KBD_STATE       ; SAVE IT
+00CDFE  2               
+00CDFE  2  29 20                AND     #KBD_NUMLCK     ; IS NUM LOCK BIT SET?
+00CE00  2  F0 08                BEQ     KBD_DEC11A      ; NO, SKIP NUMLOCK PROCESSING
+00CE02  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE KEYCODE
+00CE05  2  49 10                EOR     #$10            ; FLIP VALUES FOR NUMLOCK
+00CE07  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE IT
+00CE0A  2               
+00CE0A  2               KBD_DEC11A:                     ; APPLY NUMPAD MAPPING
+00CE0A  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE CURRENT KEYCODE
+00CE0D  2  38                   SEC
+00CE0E  2  E9 C0                SBC     #$C0            ; KEYCODES START AT $C0
+00CE10  2  AA                   TAX
+00CE11  2  BD 36 D0             LDA     KBD_MAPNUMPAD,X ; GET IT IN A
+00CE14  2  8D 6C CA             STA     KBD_KEYCODE     ; SAVE IT
+00CE17  2               
+00CE17  2               KBD_DEC12:                      ; DETECT UNKNOWN/INVALID KEYCODES
+00CE17  2  AD 6C CA             LDA     KBD_KEYCODE     ; GET THE FINAL KEYCODE
+00CE1A  2  C9 FF                CMP     #$FF            ; IS IT $FF (UNKNOWN/INVALID)
+00CE1C  2  F0 1F                BEQ     KBD_DECNEW      ; IF SO, JUST RESTART THE ENGINE
+00CE1E  2               
+00CE1E  2               KBD_DEC13:                      ; DONE - RECORD RESULTS INTO BUFFER
+00CE1E  2  AE 56 D0             LDX     KBD_BUFFERPTR
+00CE21  2  E0 10                CPX     #16
+00CE23  2  F0 16                BEQ     KBD_DEC13A
+00CE25  2               :
+00CE25  2  BD 57 D0             LDA     KBD_BUFFER,X
+00CE28  2  9D 58 D0             STA     KBD_BUFFER+1,X
+00CE2B  2  CA                   DEX
+00CE2C  2  E0 FF                CPX     #$FF
+00CE2E  2  D0 F5                BNE     :-
+00CE30  2  AD 6C CA             LDA     KBD_KEYCODE
+00CE33  2  8D 58 D0             STA     KBD_BUFFER+1
+00CE36  2  EE 56 D0             INC     KBD_BUFFERPTR
+00CE39  2  A9 00                LDA     #$00            ; A=0
+00CE3B  2               KBD_DEC13A:
+00CE3B  2  18                   CLC                     ; SIGNAL SUCCESS WITH A=1, CARRY CLEAR
+00CE3C  2  60                   RTS
+00CE3D  2               
+00CE3D  2               KBD_DECNEW:                     ; START NEW KEYPRESS (CLEAR ALL STATUS BITS)
+00CE3D  2  A9 00                LDA     #$00            ; A=0
+00CE3F  2  8D 70 CA             STA     KBD_STATUS      ; CLEAR STATUS
+00CE42  2  4C 64 CC             JMP     KBD_DEC1        ; RESTART THE ENGINE
+00CE45  2               
+00CE45  2               DELAY:
+00CE45  2  48                   PHA
+00CE46  2  98                   TYA
+00CE47  2  48                   PHA
+00CE48  2  8A                   TXA
+00CE49  2  48                   PHA
+00CE4A  2  A2 25                LDX     #$25
+00CE4C  2               :
+00CE4C  2  CA                   DEX
+00CE4D  2  E0 00                CPX     #$00
+00CE4F  2  D0 FB                BNE     :-
+00CE51  2  68                   PLA
+00CE52  2  AA                   TAX
+00CE53  2  68                   PLA
+00CE54  2  A8                   TAY
+00CE55  2  68                   PLA
+00CE56  2  60                   RTS
+00CE57  2               
+00CE57  2               LDELAY:
+00CE57  2  48                   PHA
+00CE58  2  8A                   TXA
+00CE59  2  48                   PHA
+00CE5A  2  98                   TYA
+00CE5B  2  48                   PHA
+00CE5C  2  A2 00                LDX     #$00
+00CE5E  2  A0 03                LDY     #$03
+00CE60  2               :
+00CE60  2  20 45 CE             JSR     DELAY
+00CE63  2  CA                   DEX
+00CE64  2  E0 00                CPX     #$00
+00CE66  2  D0 F8                BNE     :-
+00CE68  2  88                   DEY
+00CE69  2  C0 00                CPY     #$00
+00CE6B  2  D0 F3                BNE     :-
+00CE6D  2  68                   PLA
+00CE6E  2  A8                   TAY
+00CE6F  2  68                   PLA
+00CE70  2  AA                   TAX
+00CE71  2  68                   PLA
+00CE72  2  60                   RTS
+00CE73  2               
+00CE73  2               
+00CE73  2                       .IFNDEF PC6502BIOS
+00CE73  2               ;
+00CE73  2               ; DRIVER DATA
+00CE73  2               ;__________________________________________________________________________________________________
+00CE73  2               ; MESSAGES
+00CE73  2               ;__________________________________________________________________________________________________
+00CE73  2               MIOMESSAGE1:
+00CE73  2  49 53 41 20          .BYTE   "ISA MULTI-IO:"
+00CE77  2  4D 55 4C 54  
+00CE7B  2  49 2D 49 4F  
+00CE80  2  00                   .BYTE   00
+00CE81  2               MIOMESSAGE3:
+00CE81  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 NOT FOUND."
+00CE85  2  44 3A 20 56  
+00CE89  2  54 38 32 43  
+00CE9A  2  00                   .BYTE   00
+00CE9B  2               MIOMESSAGE4:
+00CE9B  2  20 20 4B 42          .BYTE   "  KBD: INITIALIZED."
+00CE9F  2  44 3A 20 49  
+00CEA3  2  4E 49 54 49  
+00CEAE  2  00                   .BYTE   00
+00CEAF  2               MIOMESSAGE5:
+00CEAF  2  20 20 4C 50          .BYTE   "  LPT: INITIALIZED."
+00CEB3  2  54 3A 20 49  
+00CEB7  2  4E 49 54 49  
+00CEC2  2  00                   .BYTE   00
+00CEC3  2               MIOMESSAGE6:
+00CEC3  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 WRITE TIMEOUT."
+00CEC7  2  44 3A 20 56  
+00CECB  2  54 38 32 43  
+00CEE0  2  00                   .BYTE   00
+00CEE1  2               MIOMESSAGE7:
+00CEE1  2  20 20 4B 42          .BYTE   "  KBD: VT82C42 READ TIMEOUT."
+00CEE5  2  44 3A 20 56  
+00CEE9  2  54 38 32 43  
+00CEFD  2  00                   .BYTE   00
+00CEFE  2                       .ENDIF
+00CEFE  2               ;
+00CEFE  2               ; MAPPING
+00CEFE  2               ;__________________________________________________________________________________________________
+00CEFE  2               ;
+00CEFE  2               KBD_MAPSTD:                     ; SCANCODE IS INDEX INTO TABLE TO RESULTANT LOOKUP KEYCODE
+00CEFE  2  FF E8 FF E4          .BYTE   $FF,$E8,$FF,$E4,$E2,$E0,$E1,$EB,$FF,$E9,$E7,$E5,$E3,$09,'`',$FF
+00CF02  2  E2 E0 E1 EB  
+00CF06  2  FF E9 E7 E5  
+00CF0E  2  FF B4 B0 FF          .BYTE   $FF,$B4,$B0,$FF,$B2,'q','1',$FF,$FF,$FF,'z','s','a','w','2',$FF
+00CF12  2  B2 71 31 FF  
+00CF16  2  FF FF 7A 73  
+00CF1E  2  FF 63 78 64          .BYTE   $FF,'c','x','d','e','4','3',$FF,$FF,' ','v','f','t','r','5',$FF
+00CF22  2  65 34 33 FF  
+00CF26  2  FF 20 76 66  
+00CF2E  2  FF 6E 62 68          .BYTE   $FF,'n','b','h','g','y','6',$FF,$FF,$FF,'m','j','u','7','8',$FF
+00CF32  2  67 79 36 FF  
+00CF36  2  FF FF 6D 6A  
+00CF3E  2  FF 2C 6B 69          .BYTE   $FF,',','k','i','o','0','9',$FF,$FF,'.','/','l',';','p','-',$FF
+00CF42  2  6F 30 39 FF  
+00CF46  2  FF 2E 2F 6C  
+00CF4E  2  FF FF 27 FF          .BYTE   $FF,$FF,$27,$FF,'[','=',$FF,$FF,$BC,$B1,$0D,']',$FF,'\',$FF,$FF
+00CF52  2  5B 3D FF FF  
+00CF56  2  BC B1 0D 5D  
+00CF5E  2  FF FF FF FF          .BYTE   $FF,$FF,$FF,$FF,$FF,$FF,$08,$FF,$FF,$C0,$FF,$C3,$C6,$FF,$FF,$FF
+00CF62  2  FF FF 08 FF  
+00CF66  2  FF C0 FF C3  
+00CF6E  2  C9 CA C1 C4          .BYTE   $C9,$CA,$C1,$C4,$C5,$C7,$1B,$BD,$FA,$CE,$C2,$CD,$CC,$C8,$BE,$FF
+00CF72  2  C5 C7 1B BD  
+00CF76  2  FA CE C2 CD  
+00CF7E  2  FF FF FF E6          .BYTE   $FF,$FF,$FF,$E6,$EC
+00CF82  2  EC           
+00CF83  2               BD_MAPSTDEND:
+00CF83  2               ;
+00CF83  2               KBD_MAPSIZ      = BD_MAPSTDEND-KBD_MAPSTD
+00CF83  2               ;
+00CF83  2               KBD_MAPSHIFT:                   ; SCANCODE IS INDEX INTO TABLE TO RESULTANT LOOKUP KEYCODE WHEN SHIFT ACTIVE
+00CF83  2  FF E8 FF E4          .BYTE   $FF,$E8,$FF,$E4,$E2,$E0,$E1,$EB,$FF,$E9,$E7,$E5,$E3,$09,'~',$FF
+00CF87  2  E2 E0 E1 EB  
+00CF8B  2  FF E9 E7 E5  
+00CF93  2  FF B4 B0 FF          .BYTE   $FF,$B4,$B0,$FF,$B2,'Q','!',$FF,$FF,$FF,'Z','S','A','W','@',$FF
+00CF97  2  B2 51 21 FF  
+00CF9B  2  FF FF 5A 53  
+00CFA3  2  FF 43 58 44          .BYTE   $FF,'C','X','D','E','$','#',$FF,$FF,' ','V','F','T','R','%',$FF
+00CFA7  2  45 24 23 FF  
+00CFAB  2  FF 20 56 46  
+00CFB3  2  FF 4E 42 48          .BYTE   $FF,'N','B','H','G','Y','^',$FF,$FF,$FF,'M','J','U','&','*',$FF
+00CFB7  2  47 59 5E FF  
+00CFBB  2  FF FF 4D 4A  
+00CFC3  2  FF 3C 4B 49          .BYTE   $FF,'<','K','I','O',')','(',$FF,$FF,'>','?','L',':','P','_',$FF
+00CFC7  2  4F 29 28 FF  
+00CFCB  2  FF 3E 3F 4C  
+00CFD3  2  FF FF 22 FF          .BYTE   $FF,$FF,$22,$FF,'{','+',$FF,$FF,$BC,$B1,$0D,'}',$FF,'|',$FF,$FF
+00CFD7  2  7B 2B FF FF  
+00CFDB  2  BC B1 0D 7D  
+00CFE3  2  FF FF FF FF          .BYTE   $FF,$FF,$FF,$FF,$FF,$FF,$08,$FF,$FF,$D0,$FF,$D3,$D6,$FF,$FF,$FF
+00CFE7  2  FF FF 08 FF  
+00CFEB  2  FF D0 FF D3  
+00CFF3  2  D9 DA D1 D4          .BYTE   $D9,$DA,$D1,$D4,$D5,$D7,$1B,$BD,$FA,$DE,$D2,$DD,$DC,$D8,$BE,$FF
+00CFF7  2  D5 D7 1B BD  
+00CFFB  2  FA DE D2 DD  
+00D003  2  FF FF FF E6          .BYTE   $FF,$FF,$FF,$E6,$EC
+00D007  2  EC           
+00D008  2               ;
+00D008  2               KBD_MAPEXT:                     ; PAIRS ARE [SCANCODE,KEYCODE] FOR EXTENDED SCANCODES
+00D008  2  11 B5 14 B3          .BYTE   $11,$B5,$14,$B3,$1F,$B6,$27,$B7
+00D00C  2  1F B6 27 B7  
+00D010  2  2F EF 37 FA          .BYTE   $2F,$EF,$37,$FA,$3F,$FB,$4A,$CB
+00D014  2  3F FB 4A CB  
+00D018  2  5A CF 5E FC          .BYTE   $5A,$CF,$5E,$FC,$69,$F3,$6B,$F8
+00D01C  2  69 F3 6B F8  
+00D020  2  6C F2 70 F0          .BYTE   $6C,$F2,$70,$F0,$71,$F1,$72,$F7
+00D024  2  71 F1 72 F7  
+00D028  2  74 F9 75 F6          .BYTE   $74,$F9,$75,$F6,$7A,$F5,$7C,$ED
+00D02C  2  7A F5 7C ED  
+00D030  2  7D F4 7E FD          .BYTE   $7D,$F4,$7E,$FD,$00,$00
+00D034  2  00 00        
+00D036  2               ;
+00D036  2               KBD_MAPNUMPAD:                  ; KEYCODE TRANSLATION FROM NUMPAD RANGE TO STD ASCII/KEYCODES
+00D036  2  F3 F7 F5 F8          .BYTE   $F3,$F7,$F5,$F8,$FF,$F9,$F2,$F6,$F4,$F0,$F1,$2F,$2A,$2D,$2B,$0D
+00D03A  2  FF F9 F2 F6  
+00D03E  2  F4 F0 F1 2F  
+00D046  2  31 32 33 34          .BYTE   $31,$32,$33,$34,$35,$36,$37,$38,$39,$30,$2E,$2F,$2A,$2D,$2B,$0D
+00D04A  2  35 36 37 38  
+00D04E  2  39 30 2E 2F  
+00D056  2               
+00D056  2               
+00D056  2               KBD_BUFFERPTR:
+00D056  2  00                   .BYTE $00
+00D057  2               KBD_BUFFER:
+00D057  2  00 00 00 00          .BYTE $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+00D05B  2  00 00 00 00  
+00D05F  2  00 00 00 00  
+00D069  2               
+00D069  2               ;
+00D069  2               ;
+00D069  2               ;__________________________________________________________________________________________________
+00D069  2               ; KEYCODE VALUES RETURNED BY THE DECODER
+00D069  2               ;__________________________________________________________________________________________________
+00D069  2               ;
+00D069  2               ; VALUES 0-127 ARE STANDARD ASCII, SPECIAL KEYS WILL HAVE THE FOLLOWING VALUES:
+00D069  2               ;
+00D069  2               ; F1		$E0
+00D069  2               ; F2		$E1
+00D069  2               ; F3		$E2
+00D069  2               ; F4		$E3
+00D069  2               ; F5		$E4
+00D069  2               ; F6		$E5
+00D069  2               ; F7		$E6
+00D069  2               ; F8		$E7
+00D069  2               ; F9		$E8
+00D069  2               ; F10		$E9
+00D069  2               ; F11		$EA
+00D069  2               ; F12		$EB
+00D069  2               ; SYSRQ		$EC
+00D069  2               ; PRTSC		$ED
+00D069  2               ; PAUSE		$EE
+00D069  2               ; APP		$EF
+00D069  2               ; INS		$F0
+00D069  2               ; DEL		$F1
+00D069  2               ; HOME		$F2
+00D069  2               ; END		$F3
+00D069  2               ; PGUP		$F4
+00D069  2               ; PGDN		$F5
+00D069  2               ; UP		$F6
+00D069  2               ; DOWN		$F7
+00D069  2               ; LEFT		$F8
+00D069  2               ; RIGHT		$F9
+00D069  2               ; POWER		$FA
+00D069  2               ; SLEEP		$FB
+00D069  2               ; WAKE		$FC
+00D069  2               ; BREAK		$FD
+00D069  2               ;___________________________________________________________________________________________________________________
+00D069  2               ;
+00D069  2               ; CENTRONICS (LPT) INTERFACE DRIVER
+00D069  2               ;___________________________________________________________________________________________________________________
+00D069  2               ;
+00D069  2               ; BYTE OUTPUT
+00D069  2               ;
+00D069  2               LPT_OUT:
+00D069  2  48                   PHA
+00D06A  2  A2 FF                LDX     #<LPT_WAITTO
+00D06C  2  A0 30                LDY     #>LPT_WAITTO
+00D06E  2               :
+00D06E  2  20 96 D0             JSR     LPT_OST         ; READY TO SEND?
+00D071  2  D0 0D                BNE     :+              ; GO IF READY
+00D073  2  CA                   DEX
+00D074  2  E0 00                CPX     #$00
+00D076  2  D0 F6                BNE     :-              ; LOOP IF NOT READY
+00D078  2  88                   DEY
+00D079  2  C0 00                CPY     #$00
+00D07B  2  D0 F1                BNE     :-              ; LOOP IF NOT READY
+00D07D  2  68                   PLA
+00D07E  2  38                   SEC                     ; SIGNAL ERROR
+00D07F  2  60                   RTS
+00D080  2               :
+00D080  2  68                   PLA
+00D081  2  8D F0 E3             STA     LPT_0           ; OUTPUT TO PORT 0 (DATA)
+00D084  2  A9 0D                LDA     #%00001101      ; SELECT & STROBE, LEDS OFF
+00D086  2  8D F2 E3             STA     LPT_2           ; OUTPUT DATA TO PORT
+00D089  2  20 45 CE             JSR     DELAY
+00D08C  2  A9 0C                LDA     #%00001100      ; SELECT, LEDS OFF
+00D08E  2  8D F2 E3             STA     LPT_2           ; OUTPUT DATA TO PORT
+00D091  2  20 45 CE             JSR     DELAY
+00D094  2  18                   CLC
+00D095  2  60                   RTS
+00D096  2               ;
+00D096  2               ; OUTPUT STATUS
+00D096  2               ;
+00D096  2               LPT_OST:
+00D096  2  AD F1 E3             LDA     LPT_1           ; GET STATUS INFO
+00D099  2  29 80                AND     #%10000000      ; ISOLATE /BUSY
+00D09B  2  60                   RTS                     ; DONE
+00D09C  2               
+00D09C  1                       .INCLUDE "bios_rtc.asm"
+00D09C  2               
+00D09C  2               
+00D09C  2               ;__RTC DRIVERS___________________________________________________________________________________________________________________
+00D09C  2               ;
+00D09C  2               ; 	DOS REAL TIME CLOCK drivers
+00D09C  2               ;
+00D09C  2               ;	Entry points:
+00D09C  2               ;		DOSREADRTC   - called to RETURN RTC
+00D09C  2               ;________________________________________________________________________________________________________________________________
+00D09C  2               ;
+00D09C  2               ;*
+00D09C  2               ;* HARDWARE I/O ADDRESSES
+00D09C  2               ;*
+00D09C  2               RTCBASE         = PC6502_IOSPACE+$90;
+00D09C  2               
+00D09C  2               
+00D09C  2               ;__RTC_WRITE____________________________________________________
+00D09C  2               ; write a value to the RTC
+00D09C  2               ; address in X
+00D09C  2               ; value in Y
+00D09C  2               ;_______________________________________________________________
+00D09C  2               RTC_WRITE:
+00D09C  2  E0 07                CPX     #7
+00D09E  2  B0 43                BCS     :++
+00D0A0  2  E0 06                CPX     #6
+00D0A2  2  D0 01                BNE     :+
+00D0A4  2  CA                   DEX
+00D0A5  2               :
+00D0A5  2  8C 96 D1             STY     RTCWORK
+00D0A8  2  8A                   TXA
+00D0A9  2  18                   CLC
+00D0AA  2  2A                   ROL     A               ; ADDRESS * 2
+00D0AB  2  29 0F                AND     #$0F            ; CLEAR UPPER BITS
+00D0AD  2  AA                   TAX                     ; address in x
+00D0AE  2  A9 02                LDA     #$02
+00D0B0  2  8D 9F EF             STA     RTCBASE+$0F
+00D0B3  2  AD 96 D1             LDA     RTCWORK         ; value in A
+00D0B6  2  29 0F                AND     #$0F
+00D0B8  2  9D 90 EF             STA     RTCBASE,X       ; SET LOW NIBBLE OF VALUE
+00D0BB  2  E8                   INX
+00D0BC  2  AD 96 D1             LDA     RTCWORK         ; value in A
+00D0BF  2  29 F0                AND     #$F0
+00D0C1  2  18                   CLC
+00D0C2  2  6A                   ROR     A
 00D0C3  2  6A                   ROR     A
 00D0C4  2  6A                   ROR     A
 00D0C5  2  6A                   ROR     A
-00D0C6  2  6A                   ROR     A
-00D0C7  2  9D 90 EF             STA     RTCBASE,X       ; SET HIGH NIBBLE OF VALUE
-00D0CA  2  A9 00                LDA     #$00
-00D0CC  2  8D 9D EF             STA     RTCBASE + $0D
-00D0CF  2  8D 9E EF             STA     RTCBASE + $0E
-00D0D2  2  A9 01                LDA     #$01
-00D0D4  2  8D 9F EF             STA     RTCBASE + $0F
-00D0D7  2  A9 05                LDA     #$05
-00D0D9  2  8D 9F EF             STA     RTCBASE + $0F
-00D0DC  2  A9 04                LDA     #$04
-00D0DE  2  8D 9F EF             STA     RTCBASE + $0F
-00D0E1  2  A9 00                LDA     #$00
-00D0E3  2  60                   RTS
-00D0E4  2               :
-00D0E4  2  A9 FF                LDA     #$FF
-00D0E6  2  60                   RTS
-00D0E7  2               
-00D0E7  2               
-00D0E7  2               ;__RTC_READ______________________________________________________
-00D0E7  2               ; read a value from the RTC
-00D0E7  2               ; address in X
-00D0E7  2               ; value in Y
-00D0E7  2               ;_______________________________________________________________
-00D0E7  2               RTC_READ:
-00D0E7  2  E0 06                CPX     #6
-00D0E9  2  D0 01                BNE     :+
-00D0EB  2  CA                   DEX
-00D0EC  2               :
-00D0EC  2  8A                   TXA
-00D0ED  2  18                   CLC                     ; CLEAR CARRY
-00D0EE  2  2A                   ROL     A               ; ADDRESS * 2
-00D0EF  2  29 0F                AND     #$0F            ; CLEAR UPPER BITS
-00D0F1  2  AA                   TAX                     ; address in x
-00D0F2  2  BD 90 EF             LDA     RTCBASE,X       ; GET LOW NIBBLE OF VALUE
-00D0F5  2  29 0F                AND     #$0F
-00D0F7  2  8D 97 D1             STA     RTCWORK
-00D0FA  2  E8                   INX
-00D0FB  2  BD 90 EF             LDA     RTCBASE,X       ; GET HIGH NIBBLE OF VALUE
+00D0C6  2  9D 90 EF             STA     RTCBASE,X       ; SET HIGH NIBBLE OF VALUE
+00D0C9  2  A9 00                LDA     #$00
+00D0CB  2  8D 9D EF             STA     RTCBASE + $0D
+00D0CE  2  8D 9E EF             STA     RTCBASE + $0E
+00D0D1  2  A9 01                LDA     #$01
+00D0D3  2  8D 9F EF             STA     RTCBASE + $0F
+00D0D6  2  A9 05                LDA     #$05
+00D0D8  2  8D 9F EF             STA     RTCBASE + $0F
+00D0DB  2  A9 04                LDA     #$04
+00D0DD  2  8D 9F EF             STA     RTCBASE + $0F
+00D0E0  2  A9 00                LDA     #$00
+00D0E2  2  60                   RTS
+00D0E3  2               :
+00D0E3  2  A9 FF                LDA     #$FF
+00D0E5  2  60                   RTS
+00D0E6  2               
+00D0E6  2               
+00D0E6  2               ;__RTC_READ______________________________________________________
+00D0E6  2               ; read a value from the RTC
+00D0E6  2               ; address in X
+00D0E6  2               ; value in Y
+00D0E6  2               ;_______________________________________________________________
+00D0E6  2               RTC_READ:
+00D0E6  2  E0 06                CPX     #6
+00D0E8  2  D0 01                BNE     :+
+00D0EA  2  CA                   DEX
+00D0EB  2               :
+00D0EB  2  8A                   TXA
+00D0EC  2  18                   CLC                     ; CLEAR CARRY
+00D0ED  2  2A                   ROL     A               ; ADDRESS * 2
+00D0EE  2  29 0F                AND     #$0F            ; CLEAR UPPER BITS
+00D0F0  2  AA                   TAX                     ; address in x
+00D0F1  2  BD 90 EF             LDA     RTCBASE,X       ; GET LOW NIBBLE OF VALUE
+00D0F4  2  29 0F                AND     #$0F
+00D0F6  2  8D 96 D1             STA     RTCWORK
+00D0F9  2  E8                   INX
+00D0FA  2  BD 90 EF             LDA     RTCBASE,X       ; GET HIGH NIBBLE OF VALUE
+00D0FD  2  2A                   ROL     A
 00D0FE  2  2A                   ROL     A
 00D0FF  2  2A                   ROL     A
 00D100  2  2A                   ROL     A
-00D101  2  2A                   ROL     A
-00D102  2  29 F0                AND     #$F0
-00D104  2  0D 97 D1             ORA     RTCWORK         ; return value in a
-00D107  2  A8                   TAY
-00D108  2  A9 00                LDA     #$00
-00D10A  2  60                   RTS
+00D101  2  29 F0                AND     #$F0
+00D103  2  0D 96 D1             ORA     RTCWORK         ; return value in a
+00D106  2  A8                   TAY
+00D107  2  A9 00                LDA     #$00
+00D109  2  60                   RTS
+00D10A  2               
+00D10A  2               ;_______________________________________________________________
+00D10A  2               ; function RTC_BEEP
+00D10A  2               ;
+00D10A  2               ;_______________________________________________________________
+00D10A  2               RTC_BEEP:
+00D10A  2  60                   RTS                     ; NOT SUPPORTED NO HARDWARE
 00D10B  2               
 00D10B  2               ;_______________________________________________________________
-00D10B  2               ; function RTC_BEEP
+00D10B  2               ; function RTC_BUTTON
 00D10B  2               ;
 00D10B  2               ;_______________________________________________________________
-00D10B  2               RTC_BEEP:
-00D10B  2  60                   RTS                     ; NOT SUPPORTED NO HARDWARE
-00D10C  2               
-00D10C  2               ;_______________________________________________________________
-00D10C  2               ; function RTC_BUTTON
-00D10C  2               ;
-00D10C  2               ;_______________________________________________________________
-00D10C  2               RTC_BUTTON:
-00D10C  2  A9 FF                LDA     #$FF
+00D10B  2               RTC_BUTTON:
+00D10B  2  A9 FF                LDA     #$FF
+00D10D  2  60                   RTS                     ; NOT SUPPORTED NO HARDWARE
+00D10E  2               
+00D10E  2               ;_______________________________________________________________
+00D10E  2               ; function RTC_LED
+00D10E  2               ;
+00D10E  2               ;_______________________________________________________________
+00D10E  2               RTC_LED:
 00D10E  2  60                   RTS                     ; NOT SUPPORTED NO HARDWARE
 00D10F  2               
-00D10F  2               ;_______________________________________________________________
-00D10F  2               ; function RTC_LED
+00D10F  2               ;__RTC_INIT________________________________________________________________________________________
 00D10F  2               ;
-00D10F  2               ;_______________________________________________________________
-00D10F  2               RTC_LED:
-00D10F  2  60                   RTS                     ; NOT SUPPORTED NO HARDWARE
-00D110  2               
-00D110  2               ;__RTC_INIT________________________________________________________________________________________
-00D110  2               ;
-00D110  2               ;  INIT AND DISPLAY RTC INFO
-00D110  2               ;____________________________________________________________________________________________________
-00D110  2               ;
-00D110  2               RTC_INIT:
-00D110  2  20 6C D5             JSR     LFCR            ; AND CRLF
-00D113  2  A9 98                LDA     #<RTCMESSAGE1   ;
-00D115  2  85 41                STA     STRPTR          ;
-00D117  2  A9 D1                LDA     #>RTCMESSAGE1   ;
-00D119  2  85 42                STA     STRPTR+1        ;
-00D11B  2  20 77 D5             JSR     WRSTR
-00D11E  2  20 6C D5             JSR     LFCR            ; AND CRLF
-00D121  2  A9 55                LDA     #<MESSAGE2      ;
-00D123  2  85 41                STA     STRPTR          ;
-00D125  2  A9 C3                LDA     #>MESSAGE2      ;
-00D127  2  85 42                STA     STRPTR+1        ;
-00D129  2  20 77 D5             JSR     WRSTR
-00D12C  2  A9 EF                LDA     #>RTCBASE
-00D12E  2  20 8C D5             JSR     PRINT_BYTE
-00D131  2  A9 90                LDA     #<RTCBASE
-00D133  2  20 8C D5             JSR     PRINT_BYTE
-00D136  2  20 6C D5             JSR     LFCR            ; AND CRLF
-00D139  2  A9 9D                LDA     #<RTCMESSAGE2   ;
-00D13B  2  85 41                STA     STRPTR          ;
-00D13D  2  A9 D1                LDA     #>RTCMESSAGE2   ;
-00D13F  2  85 42                STA     STRPTR+1        ;
-00D141  2  20 77 D5             JSR     WRSTR
-00D144  2  A2 02                LDX     #2
-00D146  2  20 E7 D0             JSR     RTC_READ
-00D149  2  98                   TYA
-00D14A  2  20 8C D5             JSR     PRINT_BYTE
-00D14D  2  A9 3A                LDA     #':'
-00D14F  2  20 63 D5             JSR     DFT_CONSOLE_OUT
-00D152  2  A2 01                LDX     #1
-00D154  2  20 E7 D0             JSR     RTC_READ
-00D157  2  98                   TYA
-00D158  2  20 8C D5             JSR     PRINT_BYTE
-00D15B  2  A9 3A                LDA     #':'
-00D15D  2  20 63 D5             JSR     DFT_CONSOLE_OUT
-00D160  2  A2 00                LDX     #0
-00D162  2  20 E7 D0             JSR     RTC_READ
-00D165  2  98                   TYA
-00D166  2  20 8C D5             JSR     PRINT_BYTE
-00D169  2  A9 20                LDA     #' '
-00D16B  2  20 63 D5             JSR     DFT_CONSOLE_OUT
-00D16E  2  A2 04                LDX     #4
-00D170  2  20 E7 D0             JSR     RTC_READ
-00D173  2  98                   TYA
-00D174  2  20 8C D5             JSR     PRINT_BYTE
-00D177  2  A9 2F                LDA     #'/'
-00D179  2  20 63 D5             JSR     DFT_CONSOLE_OUT
-00D17C  2  A2 03                LDX     #3
-00D17E  2  20 E7 D0             JSR     RTC_READ
-00D181  2  98                   TYA
-00D182  2  20 8C D5             JSR     PRINT_BYTE
-00D185  2  A9 2F                LDA     #'/'
-00D187  2  20 63 D5             JSR     DFT_CONSOLE_OUT
-00D18A  2  A2 06                LDX     #6
-00D18C  2  20 E7 D0             JSR     RTC_READ
-00D18F  2  98                   TYA
-00D190  2  20 8C D5             JSR     PRINT_BYTE
-00D193  2  20 6C D5             JSR     LFCR            ; AND CRLF
-00D196  2  60                   RTS
+00D10F  2               ;  INIT AND DISPLAY RTC INFO
+00D10F  2               ;____________________________________________________________________________________________________
+00D10F  2               ;
+00D10F  2               RTC_INIT:
+00D10F  2  20 6B D5             JSR     LFCR            ; AND CRLF
+00D112  2  A9 97                LDA     #<RTCMESSAGE1   ;
+00D114  2  85 41                STA     STRPTR          ;
+00D116  2  A9 D1                LDA     #>RTCMESSAGE1   ;
+00D118  2  85 42                STA     STRPTR+1        ;
+00D11A  2  20 76 D5             JSR     WRSTR
+00D11D  2  20 6B D5             JSR     LFCR            ; AND CRLF
+00D120  2  A9 55                LDA     #<MESSAGE2      ;
+00D122  2  85 41                STA     STRPTR          ;
+00D124  2  A9 C3                LDA     #>MESSAGE2      ;
+00D126  2  85 42                STA     STRPTR+1        ;
+00D128  2  20 76 D5             JSR     WRSTR
+00D12B  2  A9 EF                LDA     #>RTCBASE
+00D12D  2  20 8B D5             JSR     PRINT_BYTE
+00D130  2  A9 90                LDA     #<RTCBASE
+00D132  2  20 8B D5             JSR     PRINT_BYTE
+00D135  2  20 6B D5             JSR     LFCR            ; AND CRLF
+00D138  2  A9 9C                LDA     #<RTCMESSAGE2   ;
+00D13A  2  85 41                STA     STRPTR          ;
+00D13C  2  A9 D1                LDA     #>RTCMESSAGE2   ;
+00D13E  2  85 42                STA     STRPTR+1        ;
+00D140  2  20 76 D5             JSR     WRSTR
+00D143  2  A2 02                LDX     #2
+00D145  2  20 E6 D0             JSR     RTC_READ
+00D148  2  98                   TYA
+00D149  2  20 8B D5             JSR     PRINT_BYTE
+00D14C  2  A9 3A                LDA     #':'
+00D14E  2  20 62 D5             JSR     DFT_CONSOLE_OUT
+00D151  2  A2 01                LDX     #1
+00D153  2  20 E6 D0             JSR     RTC_READ
+00D156  2  98                   TYA
+00D157  2  20 8B D5             JSR     PRINT_BYTE
+00D15A  2  A9 3A                LDA     #':'
+00D15C  2  20 62 D5             JSR     DFT_CONSOLE_OUT
+00D15F  2  A2 00                LDX     #0
+00D161  2  20 E6 D0             JSR     RTC_READ
+00D164  2  98                   TYA
+00D165  2  20 8B D5             JSR     PRINT_BYTE
+00D168  2  A9 20                LDA     #' '
+00D16A  2  20 62 D5             JSR     DFT_CONSOLE_OUT
+00D16D  2  A2 04                LDX     #4
+00D16F  2  20 E6 D0             JSR     RTC_READ
+00D172  2  98                   TYA
+00D173  2  20 8B D5             JSR     PRINT_BYTE
+00D176  2  A9 2F                LDA     #'/'
+00D178  2  20 62 D5             JSR     DFT_CONSOLE_OUT
+00D17B  2  A2 03                LDX     #3
+00D17D  2  20 E6 D0             JSR     RTC_READ
+00D180  2  98                   TYA
+00D181  2  20 8B D5             JSR     PRINT_BYTE
+00D184  2  A9 2F                LDA     #'/'
+00D186  2  20 62 D5             JSR     DFT_CONSOLE_OUT
+00D189  2  A2 06                LDX     #6
+00D18B  2  20 E6 D0             JSR     RTC_READ
+00D18E  2  98                   TYA
+00D18F  2  20 8B D5             JSR     PRINT_BYTE
+00D192  2  20 6B D5             JSR     LFCR            ; AND CRLF
+00D195  2  60                   RTS
+00D196  2               
+00D196  2               
+00D196  2               
+00D196  2               RTCWORK:
+00D196  2  00                   .BYTE   00
 00D197  2               
 00D197  2               
-00D197  2               
-00D197  2               RTCWORK:
-00D197  2  00                   .BYTE   00
-00D198  2               
-00D198  2               
-00D198  2               RTCMESSAGE1:
-00D198  2  52 54 43 3A          .BYTE   "RTC:"
-00D19C  2  00                   .BYTE   00
-00D19D  2               RTCMESSAGE2:
-00D19D  2  20 43 55 52          .BYTE   " CURRENT DATE/TIME:  "
-00D1A1  2  52 45 4E 54  
-00D1A5  2  20 44 41 54  
-00D1B2  2  00                   .BYTE   00
-00D1B3  2               
-00D1B3  1                       .INCLUDE "bios_video.asm"
-00D1B3  2               ;__VIDEO DRIVERS________________________________________________________________________________________________________________
-00D1B3  2               ;
-00D1B3  2               ; 	Video drivers for the memory mapped video card
-00D1B3  2               ;
-00D1B3  2               ;	Entry points:
-00D1B3  2               ;		VIDEOINIT   - called during OS init
-00D1B3  2               ;		WRVID	    - write a byte to video port  ('A' POINTS TO BYTE)
-00D1B3  2               ;		SETXY	    - Set the xy position of the cursor (X=X,Y=Y)
-00D1B3  2               ;		CLEARSCREEN - Set the xy position of the cursor (X=X,Y=Y)
-00D1B3  2               ;		SETCOLOR    - Set the xy position of the cursor (X=X,Y=Y)
-00D1B3  2               ;               SCROLLUP    - Scroll the screen up one line
-00D1B3  2               ;               SETMODE     - Set 40/80 mode
-00D1B3  2               ;________________________________________________________________________________________________________________________________
-00D1B3  2               ;
-00D1B3  2               
-00D1B3  2               VIDEOBANK       = $F8
-00D1B3  2               
-00D1B3  2               ; DATA STORAGE
-00D1B3  2               VIDEOWORK:
-00D1B3  2  00 00 00 00          .BYTE   00,00,00,00,00,00
-00D1B7  2  00 00        
-00D1B9  2               ;*
-00D1B9  2               ;* MEMORY MAP
-00D1B9  2               ;  VIDEO CARD IS A 32K AREA
-00D1B9  2               ;  $0x00 0x01=soft_scanline_emulation, 0x02 NO soft_scanline_emulation
-00D1B9  2               ;  $0x01 0x01=page1, 0x02 page2
-00D1B9  2               ;  $0x02  character generator write offset (data << 3)
-00D1B9  2               ;  $0x03 character generator write DATA
-00D1B9  2               ;  $0x04 EXECUTE device command
-00D1B9  2               ;        0x00- reset to the default configuration
-00D1B9  2               ;        0x01- reset to the saved configuration
-00D1B9  2               ;	0x02- save the current configuration
-00D1B9  2               ;
-00D1B9  2               ;  $0x05  0x01=soft_text=true, 0x02=soft_text=false
-00D1B9  2               ;  $0x06 Lores Mode=0X01,NO lores Mode=0x02
-00D1B9  2               ;  $0x07 Double Lores Mode=0X01,NO Double lores Mode=0x02
-00D1B9  2               ;  $0x08 Hires Mode=0X01,NO Hires Mode=0x02
-00D1B9  2               ;  $0x09 Double Hires Mode=0X01,NO Double Hires lores Mode=0x02
-00D1B9  2               ;  $0x0A 80COL Mode=0X01,NO 80COL Mode=0x02
-00D1B9  2               ;  $0x0B MIXED Mode=0X01,NO MIXED Mode=0x02
-00D1B9  2               ;  $0x0C QUAD Hires Mode=0X01,NO QUAD Hires lores Mode=0x02
-00D1B9  2               ;  $0x0D MONO Hires Mode=0X01,NO MONO Hires lores Mode=0x02
-00D1B9  2               ;
-00D1B9  2               ; 	VRAM Memory Map
-00D1B9  2               ;	$1000-$177F	40/80 Text Page 1
-00D1B9  2               ;	$1800-$1F7F	40/80 Color Page 1
-00D1B9  2               ;	$2000-$277F	40/80 Text Page 2
-00D1B9  2               ;	$2800-$2F7F	40/80 Color Page 2
-00D1B9  2               ;	$2000-$5FFF	HIRES PAGE 1
-00D1B9  2               ;	$6000-$8FFF	HIRES PAGE 2
-00D1B9  2               ;	$2000-$BFFF	DOUBLE HIRES
-00D1B9  2               ;*
-00D1B9  2               
-00D1B9  2               ;__VIDEOINIT____________________________________________________________________________________________________________________
-00D1B9  2               ;
-00D1B9  2               ;	INITIALIZE VIDEO CARD
-00D1B9  2               ;________________________________________________________________________________________________________________________________
-00D1B9  2               ;
-00D1B9  2               VIDEOINIT:
-00D1B9  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
-00D1BB  2  A2 0B                LDX     #$0B            ; MAP $BXXX
-00D1BD  2  A0 F8                LDY     #VIDEOBANK      ; TO $F8XXX
-00D1BF  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
-00D1C2  2               
-00D1C2  2  A9 00                LDA     #$00
-00D1C4  2  8D 06 B0             STA     $B006
-00D1C7  2  AD 06 B0             LDA     $B006
-00D1CA  2  C9 00                CMP     #$00
-00D1CC  2  D0 64                BNE     VIDEOINIT_FAIL
-00D1CE  2  A9 FF                LDA     #$FF
-00D1D0  2  8D 06 B0             STA     $B006
-00D1D3  2  AD 06 B0             LDA     $B006
-00D1D6  2  C9 FF                CMP     #$FF
-00D1D8  2  D0 58                BNE     VIDEOINIT_FAIL
-00D1DA  2               
-00D1DA  2  A9 02                LDA     #$02
-00D1DC  2  8D 06 B0             STA     $B006           ; CLEAR LORES MODE
-00D1DF  2  8D 07 B0             STA     $B007           ; CLEAR DOUBLE LORES MODE
-00D1E2  2  8D 08 B0             STA     $B008           ; CLEAR HIRES MODE
-00D1E5  2  8D 09 B0             STA     $B009           ; CLEAR DOUBLE HIRES MODE
-00D1E8  2  8D 0B B0             STA     $B00B           ; CLEAR MIXED MODE
-00D1EB  2  8D 0C B0             STA     $B00C           ; CLEAR QUAD HIRES MODE
-00D1EE  2  8D 0D B0             STA     $B00D           ; CLEAR MONO MODE
-00D1F1  2               
-00D1F1  2  A9 01                LDA     #$01
-00D1F3  2  8D 01 B0             STA     $B001           ; SET TEXT MODE PAGE 1
-00D1F6  2  8D 05 B0             STA     $B005           ; SET TEXT MODE
-00D1F9  2  A9 01                LDA     #$01
-00D1FB  2  8D 0A B0             STA     $B00A           ; SET 80COL MODE
-00D1FE  2               
-00D1FE  2  A9 01                LDA     #$01
-00D200  2  8D 49 06             STA     SHOWCRSR        ; SHOW CURSOR (1-YES, 0-NO)
-00D203  2  A9 1E                LDA     #$1E
-00D205  2  8D 4A 06             STA     CURCOLOR        ; CURRENT PRINT COLOR
-00D208  2  A9 E1                LDA     #$E1
-00D20A  2  8D 4B 06             STA     CSRCOLOR        ; CURRENT CURSOR COLOR
-00D20D  2  A9 01                LDA     #$01
-00D20F  2  8D 4C 06             STA     VIDEOMODE       ; 00=40 COL, 01=80 COL
-00D212  2               
-00D212  2  20 7A D2             JSR     CLEARSCREEN
-00D215  2               
-00D215  2  20 6C D5             JSR     LFCR            ; CRLF
-00D218  2  A9 22                LDA     #<VIDEOMESSAGE1 ;
-00D21A  2  85 41                STA     STRPTR          ;
-00D21C  2  A9 D5                LDA     #>VIDEOMESSAGE1 ;
-00D21E  2  85 42                STA     STRPTR+1        ;
-00D220  2  20 77 D5             JSR     WRSTR
-00D223  2               
-00D223  2  A9 48                LDA     #<VIDEOMESSAGE3 ;
-00D225  2  85 41                STA     STRPTR          ;
-00D227  2  A9 D5                LDA     #>VIDEOMESSAGE3 ;
-00D229  2  85 42                STA     STRPTR+1        ;
-00D22B  2  20 77 D5             JSR     WRSTR
-00D22E  2  20 6C D5             JSR     LFCR            ; AND CRLF
+00D197  2               RTCMESSAGE1:
+00D197  2  52 54 43 3A          .BYTE   "RTC:"
+00D19B  2  00                   .BYTE   00
+00D19C  2               RTCMESSAGE2:
+00D19C  2  20 43 55 52          .BYTE   " CURRENT DATE/TIME:  "
+00D1A0  2  52 45 4E 54  
+00D1A4  2  20 44 41 54  
+00D1B1  2  00                   .BYTE   00
+00D1B2  2               
+00D1B2  1                       .INCLUDE "bios_video.asm"
+00D1B2  2               ;__VIDEO DRIVERS________________________________________________________________________________________________________________
+00D1B2  2               ;
+00D1B2  2               ; 	Video drivers for the memory mapped video card
+00D1B2  2               ;
+00D1B2  2               ;	Entry points:
+00D1B2  2               ;		VIDEOINIT   - called during OS init
+00D1B2  2               ;		WRVID	    - write a byte to video port  ('A' POINTS TO BYTE)
+00D1B2  2               ;		SETXY	    - Set the xy position of the cursor (X=X,Y=Y)
+00D1B2  2               ;		CLEARSCREEN - Set the xy position of the cursor (X=X,Y=Y)
+00D1B2  2               ;		SETCOLOR    - Set the xy position of the cursor (X=X,Y=Y)
+00D1B2  2               ;               SCROLLUP    - Scroll the screen up one line
+00D1B2  2               ;               SETMODE     - Set 40/80 mode
+00D1B2  2               ;________________________________________________________________________________________________________________________________
+00D1B2  2               ;
+00D1B2  2               
+00D1B2  2               VIDEOBANK       = $F8
+00D1B2  2               
+00D1B2  2               ; DATA STORAGE
+00D1B2  2               VIDEOWORK:
+00D1B2  2  00 00 00 00          .BYTE   00,00,00,00,00,00
+00D1B6  2  00 00        
+00D1B8  2               ;*
+00D1B8  2               ;* MEMORY MAP
+00D1B8  2               ;  VIDEO CARD IS A 32K AREA
+00D1B8  2               ;  $0x00 0x01=soft_scanline_emulation, 0x02 NO soft_scanline_emulation
+00D1B8  2               ;  $0x01 0x01=page1, 0x02 page2
+00D1B8  2               ;  $0x02  character generator write offset (data << 3)
+00D1B8  2               ;  $0x03 character generator write DATA
+00D1B8  2               ;  $0x04 EXECUTE device command
+00D1B8  2               ;        0x00- reset to the default configuration
+00D1B8  2               ;        0x01- reset to the saved configuration
+00D1B8  2               ;	0x02- save the current configuration
+00D1B8  2               ;
+00D1B8  2               ;  $0x05  0x01=soft_text=true, 0x02=soft_text=false
+00D1B8  2               ;  $0x06 Lores Mode=0X01,NO lores Mode=0x02
+00D1B8  2               ;  $0x07 Double Lores Mode=0X01,NO Double lores Mode=0x02
+00D1B8  2               ;  $0x08 Hires Mode=0X01,NO Hires Mode=0x02
+00D1B8  2               ;  $0x09 Double Hires Mode=0X01,NO Double Hires lores Mode=0x02
+00D1B8  2               ;  $0x0A 80COL Mode=0X01,NO 80COL Mode=0x02
+00D1B8  2               ;  $0x0B MIXED Mode=0X01,NO MIXED Mode=0x02
+00D1B8  2               ;  $0x0C QUAD Hires Mode=0X01,NO QUAD Hires lores Mode=0x02
+00D1B8  2               ;  $0x0D MONO Hires Mode=0X01,NO MONO Hires lores Mode=0x02
+00D1B8  2               ;
+00D1B8  2               ; 	VRAM Memory Map
+00D1B8  2               ;	$1000-$177F	40/80 Text Page 1
+00D1B8  2               ;	$1800-$1F7F	40/80 Color Page 1
+00D1B8  2               ;	$2000-$277F	40/80 Text Page 2
+00D1B8  2               ;	$2800-$2F7F	40/80 Color Page 2
+00D1B8  2               ;	$2000-$5FFF	HIRES PAGE 1
+00D1B8  2               ;	$6000-$8FFF	HIRES PAGE 2
+00D1B8  2               ;	$2000-$BFFF	DOUBLE HIRES
+00D1B8  2               ;*
+00D1B8  2               
+00D1B8  2               ;__VIDEOINIT____________________________________________________________________________________________________________________
+00D1B8  2               ;
+00D1B8  2               ;	INITIALIZE VIDEO CARD
+00D1B8  2               ;________________________________________________________________________________________________________________________________
+00D1B8  2               ;
+00D1B8  2               VIDEOINIT:
+00D1B8  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
+00D1BA  2  A2 0B                LDX     #$0B            ; MAP $BXXX
+00D1BC  2  A0 F8                LDY     #VIDEOBANK      ; TO $F8XXX
+00D1BE  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
+00D1C1  2               
+00D1C1  2  A9 00                LDA     #$00
+00D1C3  2  8D 06 B0             STA     $B006
+00D1C6  2  AD 06 B0             LDA     $B006
+00D1C9  2  C9 00                CMP     #$00
+00D1CB  2  D0 64                BNE     VIDEOINIT_FAIL
+00D1CD  2  A9 FF                LDA     #$FF
+00D1CF  2  8D 06 B0             STA     $B006
+00D1D2  2  AD 06 B0             LDA     $B006
+00D1D5  2  C9 FF                CMP     #$FF
+00D1D7  2  D0 58                BNE     VIDEOINIT_FAIL
+00D1D9  2               
+00D1D9  2  A9 02                LDA     #$02
+00D1DB  2  8D 06 B0             STA     $B006           ; CLEAR LORES MODE
+00D1DE  2  8D 07 B0             STA     $B007           ; CLEAR DOUBLE LORES MODE
+00D1E1  2  8D 08 B0             STA     $B008           ; CLEAR HIRES MODE
+00D1E4  2  8D 09 B0             STA     $B009           ; CLEAR DOUBLE HIRES MODE
+00D1E7  2  8D 0B B0             STA     $B00B           ; CLEAR MIXED MODE
+00D1EA  2  8D 0C B0             STA     $B00C           ; CLEAR QUAD HIRES MODE
+00D1ED  2  8D 0D B0             STA     $B00D           ; CLEAR MONO MODE
+00D1F0  2               
+00D1F0  2  A9 01                LDA     #$01
+00D1F2  2  8D 01 B0             STA     $B001           ; SET TEXT MODE PAGE 1
+00D1F5  2  8D 05 B0             STA     $B005           ; SET TEXT MODE
+00D1F8  2  A9 01                LDA     #$01
+00D1FA  2  8D 0A B0             STA     $B00A           ; SET 80COL MODE
+00D1FD  2               
+00D1FD  2  A9 01                LDA     #$01
+00D1FF  2  8D 49 06             STA     SHOWCRSR        ; SHOW CURSOR (1-YES, 0-NO)
+00D202  2  A9 1E                LDA     #$1E
+00D204  2  8D 4A 06             STA     CURCOLOR        ; CURRENT PRINT COLOR
+00D207  2  A9 E1                LDA     #$E1
+00D209  2  8D 4B 06             STA     CSRCOLOR        ; CURRENT CURSOR COLOR
+00D20C  2  A9 01                LDA     #$01
+00D20E  2  8D 4C 06             STA     VIDEOMODE       ; 00=40 COL, 01=80 COL
+00D211  2               
+00D211  2  20 79 D2             JSR     CLEARSCREEN
+00D214  2               
+00D214  2  20 6B D5             JSR     LFCR            ; CRLF
+00D217  2  A9 21                LDA     #<VIDEOMESSAGE1 ;
+00D219  2  85 41                STA     STRPTR          ;
+00D21B  2  A9 D5                LDA     #>VIDEOMESSAGE1 ;
+00D21D  2  85 42                STA     STRPTR+1        ;
+00D21F  2  20 76 D5             JSR     WRSTR
+00D222  2               
+00D222  2  A9 47                LDA     #<VIDEOMESSAGE3 ;
+00D224  2  85 41                STA     STRPTR          ;
+00D226  2  A9 D5                LDA     #>VIDEOMESSAGE3 ;
+00D228  2  85 42                STA     STRPTR+1        ;
+00D22A  2  20 76 D5             JSR     WRSTR
+00D22D  2  20 6B D5             JSR     LFCR            ; AND CRLF
+00D230  2               
+00D230  2  60                   RTS
 00D231  2               
-00D231  2  60                   RTS
-00D232  2               
-00D232  2               VIDEOINIT_FAIL:
-00D232  2  20 6C D5             JSR     LFCR            ; CRLF
-00D235  2  A9 22                LDA     #<VIDEOMESSAGE1 ;
-00D237  2  85 41                STA     STRPTR          ;
-00D239  2  A9 D5                LDA     #>VIDEOMESSAGE1 ;
-00D23B  2  85 42                STA     STRPTR+1        ;
-00D23D  2  20 77 D5             JSR     WRSTR
-00D240  2               
-00D240  2  A9 48                LDA     #<VIDEOMESSAGE3 ;
-00D242  2  85 41                STA     STRPTR          ;
-00D244  2  A9 D5                LDA     #>VIDEOMESSAGE3 ;
-00D246  2  85 42                STA     STRPTR+1        ;
-00D248  2  20 77 D5             JSR     WRSTR
-00D24B  2  20 6C D5             JSR     LFCR            ; AND CRLF
-00D24E  2  60                   RTS
-00D24F  2               
-00D24F  2               
-00D24F  2               ;__SETMODE_______________________________________________________________________________________________________________________
-00D24F  2               ;
-00D24F  2               ;	SET 40/80 VIDEO MODE  (0=40/1=80)
-00D24F  2               ;________________________________________________________________________________________________________________________________
-00D24F  2               ;
-00D24F  2               SETMODE:
-00D24F  2  8D 4C 06             STA     VIDEOMODE
-00D252  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
-00D254  2  A2 0B                LDX     #$0B            ; MAP $BXXX
-00D256  2  A0 F8                LDY     #VIDEOBANK      ; TO $F8XXX
-00D258  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
-00D25B  2  A9 01                LDA     #$01
-00D25D  2  8D 01 B0             STA     $B001           ; SET TEXT MODE PAGE 1
-00D260  2  8D 05 B0             STA     $B005           ; SET TEXT MODE
-00D263  2  AD 4C 06             LDA     VIDEOMODE
-00D266  2  C9 00                CMP     #$00
-00D268  2  F0 08                BEQ     :+
-00D26A  2  A9 01                LDA     #$01
-00D26C  2  8D 0A B0             STA     $B00A           ; SET 80COL MODE
-00D26F  2  4C 7A D2             JMP     CLEARSCREEN
-00D272  2               :
-00D272  2  A9 02                LDA     #$02
-00D274  2  8D 0A B0             STA     $B00A           ; SET 40COL MODE
-00D277  2  4C 7A D2             JMP     CLEARSCREEN
-00D27A  2               
-00D27A  2               
-00D27A  2               ;__CLEARSCREEN___________________________________________________________________________________________________________________
-00D27A  2               ;
-00D27A  2               ;	CLEAR VIDEO CARD SCREEN
-00D27A  2               ;________________________________________________________________________________________________________________________________
-00D27A  2               ;
-00D27A  2               CLEARSCREEN:
-00D27A  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
-00D27C  2  A2 0B                LDX     #$0B            ; MAP $BXXX
-00D27E  2  A0 F9                LDY     #VIDEOBANK+1    ; TO $F8XXX
-00D280  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
-00D283  2               
-00D283  2  A9 00                LDA     #$00
-00D285  2  85 3B                STA     TEMPWORD
-00D287  2  A9 B0                LDA     #$B0
-00D289  2  85 3C                STA     TEMPWORD+1
-00D28B  2  A0 00                LDY     #$00
-00D28D  2               ; CLEAR CHAR RAM
-00D28D  2               :
-00D28D  2  A9 20                LDA     #32
-00D28F  2  91 3B                STA     (TEMPWORD),Y
-00D291  2  E6 3B                INC     TEMPWORD
-00D293  2  D0 F8                BNE     :-
-00D295  2  E6 3C                INC     TEMPWORD+1
-00D297  2  A5 3C                LDA     TEMPWORD+1
-00D299  2  C9 B8                CMP     #$B8
-00D29B  2  D0 F0                BNE     :-
-00D29D  2               ; CLEAR COLOR   RAM
-00D29D  2               :
-00D29D  2  AD 4A 06             LDA     CURCOLOR
-00D2A0  2  91 3B                STA     (TEMPWORD),Y
-00D2A2  2  E6 3B                INC     TEMPWORD
-00D2A4  2  D0 F7                BNE     :-
-00D2A6  2  E6 3C                INC     TEMPWORD+1
-00D2A8  2  A5 3C                LDA     TEMPWORD+1
-00D2AA  2  C9 C0                CMP     #$C0
-00D2AC  2  D0 EF                BNE     :-
-00D2AE  2               
-00D2AE  2  A9 00                LDA     #$00
-00D2B0  2  8D 47 06             STA     CURX
-00D2B3  2  8D 48 06             STA     CURY
-00D2B6  2               
-00D2B6  2  AD 4B 06             LDA     CSRCOLOR
-00D2B9  2  8D 00 B8             STA     $B800
-00D2BC  2  60                   RTS
-00D2BD  2               
-00D2BD  2               ;__SETCOLOR______________________________________________________________________________________________________________________
-00D2BD  2               ;
-00D2BD  2               ;	SET COLOR AND CURSOR COLOR
-00D2BD  2               ;       X= COLOR
-00D2BD  2               ;       Y= CURSOR COLOR
-00D2BD  2               ;________________________________________________________________________________________________________________________________
-00D2BD  2               ;
-00D2BD  2               SETCOLOR:
-00D2BD  2  8E 4A 06             STX     CURCOLOR
-00D2C0  2  8C 4B 06             STY     CSRCOLOR
-00D2C3  2  60                   RTS
-00D2C4  2               
-00D2C4  2               ;__SETXY_________________________________________________________________________________________________________________________
-00D2C4  2               ;
-00D2C4  2               ;	SET CURSOR POSITION
-00D2C4  2               ;       X= X POSITION
-00D2C4  2               ;       Y= Y POSITION
-00D2C4  2               ;________________________________________________________________________________________________________________________________
-00D2C4  2               ;
-00D2C4  2               SETXY:
-00D2C4  2  8E 47 06             STX     CURX
-00D2C7  2  8C 48 06             STY     CURY
-00D2CA  2  60                   RTS
+00D231  2               VIDEOINIT_FAIL:
+00D231  2  20 6B D5             JSR     LFCR            ; CRLF
+00D234  2  A9 21                LDA     #<VIDEOMESSAGE1 ;
+00D236  2  85 41                STA     STRPTR          ;
+00D238  2  A9 D5                LDA     #>VIDEOMESSAGE1 ;
+00D23A  2  85 42                STA     STRPTR+1        ;
+00D23C  2  20 76 D5             JSR     WRSTR
+00D23F  2               
+00D23F  2  A9 47                LDA     #<VIDEOMESSAGE3 ;
+00D241  2  85 41                STA     STRPTR          ;
+00D243  2  A9 D5                LDA     #>VIDEOMESSAGE3 ;
+00D245  2  85 42                STA     STRPTR+1        ;
+00D247  2  20 76 D5             JSR     WRSTR
+00D24A  2  20 6B D5             JSR     LFCR            ; AND CRLF
+00D24D  2  60                   RTS
+00D24E  2               
+00D24E  2               
+00D24E  2               ;__SETMODE_______________________________________________________________________________________________________________________
+00D24E  2               ;
+00D24E  2               ;	SET 40/80 VIDEO MODE  (0=40/1=80)
+00D24E  2               ;________________________________________________________________________________________________________________________________
+00D24E  2               ;
+00D24E  2               SETMODE:
+00D24E  2  8D 4C 06             STA     VIDEOMODE
+00D251  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
+00D253  2  A2 0B                LDX     #$0B            ; MAP $BXXX
+00D255  2  A0 F8                LDY     #VIDEOBANK      ; TO $F8XXX
+00D257  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
+00D25A  2  A9 01                LDA     #$01
+00D25C  2  8D 01 B0             STA     $B001           ; SET TEXT MODE PAGE 1
+00D25F  2  8D 05 B0             STA     $B005           ; SET TEXT MODE
+00D262  2  AD 4C 06             LDA     VIDEOMODE
+00D265  2  C9 00                CMP     #$00
+00D267  2  F0 08                BEQ     :+
+00D269  2  A9 01                LDA     #$01
+00D26B  2  8D 0A B0             STA     $B00A           ; SET 80COL MODE
+00D26E  2  4C 79 D2             JMP     CLEARSCREEN
+00D271  2               :
+00D271  2  A9 02                LDA     #$02
+00D273  2  8D 0A B0             STA     $B00A           ; SET 40COL MODE
+00D276  2  4C 79 D2             JMP     CLEARSCREEN
+00D279  2               
+00D279  2               
+00D279  2               ;__CLEARSCREEN___________________________________________________________________________________________________________________
+00D279  2               ;
+00D279  2               ;	CLEAR VIDEO CARD SCREEN
+00D279  2               ;________________________________________________________________________________________________________________________________
+00D279  2               ;
+00D279  2               CLEARSCREEN:
+00D279  2  A9 01                LDA     #$01            ; MODIFY TASK 01 (DRIVER TASK)
+00D27B  2  A2 0B                LDX     #$0B            ; MAP $BXXX
+00D27D  2  A0 F9                LDY     #VIDEOBANK+1    ; TO $F8XXX
+00D27F  2  20 F6 FF             JSR     $FFF6           ; CALL SETPAGE
+00D282  2               
+00D282  2  A9 00                LDA     #$00
+00D284  2  85 3B                STA     TEMPWORD
+00D286  2  A9 B0                LDA     #$B0
+00D288  2  85 3C                STA     TEMPWORD+1
+00D28A  2  A0 00                LDY     #$00
+00D28C  2               ; CLEAR CHAR RAM
+00D28C  2               :
+00D28C  2  A9 20                LDA     #32
+00D28E  2  91 3B                STA     (TEMPWORD),Y
+00D290  2  E6 3B                INC     TEMPWORD
+00D292  2  D0 F8                BNE     :-
+00D294  2  E6 3C                INC     TEMPWORD+1
+00D296  2  A5 3C                LDA     TEMPWORD+1
+00D298  2  C9 B8                CMP     #$B8
+00D29A  2  D0 F0                BNE     :-
+00D29C  2               ; CLEAR COLOR   RAM
+00D29C  2               :
+00D29C  2  AD 4A 06             LDA     CURCOLOR
+00D29F  2  91 3B                STA     (TEMPWORD),Y
+00D2A1  2  E6 3B                INC     TEMPWORD
+00D2A3  2  D0 F7                BNE     :-
+00D2A5  2  E6 3C                INC     TEMPWORD+1
+00D2A7  2  A5 3C                LDA     TEMPWORD+1
+00D2A9  2  C9 C0                CMP     #$C0
+00D2AB  2  D0 EF                BNE     :-
+00D2AD  2               
+00D2AD  2  A9 00                LDA     #$00
+00D2AF  2  8D 47 06             STA     CURX
+00D2B2  2  8D 48 06             STA     CURY
+00D2B5  2               
+00D2B5  2  AD 4B 06             LDA     CSRCOLOR
+00D2B8  2  8D 00 B8             STA     $B800
+00D2BB  2  60                   RTS
+00D2BC  2               
+00D2BC  2               ;__SETCOLOR______________________________________________________________________________________________________________________
+00D2BC  2               ;
+00D2BC  2               ;	SET COLOR AND CURSOR COLOR
+00D2BC  2               ;       X= COLOR
+00D2BC  2               ;       Y= CURSOR COLOR
+00D2BC  2               ;________________________________________________________________________________________________________________________________
+00D2BC  2               ;
+00D2BC  2               SETCOLOR:
+00D2BC  2  8E 4A 06             STX     CURCOLOR
+00D2BF  2  8C 4B 06             STY     CSRCOLOR
+00D2C2  2  60                   RTS
+00D2C3  2               
+00D2C3  2               ;__SETXY_________________________________________________________________________________________________________________________
+00D2C3  2               ;
+00D2C3  2               ;	SET CURSOR POSITION
+00D2C3  2               ;       X= X POSITION
+00D2C3  2               ;       Y= Y POSITION
+00D2C3  2               ;________________________________________________________________________________________________________________________________
+00D2C3  2               ;
+00D2C3  2               SETXY:
+00D2C3  2  8E 47 06             STX     CURX
+00D2C6  2  8C 48 06             STY     CURY
+00D2C9  2  60                   RTS
+00D2CA  2               
+00D2CA  2               
+00D2CA  2               WRVIDTMP:
+00D2CA  2  00                   .BYTE    $00
 00D2CB  2               
-00D2CB  2               
-00D2CB  2               WRVIDTMP:
-00D2CB  2  00                   .BYTE    $00
-00D2CC  2               
-00D2CC  2               ;__WRVID_________________________________________________________________________________________________________________________
-00D2CC  2               ;
-00D2CC  2               ;	WRITE CHARACTER(A) TO VIDEO AT CURRENT X AND Y
-00D2CC  2               ;________________________________________________________________________________________________________________________________
-00D2CC  2               ;
-00D2CC  2               WRVID:
-00D2CC  2  8D CB D2             STA    WRVIDTMP
-00D2CF  2  48                   PHA
-00D2D0  2  8A                   TXA
-00D2D1  2  48                   PHA
-00D2D2  2  98                   TYA
-00D2D3  2  48                   PHA
-00D2D4  2  AD CB D2             LDA     WRVIDTMP
-00D2D7  2  C9 0D                CMP     #$0D
-00D2D9  2  D0 11                BNE     :+
-00D2DB  2  20 11 D4             JSR     UNPAINTCURSOR
-00D2DE  2  A9 00                LDA     #$00
-00D2E0  2  8D 47 06             STA     CURX
-00D2E3  2  20 D7 D3             JSR     PAINTCURSOR
-00D2E6  2  68                   PLA
-00D2E7  2  A8                   TAY
-00D2E8  2  68                   PLA
-00D2E9  2  AA                   TAX
-00D2EA  2  68                   PLA
-00D2EB  2  60                   RTS
-00D2EC  2               :
-00D2EC  2  C9 0A                CMP     #$0A
-00D2EE  2  D0 16                BNE     :+
-00D2F0  2  20 11 D4             JSR     UNPAINTCURSOR
-00D2F3  2  EE 48 06             INC     CURY
-00D2F6  2  AD 48 06             LDA     CURY
-00D2F9  2  C9 18                CMP     #24
-00D2FB  2  F0 69                BEQ     SCROLLV
-00D2FD  2  20 D7 D3             JSR     PAINTCURSOR
-00D300  2  68                   PLA
-00D301  2  A8                   TAY
-00D302  2  68                   PLA
-00D303  2  AA                   TAX
-00D304  2  68                   PLA
-00D305  2  60                   RTS
-00D306  2               :
-00D306  2  C9 08                CMP     #$08
-00D308  2  D0 72                BNE     WRVIDGO
-00D30A  2  20 11 D4             JSR     UNPAINTCURSOR
-00D30D  2  AD 47 06             LDA     CURX
-00D310  2  C9 00                CMP     #$00
-00D312  2  D0 1E                BNE     WRVID2
-00D314  2  AD 48 06             LDA     CURY
-00D317  2  C9 00                CMP     #$00
-00D319  2  F0 1A                BEQ     WRVIDX
-00D31B  2  CE 48 06             DEC     CURY
-00D31E  2  AD 4C 06             LDA     VIDEOMODE
-00D321  2  C9 01                CMP     #01
-00D323  2  D0 08                BNE     :+
-00D325  2  A9 50                LDA     #80
-00D327  2  8D 47 06             STA     CURX
-00D32A  2  4C 32 D3             JMP     WRVID2
-00D32D  2               :
-00D32D  2  A9 28                LDA     #40
-00D32F  2  8D 47 06             STA     CURX
-00D332  2               WRVID2:
-00D332  2  CE 47 06             DEC     CURX
-00D335  2               WRVIDX:
-00D335  2  20 AE D4             JSR     GETVIDEOADDRESS
-00D338  2  AD B3 D1             LDA     VIDEOWORK
-00D33B  2  85 3B                STA     TEMPWORD
-00D33D  2  18                   CLC
-00D33E  2  A9 B0                LDA     #$B0
-00D340  2  6D B4 D1             ADC     VIDEOWORK+1
-00D343  2  85 3C                STA     TEMPWORD+1
-00D345  2  A0 00                LDY     #$00
-00D347  2  A9 20                LDA     #32
-00D349  2  91 3B                STA     (TEMPWORD),Y
-00D34B  2  AD B3 D1             LDA     VIDEOWORK
-00D34E  2  85 3B                STA     TEMPWORD
-00D350  2  18                   CLC
-00D351  2  A9 B8                LDA     #$B8
-00D353  2  6D B4 D1             ADC     VIDEOWORK+1
-00D356  2  85 3C                STA     TEMPWORD+1
-00D358  2  AD 4A 06             LDA     CURCOLOR
-00D35B  2  91 3B                STA     (TEMPWORD),Y
-00D35D  2  20 D7 D3             JSR     PAINTCURSOR
-00D360  2  68                   PLA
-00D361  2  A8                   TAY
-00D362  2  68                   PLA
-00D363  2  AA                   TAX
-00D364  2  68                   PLA
-00D365  2  60                   RTS
-00D366  2               
-00D366  2               
-00D366  2               SCROLLV:
-00D366  2  20 29 D4             JSR     SCROLLUP
-00D369  2  A9 17                LDA     #23
-00D36B  2  8D 48 06             STA     CURY
-00D36E  2  A9 00                LDA     #0
-00D370  2  8D 47 06             STA     CURX
-00D373  2  20 D7 D3             JSR     PAINTCURSOR
-00D376  2  68                   PLA
-00D377  2  A8                   TAY
-00D378  2  68                   PLA
-00D379  2  AA                   TAX
-00D37A  2  68                   PLA
-00D37B  2  60                   RTS
-00D37C  2               
-00D37C  2               
-00D37C  2               
-00D37C  2               WRVIDGO:
-00D37C  2  48                   PHA
-00D37D  2  20 11 D4             JSR     UNPAINTCURSOR
-00D380  2  AD B3 D1             LDA     VIDEOWORK
-00D383  2  85 3B                STA     TEMPWORD
-00D385  2  18                   CLC
-00D386  2  A9 B0                LDA     #$B0
-00D388  2  6D B4 D1             ADC     VIDEOWORK+1
-00D38B  2  85 3C                STA     TEMPWORD+1
-00D38D  2  68                   PLA
-00D38E  2  A0 00                LDY     #$00
-00D390  2  91 3B                STA     (TEMPWORD),Y
-00D392  2  AD B3 D1             LDA     VIDEOWORK
-00D395  2  85 3B                STA     TEMPWORD
-00D397  2  18                   CLC
-00D398  2  A9 B8                LDA     #$B8
-00D39A  2  6D B4 D1             ADC     VIDEOWORK+1
-00D39D  2  85 3C                STA     TEMPWORD+1
-00D39F  2  AD 4A 06             LDA     CURCOLOR
-00D3A2  2  91 3B                STA     (TEMPWORD),Y
-00D3A4  2               
-00D3A4  2  AE 47 06             LDX     CURX
-00D3A7  2  AD 4C 06             LDA     VIDEOMODE
-00D3AA  2  C9 00                CMP     #$00
-00D3AC  2  D0 0C                BNE     :+
-00D3AE  2  E0 27                CPX     #39
-00D3B0  2  D0 11                BNE     :++
-00D3B2  2  EE 48 06             INC     CURY
-00D3B5  2  A2 FF                LDX     #$FF
-00D3B7  2  4C C3 D3             JMP     :++
-00D3BA  2               :
-00D3BA  2  E0 4F                CPX     #79
-00D3BC  2  D0 05                BNE     :+
-00D3BE  2  EE 48 06             INC     CURY
-00D3C1  2  A2 FF                LDX     #$FF
-00D3C3  2               :
-00D3C3  2  E8                   INX
-00D3C4  2  8E 47 06             STX     CURX
-00D3C7  2  AD 48 06             LDA     CURY
-00D3CA  2  C9 18                CMP     #24
-00D3CC  2  F0 98                BEQ     SCROLLV
-00D3CE  2  20 D7 D3             JSR     PAINTCURSOR
-00D3D1  2  68                   PLA
-00D3D2  2  A8                   TAY
-00D3D3  2  68                   PLA
-00D3D4  2  AA                   TAX
-00D3D5  2  68                   PLA
-00D3D6  2  60                   RTS
-00D3D7  2               
-00D3D7  2               
-00D3D7  2               
-00D3D7  2               PAINTCURSOR:
-00D3D7  2  AD 49 06             LDA     SHOWCRSR
-00D3DA  2  F0 1D                BEQ     :+
-00D3DC  2               FPAINTCURSOR:
-00D3DC  2  20 AE D4             JSR     GETVIDEOADDRESS
-00D3DF  2  AD B3 D1             LDA     VIDEOWORK
-00D3E2  2  85 3B                STA     TEMPWORD
-00D3E4  2  18                   CLC
-00D3E5  2  A9 B8                LDA     #$B8
-00D3E7  2  6D B4 D1             ADC     VIDEOWORK+1
-00D3EA  2  85 3C                STA     TEMPWORD+1
-00D3EC  2               
-00D3EC  2  A0 00                LDY     #$00
-00D3EE  2  B1 3B                LDA     (TEMPWORD),Y
-00D3F0  2  8D 4D 06             STA     UNDERCRSR
-00D3F3  2  AD 4B 06             LDA     CSRCOLOR
-00D3F6  2  91 3B                STA     (TEMPWORD),Y
-00D3F8  2  60                   RTS
-00D3F9  2               :
-00D3F9  2  20 AE D4             JSR     GETVIDEOADDRESS
-00D3FC  2  AD B3 D1             LDA     VIDEOWORK
-00D3FF  2  85 3B                STA     TEMPWORD
-00D401  2  18                   CLC
-00D402  2  A9 B8                LDA     #$B8
-00D404  2  6D B4 D1             ADC     VIDEOWORK+1
-00D407  2  85 3C                STA     TEMPWORD+1
-00D409  2  A0 00                LDY     #$00
-00D40B  2  B1 3B                LDA     (TEMPWORD),Y
-00D40D  2  8D 4D 06             STA     UNDERCRSR
-00D410  2  60                   RTS
-00D411  2               
-00D411  2               UNPAINTCURSOR:
-00D411  2  20 AE D4             JSR     GETVIDEOADDRESS
-00D414  2  AD B3 D1             LDA     VIDEOWORK
-00D417  2  85 3B                STA     TEMPWORD
-00D419  2  18                   CLC
-00D41A  2  A9 B8                LDA     #$B8
-00D41C  2  6D B4 D1             ADC     VIDEOWORK+1
-00D41F  2  85 3C                STA     TEMPWORD+1
-00D421  2  AD 4D 06             LDA     UNDERCRSR
-00D424  2  A0 00                LDY     #$00
-00D426  2  91 3B                STA     (TEMPWORD),Y
-00D428  2  60                   RTS
-00D429  2               
-00D429  2               
-00D429  2               ;__SCROLLUP______________________________________________________________________________________________________________________
-00D429  2               ;
-00D429  2               ;	SCROLL THE SCREEN UP
-00D429  2               ;
-00D429  2               ;
-00D429  2               ;________________________________________________________________________________________________________________________________
-00D429  2               ;
-00D429  2               SCROLLUP:
-00D429  2  A9 B0                LDA     #$B0                    ; SCREEN MEMORY STARTS AT $B000
-00D42B  2  85 3C                STA     TEMPWORD+1              ;
-00D42D  2  85 3E                STA     TEMPWORD1+1             ;
-00D42F  2  A9 B8                LDA     #$B8                    ; COLOR MEMORT STARTS AT $B800
-00D431  2  85 40                STA     TEMPWORD2+1             ;
-00D433  2  85 45                STA     TEMPWORD3+1             ;
-00D435  2  A9 00                LDA     #$00                    ;
-00D437  2  85 3B                STA     TEMPWORD                ;
-00D439  2  85 3F                STA     TEMPWORD2               ;
-00D43B  2               
-00D43B  2  AD 4C 06             LDA     VIDEOMODE               ; 1=80 COL, 0=40 COL
-00D43E  2  C9 01                CMP     #01
-00D440  2  D0 09                BNE     :+
-00D442  2  A9 50                LDA     #80
-00D444  2  85 3D                STA     TEMPWORD1
-00D446  2  85 44                STA     TEMPWORD3
-00D448  2  4C 51 D4             JMP     SCROLLUP_G
-00D44B  2               :
-00D44B  2  A9 28                LDA     #40
-00D44D  2  85 3D                STA     TEMPWORD1
-00D44F  2  85 44                STA     TEMPWORD3
-00D451  2               
-00D451  2               
-00D451  2               SCROLLUP_G:
-00D451  2  A0 00                LDY     #$00                    ; INDEX ALWAYS =0
-00D453  2               ; SCROLL UP 40/80 CHARACTERS AND COLOR
-00D453  2               SCROLLUP_G1:
-00D453  2  B1 3D                LDA     (TEMPWORD1),Y           ; READ FROM SCREEN+X
-00D455  2  91 3B                STA     (TEMPWORD),Y            ; WRITE TO SCREEN
-00D457  2  B1 44                LDA     (TEMPWORD3),Y           ; READ FROM COLOR+X
-00D459  2  91 3F                STA     (TEMPWORD2),Y           ; WRITE TO COLOR
-00D45B  2               
-00D45B  2  E6 3F                INC     TEMPWORD2
-00D45D  2  D0 02                BNE     :+
-00D45F  2  E6 40                INC     TEMPWORD2+1
-00D461  2               :
-00D461  2  E6 3B                INC     TEMPWORD
-00D463  2  D0 02                BNE     :+
-00D465  2  E6 3C                INC     TEMPWORD+1
-00D467  2               :
-00D467  2  E6 44                INC     TEMPWORD3
-00D469  2  D0 02                BNE     :+
-00D46B  2  E6 45                INC     TEMPWORD3+1
-00D46D  2               :
-00D46D  2  E6 3D                INC     TEMPWORD1
-00D46F  2  D0 02                BNE     :+
-00D471  2  E6 3E                INC     TEMPWORD1+1
-00D473  2               :
-00D473  2  A5 3E                LDA     TEMPWORD1+1
-00D475  2  C9 B8                CMP     #$B8
-00D477  2  D0 DA                BNE     SCROLLUP_G1
-00D479  2               
-00D479  2               
-00D479  2               ; CLEAR BOTTOM LINE.
-00D479  2  AD 4C 06             LDA     VIDEOMODE
-00D47C  2  C9 01                CMP     #01
-00D47E  2  F0 11                BEQ     :+
-00D480  2  A9 98                LDA     #$98
-00D482  2  85 3B                STA     TEMPWORD
-00D484  2  85 3D                STA     TEMPWORD1
-00D486  2  A9 B3                LDA     #$B3
-00D488  2  85 3C                STA     TEMPWORD+1
-00D48A  2  A9 BB                LDA     #$BB
-00D48C  2  85 3E                STA     TEMPWORD1+1
-00D48E  2               
-00D48E  2  4C 9F D4             JMP     SCROLLUP_C
-00D491  2               :
-00D491  2  A9 30                LDA     #$30
-00D493  2  85 3B                STA     TEMPWORD
-00D495  2  85 3D                STA     TEMPWORD1
-00D497  2  A9 B7                LDA     #$B7
-00D499  2  85 3C                STA     TEMPWORD+1
-00D49B  2  A9 BF                LDA     #$BF
-00D49D  2  85 3E                STA     TEMPWORD1+1
-00D49F  2               
-00D49F  2               SCROLLUP_C:
-00D49F  2  A9 20                LDA     #32
-00D4A1  2  91 3B                STA     (TEMPWORD),Y
-00D4A3  2  AD 4A 06             LDA     CURCOLOR
-00D4A6  2  91 3D                STA     (TEMPWORD1),Y
-00D4A8  2  C8                   INY
-00D4A9  2  C0 50                CPY     #80
-00D4AB  2  D0 F2                BNE     SCROLLUP_C
-00D4AD  2  60                   RTS
-00D4AE  2               
-00D4AE  2               
-00D4AE  2               GETVIDEOADDRESS:
-00D4AE  2  AD 48 06             LDA     CURY
-00D4B1  2  8D B3 D1             STA     VIDEOWORK
-00D4B4  2  A9 00                LDA     #$00
-00D4B6  2  8D B4 D1             STA     VIDEOWORK+1
-00D4B9  2               
-00D4B9  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 2
-00D4BC  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 2
-00D4BF  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 4
-00D4C2  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 4
-00D4C5  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 8
-00D4C8  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 8
-00D4CB  2               
-00D4CB  2  AD B3 D1             LDA     VIDEOWORK       ; PARK THIS NUMBER FOR THE FUTURE
-00D4CE  2  8D B5 D1             STA     VIDEOWORK+2
-00D4D1  2  AD B4 D1             LDA     VIDEOWORK+1
-00D4D4  2  8D B6 D1             STA     VIDEOWORK+3
-00D4D7  2               
-00D4D7  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 16
-00D4DA  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 16
-00D4DD  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 32
-00D4E0  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 32
-00D4E3  2               
-00D4E3  2  18                   CLC                     ; ADD THE *32 VALUE WITH THE *8 VALUE TO GET *40 :)
-00D4E4  2  AD B3 D1             LDA     VIDEOWORK
-00D4E7  2  6D B5 D1             ADC     VIDEOWORK+2
-00D4EA  2  8D B7 D1             STA     VIDEOWORK+4
-00D4ED  2               
-00D4ED  2  AD B4 D1             LDA     VIDEOWORK+1
-00D4F0  2  6D B6 D1             ADC     VIDEOWORK+3
-00D4F3  2  8D B8 D1             STA     VIDEOWORK+5
-00D4F6  2               
-00D4F6  2  AD B7 D1             LDA     VIDEOWORK+4     ; PLACE BACK IN VIDEOWORK(+1)
-00D4F9  2  8D B3 D1             STA     VIDEOWORK
-00D4FC  2  AD B8 D1             LDA     VIDEOWORK+5
-00D4FF  2  8D B4 D1             STA     VIDEOWORK+1
-00D502  2               
-00D502  2  AD 4C 06             LDA     VIDEOMODE       ; IF 40 COLUMN, WE ARE DONE, OTHERWISE DOUBLE AGAIN
-00D505  2  C9 00                CMP     #$00
-00D507  2  F0 06                BEQ     :+
-00D509  2  0E B3 D1             ASL     VIDEOWORK       ; TIMES 2
-00D50C  2  2E B4 D1             ROL     VIDEOWORK+1     ; TIMES 2
-00D50F  2               :
-00D50F  2  18                   CLC                     ; NOW ADD IN X COORD
-00D510  2  AD 47 06             LDA     CURX
-00D513  2  6D B3 D1             ADC     VIDEOWORK
-00D516  2  8D B3 D1             STA     VIDEOWORK
-00D519  2  A9 00                LDA     #$00
-00D51B  2  6D B4 D1             ADC     VIDEOWORK+1
-00D51E  2  8D B4 D1             STA     VIDEOWORK+1
-00D521  2  60                   RTS
-00D522  2               
-00D522  2                       .IFNDEF PC6502BIOS
-00D522  2               ;
-00D522  2               ; DRIVER DATA
-00D522  2               ;__________________________________________________________________________________________________
-00D522  2               ; MESSAGES
-00D522  2               ;__________________________________________________________________________________________________
-00D522  2               VIDEOMESSAGE1:
-00D522  2  4D 45 4D 4F          .BYTE   "MEMORY MAPPED VIDEO:",$0D,$0A
-00D526  2  52 59 20 4D  
-00D52A  2  41 50 50 45  
-00D538  2  20 42 41 4E          .BYTE   " BANK=0xF8 "
-00D53C  2  4B 3D 30 78  
-00D540  2  46 38 20     
-00D543  2  00                   .BYTE   00
-00D544  2               VIDEOMESSAGE2:
-00D544  2  4E 4F 54 20          .BYTE   "NOT "
-00D548  2               VIDEOMESSAGE3:
-00D548  2  46 4F 55 4E          .BYTE   "FOUND."
-00D54C  2  44 2E        
-00D54E  2  00                   .BYTE   00
-00D54F  2                       .ENDIF
-00D54F  2               
-00D54F  1               
-00D54F  1               
-00D54F  1               
-00D54F  1               
-00D54F  1               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
-00D54F  1               ;
-00D54F  1               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
-00D54F  1               ;________________________________________________________________________________________________________________________________
-00D54F  1               DFT_CONSOLE:
-00D54F  1  8D 61 D5             STA     drvtmp
-00D552  1  A5 3A                LDA     CONSOLE
-00D554  1  18                   CLC
-00D555  1  65 32                ADC     farfunct
-00D557  1  85 32                STA     farfunct
+00D2CB  2               ;__WRVID_________________________________________________________________________________________________________________________
+00D2CB  2               ;
+00D2CB  2               ;	WRITE CHARACTER(A) TO VIDEO AT CURRENT X AND Y
+00D2CB  2               ;________________________________________________________________________________________________________________________________
+00D2CB  2               ;
+00D2CB  2               WRVID:
+00D2CB  2  8D CA D2             STA    WRVIDTMP
+00D2CE  2  48                   PHA
+00D2CF  2  8A                   TXA
+00D2D0  2  48                   PHA
+00D2D1  2  98                   TYA
+00D2D2  2  48                   PHA
+00D2D3  2  AD CA D2             LDA     WRVIDTMP
+00D2D6  2  C9 0D                CMP     #$0D
+00D2D8  2  D0 11                BNE     :+
+00D2DA  2  20 10 D4             JSR     UNPAINTCURSOR
+00D2DD  2  A9 00                LDA     #$00
+00D2DF  2  8D 47 06             STA     CURX
+00D2E2  2  20 D6 D3             JSR     PAINTCURSOR
+00D2E5  2  68                   PLA
+00D2E6  2  A8                   TAY
+00D2E7  2  68                   PLA
+00D2E8  2  AA                   TAX
+00D2E9  2  68                   PLA
+00D2EA  2  60                   RTS
+00D2EB  2               :
+00D2EB  2  C9 0A                CMP     #$0A
+00D2ED  2  D0 16                BNE     :+
+00D2EF  2  20 10 D4             JSR     UNPAINTCURSOR
+00D2F2  2  EE 48 06             INC     CURY
+00D2F5  2  AD 48 06             LDA     CURY
+00D2F8  2  C9 18                CMP     #24
+00D2FA  2  F0 69                BEQ     SCROLLV
+00D2FC  2  20 D6 D3             JSR     PAINTCURSOR
+00D2FF  2  68                   PLA
+00D300  2  A8                   TAY
+00D301  2  68                   PLA
+00D302  2  AA                   TAX
+00D303  2  68                   PLA
+00D304  2  60                   RTS
+00D305  2               :
+00D305  2  C9 08                CMP     #$08
+00D307  2  D0 72                BNE     WRVIDGO
+00D309  2  20 10 D4             JSR     UNPAINTCURSOR
+00D30C  2  AD 47 06             LDA     CURX
+00D30F  2  C9 00                CMP     #$00
+00D311  2  D0 1E                BNE     WRVID2
+00D313  2  AD 48 06             LDA     CURY
+00D316  2  C9 00                CMP     #$00
+00D318  2  F0 1A                BEQ     WRVIDX
+00D31A  2  CE 48 06             DEC     CURY
+00D31D  2  AD 4C 06             LDA     VIDEOMODE
+00D320  2  C9 01                CMP     #01
+00D322  2  D0 08                BNE     :+
+00D324  2  A9 50                LDA     #80
+00D326  2  8D 47 06             STA     CURX
+00D329  2  4C 31 D3             JMP     WRVID2
+00D32C  2               :
+00D32C  2  A9 28                LDA     #40
+00D32E  2  8D 47 06             STA     CURX
+00D331  2               WRVID2:
+00D331  2  CE 47 06             DEC     CURX
+00D334  2               WRVIDX:
+00D334  2  20 AD D4             JSR     GETVIDEOADDRESS
+00D337  2  AD B2 D1             LDA     VIDEOWORK
+00D33A  2  85 3B                STA     TEMPWORD
+00D33C  2  18                   CLC
+00D33D  2  A9 B0                LDA     #$B0
+00D33F  2  6D B3 D1             ADC     VIDEOWORK+1
+00D342  2  85 3C                STA     TEMPWORD+1
+00D344  2  A0 00                LDY     #$00
+00D346  2  A9 20                LDA     #32
+00D348  2  91 3B                STA     (TEMPWORD),Y
+00D34A  2  AD B2 D1             LDA     VIDEOWORK
+00D34D  2  85 3B                STA     TEMPWORD
+00D34F  2  18                   CLC
+00D350  2  A9 B8                LDA     #$B8
+00D352  2  6D B3 D1             ADC     VIDEOWORK+1
+00D355  2  85 3C                STA     TEMPWORD+1
+00D357  2  AD 4A 06             LDA     CURCOLOR
+00D35A  2  91 3B                STA     (TEMPWORD),Y
+00D35C  2  20 D6 D3             JSR     PAINTCURSOR
+00D35F  2  68                   PLA
+00D360  2  A8                   TAY
+00D361  2  68                   PLA
+00D362  2  AA                   TAX
+00D363  2  68                   PLA
+00D364  2  60                   RTS
+00D365  2               
+00D365  2               
+00D365  2               SCROLLV:
+00D365  2  20 28 D4             JSR     SCROLLUP
+00D368  2  A9 17                LDA     #23
+00D36A  2  8D 48 06             STA     CURY
+00D36D  2  A9 00                LDA     #0
+00D36F  2  8D 47 06             STA     CURX
+00D372  2  20 D6 D3             JSR     PAINTCURSOR
+00D375  2  68                   PLA
+00D376  2  A8                   TAY
+00D377  2  68                   PLA
+00D378  2  AA                   TAX
+00D379  2  68                   PLA
+00D37A  2  60                   RTS
+00D37B  2               
+00D37B  2               
+00D37B  2               
+00D37B  2               WRVIDGO:
+00D37B  2  48                   PHA
+00D37C  2  20 10 D4             JSR     UNPAINTCURSOR
+00D37F  2  AD B2 D1             LDA     VIDEOWORK
+00D382  2  85 3B                STA     TEMPWORD
+00D384  2  18                   CLC
+00D385  2  A9 B0                LDA     #$B0
+00D387  2  6D B3 D1             ADC     VIDEOWORK+1
+00D38A  2  85 3C                STA     TEMPWORD+1
+00D38C  2  68                   PLA
+00D38D  2  A0 00                LDY     #$00
+00D38F  2  91 3B                STA     (TEMPWORD),Y
+00D391  2  AD B2 D1             LDA     VIDEOWORK
+00D394  2  85 3B                STA     TEMPWORD
+00D396  2  18                   CLC
+00D397  2  A9 B8                LDA     #$B8
+00D399  2  6D B3 D1             ADC     VIDEOWORK+1
+00D39C  2  85 3C                STA     TEMPWORD+1
+00D39E  2  AD 4A 06             LDA     CURCOLOR
+00D3A1  2  91 3B                STA     (TEMPWORD),Y
+00D3A3  2               
+00D3A3  2  AE 47 06             LDX     CURX
+00D3A6  2  AD 4C 06             LDA     VIDEOMODE
+00D3A9  2  C9 00                CMP     #$00
+00D3AB  2  D0 0C                BNE     :+
+00D3AD  2  E0 27                CPX     #39
+00D3AF  2  D0 11                BNE     :++
+00D3B1  2  EE 48 06             INC     CURY
+00D3B4  2  A2 FF                LDX     #$FF
+00D3B6  2  4C C2 D3             JMP     :++
+00D3B9  2               :
+00D3B9  2  E0 4F                CPX     #79
+00D3BB  2  D0 05                BNE     :+
+00D3BD  2  EE 48 06             INC     CURY
+00D3C0  2  A2 FF                LDX     #$FF
+00D3C2  2               :
+00D3C2  2  E8                   INX
+00D3C3  2  8E 47 06             STX     CURX
+00D3C6  2  AD 48 06             LDA     CURY
+00D3C9  2  C9 18                CMP     #24
+00D3CB  2  F0 98                BEQ     SCROLLV
+00D3CD  2  20 D6 D3             JSR     PAINTCURSOR
+00D3D0  2  68                   PLA
+00D3D1  2  A8                   TAY
+00D3D2  2  68                   PLA
+00D3D3  2  AA                   TAX
+00D3D4  2  68                   PLA
+00D3D5  2  60                   RTS
+00D3D6  2               
+00D3D6  2               
+00D3D6  2               
+00D3D6  2               PAINTCURSOR:
+00D3D6  2  AD 49 06             LDA     SHOWCRSR
+00D3D9  2  F0 1D                BEQ     :+
+00D3DB  2               FPAINTCURSOR:
+00D3DB  2  20 AD D4             JSR     GETVIDEOADDRESS
+00D3DE  2  AD B2 D1             LDA     VIDEOWORK
+00D3E1  2  85 3B                STA     TEMPWORD
+00D3E3  2  18                   CLC
+00D3E4  2  A9 B8                LDA     #$B8
+00D3E6  2  6D B3 D1             ADC     VIDEOWORK+1
+00D3E9  2  85 3C                STA     TEMPWORD+1
+00D3EB  2               
+00D3EB  2  A0 00                LDY     #$00
+00D3ED  2  B1 3B                LDA     (TEMPWORD),Y
+00D3EF  2  8D 4D 06             STA     UNDERCRSR
+00D3F2  2  AD 4B 06             LDA     CSRCOLOR
+00D3F5  2  91 3B                STA     (TEMPWORD),Y
+00D3F7  2  60                   RTS
+00D3F8  2               :
+00D3F8  2  20 AD D4             JSR     GETVIDEOADDRESS
+00D3FB  2  AD B2 D1             LDA     VIDEOWORK
+00D3FE  2  85 3B                STA     TEMPWORD
+00D400  2  18                   CLC
+00D401  2  A9 B8                LDA     #$B8
+00D403  2  6D B3 D1             ADC     VIDEOWORK+1
+00D406  2  85 3C                STA     TEMPWORD+1
+00D408  2  A0 00                LDY     #$00
+00D40A  2  B1 3B                LDA     (TEMPWORD),Y
+00D40C  2  8D 4D 06             STA     UNDERCRSR
+00D40F  2  60                   RTS
+00D410  2               
+00D410  2               UNPAINTCURSOR:
+00D410  2  20 AD D4             JSR     GETVIDEOADDRESS
+00D413  2  AD B2 D1             LDA     VIDEOWORK
+00D416  2  85 3B                STA     TEMPWORD
+00D418  2  18                   CLC
+00D419  2  A9 B8                LDA     #$B8
+00D41B  2  6D B3 D1             ADC     VIDEOWORK+1
+00D41E  2  85 3C                STA     TEMPWORD+1
+00D420  2  AD 4D 06             LDA     UNDERCRSR
+00D423  2  A0 00                LDY     #$00
+00D425  2  91 3B                STA     (TEMPWORD),Y
+00D427  2  60                   RTS
+00D428  2               
+00D428  2               
+00D428  2               ;__SCROLLUP______________________________________________________________________________________________________________________
+00D428  2               ;
+00D428  2               ;	SCROLL THE SCREEN UP
+00D428  2               ;
+00D428  2               ;
+00D428  2               ;________________________________________________________________________________________________________________________________
+00D428  2               ;
+00D428  2               SCROLLUP:
+00D428  2  A9 B0                LDA     #$B0                    ; SCREEN MEMORY STARTS AT $B000
+00D42A  2  85 3C                STA     TEMPWORD+1              ;
+00D42C  2  85 3E                STA     TEMPWORD1+1             ;
+00D42E  2  A9 B8                LDA     #$B8                    ; COLOR MEMORT STARTS AT $B800
+00D430  2  85 40                STA     TEMPWORD2+1             ;
+00D432  2  85 45                STA     TEMPWORD3+1             ;
+00D434  2  A9 00                LDA     #$00                    ;
+00D436  2  85 3B                STA     TEMPWORD                ;
+00D438  2  85 3F                STA     TEMPWORD2               ;
+00D43A  2               
+00D43A  2  AD 4C 06             LDA     VIDEOMODE               ; 1=80 COL, 0=40 COL
+00D43D  2  C9 01                CMP     #01
+00D43F  2  D0 09                BNE     :+
+00D441  2  A9 50                LDA     #80
+00D443  2  85 3D                STA     TEMPWORD1
+00D445  2  85 44                STA     TEMPWORD3
+00D447  2  4C 50 D4             JMP     SCROLLUP_G
+00D44A  2               :
+00D44A  2  A9 28                LDA     #40
+00D44C  2  85 3D                STA     TEMPWORD1
+00D44E  2  85 44                STA     TEMPWORD3
+00D450  2               
+00D450  2               
+00D450  2               SCROLLUP_G:
+00D450  2  A0 00                LDY     #$00                    ; INDEX ALWAYS =0
+00D452  2               ; SCROLL UP 40/80 CHARACTERS AND COLOR
+00D452  2               SCROLLUP_G1:
+00D452  2  B1 3D                LDA     (TEMPWORD1),Y           ; READ FROM SCREEN+X
+00D454  2  91 3B                STA     (TEMPWORD),Y            ; WRITE TO SCREEN
+00D456  2  B1 44                LDA     (TEMPWORD3),Y           ; READ FROM COLOR+X
+00D458  2  91 3F                STA     (TEMPWORD2),Y           ; WRITE TO COLOR
+00D45A  2               
+00D45A  2  E6 3F                INC     TEMPWORD2
+00D45C  2  D0 02                BNE     :+
+00D45E  2  E6 40                INC     TEMPWORD2+1
+00D460  2               :
+00D460  2  E6 3B                INC     TEMPWORD
+00D462  2  D0 02                BNE     :+
+00D464  2  E6 3C                INC     TEMPWORD+1
+00D466  2               :
+00D466  2  E6 44                INC     TEMPWORD3
+00D468  2  D0 02                BNE     :+
+00D46A  2  E6 45                INC     TEMPWORD3+1
+00D46C  2               :
+00D46C  2  E6 3D                INC     TEMPWORD1
+00D46E  2  D0 02                BNE     :+
+00D470  2  E6 3E                INC     TEMPWORD1+1
+00D472  2               :
+00D472  2  A5 3E                LDA     TEMPWORD1+1
+00D474  2  C9 B8                CMP     #$B8
+00D476  2  D0 DA                BNE     SCROLLUP_G1
+00D478  2               
+00D478  2               
+00D478  2               ; CLEAR BOTTOM LINE.
+00D478  2  AD 4C 06             LDA     VIDEOMODE
+00D47B  2  C9 01                CMP     #01
+00D47D  2  F0 11                BEQ     :+
+00D47F  2  A9 98                LDA     #$98
+00D481  2  85 3B                STA     TEMPWORD
+00D483  2  85 3D                STA     TEMPWORD1
+00D485  2  A9 B3                LDA     #$B3
+00D487  2  85 3C                STA     TEMPWORD+1
+00D489  2  A9 BB                LDA     #$BB
+00D48B  2  85 3E                STA     TEMPWORD1+1
+00D48D  2               
+00D48D  2  4C 9E D4             JMP     SCROLLUP_C
+00D490  2               :
+00D490  2  A9 30                LDA     #$30
+00D492  2  85 3B                STA     TEMPWORD
+00D494  2  85 3D                STA     TEMPWORD1
+00D496  2  A9 B7                LDA     #$B7
+00D498  2  85 3C                STA     TEMPWORD+1
+00D49A  2  A9 BF                LDA     #$BF
+00D49C  2  85 3E                STA     TEMPWORD1+1
+00D49E  2               
+00D49E  2               SCROLLUP_C:
+00D49E  2  A9 20                LDA     #32
+00D4A0  2  91 3B                STA     (TEMPWORD),Y
+00D4A2  2  AD 4A 06             LDA     CURCOLOR
+00D4A5  2  91 3D                STA     (TEMPWORD1),Y
+00D4A7  2  C8                   INY
+00D4A8  2  C0 50                CPY     #80
+00D4AA  2  D0 F2                BNE     SCROLLUP_C
+00D4AC  2  60                   RTS
+00D4AD  2               
+00D4AD  2               
+00D4AD  2               GETVIDEOADDRESS:
+00D4AD  2  AD 48 06             LDA     CURY
+00D4B0  2  8D B2 D1             STA     VIDEOWORK
+00D4B3  2  A9 00                LDA     #$00
+00D4B5  2  8D B3 D1             STA     VIDEOWORK+1
+00D4B8  2               
+00D4B8  2  0E B2 D1             ASL     VIDEOWORK       ; TIMES 2
+00D4BB  2  2E B3 D1             ROL     VIDEOWORK+1     ; TIMES 2
+00D4BE  2  0E B2 D1             ASL     VIDEOWORK       ; TIMES 4
+00D4C1  2  2E B3 D1             ROL     VIDEOWORK+1     ; TIMES 4
+00D4C4  2  0E B2 D1             ASL     VIDEOWORK       ; TIMES 8
+00D4C7  2  2E B3 D1             ROL     VIDEOWORK+1     ; TIMES 8
+00D4CA  2               
+00D4CA  2  AD B2 D1             LDA     VIDEOWORK       ; PARK THIS NUMBER FOR THE FUTURE
+00D4CD  2  8D B4 D1             STA     VIDEOWORK+2
+00D4D0  2  AD B3 D1             LDA     VIDEOWORK+1
+00D4D3  2  8D B5 D1             STA     VIDEOWORK+3
+00D4D6  2               
+00D4D6  2  0E B2 D1             ASL     VIDEOWORK       ; TIMES 16
+00D4D9  2  2E B3 D1             ROL     VIDEOWORK+1     ; TIMES 16
+00D4DC  2  0E B2 D1             ASL     VIDEOWORK       ; TIMES 32
+00D4DF  2  2E B3 D1             ROL     VIDEOWORK+1     ; TIMES 32
+00D4E2  2               
+00D4E2  2  18                   CLC                     ; ADD THE *32 VALUE WITH THE *8 VALUE TO GET *40 :)
+00D4E3  2  AD B2 D1             LDA     VIDEOWORK
+00D4E6  2  6D B4 D1             ADC     VIDEOWORK+2
+00D4E9  2  8D B6 D1             STA     VIDEOWORK+4
+00D4EC  2               
+00D4EC  2  AD B3 D1             LDA     VIDEOWORK+1
+00D4EF  2  6D B5 D1             ADC     VIDEOWORK+3
+00D4F2  2  8D B7 D1             STA     VIDEOWORK+5
+00D4F5  2               
+00D4F5  2  AD B6 D1             LDA     VIDEOWORK+4     ; PLACE BACK IN VIDEOWORK(+1)
+00D4F8  2  8D B2 D1             STA     VIDEOWORK
+00D4FB  2  AD B7 D1             LDA     VIDEOWORK+5
+00D4FE  2  8D B3 D1             STA     VIDEOWORK+1
+00D501  2               
+00D501  2  AD 4C 06             LDA     VIDEOMODE       ; IF 40 COLUMN, WE ARE DONE, OTHERWISE DOUBLE AGAIN
+00D504  2  C9 00                CMP     #$00
+00D506  2  F0 06                BEQ     :+
+00D508  2  0E B2 D1             ASL     VIDEOWORK       ; TIMES 2
+00D50B  2  2E B3 D1             ROL     VIDEOWORK+1     ; TIMES 2
+00D50E  2               :
+00D50E  2  18                   CLC                     ; NOW ADD IN X COORD
+00D50F  2  AD 47 06             LDA     CURX
+00D512  2  6D B2 D1             ADC     VIDEOWORK
+00D515  2  8D B2 D1             STA     VIDEOWORK
+00D518  2  A9 00                LDA     #$00
+00D51A  2  6D B3 D1             ADC     VIDEOWORK+1
+00D51D  2  8D B3 D1             STA     VIDEOWORK+1
+00D520  2  60                   RTS
+00D521  2               
+00D521  2                       .IFNDEF PC6502BIOS
+00D521  2               ;
+00D521  2               ; DRIVER DATA
+00D521  2               ;__________________________________________________________________________________________________
+00D521  2               ; MESSAGES
+00D521  2               ;__________________________________________________________________________________________________
+00D521  2               VIDEOMESSAGE1:
+00D521  2  4D 45 4D 4F          .BYTE   "MEMORY MAPPED VIDEO:",$0D,$0A
+00D525  2  52 59 20 4D  
+00D529  2  41 50 50 45  
+00D537  2  20 42 41 4E          .BYTE   " BANK=0xF8 "
+00D53B  2  4B 3D 30 78  
+00D53F  2  46 38 20     
+00D542  2  00                   .BYTE   00
+00D543  2               VIDEOMESSAGE2:
+00D543  2  4E 4F 54 20          .BYTE   "NOT "
+00D547  2               VIDEOMESSAGE3:
+00D547  2  46 4F 55 4E          .BYTE   "FOUND."
+00D54B  2  44 2E        
+00D54D  2  00                   .BYTE   00
+00D54E  2                       .ENDIF
+00D54E  2               
+00D54E  1               
+00D54E  1               
+00D54E  1               
+00D54E  1               
+00D54E  1               ;__DFT_CONSOLE___________________________________________________________________________________________________________________
+00D54E  1               ;
+00D54E  1               ;	      TRANSFER CONSOLE COMMAND TO DESIGNATED CONSOLE
+00D54E  1               ;________________________________________________________________________________________________________________________________
+00D54E  1               DFT_CONSOLE:
+00D54E  1  8D 60 D5             STA     drvtmp
+00D551  1  A5 3A                LDA     CONSOLE
+00D553  1  18                   CLC
+00D554  1  65 32                ADC     farfunct
+00D556  1  85 32                STA     farfunct
+00D558  1  68                   PLA
 00D559  1  68                   PLA
-00D55A  1  68                   PLA
-00D55B  1  AD 61 D5             LDA     drvtmp
-00D55E  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
-00D561  1               drvtmp:
-00D561  1  00                   .BYTE   00
+00D55A  1  AD 60 D5             LDA     drvtmp
+00D55D  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
+00D560  1               drvtmp:
+00D560  1  00                   .BYTE   00
+00D561  1               
+00D561  1               drv_noop:
+00D561  1  60                   RTS
 00D562  1               
-00D562  1               drv_noop:
-00D562  1  60                   RTS
-00D563  1               
-00D563  1               DFT_CONSOLE_OUT:
-00D563  1  48                   PHA
-00D564  1  A5 3A                LDA     CONSOLE
-00D566  1  85 32                STA     farfunct
-00D568  1  68                   PLA
-00D569  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
-00D56C  1               
-00D56C  1               ;------------------------------------------------------------------------
-00D56C  1               LFCR:
-00D56C  1  A9 0A                LDA     #10
-00D56E  1  20 63 D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
-00D571  1  A9 0D                LDA     #13
-00D573  1  20 63 D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
-00D576  1  60                   RTS
-00D577  1               
-00D577  1               ;__WRSTR_______________________________________________________
-00D577  1               ;
-00D577  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
-00D577  1               ;
-00D577  1               ;______________________________________________________________
-00D577  1               WRSTR:
-00D577  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
-00D579  1               OUTSTRLP:
-00D579  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
-00D57B  1  C9 00                CMP     #$00            ; IS NULL?
-00D57D  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
-00D57F  1  20 63 D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
-00D582  1  E6 41                INC     STRPTR
-00D584  1  D0 F3                BNE     OUTSTRLP
-00D586  1  E6 42                INC     STRPTR+1
-00D588  1  4C 79 D5             JMP     OUTSTRLP        ; DO NEXT CHAR
-00D58B  1               ENDOUTSTR:
-00D58B  1  60                   RTS                     ; RETURN
-00D58C  1               
-00D58C  1               PRINT_BYTE:
-00D58C  1  8E B1 D5             STX     SAVX            ; save X
-00D58F  1  20 9C D5             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
-00D592  1  20 63 D5             JSR     DFT_CONSOLE_OUT ; output upper nybble
-00D595  1  8A                   TXA                     ; transfer lower to A
-00D596  1  AE B1 D5             LDX     SAVX            ; restore X
-00D599  1  4C 63 D5             JMP     DFT_CONSOLE_OUT ; output lower nybble
-00D59C  1               ASCTWO:
-00D59C  1  48                   PHA                     ; save byte
-00D59D  1  20 A6 D5             JSR     ASCII           ; do low nybble
-00D5A0  1  AA                   TAX                     ; save in X
-00D5A1  1  68                   PLA                     ; restore byte
-00D5A2  1  4A                   LSR     A               ; shift upper nybble down
+00D562  1               DFT_CONSOLE_OUT:
+00D562  1  48                   PHA
+00D563  1  A5 3A                LDA     CONSOLE
+00D565  1  85 32                STA     farfunct
+00D567  1  68                   PLA
+00D568  1  4C 00 C0             JMP     FUNCTION_DISPATCHER1
+00D56B  1               
+00D56B  1               ;------------------------------------------------------------------------
+00D56B  1               LFCR:
+00D56B  1  A9 0A                LDA     #10
+00D56D  1  20 62 D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
+00D570  1  A9 0D                LDA     #13
+00D572  1  20 62 D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
+00D575  1  60                   RTS
+00D576  1               
+00D576  1               ;__WRSTR_______________________________________________________
+00D576  1               ;
+00D576  1               ; OUTPUT THE STRING POINTED TO BY OUTSTR TO THE SCREEN
+00D576  1               ;
+00D576  1               ;______________________________________________________________
+00D576  1               WRSTR:
+00D576  1  A0 00                LDY     #$00            ; LOAD $00 INTO Y
+00D578  1               OUTSTRLP:
+00D578  1  B1 41                LDA     (STRPTR),Y      ; LOAD NEXT CHAR FROM STRING INTO ACC
+00D57A  1  C9 00                CMP     #$00            ; IS NULL?
+00D57C  1  F0 0C                BEQ     ENDOUTSTR       ; YES, END PRINT OUT
+00D57E  1  20 62 D5             JSR     DFT_CONSOLE_OUT ; PRINT CHAR IN ACC
+00D581  1  E6 41                INC     STRPTR
+00D583  1  D0 F3                BNE     OUTSTRLP
+00D585  1  E6 42                INC     STRPTR+1
+00D587  1  4C 78 D5             JMP     OUTSTRLP        ; DO NEXT CHAR
+00D58A  1               ENDOUTSTR:
+00D58A  1  60                   RTS                     ; RETURN
+00D58B  1               
+00D58B  1               PRINT_BYTE:
+00D58B  1  8E B0 D5             STX     SAVX            ; save X
+00D58E  1  20 9B D5             JSR     ASCTWO          ; get hex chars for byte in X (lower) and A (upper)
+00D591  1  20 62 D5             JSR     DFT_CONSOLE_OUT ; output upper nybble
+00D594  1  8A                   TXA                     ; transfer lower to A
+00D595  1  AE B0 D5             LDX     SAVX            ; restore X
+00D598  1  4C 62 D5             JMP     DFT_CONSOLE_OUT ; output lower nybble
+00D59B  1               ASCTWO:
+00D59B  1  48                   PHA                     ; save byte
+00D59C  1  20 A5 D5             JSR     ASCII           ; do low nybble
+00D59F  1  AA                   TAX                     ; save in X
+00D5A0  1  68                   PLA                     ; restore byte
+00D5A1  1  4A                   LSR     A               ; shift upper nybble down
+00D5A2  1  4A                   LSR     A
 00D5A3  1  4A                   LSR     A
 00D5A4  1  4A                   LSR     A
-00D5A5  1  4A                   LSR     A
-00D5A6  1               ; convert low nybble in A to hex digit
-00D5A6  1               ASCII:
-00D5A6  1  29 0F                AND     #$0F            ; clear upper nibble
-00D5A8  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
-00D5AA  1  90 02                BCC     ASC1
-00D5AC  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
-00D5AE  1               ASC1:
-00D5AE  1  69 30                ADC     #$30            ; add ascii char 0 to value
-00D5B0  1  60                   RTS
-00D5B1  1               SAVX:
-00D5B1  1  00                   .BYTE   00
-00D5B1  1               
+00D5A5  1               ; convert low nybble in A to hex digit
+00D5A5  1               ASCII:
+00D5A5  1  29 0F                AND     #$0F            ; clear upper nibble
+00D5A7  1  C9 0A                CMP     #$0A            ; if less than A, skip next step
+00D5A9  1  90 02                BCC     ASC1
+00D5AB  1  69 06                ADC     #6              ; skip ascii chars between 9 and A
+00D5AD  1               ASC1:
+00D5AD  1  69 30                ADC     #$30            ; add ascii char 0 to value
+00D5AF  1  60                   RTS
+00D5B0  1               SAVX:
+00D5B0  1  00                   .BYTE   00
+00D5B0  1               

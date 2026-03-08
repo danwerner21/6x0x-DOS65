@@ -1,7 +1,5 @@
 ------------------------------------
 BIOS: KEYBOARD CURSOR KEYS DONT WORK (KEYPAD DOES?)
 DBASIC SCREEN EDITOR: NEED DELETE FUNCTION  
-DBASIC: NEED RENAME FILE FUNCTION
-DBASIC: NEED DELETE FILE FUNCTION
 ------------------------------------
 speedscript port
