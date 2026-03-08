@@ -59,11 +59,13 @@ TK_FILEREAD     = TK_CLOSE+1    ; FILEREAD token
 TK_FILEWRITE    = TK_FILEREAD+1 ; FILEWRITE token
 TK_LPRINT       = TK_FILEWRITE+1; LPRINT token
 TK_LLIST        = TK_LPRINT+1   ; LLIST token
+TK_DELETE       = TK_LLIST+1    ; DELETE token
+TK_RENAME       = TK_DELETE+1   ; RENAME token
 
 
 ; secondary command tokens, can't start a statement
 
-TK_TAB          = TK_LLIST+1    ; TAB token
+TK_TAB          = TK_RENAME+1    ; TAB token
 TK_ELSE         = TK_TAB+1      ; ELSE token
 TK_TO           = TK_ELSE+1     ; TO token
 TK_FN           = TK_TO+1       ; FN token
@@ -193,6 +195,8 @@ LAB_CTBL:
         .WORD   V_FILEWRITE-1   ; FILEWRITE 		new command
         .WORD   V_LPRINT-1      ; LPRINT 		new command
         .WORD   V_LLIST-1       ; LLIST 		new command
+        .WORD   V_DELETE-1      ; DELETE 		new command
+        .WORD   V_RENAME-1      ; RENAME 		new command
 
 ; function pre process routine table
 
@@ -465,6 +469,8 @@ LBB_DEEK:
         .BYTE   "EEK(",TK_DEEK  ; DEEK(
 LBB_DEF:
         .BYTE   "EF",TK_DEF     ; DEF
+LBB_DELETE:
+        .BYTE   "ELETE",TK_DELETE   ; DELETE
 LBB_DIM:
         .BYTE   "IM",TK_DIM     ; DIM
 LBB_DIR:
@@ -605,6 +611,8 @@ LBB_READ:
         .BYTE   "EAD",TK_READ   ; READ
 LBB_REM:
         .BYTE   "EM",TK_REM     ; REM
+LBB_RENAME:
+        .BYTE   "ENAME",TK_RENAME  ; RENAME
 LBB_RESTORE:
         .BYTE   "ESTORE",TK_RESTORE
 ; RESTORE
@@ -814,6 +822,10 @@ LAB_KEYT:
         .WORD   LBB_LPRINT      ; LPRINT
         .BYTE   5,'L'
         .WORD   LBB_LLIST       ; LLIST
+        .BYTE   6,'D'
+        .WORD   LBB_DELETE      ; DELETE
+        .BYTE   6,'R'
+        .WORD   LBB_RENAME      ; RENAME
 
 
 ; secondary commands (can't start a statement)

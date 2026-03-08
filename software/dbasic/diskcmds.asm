@@ -161,7 +161,7 @@ DOS65LOAD:
         CMP     #$FF            ; error?, if NOT, continue
         BNE     DOS65LOAD_1     ;
 DOS65LOAD_ERR:
-        LDX     #$26            ; IO ERROR
+        LDX     #$24            ; IO ERROR
         JSR     LAB_XERR
         JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
 DOS65LOAD_ERR1:
@@ -407,7 +407,7 @@ DIR_EXIT:
 ; DRIVE,MODE, FILENAME$,FILE$
 ;
 ; FILE$ = STRING TO HOLD 33 BYTE FCB
-; DRIVE = NUMERIC DRIVE -- 0=A, 1=B, 2= . . .
+; DRIVE = NUMERIC DRIVE -- 0=CURRENT, 1=A, 2=B . . .
 ; MODE = 0=EXISTING, 1=CREATE
 ; FILENAME$ = FILENAME STRING
 ;__________________________________________________________
@@ -474,7 +474,7 @@ V_OPEN1:
         BNE     :-
 :
         INY
-        LDA     FCB,Y
+        LDA     (str_pl),Y
         CMP     #'.'
         BEQ     V_OPEN_EXTENSION
         CPY     str_ln
@@ -704,6 +704,268 @@ V_FILEREAD:
                                 ;
         JSR     LAB_RTST        ; STORE STRING
         JMP     LAB_17D5        ; do string LET and return
+
+;___DELETE_________________________________________________
+;
+; DELETE A FILE
+;
+;
+; BASIC COMMAND EXPECTS TWO VARS
+; DRIVE, FILENAME$
+;
+; DRIVE = NUMERIC DRIVE -- 0=CURRENT, 1=A, 2=B . . .
+; FILENAME$ = FILENAME STRING
+;__________________________________________________________
+V_DELETE:
+; CLEAR FCB
+        LDA     #0              ; FILL WITH NULL
+        LDY     #0              ;
+:
+        STA     FCB,Y           ;
+        INY                     ;
+        CPY     #33             ;
+        BNE     :-              ;
+                                ;
+        LDA     #32             ; FILL FILENAME AND EXTENSION WITH SPACES
+        LDY     #1              ;
+:
+        STA     FCB,Y           ;
+        INY                     ;
+        CPY     #12             ;
+        BNE     :-              ;
+                                ;
+        JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X (DRIVE)
+        TXA
+        STA     FCB             ; STORE DRIVE IN FCB
+                                ;
+        JSR     LAB_1C01        ; (AFTER ',') OR SYN ERR
+        JSR     LAB_EVEX        ; GET THE SECOND PARAMETER
+        LDA     <Dtypef         ; IS IT A STRING?
+        BNE     :+              ; YES, CONTINUE ON
+        LDX     #$02            ; NOPE, SYNTAX ERROR
+        JSR     LAB_XERR
+        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
+:
+        JSR     LAB_22B6        ; pop string off descriptor stack, or from top of string
+                                ; space returns with A = length, X=$71=pointer low byte,
+                                ; Y=$72=pointer high byte
+        STA     str_ln          ; set string length
+        STX     str_pl          ; set string pointer low byte
+        STY     str_ph          ; set string pointer high byte
+                                ; STORE IN FILENAME AND EXTENSION
+        LDX     #0
+        LDY     #0
+:
+        LDA     (str_pl),Y
+        CMP     #'.'
+        BEQ     V_DEL_EXTENSION
+        CPY     str_ln
+        BEQ     V_DEL_FNEND
+        INY
+        STA     FCB,Y
+        CPY     #8
+        BNE     :-
+:
+        INY
+        LDA     (str_pl),Y
+        CMP     #'.'
+        BEQ     V_DEL_EXTENSION
+        CPY     str_ln
+        BEQ     V_DEL_FNEND
+        JMP     :-
+        JMP     V_DEL_FNEND
+V_DEL_EXTENSION:
+        LDX     #9
+:
+        INY
+        LDA     (str_pl),Y
+        CPY     str_ln
+        BEQ     V_DEL_FNEND
+        STY     Rbyte3
+        STX     Rbyte2
+        LDY     Rbyte2
+        STA     FCB,Y
+        INC     Rbyte2
+        LDY     Rbyte3
+        INX
+        CPX     #12
+        BNE     :-
+V_DEL_FNEND:
+        LDX     #13             ; INITIALIZE SYSTEM
+        JSR     PEM             ;
+        LDX     #19             ; DELETE
+        LDA     #<FCB           ; FCB
+        LDY     #>FCB           ; FCB
+        JSR     PEM
+        CMP     #$FF
+        BNE     :+
+        LDX     #$24            ; IO ERROR
+        JSR     LAB_XERR
+        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
+:
+        RTS
+
+;___RENAME_________________________________________________
+;
+; RENAME A FILE
+;
+;
+; BASIC COMMAND EXPECTS THREE VARS
+; DRIVE, FILENAME$, NEWFILENAME$
+;
+; DRIVE = NUMERIC DRIVE -- 0=CURRENT, 1=A, 2=B . . .
+; FILENAME$ = OLD FILENAME STRING
+; FILENAME$ = NEW FILENAME STRING
+;__________________________________________________________
+V_RENAME:
+; CLEAR FCB
+        LDA     #0              ; FILL WITH NULL
+        LDY     #0              ;
+:
+        STA     FCB,Y           ;
+        INY                     ;
+        CPY     #33             ;
+        BNE     :-              ;
+                                ;
+        LDA     #32             ; FILL FILENAME AND EXTENSION WITH SPACES
+        LDY     #1              ;
+:
+        STA     FCB,Y           ;
+        INY                     ;
+        CPY     #12             ;
+        BNE     :-              ;
+        LDY     #17             ;
+:
+        STA     FCB,Y           ;
+        INY                     ;
+        CPY     #29             ;
+        BNE     :-              ;
+                                ;
+        JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X (DRIVE)
+        TXA
+        STA     FCB             ; STORE DRIVE IN FCB
+        STA     FCB+16          ; STORE DRIVE IN FCB
+                                ;
+        JSR     LAB_1C01        ; (AFTER ',') OR SYN ERR
+        JSR     LAB_EVEX        ; GET THE SECOND PARAMETER
+        LDA     <Dtypef         ; IS IT A STRING?
+        BNE     :+              ; YES, CONTINUE ON
+        LDX     #$02            ; NOPE, SYNTAX ERROR
+        JSR     LAB_XERR
+        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
+:
+        JSR     LAB_22B6        ; pop string off descriptor stack, or from top of string
+                                ; space returns with A = length, X=$71=pointer low byte,
+                                ; Y=$72=pointer high byte
+        STA     str_ln          ; set string length
+        STX     str_pl          ; set string pointer low byte
+        STY     str_ph          ; set string pointer high byte
+                                ; STORE IN FILENAME AND EXTENSION
+        LDX     #0
+        LDY     #0
+:
+        LDA     (str_pl),Y
+        CMP     #'.'
+        BEQ     V_REN_EXTENSION
+        CPY     str_ln
+        BEQ     V_REN_FNEND
+        INY
+        STA     FCB,Y
+        CPY     #8
+        BNE     :-
+:
+        INY
+        LDA     (str_pl),Y
+        CMP     #'.'
+        BEQ     V_REN_EXTENSION
+        CPY     str_ln
+        BEQ     V_REN_FNEND
+        JMP     :-
+        JMP     V_REN_FNEND
+V_REN_EXTENSION:
+        LDX     #9
+:
+        INY
+        LDA     (str_pl),Y
+        CPY     str_ln
+        BEQ     V_REN_FNEND
+        STY     Rbyte3
+        STX     Rbyte2
+        LDY     Rbyte2
+        STA     FCB,Y
+        INC     Rbyte2
+        LDY     Rbyte3
+        INX
+        CPX     #12
+        BNE     :-
+V_REN_FNEND:
+        JSR     LAB_1C01        ; (AFTER ',') OR SYN ERR
+        JSR     LAB_EVEX        ; GET THE THIRD PARAMETER
+        LDA     <Dtypef         ; IS IT A STRING?
+        BNE     :+              ; YES, CONTINUE ON
+        LDX     #$02            ; NOPE, SYNTAX ERROR
+        JSR     LAB_XERR
+        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
+:
+        JSR     LAB_22B6        ; pop string off descriptor stack, or from top of string
+                                ; space returns with A = length, X=$71=pointer low byte,
+                                ; Y=$72=pointer high byte
+        STA     str_ln          ; set string length
+        STX     str_pl          ; set string pointer low byte
+        STY     str_ph          ; set string pointer high byte
+                                ; STORE IN FILENAME AND EXTENSION
+        LDX     #0
+        LDY     #0
+:
+        LDA     (str_pl),Y
+        CMP     #'.'
+        BEQ     V_REN_EXTENSION1
+        CPY     str_ln
+        BEQ     V_REN_FNEND1
+        INY
+        STA     FCB+16,Y
+        CPY     #8
+        BNE     :-
+:
+        INY
+        LDA     (str_pl),Y
+        CMP     #'.'
+        BEQ     V_REN_EXTENSION1
+        CPY     str_ln
+        BEQ     V_REN_FNEND1
+        JMP     :-
+        JMP     V_REN_FNEND1
+V_REN_EXTENSION1:
+        LDX     #9
+:
+        INY
+        LDA     (str_pl),Y
+        CPY     str_ln
+        BEQ     V_REN_FNEND1
+        STY     Rbyte3
+        STX     Rbyte2
+        LDY     Rbyte2
+        STA     FCB+16,Y
+        INC     Rbyte2
+        LDY     Rbyte3
+        INX
+        CPX     #12
+        BNE     :-
+V_REN_FNEND1:
+
+        LDX     #13             ; INITIALIZE SYSTEM
+        JSR     PEM             ;
+        LDX     #23             ; RENAME
+        LDA     #<FCB           ; FCB
+        LDY     #>FCB           ; FCB
+        JSR     PEM
+        CMP     #$FF
+        BNE     :+
+        LDX     #$24            ; IO ERROR
+        JSR     LAB_XERR
+        JMP     LAB_1319        ; RESET VARS, STACK AND RETURN CONTROL TO BASIC
+:
+        RTS
 
 
 

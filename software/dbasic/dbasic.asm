@@ -545,25 +545,11 @@ LAB_1330:
 LAB_133E:
         JMP     LAB_127D        ; else we just wait for Basic command, no "Ready"
 
-; print "? " and get BASIC input
-
-LAB_INLN:
-        JSR     LAB_18E3        ; print "?" character
-        JSR     LAB_18E0        ; print " "
-        BNE     LAB_1357        ; call for BASIC input and return
-
-; receive line from keyboard
-
-; $08 as delete key (BACKSPACE on standard keyboard)
-LAB_134B:
-        JSR     LAB_PRNA        ; go print the character
-        DEX                     ; decrement the buffer counter (delete)
-        .BYTE   $2C             ; make LDX into BIT abs
 
 ; call for BASIC input (main entry point)
 
-LAB_1357:
         .IFDEF  MEMORYMAPPEDSCREEN
+LAB_1357:
 ; Do screen editor
         JSR     ScreenEditor
         LDX     #<Ibuffs        ; set X to buffer start-1 low byte
@@ -573,12 +559,43 @@ LAB_1357:
         .ENDIF
 
 
+; print "? " and get BASIC input
+
+LAB_INLN:
+        JSR     LAB_18E0        ; print " "
+        BNE     SimpleSerialEditor
+                                ; call for BASIC input and return
+
+; receive line from keyboard
+
+; $08 as delete key (BACKSPACE on standard keyboard)
+LAB_134B:
+        JSR     LAB_PRNA        ; go print the character
+        DEX                     ; decrement the buffer counter (delete)
+        .BYTE   $2C             ; make LDX into BIT abs
+
+        .IFNDEF  MEMORYMAPPEDSCREEN
+LAB_1357:
+        .ENDIF
+
 SimpleSerialEditor:
         LDX     #$00            ; clear BASIC line buffer pointer
 LAB_1359:
+        .IFDEF  MEMORYMAPPEDSCREEN
+        LDA     #58
+        STA     farfunct
+        JSR     DO_FARCALL      ; PAINT cursor
+        .ENDIF
+LAB_1359A:
         JSR     V_INPT          ; call scan input device
-        BCC     LAB_1359        ; loop if no byte
-
+        BCC     LAB_1359A       ; loop if no byte
+        .IFDEF  MEMORYMAPPEDSCREEN
+        PHA
+        LDA     #59
+        STA     farfunct
+        JSR     DO_FARCALL      ; UNPAINT cursor
+        PLA
+        .ENDIF
 ;BEQ	LAB_1359		; loop until valid input (ignore NULLs)
 
         CMP     #$07            ; compare with [BELL]
@@ -2316,17 +2333,14 @@ LAB_INPUT:
         LDA     #$3B            ; load A with ";"
         JSR     LAB_SCCA        ; scan for CHR$(A), else do syntax error then warm start
         JSR     LAB_18C6        ; print string from Sutill/Sutilh
-
+        JMP     LAB_1934A
 ; done with prompt, now get data
 LAB_1934:
+        JSR     LAB_18E3        ; print "?" character
+LAB_1934A:
         JSR     LAB_CKRN        ; check not Direct, back here if ok
         JSR     LAB_INLN        ; print "? " and get BASIC input
-        LDA     #$00            ; set mode = INPUT
-        CMP     Ibuffs          ; test first byte in buffer
-        BNE     LAB_1953        ; branch if not null input
-
-        CLC                     ; was null input so clear carry to exit program
-        JMP     LAB_1647        ; go do BREAK exit
+        JMP     LAB_1953
 
 ; perform READ
 
