@@ -7,13 +7,26 @@
 ;and enables the raster interrupt
 
 INIT:
-	; set 80 col text mode here
-        ldx 	#80
+        ; set 80 col text mode here
+        LDX     #80
         STX     COLUMNS
-	ldy 	#25
+        ; Use 23 rows so refresh paints rows 1-22 only.
+        ; Row 0 = banner, row 23 = unused. Screen has 24 rows (0-23).
+        ; Painting row 23 wraps cursor to row 24 which auto-scrolls.
+        LDY     #23
         STY     ROWS
-	; set colors here
-	; clear screen here
+        ; clear screen
+        LDA     #FC_SCNCLR
+        STA     farfunct
+        JSR     DO_FARCALL
+        ; unpaint any leftover cursor
+        LDA     #FC_UNPAINTCSR
+        STA     farfunct
+        JSR     DO_FARCALL
+        ; init default cursor tracking
+        LDA     #1
+        STA     csrrow
+        STZ     csrcol
 
         LDA     #TOPFGCOLOR
         STA     INSMODE
@@ -28,9 +41,9 @@ INIT:
         STA     texstart+1
         LDA     #>TEXEND_INIT
         STA     texend+1
-        LDA     #<TEXBUF_INIT
+        LDA     #>TEXBUF_INIT
         STA     texbuf+1
-        LDA     #<BUFEND_INIT
+        LDA     #>BUFEND_INIT
         STA     bufend+1
         STA     fpos+1
 	RTS
@@ -39,7 +52,6 @@ INIT2:
 ; moved forward to match binary
 ;       TODO: confirm or convert 650/$9D settings
 INIT3:
-        LDA     #128
         COPY16  texstart,curr
 ; display program title
         JSR     sysmsg
@@ -61,49 +73,64 @@ sysmsg:
 ;It is called before most messages.
 ;It's like a one-line clear-screen.
 topclr:
-;        LDX     COLUMNS         ; columns
-;        LDA     #V_H_INC1       ; write both text & color
-;        STA     V_H
-;        STZ     V_M
-;        STZ     V_L
-;        LDA     #space
-;        LDY     windcolr
-;        STY     646
-;toploop:
-;        STA     V_1
-;        STY     V_1
-;        DEX
-;        BPL     toploop
-;        LDA     #19             ;HOME
-;        JMP     chrout
-;Converts PETSCII to screen codes.
-;astoin:
-;        PHA
-;        AND     #128
-;        LSR
-;        STA     temp
-;        PLA
-;        AND     #63
-;        ORA     temp
-;        RTS
+        ; map video text page into $A000-$AFFF
+        LDY     #VIDTEXT_PAGE
+        JSR     vid_enter
+        ; fill row 0 ($A000-$A04F) with spaces
+        LDY     #79
+        LDA     #space
+@tcloop:
+        STA     $A000,Y
+        DEY
+        BPL     @tcloop
+        ; unmap video
+        JSR     vid_exit
+        ; position firmware cursor at row 0, col 0 for PRINTMESSAGE
+        LDX     #0
+        LDY     #0
+        LDA     #FC_LOCATE
+        STA     farfunct
+        JSR     DO_FARCALL
+        RTS
 
 
 chrin:
-        stx     chrouttmpx
-        LDX     #6              ;
-        JSR     PEM             ;
-        ldx     chrouttmpx
-        rts
+        PHX
+        PHY
+        LDA     #FC_CHRIN       ; FARCALL #20 - read keyboard (non-blocking)
+        STA     farfunct
+        JSR     DO_FARCALL      ; returns A=key or A=$FF if no key
+        PLY
+        PLX
+        CMP     #$FF
+        BNE     @gotkey
+        LDA     #0              ; return 0 for "no key"
+@gotkey:
+        RTS
 
 chrout:
-        stx     chrouttmpx
-        LDX     #2              ;  OUTPUT THE CHAR TO THE CONSOLE
-        JSR     PEM             ;
-        ldx     chrouttmpx
-        rts
-chrouttmpx:
-        .byte 00
+        PHX
+        PHY
+        PHA                     ; save character
+        LDA     #FC_CHROUT      ; FARCALL #19 - output char
+        STA     farfunct
+        PLA                     ; restore character to A
+        JSR     DO_FARCALL
+        PLY
+        PLX
+        RTS
 
+; drain all pending keystrokes from the keyboard buffer
+drainkeys:
+        LDX     #11             ; keyboard status
+        JSR     PEM
+        CMP     #0
+        BEQ     @drained
+        LDX     #6              ; consume the key
+        JSR     PEM
+        JMP     drainkeys
+@drained:
+        RTS
 
 ;refresh copies a screenful of text
 ;from the area of memory pointed to by
@@ -111,143 +138,204 @@ chrouttmpx:
 ;fitting a line of text between the screen
 ;margins, wrapping words, and restarts
 ;at the left margin after printing a car-
-;riage return. SpeedScript constantly calls
-;this routine while the cursor is blink-
-;ing, so it has to be very fast. To elimi-
-;nate flicker, it also clears out the end of
-;each line instead of first clearing the
-;screen. It stores the length of the first
-;screen line for the sake of the check
-;routine (which scrolls up by adding
-;that length to toplin), the last text
-;location referenced (so check can see
-;if the cursor has moved off the visible
-;screen).
-
+;riage return.
+;
+;It also tracks the screen position of
+;the cursor (curr) so the hardware cursor
+;can be painted there afterward.
+;
+;Uses direct video memory writes via MMU
+;paging for performance (~18x faster than
+;per-character FARCALL calls).
 
 refresh:
-; set topline and border color elsewhere
-
-; set pointer tex to top of document
+; force screen dimensions (protect against corruption)
+        LDA     #23
+        STA     ROWS
+        LDA     #80
+        STA     COLUMNS
+; set pointer tex to top of visible text
         COPY16  toplin,tex
-; set VERA to skip color memory
-;        LDA     #$20
-;        STA     V_H
-;; set VERA pointer to beginning of 2nd line
-;        LDX     #1
-;        STX     V_M
-;        STZ     V_L
-;PPAGE:
-;        LDY     #0
-;PLINE:
-;        LDA     (tex),Y
-;        STA     lbuff,Y
-;        INY
-;        AND     #127
-;        CMP     #retchar
-;        BEQ     BREAK
-;        CPY     COLUMNS         ;COLUMNS
-;        BNE     PLINE
-; hit column 39 without end-of-paragraph
-; backspace until it hits a space
-;        DEY
-;SLOOP:
-;        LDA     (tex),Y
-;        AND     #127
-;NXCUR:
-;        CMP     #space
-;        BEQ     SBRK            ; wrap at this character
-;        DEY
-;        BNE     SLOOP
-;        LDY     COLUMNS         ; columns
-;        DEY
-;; copy line onto screen
-;SBRK:
-;        INY
-;BREAK:
-;        STY     temp
-;        LDY     #0
-;COPY:
-;        LDA     lbuff,Y
-;        STA     V_1
-;        INY
-;        CPY     temp
-;        BMI     COPY
-;        LDY     temp
-;        CLC
-;        TYA
-;        ADC     tex
-;        STA     tex
-;        LDA     tex+1
-;        ADC     #0
-;        STA     tex+1
-;        CPX     #1
-;        BNE     CLRLN
-;        STY     LENTABLE
-;; fill rest of line with spaces
-;CLRLN:
-;        CPY     COLUMNS         ; columns
-;        BEQ     CLEARED
-;        LDA     #32
-;        STA     V_1
-;        INY
-;        BRA     CLRLN
-;CLEARED:
-;; move screen pointer to next row
-;        STZ     V_L
-;        INC     V_M
-;        INX
-;        CPX     ROWS            ; rows
-;        BEQ     pdone
-;        BRA     PPAGE
-;pdone:
-;        COPY16  tex,BOTSCR
+        LDA     #1
+        STA     scrrow          ; start at screen row 1 (row 0 = command line)
+        ; default cursor position (in case curr is off-screen)
+        LDA     #1
+        STA     csrrow
+        STZ     csrcol
+
+; map video text page into $A000-$AFFF
+        LDY     #VIDTEXT_PAGE
+        JSR     vid_enter
+; initialize video pointer to row 1 ($A000 + 1*80 = $A050)
+        LDA     #$50
+        STA     indir
+        LDA     #$A0
+        STA     indir+1
+
+; main page loop: process one screen row per iteration
+RPPAGE:
+        LDY     #0
+; scan text for line break point
+RPLINE:
+        LDA     (tex),Y
+        INY
+        AND     #$7F            ; strip high bit for comparison
+        CMP     #retchar        ; end of paragraph?
+        BEQ     RBREAK
+        CPY     COLUMNS
+        BNE     RPLINE
+
+; hit screen width without a paragraph break - word wrap
+; scan backward for a space to break at
+        DEY
+RSLOOP:
+        LDA     (tex),Y
+        AND     #$7F
+        CMP     #space
+        BEQ     RSBRK           ; found a space - wrap here
+        DEY
+        BNE     RSLOOP
+; no space found in entire line - force break at column width
+        LDY     COLUMNS
+        DEY
+RSBRK:
+        INY                     ; wrap point (char after the space)
+RBREAK:
+        STY     temp            ; temp = number of chars in this line
+
+; copy line to video memory, tracking cursor position
+        LDY     #0
+RCOPY:
+        ; check if this text position is the cursor (tex + Y == curr?)
+        TYA
+        CLC
+        ADC     tex             ; A = low byte of tex+Y
+        PHA                     ; save (preserves carry for high byte calc)
+        LDA     tex+1
+        ADC     #0              ; A = high byte of tex+Y
+        CMP     curr+1          ; compare high bytes
+        BNE     @nocsr
+        PLA                     ; A = low byte of tex+Y
+        CMP     curr            ; compare low bytes
+        BNE     @nocsr2
+        ; found the cursor position on screen
+        STY     csrcol
+        LDA     scrrow
+        STA     csrrow
+        BRA     @dochr
+@nocsr:
+        PLA                     ; clean up stack
+@nocsr2:
+@dochr:
+        ; read character from text memory and write to video RAM
+        LDA     (tex),Y         ; read from text buffer (below $A000)
+        AND     #$7F            ; strip high bit
+        CMP     #space
+        BCS     @rok            ; >= 32 is printable
+        LDA     #space          ; replace control chars with space
+@rok:
+        STA     (indir),Y       ; write directly to video RAM
+        INY
+        CPY     temp
+        BNE     RCOPY
+
+; store length of first screen line in LENTABLE
+        LDA     scrrow
+        CMP     #1
+        BNE     RCLRLN
+        LDA     temp
+        STA     LENTABLE
+
+; pad remainder of line with spaces
+RCLRLN:
+        LDY     temp
+        LDA     #space
+@rpad:
+        CPY     COLUMNS
+        BEQ     RCLEARED
+        STA     (indir),Y       ; write space to video RAM
+        INY
+        BRA     @rpad
+
+RCLEARED:
+; advance tex past the characters consumed
+        CLC
+        LDA     temp
+        ADC     tex
+        STA     tex
+        LDA     tex+1
+        ADC     #0
+        STA     tex+1
+
+; advance video pointer to next row (+80 bytes)
+        CLC
+        LDA     indir
+        ADC     #80
+        STA     indir
+        LDA     indir+1
+        ADC     #0
+        STA     indir+1
+
+; next screen row
+        INC     scrrow
+        LDA     scrrow
+        CMP     ROWS
+        BEQ     @refdone
+        JMP     RPPAGE
+@refdone:
+
+; unmap video memory
+        JSR     vid_exit
+; record bottom-of-screen text address
+        COPY16  tex,BOTSCR
+        RTS
+
+; --- video memory paging helpers ---
+; Following the pattern from dbasic/screencmds.asm
+
+; Map a video sub-page into $A000-$AFFF via Task 01.
+; Y = video sub-page (e.g. VIDTEXT_PAGE for text chars).
+; Trashes A, X. Preserves Y.
+vid_enter:
+        LDA     #$01            ; configure Task 01
+        LDX     #$0A            ; bank $A ($A000-$AFFF)
+        JSR     SETPAGE         ; Y = video sub-page (set by caller)
+        LDA     #$01
+        STA     PC6502_ACT_TASK ; switch to Task 01
+        RTS
+
+; Switch back to Task 00 (normal memory at $A000-$AFFF).
+vid_exit:
+        LDA     #$00
+        STA     PC6502_ACT_TASK ; switch to Task 00
+        RTS
+
+; --- cursor helpers using FARCALL #58/#59 ---
+
+; Paint the hardware cursor at the position found during refresh.
+; Call this AFTER refresh returns.
+showcursor:
+        LDX     csrcol
+        LDY     csrrow
+        LDA     #FC_LOCATE
+        STA     farfunct
+        JSR     DO_FARCALL
+        LDA     #FC_PAINTCSR
+        STA     farfunct
+        JSR     DO_FARCALL
+        RTS
+
+; Remove the hardware cursor from the screen.
+; Call this BEFORE refresh or when processing a keypress.
+hidecursor:
+        LDA     #FC_UNPAINTCSR
+        STA     farfunct
+        JSR     DO_FARCALL
         RTS
 
 BORDER:
-;        LDA     TEXCOLR
-;        CLC
-;        ADC     #$10
-;        STA     TEXCOLR
-COLORALL:
-;        LDA     #$20
-;        STA     V_H
-;        LDX     #1
-;        LDA     TEXCOLR
-;colorrow:
-;        STX     V_M
-;        LDY     #1
-;        STY     V_L
-;        LDY     COLUMNS         ;Columns
-;colorcol:
-;        STA     V_1
-;        DEY
-;        BNE     colorcol
-;        INX
-;        CPX     ROWS            ;ROWS
-;        BNE     colorrow
         RTS
 
 scrcol:
-;        .BYTE   12              ; gray
-;;TEXCOLR (text color) is used in the refresh routine
-;;and stored into color memory. Both SCRCOL and TEXCOLR
-;;are stored within the SpeedScript code so that after
-;;they're changed, you can resave SpeedScript and it
-;;will come up with your color choice in the future.
 LETTERS:
-;        LDA     TEXCOLR
-;        INA
-;        AND     #$0F
-;        TAX
-;        LDA     TEXCOLR
-;        AND     #$F0
-;        STX     TEXCOLR
-;        ORA     TEXCOLR
-;        STA     TEXCOLR
-;        BRA     COLORALL
-;TEXCOLR:
-;        .BYTE   $cb             ;dark gray on light gray
-
-
         rts

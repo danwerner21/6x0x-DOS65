@@ -255,34 +255,24 @@ getakey:
 ;unSHIFTed ones. The INSMODE flag is checked to see if we should
 ;insert a space before a character.
 main:
-        STZ     blinkflag
-        LDA     (curr)
-        STA     UNDERCURS
-main2:
-        LDA     (curr)
-        EOR     #$80
-        STA     (curr)
-        LDA     blinkflag
-        EOR     #1
-        STA     blinkflag
+        JSR     hidecursor
         JSR     refresh
+        JSR     showcursor
 WAIT:
         JSR     chrin
-        BNE     KEYPRESS
-        LDA     162             ;TODO: TI seconds counter
-        AND     #16
         BEQ     WAIT
-        STZ     162
-        JMP     main2
 KEYPRESS:
+        PHA                     ; save key code (hidecursor trashes A)
+        JSR     hidecursor
+        PLA                     ; restore key code
         TAX
-        LDA     UNDERCURS
-        STA     (curr)
-        STZ     blinkflag
-        CPX     #95
+        CPX     #8              ; ASCII backspace
+        BEQ     @dobackspace
+        CPX     #127            ; ASCII DEL
         BNE     NOTBKS
+@dobackspace:
         JSR     left
-        LDA     #32
+        LDA     #space
         STA     (curr)
         JMP     main
 NOTBKS:
@@ -293,17 +283,15 @@ NOTBKS:
         PLX
 nomsg:
         TXA
-        CMP     #13
+        CMP     #13             ; ASCII carriage return?
         BNE     notcr
-        LDX     #retchar+64
+        LDX     #retchar        ; store paragraph marker directly
+        BRA     NESHIFT         ; skip control-char check (retchar < 32)
 notcr:
         TXA
         AND     #127
         CMP     #32
         BCC     CONTROL
-        CPX     #160
-        BNE     NESHIFT
-        LDX     #space
 NESHIFT:
         TXA
         PHA
@@ -377,22 +365,65 @@ FOUND:
         LDA     VECT,X
         PHA
         RTS
+; Command key table - remapped for ASCII (Ctrl+letter combos)
+; CTBL[1..N] are key codes, VECT[0..N-1] are matching function addresses
 CTBL:
-        .BYTE   39
-        .BYTE   29,157,137,133,2,12,138,134,20,148
-        .BYTE   4,19,9,147,135,139,5,136,140
-        .BYTE   22,145,17,159,18,24,26,16
-        .BYTE   28,30,6,1,11,8,31,3,131
-        .BYTE   10,141,7
+        .BYTE   27              ; 27 commands
+        .BYTE   6               ; Ctrl+F: cursor right
+        .BYTE   2               ; Ctrl+B: cursor left
+        .BYTE   20              ; Ctrl+T: delete character at cursor
+        .BYTE   4               ; Ctrl+D: delete (S,W,P)
+        .BYTE   19              ; Ctrl+S: home (top of text)
+        .BYTE   9               ; Ctrl+I: insert mode toggle
+        .BYTE   17              ; Ctrl+Q: erase all text (with confirm)
+        .BYTE   5               ; Ctrl+E: erase (S,W,P)
+        .BYTE   12              ; Ctrl+L: load file
+        .BYTE   22              ; Ctrl+V: save file
+        .BYTE   18              ; Ctrl+R: insert buffer
+        .BYTE   24              ; Ctrl+X: switch (cut to buffer)
+        .BYTE   26              ; Ctrl+Z: go to end of text
+        .BYTE   16              ; Ctrl+P: print
+        .BYTE   28              ; Ctrl+\: format code
+        .BYTE   25              ; Ctrl+Y: delete line
+        .BYTE   1               ; Ctrl+A: alpha (go to top of screen)
+        .BYTE   11              ; Ctrl+K: kill buffer
+        .BYTE   8               ; Ctrl+H: hunt/search (backspace handled before here)
+        .BYTE   31              ; Ctrl+_: show free memory
+        .BYTE   3               ; Ctrl+C: tab
+        .BYTE   10              ; Ctrl+J: replace start
+        .BYTE   7               ; Ctrl+G: search and replace
+        .BYTE   14              ; Ctrl+N: paragraph right
+        .BYTE   15              ; Ctrl+O: paragraph left
+        .BYTE   23              ; Ctrl+W: word left
+        .BYTE   21              ; Ctrl+U: word right
 VECT:
-        .WORD   right-1,left-1,wleft-1,wright-1,BORDER-1,LETTERS-1
-        .WORD   sleft-1,sright-1,DELCHAR-1,inschar-1,DELETE-1
-        .WORD   HOME-1,instgl-1,CLEAR-1,paright-1,parleft-1
-        .WORD   ERAS-1,TLOAD-1,TSAVE-1,verify-1
-        .WORD   sleft-1,sright-1,catalog-1,insbuffer-1,switch-1
-        .WORD   endtex-1,print-1,FORMAT-1,dcmnd-1
-        .WORD   DELIN-1,alpha-1,killbuff-1,HUNT-1,FREEMEM-1,tab-1
-        .WORD   lottaspaces-1,repstart-1,endpar-1,SANDR-1
+        .WORD   right-1         ; Ctrl+F
+        .WORD   left-1          ; Ctrl+B
+        .WORD   DELCHAR-1       ; Ctrl+T
+        .WORD   DELETE-1        ; Ctrl+D
+        .WORD   HOME-1          ; Ctrl+S
+        .WORD   instgl-1        ; Ctrl+I
+        .WORD   CLEAR-1         ; Ctrl+Q
+        .WORD   ERAS-1          ; Ctrl+E
+        .WORD   TLOAD-1         ; Ctrl+L
+        .WORD   TSAVE-1         ; Ctrl+V
+        .WORD   insbuffer-1     ; Ctrl+R
+        .WORD   switch-1        ; Ctrl+X
+        .WORD   endtex-1        ; Ctrl+Z
+        .WORD   print-1         ; Ctrl+P
+        .WORD   FORMAT-1        ; Ctrl+\
+        .WORD   DELIN-1         ; Ctrl+Y
+        .WORD   alpha-1         ; Ctrl+A
+        .WORD   killbuff-1      ; Ctrl+K
+        .WORD   HUNT-1          ; Ctrl+H
+        .WORD   FREEMEM-1       ; Ctrl+_
+        .WORD   tab-1           ; Ctrl+C
+        .WORD   repstart-1      ; Ctrl+J
+        .WORD   SANDR-1         ; Ctrl+G
+        .WORD   paright-1       ; Ctrl+N
+        .WORD   parleft-1       ; Ctrl+O
+        .WORD   wleft-1         ; Ctrl+W
+        .WORD   wright-1        ; Ctrl+U
 ;The check routine first prevents the cursor from
 ;disappearing past the beginning or end-of-text memory,
 ;and prevents us from cursoring past the end-of-text pointer.
@@ -731,8 +762,7 @@ delc:
         TOPPRINTMESSAGE buferr
         LDA     #1
         STA     msgflg
-; TODO: confirm this works in X16
-        STZ     198             ; clear keyboard buffer
+        JSR     drainkeys       ; drain any pending keystrokes
         RTS
 
 gosav:
@@ -965,8 +995,6 @@ YORN:
 YORNKEY:                        ;JSR scnkey
         JSR     chrin
         BEQ     YORNKEY
-        CMP     #PETSCII_CLR    ;user is spamming CLR/HOME
-        BEQ     YORNKEY         ;ignore it
         AND     #127
         CMP     #'y'
         RTS
@@ -1109,65 +1137,46 @@ era2:
         JMP     erasagain
 ;the INPUT routine is used to get responses
 ;from the command line.
+;input: get a line of text from the command line.
+;Returns length in A, text in inbuff (null-terminated).
 input:
-        LDA     COLUMNS         ;columns
-        SBC     CURRENT_COLUMN  ; current column
+        LDA     #39             ; max input length (inbuff is 40 bytes)
         STA     limit
 inp1:
         LDY     #0
 cursin:
-        LDA     #153            ; Light Green
-        JSR     chrout
-        LDA     #18             ; Reverse On
-        JSR     chrout
-        LDA     #space
-        JSR     chrout
-        LDA     #157            ; cursor left
-        JSR     chrout
         STY     inlen
-        JSR     getakey
+        JSR     getakey         ; blocking wait for key
         LDY     inlen
-        STA     temp
-        LDA     #146            ;Reverse Off
-        JSR     chrout
-        LDA     #space
-        JSR     chrout
-        LDA     #157            ; cursor left
-        JSR     chrout
-        LDA     #155            ; Light Gray
-        JSR     chrout
-        LDA     temp
-        CMP     #13
+        CMP     #13             ; CR = done
         BEQ     inexit
-        CMP     #20             ;petscii DEL key
-        BNE     noback
-        DEY
-        BPL     notzero
-        INY
-        JMP     cursin
-notzero:
-        LDA     #157
-        JSR     chrout
-        JMP     cursin
-noback:
-        LDA     temp
+        CMP     #8              ; ASCII backspace
+        BEQ     @inback
+        CMP     #127            ; ASCII DEL
+        BEQ     @inback
         AND     #127
         CMP     #space
-        BCC     cursin
+        BCC     cursin          ; ignore control chars
         CPY     limit
-        BEQ     cursin
-        LDA     temp
-        STA     inbuff,y
-        JSR     chrout
-        LDA     #0
-        STA     QUOTE_MODE      ; no quote mode
-        STA     INSERT_MODE     ; no insert mode
+        BEQ     cursin          ; buffer full
+        STA     inbuff,Y
+        JSR     chrout          ; echo the character
         INY
         JMP     cursin
-inexit:
+@inback:
+        CPY     #0
+        BEQ     cursin          ; nothing to delete
+        DEY
+        LDA     #8              ; backspace (cursor left)
         JSR     chrout
+        LDA     #space          ; overwrite with space
+        JSR     chrout
+        LDA     #8              ; backspace again
+        JSR     chrout
+        JMP     cursin
+inexit:
         LDA     #0
-        STA     inbuff,y
+        STA     inbuff,Y
         TYA
         RTS
 
@@ -1504,7 +1513,6 @@ FREEMEM:
 
 ; speedscript 3.1 by charles brannon
 MSG1:
-        .BYTE   $08, $0e, $9b, $92
         .ASCIIZ "SpeedScript 3.1"
 MSG2:
         .ASCIIZ " by Charles Brannon"
@@ -1519,9 +1527,7 @@ ynmsg:
 clrmsg:
         .ASCIIZ "ERASE ALL TEXT"
 erasmsg:
-        .BYTE   "Erase (S,W,P): "
-        RVS_TEXT "RETURN"
-        .ASCIIZ " to exit"
+        .ASCIIZ "Erase (S,W,P): RETURN to exit"
 formsg:
         .ASCIIZ "Press format key:"
 savmsg:
@@ -1539,9 +1545,7 @@ loadmsg:
 vermsg:
         .ASCIIZ "Verify:"
 dirmsg:
-        .BYTE   "Press "
-        RVS_TEXT "RETURN"
-        .BYTE   0
+        .ASCIIZ "Press RETURN"
 dcmsg:
         .ASCIIZ "Disk command:"
 dirname:
@@ -1551,14 +1555,7 @@ inserr:
 insmsg:
         .ASCIIZ "No text in buffer."
 choosemsg:
-        .BYTE   PETSCII_CLR
-        .BYTE   "Print to: "
-        RVS_TEXT "S"
-        .BYTE   "creen,"
-        RVS_TEXT "D"
-        .BYTE   "isk,"
-        RVS_TEXT "P"
-        .ASCIIZ "rinter?"
+        .ASCIIZ "Print to: [S]creen,[D]isk,[P]rinter?"
 devmsg:
         .ASCIIZ "Device number?"
 sadrmsg:
@@ -1566,13 +1563,9 @@ sadrmsg:
 fnmsg:
         .ASCIIZ "Print to filename:"
 prinmsg:
-        .BYTE   PETSCII_CLR
-        .BYTE   "Printing..."
-        .BYTE   $0d,$0d,$00
+        .ASCIIZ "Printing..."
 waitmsg:
-        .BYTE   "Insert next sheet, press "
-        RVS_TEXT "RETURN"
-        .BYTE   0
+        .ASCIIZ "Insert next sheet, press RETURN"
 srchmsg:
         .ASCIIZ "Hunt for:"
 nfmsg:
@@ -1612,7 +1605,7 @@ inlen:
 BOTSCR:
         .ORG    *+2
 lbuff:
-        .ORG    *+40
+        .ORG    *+80
 inbuff:
         .ORG    *+40
 filename:
@@ -1704,5 +1697,7 @@ savcol:
 linefeed:
         .ORG    *+1
 blinkflag:
+        .ORG    *+1
+blinktimer:
         .ORG    *+1
 END:

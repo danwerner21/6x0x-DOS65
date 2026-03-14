@@ -8,6 +8,7 @@ all:
 	$(MAKE) --directory dos65_utilities
 	$(MAKE) --directory software/ZMachine
 	$(MAKE) --directory software/dbasic
+	$(MAKE) --directory software/speedscript
 
 pretty:
 	$(MAKE) --directory 6x0x_firmware pretty
@@ -19,6 +20,7 @@ pretty:
 	$(MAKE) --directory duodyne02_firmware pretty
 	$(MAKE) --directory software/ZMachine pretty
 	$(MAKE) --directory software/dbasic pretty
+	$(MAKE) --directory software/speedscript pretty
 
 clean:
 	$(MAKE) --directory 6x0x_firmware clean
@@ -30,3 +32,4 @@ clean:
 	$(MAKE) --directory duodyne02_firmware clean
 	$(MAKE) --directory software/ZMachine clean
 	$(MAKE) --directory software/dbasic clean
+	$(MAKE) --directory software/speedscript clean

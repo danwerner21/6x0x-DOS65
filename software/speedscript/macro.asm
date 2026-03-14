@@ -120,22 +120,14 @@
         JSR     displaynum
         .endmacro
 
-;TODO: convert to something that works on X16
-; should branch if the SHIFT and CTRL keys are
-; specifically held down.
+;TODO: DOS/65 has no modifier key state register.
+; For now, always branch (shift/ctrl combos disabled).
         .macro   B_UNLESS_SHIFT_CTRL addr
-        LDA     653
-        CMP     #5
-        BNE     addr
+        JMP     addr
         .endmacro
 
-;TODO: convert to something that works on X16
-; should branch if the SHIFT key is held down,
-; regardless of any other qualifiers
         .macro        B_UNLESS_SHIFT addr
-        LDA     653
-        AND     #1
-        BNE     addr
+        JMP     addr
         .endmacro
 
         .MACRO  B_IF_PUNCT dst

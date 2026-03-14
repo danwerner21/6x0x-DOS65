@@ -1,9 +1,28 @@
 
-
+; DOS/65 system entry points
 DFLFCB          = $107          ;DEFAULT FCB
 PEM             = $103          ;PEM ENTRY
 BOOT            = $100          ;WARM BOOT
 
+; DO_FARCALL dispatch vector
+DO_FARCALL      = $FFF0
+farfunct        = $32           ;zero-page: FARCALL function number
+
+; MMU / video paging (6502PC hardware)
+SETPAGE         = $FFF6         ;configure MMU mapping (A=task, X=bank, Y=page)
+VIDEOBANK       = $F8           ;base physical page for video RAM
+PC6502_ACT_TASK = $EFE0        ;MMU active task register (write-only)
+VIDTEXT_PAGE    = $01+VIDEOBANK ;physical page for text page 1 chars ($F9)
+
+; FARCALL function numbers
+FC_CHROUT       = 19            ;output character (A=char)
+FC_CHRIN        = 20            ;read keyboard (returns A=key or $FF)
+FC_LOCATE       = 37            ;set cursor position (X=col, Y=row)
+FC_SCNCLR       = 38            ;clear screen
+FC_COLOR        = 39            ;set color (X=fg|bg, Y=cursor_fg|bg)
+FC_SCROLLDN     = 56            ;scroll screen down
+FC_PAINTCSR     = 58            ;paint cursor at current position
+FC_UNPAINTCSR   = 59            ;unpaint/hide cursor
 
 ; memory map
 TEXEND_INIT     = $9000
@@ -14,30 +33,29 @@ INSCOLOR        = 14
 TOPFGCOLOR      = 1
 DEFAULT_DEVICE  = 1
 
-; PETSCII constants
+; constants
 PETSCII_CLR     = 147
 PETSCII_MODE    = $8F
 space           = 32
+BLINK_DELAY     = $60           ;cursor blink speed (higher=slower)
 
-
-
-;COLUMNS = $D9
-COLUMNS         = $D9
-ROWS            = $DA
-
-CURRENT_COLUMN  = $D3
-QUOTE_MODE      = $D4
-INSERT_MODE     = $D8
+; Screen state variables - relocated from C64 KERNAL addresses
+; to safe zero-page locations
+COLUMNS         = $50
+ROWS            = $51
+CURRENT_COLUMN  = $52
+QUOTE_MODE      = $53
+INSERT_MODE     = $54
 
 ;Locations used by high-speed memory
 ;move routines:
 
-froml           = $26
-fromh           = $27
-destl           = $28
-desth           = $29
-llen            = $2A
-hlen            = $2B
+froml           = $55
+fromh           = $56
+destl           = $57
+desth           = $58
+llen            = $59
+hlen            = $5A
 
 ;curr: Position of cursor within text
 ;memory. scr: used by the refresh
@@ -54,7 +72,7 @@ curr            = $39
 ;character highlighted by the cursor.
 
 tex             = $FB
-temp            = $3B
+temp            = $5E
 indir           = $FD
 UNDERCURS       = $FA
 
@@ -67,31 +85,7 @@ UNDERCURS       = $FA
 windcolr        = $0C
 retchar         = 31
 
-
-
-;SCREEN          = $FFED
-;PLOT            = $FFF0
-;chrout          = $FFD2
-;stop            = $FFE1
-;setlfs          = $FFBA
-;setnam          = $FFBD
-;clall           = $FFE7
-;open            = $FFC0
-;chrin           = $FFCF
-;chkin           = $FFC6
-;chkout          = $FFC9
-;getin           = $FFE4
-;clrchn          = $FFCC
-;close           = $FFC3
-;load            = $FFD5
-;save            = $FFD8
-;ioinit          = $FF84
-;scnkey = $FF9F ; not supported in x16?
-
-; VERA I/O registers
-;V_H_INC1        = $10
-;V_H             = $9f22
-;V_M             = $9f21
-;V_L             = $9f20
-;V_1             = $9f23
-;CTRL            = $9F25
+; refresh routine state
+scrrow          = $5B           ; current screen row during refresh
+csrcol          = $5C           ; cursor column found during refresh
+csrrow          = $5D           ; cursor row found during refresh
