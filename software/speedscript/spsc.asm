@@ -5,6 +5,13 @@
 ; This project is a port of the Commodore 64 version of SpeedScript
 ; to the 6502PC running DOS/65 with the memory mapped video card.
 ;
+; TODO:
+; * FIX CURSOR STARTUP ISSUE
+; * IMPLIMENT CATALOG
+; * IMPLIMENT SAVE
+; * IMPLIMENT PRINT
+; * IMPLIMENT A MORE CLEAN SHUTDOWN (CLEAR SCREEN, ETC.)
+; * CHANGE TITLE BAR COLOR?
 ;______________________________________________________________________________
         .PSC02
 
