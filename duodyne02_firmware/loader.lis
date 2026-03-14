@@ -1,0 +1,83 @@
+loader.asm:
+     1                          ;________________________________________________________________________________________________________________________________
+     2                          ;
+     3                          ;	Duodyne CUBIX CP/M loader program
+     4                          ;
+     5                          ;  DWERNER 04/24/2022 	Initial
+     6                          ;  PSUMMERS 8/7/2022    Accept a command line argument for CPU to switch to (0-9)
+     7                          ;  DWERNER 10/15/2023   MODIFY CODE FOR CUBIX09
+     8                          ;  DWERNER 01/21/2024 	Duodyne conversion
+     9                          ;  DWERNER 05/5/2024 	Duodyne port from cubix to dos65
+    10                          ;________________________________________________________________________________________________________________________________
+    11                          BDOS:           EQU $0005                         ; BDOS invocation vector
+    12                          DEFFCB:         EQU $5C                           ; Location of default FCB
+    13                          
+    14                                  SECTION ADDR0100
+    15                                  ORG     0100H
+    16                          ; TODO:  RE-ENABLE THIS CODE
+    17                          ; Check for cpu unit
+    18  0000  3a5d00                    LD      A,(DEFFCB+1)                      ; Get first char of filename
+    19                          
+    20  0003  fe3a                      CP      '9' + 1                           ; > '9'
+    21  0005  3009                      JR      NC,go                             ; YES, NOT 0-9, Invalid argument
+    22                          
+    23  0007  d630                      SUB     '0'                               ; < '0'?
+    24  0009  3805                      JR      C,go                              ; YES, NOT 0-9, Invalid argument
+    25                          
+    26  000b  c690                      ADD     $90
+    27  000d  323c00                    LD      (CPUunit),A                       ; Unit 0 = FFH, 1 = FEH etc
+    28                          ;
+    29                          go:
+    30  0010  f3                        DI                                        ; DISABLE INTERRUPTS
+    31  0011  06f3                      LD      B,0F3H
+    32  0013  cf                        RST     08
+    33  0014  06f4                      LD      B,0F4H
+    34  0016  1681                      LD      D,81H
+    35  0018  59                        LD      E,C
+    36  0019  21003f                    LD      HL,3F00H
+    37  001c  cf                        RST     08
+    38  001d  06f5                      LD      B,0F5H
+    39  001f  110001                    LD      DE,0100H
+    40  0022  210001                    LD      HL,0100H
+    41  0025  cf                        RST     08
+    42                          
+    43  0026  0e09                      LD      C,9
+    44  0028  113d00                    LD      DE,MSGFIL
+    45  002b  cd0500                    CALL    BDOS                              ; Do it
+    46  002e  f3                        DI                                        ; DISABLE INTERRUPTS
+    47  002f  0e3c                      LD      C,(CPUunit)                       ; GET CPU PORT
+    48  0031  0e9f                      LD      C,$9F
+    49  0033  ed78                      IN      A,(C)                             ; ENABLE 65816
+    50                          ; should never get here
+    51  0035  00                        NOP
+    52  0036  00                        NOP
+    53  0037  00                        NOP
+    54  0038  00                        NOP
+    55  0039  00                        NOP
+    56  003a  00                        NOP
+    57  003b  76                        HALT
+    58                          
+    59                          ;
+    60                          CPUunit:
+    61  003c  9f                        DB      09Fh                              ; Default CPU unit port
+    62                          ;
+    63                          
+    64                          MSGFIL:
+    65  003d  0a0d                      DB      0AH,0DH
+    66  003f  444f532f3635204c          DM      "DOS/65 LOADED INTO RAM."
+              4f4144454420494e  
+              544f2052414d2e    
+    67  0056  0a0d                      DB      0AH,0DH
+    68  0058  0a0d                      DB      0AH,0DH
+    69  005a  5459504520274720          DM      "TYPE 'G 8400' "
+              383430302720      
+    70  0068  494e544f20363530          DM      "INTO 6502 MONITOR"
+              32204d4f4e49544f  
+              52                
+    71  0079  0a0d                      DB      0AH,0DH
+    72  007b  0a0d                      DB      0AH,0DH
+    73                          
+    74  007d  24                        DM      "$"
+    75                          
+    76                          .END
+    77                          

@@ -14,22 +14,9 @@
         .INCLUDE "macro.asm"
         .INCLUDE "defines.asm"
 
-;Called only when initally run. It is
-;assumed that the author's initials (that
-;conveniently work out in hex) are not
-;normally present in memory. If they
-;are, we know that SpeedScript has been
-;run before, so we avoid the ERASE
-;routine to preserve the text in memory.
-
 BEGIN:
         JSR     INIT
-        LDA     #$CB
-        CMP     firstrun
-        STA     firstrun
-        BEQ     SKIPERAS
         JSR     erase
-SKIPERAS:
         JSR     INIT2
         JMP     main
 
@@ -292,6 +279,9 @@ notcr:
         AND     #127
         CMP     #32
         BCC     CONTROL
+        TXA
+        CMP     #$E0
+        BCS     CONTROL
 NESHIFT:
         TXA
         PHA
@@ -368,13 +358,13 @@ FOUND:
 ; Command key table - remapped for ASCII (Ctrl+letter combos)
 ; CTBL[1..N] are key codes, VECT[0..N-1] are matching function addresses
 CTBL:
-        .BYTE   27              ; 27 commands
-        .BYTE   6               ; Ctrl+F: cursor right
-        .BYTE   2               ; Ctrl+B: cursor left
-        .BYTE   20              ; Ctrl+T: delete character at cursor
+        .BYTE   28              ; 27 commands
+        .BYTE   $F9             ; <RIGHT>:cursor right
+        .BYTE   $F8             ; <LEFT>: cursor left
+        .BYTE   $F1             ; <DEL>:  delete character at cursor
         .BYTE   4               ; Ctrl+D: delete (S,W,P)
         .BYTE   19              ; Ctrl+S: home (top of text)
-        .BYTE   9               ; Ctrl+I: insert mode toggle
+        .BYTE   $F0             ; <INS>:  insert mode toggle
         .BYTE   17              ; Ctrl+Q: erase all text (with confirm)
         .BYTE   5               ; Ctrl+E: erase (S,W,P)
         .BYTE   12              ; Ctrl+L: load file
@@ -392,10 +382,11 @@ CTBL:
         .BYTE   3               ; Ctrl+C: tab
         .BYTE   10              ; Ctrl+J: replace start
         .BYTE   7               ; Ctrl+G: search and replace
-        .BYTE   14              ; Ctrl+N: paragraph right
-        .BYTE   15              ; Ctrl+O: paragraph left
+        .BYTE   $F7             ; <DOWN>: paragraph right
+        .BYTE   $F6             ; <UP>:   paragraph left
         .BYTE   23              ; Ctrl+W: word left
         .BYTE   21              ; Ctrl+U: word right
+        .BYTE   $E2             ; <F3>:   return to os
 VECT:
         .WORD   right-1         ; Ctrl+F
         .WORD   left-1          ; Ctrl+B
@@ -424,21 +415,13 @@ VECT:
         .WORD   parleft-1       ; Ctrl+O
         .WORD   wleft-1         ; Ctrl+W
         .WORD   wright-1        ; Ctrl+U
+        .WORD   quit-1          ; <F3>
 ;The check routine first prevents the cursor from
 ;disappearing past the beginning or end-of-text memory,
 ;and prevents us from cursoring past the end-of-text pointer.
 ;It also checks to see if the cursor has left the visible
 ;screen, scrolling with REFRESH to make the cursor visible.
 
-
-TLOAD:
-TSAVE:
-verify:
-catalog:
-dcmnd:
-print:
-;; stubs todo
-rts
 
 check:
         JSR     check2
@@ -1508,8 +1491,21 @@ FREEMEM:
         STA     msgflg
         RTS
 
-	.include "screen.asm"
-;;;;	.include "io.asm"
+
+quit:
+        JSR     topclr
+        PRINTMESSAGE quitmsg
+        JSR     YORN
+        BEQ     :+
+        JMP     sysmsg
+:
+        LDA     #1
+        STA     SHOWCRSR        ; TURN ON CURSOR
+        JMP     $0100
+
+
+        .INCLUDE "screen.asm"
+        .INCLUDE "io.asm"
 
 ; speedscript 3.1 by charles brannon
 MSG1:
@@ -1526,40 +1522,28 @@ ynmsg:
         .ASCIIZ ": Are you sure? (Y/N):"
 clrmsg:
         .ASCIIZ "ERASE ALL TEXT"
+quitmsg:
+        .ASCIIZ "Leave SpeedScript"
 erasmsg:
         .ASCIIZ "Erase (S,W,P): RETURN to exit"
 formsg:
         .ASCIIZ "Press format key:"
 savmsg:
         .ASCIIZ "Save:"
-FNF:
-        .ASCIIZ "Tape ERROR"
-brmsg:
-        .ASCIIZ "Stopped"
-vererr:
-        .ASCIIZ "Verify Error"
+fnfmsg:
+        .ASCIIZ "File not found"
+ioerrmsg:
+        .ASCIIZ "I/O error"
 okmsg:
         .ASCIIZ "No errors"
 loadmsg:
         .ASCIIZ "Load:"
-vermsg:
-        .ASCIIZ "Verify:"
-dirmsg:
-        .ASCIIZ "Press RETURN"
-dcmsg:
-        .ASCIIZ "Disk command:"
-dirname:
-        .BYTE   "$"
 inserr:
         .ASCIIZ "No Room"
 insmsg:
         .ASCIIZ "No text in buffer."
 choosemsg:
         .ASCIIZ "Print to: [S]creen,[D]isk,[P]rinter?"
-devmsg:
-        .ASCIIZ "Device number?"
-sadrmsg:
-        .ASCIIZ "Secondary Address #?"
 fnmsg:
         .ASCIIZ "Print to filename:"
 prinmsg:
@@ -1700,4 +1684,6 @@ blinkflag:
         .ORG    *+1
 blinktimer:
         .ORG    *+1
+fcb:
+        .ORG    *+33
 END:

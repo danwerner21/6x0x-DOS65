@@ -4,6 +4,14 @@ DFLFCB          = $107          ;DEFAULT FCB
 PEM             = $103          ;PEM ENTRY
 BOOT            = $100          ;WARM BOOT
 
+CURX            = $0647         ; CURRENT CURSOR POSITION (MEMORY MAPPED)
+CURY            = $0648
+SHOWCRSR        = $0649         ; SHOW CURSOR (1-YES, 0-NO) (MEMORY MAPPED)
+CURCOLOR        = $064A         ; CURRENT PRINT COLOR (MEMORY MAPPED)
+CSRCOLOR        = $064B         ; CURRENT CURSOR COLOR (MEMORY MAPPED)
+BVIDEOMODE      = $064C         ; CURRENT VIDEO MODE (MEMORY MAPPED) 00=40 COL, 01=80 COL
+
+
 ; DO_FARCALL dispatch vector
 DO_FARCALL      = $FFF0
 farfunct        = $32           ;zero-page: FARCALL function number
@@ -34,8 +42,6 @@ TOPFGCOLOR      = 1
 DEFAULT_DEVICE  = 1
 
 ; constants
-PETSCII_CLR     = 147
-PETSCII_MODE    = $8F
 space           = 32
 BLINK_DELAY     = $60           ;cursor blink speed (higher=slower)
 
@@ -61,7 +67,7 @@ hlen            = $5A
 ;memory. scr: used by the refresh
 ;routine.
 
-curr            = $39
+curr            = $5F
 
 ;tex: An alternate location used in tan-
 ;dem with curr. COLR is used by RE-

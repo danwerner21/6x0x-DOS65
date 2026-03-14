@@ -1,5 +1,5 @@
 
-all:  	zloader.bin dos65.com dos65drv.sys dos65drv.rom format.com
+all:  	zloader.bin dos65.com dos65drv.sys dos65drv.rom
 
 zloader.bin: zloader.asm
 	z80asm -b -l -m zloader.asm  2> zloader.err

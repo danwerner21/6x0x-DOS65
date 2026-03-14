@@ -7,23 +7,19 @@
 ;and enables the raster interrupt
 
 INIT:
-        ; set 80 col text mode here
+; set 80 col text mode here
         LDX     #80
         STX     COLUMNS
-        ; Use 23 rows so refresh paints rows 1-22 only.
-        ; Row 0 = banner, row 23 = unused. Screen has 24 rows (0-23).
-        ; Painting row 23 wraps cursor to row 24 which auto-scrolls.
+; Use 23 rows so refresh paints rows 1-22 only.
+; Row 0 = banner, row 23 = unused. Screen has 24 rows (0-23).
+; Painting row 23 wraps cursor to row 24 which auto-scrolls.
         LDY     #23
         STY     ROWS
-        ; clear screen
+; clear screen
         LDA     #FC_SCNCLR
         STA     farfunct
         JSR     DO_FARCALL
-        ; unpaint any leftover cursor
-        LDA     #FC_UNPAINTCSR
-        STA     farfunct
-        JSR     DO_FARCALL
-        ; init default cursor tracking
+; init default cursor tracking
         LDA     #1
         STA     csrrow
         STZ     csrcol
@@ -36,6 +32,8 @@ INIT:
         STZ     bufend
         STZ     huntlen
         STZ     replen
+        STZ     SHOWCRSR        ; TURN OFF CURSOR
+
         LDA     #>END           ;
         INC
         STA     texstart+1
@@ -46,7 +44,7 @@ INIT:
         LDA     #>BUFEND_INIT
         STA     bufend+1
         STA     fpos+1
-	RTS
+        RTS
 INIT2:
         JSR     killbuff
 ; moved forward to match binary
@@ -73,19 +71,19 @@ sysmsg:
 ;It is called before most messages.
 ;It's like a one-line clear-screen.
 topclr:
-        ; map video text page into $A000-$AFFF
+; map video text page into $A000-$AFFF
         LDY     #VIDTEXT_PAGE
         JSR     vid_enter
-        ; fill row 0 ($A000-$A04F) with spaces
+; fill row 0 ($A000-$A04F) with spaces
         LDY     #79
         LDA     #space
 @tcloop:
         STA     $A000,Y
         DEY
         BPL     @tcloop
-        ; unmap video
+; unmap video
         JSR     vid_exit
-        ; position firmware cursor at row 0, col 0 for PRINTMESSAGE
+; position firmware cursor at row 0, col 0 for PRINTMESSAGE
         LDX     #0
         LDY     #0
         LDA     #FC_LOCATE
@@ -158,7 +156,7 @@ refresh:
         COPY16  toplin,tex
         LDA     #1
         STA     scrrow          ; start at screen row 1 (row 0 = command line)
-        ; default cursor position (in case curr is off-screen)
+; default cursor position (in case curr is off-screen)
         LDA     #1
         STA     csrrow
         STZ     csrcol
@@ -206,7 +204,7 @@ RBREAK:
 ; copy line to video memory, tracking cursor position
         LDY     #0
 RCOPY:
-        ; check if this text position is the cursor (tex + Y == curr?)
+; check if this text position is the cursor (tex + Y == curr?)
         TYA
         CLC
         ADC     tex             ; A = low byte of tex+Y
@@ -218,7 +216,7 @@ RCOPY:
         PLA                     ; A = low byte of tex+Y
         CMP     curr            ; compare low bytes
         BNE     @nocsr2
-        ; found the cursor position on screen
+; found the cursor position on screen
         STY     csrcol
         LDA     scrrow
         STA     csrrow
@@ -227,7 +225,7 @@ RCOPY:
         PLA                     ; clean up stack
 @nocsr2:
 @dochr:
-        ; read character from text memory and write to video RAM
+; read character from text memory and write to video RAM
         LDA     (tex),Y         ; read from text buffer (below $A000)
         AND     #$7F            ; strip high bit
         CMP     #space
@@ -338,4 +336,4 @@ BORDER:
 
 scrcol:
 LETTERS:
-        rts
+        RTS

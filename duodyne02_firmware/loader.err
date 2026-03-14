@@ -1,0 +1,5 @@
+loader.asm:47: warning: interpreting indirect value as immediate
+  ^---- LD C,(CPUunit) ; GET CPU PORT
+      ^---- LD C,(CPUunit)
+loader.asm:47: warning: integer range: $13c
+  ^---- (CPUunit)

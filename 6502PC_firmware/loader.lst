@@ -1,0 +1,91 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : loader.asm
+Current file: loader.asm
+
+000000r 1               ;________________________________________________________________________________________________________________________________
+000000r 1               ;
+000000r 1               ;	PC6502 DOS/65 loader program
+000000r 1               ;
+000000r 1               ;  DWERNER 12/20/2025 	Initial
+000000r 1               ;________________________________________________________________________________________________________________________________
+000000r 1               
+000000r 1               ;  setup banking
+000000r 1               ;  copy dos65 from $1000 to 00:$B800
+000000r 1               ;  copy drivers from $4000 to 01:$C000
+000000r 1               ;
+000000r 1               ;  Execute DOS
+000000r 1               ;
+000000r 1               ;
+000000r 1               PC6502_ACT_TASK = $EFE0
+000000r 1               PC6502_MMU_ENA  = $EFE2
+000000r 1               POINTER         = $20
+000000r 1               POINTER1        = $22
+000000r 1               ;
+000000r 1               ;
+000000r 1                       .SEGMENT "TEA"
+000000r 1                       .ORG    $0800
+000800  1               ;
+000800  1               ;
+000800  1               ;
+000800  1  A9 00                LDA     #$00
+000802  1  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
+000805  1  A9 01                LDA     #$01
+000807  1  8D E2 EF             STA     PC6502_MMU_ENA  ; ENABLE MMU --- FEEEEEL THE POOOOWERRRR
+00080A  1               ;
+00080A  1               ;       copy DOS/65 to $B800, task 00
+00080A  1               ;
+00080A  1  A0 00                LDY     #$00
+00080C  1  84 20                STY     POINTER
+00080E  1  84 22                STY     POINTER1
+000810  1  A9 10                LDA     #$10
+000812  1  85 21                STA     POINTER+1
+000814  1  A9 B8                LDA     #$B8
+000816  1  85 23                STA     POINTER1+1
+000818  1               LOOP1:
+000818  1  B1 20                LDA     (POINTER),Y
+00081A  1  91 22                STA     (POINTER1),Y
+00081C  1  E6 20                INC     POINTER
+00081E  1  D0 02                BNE     :+
+000820  1  E6 21                INC     POINTER+1
+000822  1               :
+000822  1  E6 22                INC     POINTER1
+000824  1  D0 02                BNE     :+
+000826  1  E6 23                INC     POINTER1+1
+000828  1               :
+000828  1  A5 23                LDA     POINTER1+1
+00082A  1  C9 E0                CMP     #$E0
+00082C  1  D0 EA                BNE     LOOP1
+00082E  1               ;       set task to 01
+00082E  1               ;
+00082E  1  A0 00                LDY     #$00
+000830  1  84 20                STY     POINTER
+000832  1  84 22                STY     POINTER1
+000834  1  A9 40                LDA     #$40
+000836  1  85 21                STA     POINTER+1
+000838  1  A9 C0                LDA     #$C0
+00083A  1  85 23                STA     POINTER1+1
+00083C  1  A9 01                LDA     #$01
+00083E  1  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 01
+000841  1               ;
+000841  1               ;       copy DRIVERS to $C000, task 01
+000841  1               ;
+000841  1               LOOP2:
+000841  1  B1 20                LDA     (POINTER),Y
+000843  1  91 22                STA     (POINTER1),Y
+000845  1  E6 20                INC     POINTER
+000847  1  D0 02                BNE     :+
+000849  1  E6 21                INC     POINTER+1
+00084B  1               :
+00084B  1  E6 22                INC     POINTER1
+00084D  1  D0 02                BNE     :+
+00084F  1  E6 23                INC     POINTER1+1
+000851  1               :
+000851  1  A5 23                LDA     POINTER1+1
+000853  1  C9 E0                CMP     #$E0
+000855  1  D0 EA                BNE     LOOP2
+000857  1               
+000857  1  A9 00                LDA     #$00
+000859  1  8D E0 EF             STA     PC6502_ACT_TASK ; SET ACTIVE TASK TO 00
+00085C  1               
+00085C  1  4C 00 B8             JMP     $B800           ; BOOT IT UP
+00085C  1               

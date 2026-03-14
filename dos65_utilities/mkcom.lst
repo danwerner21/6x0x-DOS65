@@ -1,0 +1,512 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : mkcom202.asm
+Current file: mkcom202.asm
+
+000000r 1               ;MAKECOM
+000000r 1               ;CONVERT .KIM FILES TO .COM FILES FOR DOS/65
+000000r 1               ;VERSION 2.02-A
+000000r 1               ;RELEASED:	25 SEPTEMBER 1982
+000000r 1               ;LAST REVISION:
+000000r 1               ;	27 MARCH 2008
+000000r 1               ;		ELIMINATED PAGE ZERO 0 & 1
+000000r 1               ;		REFORMATTED FOR TASM & ASM210
+000000r 1               ;	2 APRIL 2008
+000000r 1               ;		CORRECTED ERROR IN PAGE ZERO ADDRESSING
+000000r 1               ;		PUT COM BUFFER ON PAGE BOUNDARY
+000000r 1               ;		ADDED MISSING '
+000000r 1               ;READ KIM FORMAT OBJECT CODE FILES AND GENERATE
+000000r 1               ;EXECUTABLE COMMAND (COM) FILE BEGINNING AT TEA.
+000000r 1               ;CONVERSION IS TERMINATED BY EOF CHAR, ZERO
+000000r 1               ;LENGTH RECORD, $ CHAR OR PHYSICAL EOF.  RECORDS MUST BE
+000000r 1               ;MONOTONICALLY INCREASING BUT MAY HAVE GAPS.
+000000r 1               ;ANY GAPS ARE FILLED WITH ZEROS. UPON ENTRY
+000000r 1               ;FILE TYPE IS OR IS ASSUMED TO BE "KIM".
+000000r 1               ;BASE ADDRESSES
+000000r 1               BOOT            = $100          ;WARM BOOT
+000000r 1               PEM             = $103          ;PEM ENTRY POINT
+000000r 1               DFLFCB          = $107          ;SOURCE FCB
+000000r 1               DFLBUF          = $128          ;SOURCE BUFFER
+000000r 1               TEA             = $800          ;TEA START
+000000r 1               ;FIXED PARAMETERS
+000000r 1               NULL            = 0             ;NULL
+000000r 1               LF              = 10            ;LINEFEED $A
+000000r 1               CR              = 13            ;RETURN $D
+000000r 1               EOF             = 26            ;END OF FILE $1A
+000000r 1               SEMICO          = 59            ;SEMICOLON $3B
+000000r 1               ;ZERO PAGE STORAGE - START AT 2 FOR C64 & 128 COMPATIBILITY
+000000r 1               KIMPNT=$02+$50                  ;KIM RECORD INDEX
+000000r 1               COMPNT=$03+$50                  ;COM RECORD POINTER
+000000r 1               CURENT=$05+$50                  ;CURRENT COM PC
+000000r 1               START=$07+$50                   ;CURRENT KIM START
+000000r 1               COUNT=$09+$50                   ;CURRENT RECORD BYTE COUNT
+000000r 1               BYTES=$0A+$50                   ;NUMBER BYTES READ
+000000r 1               RECORD=$0C+$50                  ;NUMBER RECORDS READ
+000000r 1               NUMBER=$0E+$50                  ;BYTE ASSEMBLY BUFFER
+000000r 1               COMMAX=$0F+$50                  ;MAX COM POINTER
+000000r 1               COMFCB=$20+$50                  ;COM FCB
+000000r 1               LASTZP=$41+$50                  ;
+000000r 1               
+000000r 1               
+000000r 1               ;MAIN PROGRAM
+000000r 1                       .SEGMENT "TEA"
+000000r 1                       .ORG    $0800
+000800  1  4C 28 08             JMP     LOAD            ;GO EXECUTE
+000803  1  43 4F 50 59          .BYTE   "COPYRIGHT (C) 2008 -"
+000807  1  52 49 47 48  
+00080B  1  54 20 28 43  
+000817  1  20 52 49 43          .BYTE   " RICHARD A. LEARY"
+00081B  1  48 41 52 44  
+00081F  1  20 41 2E 20  
+000828  1               ;FIRST CLEAR PAGE ZERO INCLUDING .COM FCB
+000828  1               LOAD:
+000828  1  A2 91                LDX     #LASTZP         ;SET INDEX TO MAX
+00082A  1  A9 00                LDA     #0              ;CLEAR ACCUM
+00082C  1               CLRMRE:
+00082C  1  95 00                STA     $0,X            ;CLEAR
+00082E  1  CA                   DEX                     ;DROP INDEX
+00082F  1  E0 4F                CPX     #$4F            ;IF MORE
+000831  1  D0 F9                BNE     CLRMRE          ;LOOP
+000833  1               ;START .COM FILE BUILD AT TEA
+000833  1  A9 00                LDA     #<TEA           ;SET CURRENT
+000835  1  85 55                STA     CURENT          ;TO TEA
+000837  1  A0 08                LDY     #>TEA           ;BOTH LOW
+000839  1  84 56                STY     CURENT+1        ;AND HIGH
+00083B  1               ;CALCULATE MAXIMUM .COM FILE BUFFER LENGTH
+00083B  1  38                   SEC                     ;SET CARRY
+00083C  1  AD 04 01             LDA     PEM+1           ;GET PEM
+00083F  1  AC 05 01             LDY     PEM+2           ;DESTINATION
+000842  1  E9 00                SBC     #<COMBUF        ;START
+000844  1  29 80                AND     #128            ;MAKE MOD 128
+000846  1  85 5F                STA     COMMAX          ;AND SAVE
+000848  1  98                   TYA                     ;GET HIGH
+000849  1  E9 0C                SBC     #>COMBUF        ;SUBTRACT AGAIN
+00084B  1  85 60                STA     COMMAX+1        ;AND SAVE IT
+00084D  1               ;COMMAX IS MAXIMUM LENGTH - NOW DROP BY A PAGE
+00084D  1  C6 60                DEC     COMMAX+1
+00084F  1               ;NOW CALCULATE END OF BUFFER + 1 BYTE
+00084F  1  18                   CLC                     ;THEN
+000850  1  A5 5F                LDA     COMMAX          ;ADD
+000852  1  69 00                ADC     #<COMBUF        ;START
+000854  1  85 5F                STA     COMMAX          ;BACK
+000856  1  A5 60                LDA     COMMAX+1        ;IN TO
+000858  1  69 0C                ADC     #>COMBUF        ;GET BUFFER
+00085A  1  85 60                STA     COMMAX+1        ;LIMIT
+00085C  1               ;INITIALIZE POINTERS
+00085C  1  20 A7 0A             JSR     CLRCOM          ;CLEAR COM POINTER
+00085F  1  A9 80                LDA     #128            ;SET POINTERS
+000861  1  85 52                STA     KIMPNT          ;TO INVALID
+000863  1               ;CHECK TO MAKE SURE FILE NAME IS UFN
+000863  1  A2 0B                LDX     #11             ;CHECK ALL CHAR
+000865  1  A9 3F                LDA     #'?'            ;FOR AMBIGUOUS
+000867  1               TSTAMB:
+000867  1  DD 07 01             CMP     DFLFCB,X        ;IF NOT TRY
+00086A  1  D0 03                BNE     TSTNXT          ;FOR NEXT
+00086C  1  4C 4A 0A             JMP     INPERR          ;ELSE AN ERROR
+00086F  1               TSTNXT:
+00086F  1  CA                   DEX                     ;COUNT DOWN
+000870  1  D0 F5                BNE     TSTAMB          ;AND LOOP
+000872  1               ;NOW SEE IF TYPE EITHER KIM OR BLANK
+000872  1  A2 02                LDX     #2              ;IF TYPE
+000874  1               CHKMKM:
+000874  1  BD 05 0B             LDA     KIMTYP,X        ;IS NOT
+000877  1  DD 10 01             CMP     DFLFCB+9,X      ;KIM THEN
+00087A  1  D0 05                BNE     CHKSPC          ;TRY FOR SPACES
+00087C  1  CA                   DEX                     ;ELSE COUNT DOWN
+00087D  1  10 F5                BPL     CHKMKM          ;AND LOOP
+00087F  1  30 0F                BMI     TYPEOK          ;OK IF KIM
+000881  1               CHKSPC:
+000881  1  A2 02                LDX     #2              ;CHECK FOR
+000883  1  A9 20                LDA     #' '            ;SPACES
+000885  1               CHKMSP:
+000885  1  DD 10 01             CMP     DFLFCB+9,X      ;IF SO
+000888  1  F0 03                BEQ     TNXSPC          ;TEST NEXT
+00088A  1  4C 4A 0A             JMP     INPERR          ;ELSE ERROR
+00088D  1               TNXSPC:
+00088D  1  CA                   DEX                     ;COUNT DOWN
+00088E  1  10 F5                BPL     CHKMSP          ;AND LOOP
+000890  1               ;INPUT FILE NAME IS OK SO BUILD .COM FCB FROM INPUT
+000890  1               TYPEOK:
+000890  1  A2 08                LDX     #8              ;SET UP
+000892  1               MOVFCB:
+000892  1  BD 07 01             LDA     DFLFCB,X        ;AND MOVE
+000895  1  95 70                STA     COMFCB,X        ;NAME TO
+000897  1  CA                   DEX                     ;COM
+000898  1  10 F8                BPL     MOVFCB          ;FCB
+00089A  1               ;SET INPUT EXTENSION TO KIM AND OUTPUT TO COM
+00089A  1  A2 02                LDX     #2              ;THEN MAKE
+00089C  1               SETTYP:
+00089C  1  BD 05 0B             LDA     KIMTYP,X        ;SURE KIM
+00089F  1  9D 10 01             STA     DFLFCB+9,X      ;TYPE IS
+0008A2  1  BD 08 0B             LDA     COMTYP,X        ;SET AND COM
+0008A5  1  95 79                STA     COMFCB+9,X      ;TYPE IS SET
+0008A7  1  CA                   DEX                     ;IN
+0008A8  1  10 F2                BPL     SETTYP          ;FCBS
+0008AA  1               ;FILE NAME ARE OK SO SEE IF .KIM EXISTS
+0008AA  1  20 08 0A             JSR     SRHKIM          ;SEARCH FOR KIM
+0008AD  1  D0 03                BNE     KIMOK           ;IF THERE OK
+0008AF  1  4C 4A 0A             JMP     INPERR          ;ELSE ERROR
+0008B2  1               ;INPUT EXISTS SO DELETE AND THEN CREATE .COM FILE
+0008B2  1               KIMOK:
+0008B2  1  20 21 0A             JSR     DLTCOM          ;DELETE COM FILE
+0008B5  1  20 25 0A             JSR     CRTCOM          ;CREATE NEW COM
+0008B8  1  D0 03                BNE     COMOK           ;IF OK CONTINUE
+0008BA  1  4C 58 0A             JMP     OUTERR          ;ELSE ERROR
+0008BD  1               ;FINALLY WE OPEN THE .KIM AND .COM FILES
+0008BD  1               COMOK:
+0008BD  1  20 0C 0A             JSR     OPNKIM          ;OPEN SOURCE
+0008C0  1  D0 03                BNE     KIMOPN          ;CONTINUE IF OK
+0008C2  1  4C 4A 0A             JMP     INPERR          ;ELSE ERROR
+0008C5  1               KIMOPN:
+0008C5  1  20 31 0A             JSR     OPNCOM          ;OPEN COM FILE
+0008C8  1  D0 03                BNE     MAIN            ;CONTINUE IF OK
+0008CA  1  4C 58 0A             JMP     OUTERR          ;ELSE ERROR
+0008CD  1               ;READ LOOP - GET CHARACTERS FROM .KIM FILE AND PROCESS THEM
+0008CD  1               MAIN:
+0008CD  1  20 96 09             JSR     GETCHR          ;GET CHAR
+0008D0  1  C9 24                CMP     #'$'            ;IF $
+0008D2  1  F0 65                BEQ     ENDIT           ;THEN DONE
+0008D4  1  C9 1A                CMP     #EOF            ;IF EOF
+0008D6  1  F0 61                BEQ     ENDIT           ;THEN DONE
+0008D8  1  C9 3B                CMP     #SEMICO         ;IF NOT FILE
+0008DA  1  D0 F1                BNE     MAIN            ;MARK TRY AGAIN
+0008DC  1               ;FIRST TWO CHARACTERS AFTER ; ARE NUMBER OF BYTES OF DATA IN RECORD (COUNT)
+0008DC  1  20 BB 09             JSR     GETTWO          ;GET LENGTH
+0008DF  1  F0 58                BEQ     ENDIT           ;IF ZERO DONE
+0008E1  1  85 59                STA     COUNT           ;ELSE SET COUNT
+0008E3  1               ;UPDATE CUMULATIVE COUNT
+0008E3  1  18                   CLC                     ;ADD TO
+0008E4  1  65 5A                ADC     BYTES           ;CUMULATIVE COUNT
+0008E6  1  85 5A                STA     BYTES           ;AND
+0008E8  1  90 02                BCC     NOHIBY          ;SAVE
+0008EA  1  E6 5B                INC     BYTES+1         ;LOW AND HIGH
+0008EC  1               ;NEXT FOUR CHARACTERS ARE START ADDRESS OF RECORD IN HL ORDER
+0008EC  1               NOHIBY:
+0008EC  1  20 BB 09             JSR     GETTWO          ;GET HIGH
+0008EF  1  85 58                STA     START+1         ;ADDRESS
+0008F1  1  20 BB 09             JSR     GETTWO          ;AND GET
+0008F4  1  85 57                STA     START           ;LOW
+0008F6  1               ;MAKE SURE START >= CURENT
+0008F6  1  C5 55                CMP     CURENT          ;COMPARE TO
+0008F8  1  A5 58                LDA     START+1         ;START
+0008FA  1  E5 56                SBC     CURENT+1        ;ADDRESS SAVED
+0008FC  1  B0 03                BCS     TSTEQL          ;IF >= THEN OK
+0008FE  1  4C 5F 0A             JMP     SEQERR          ;ELSE ERROR
+000901  1               ;SEE IF START > CURRENT AND FILL BUFFER WITH 0 UNTIL CURENT = START
+000901  1               TSTEQL:
+000901  1  A5 57                LDA     START           ;SEE IF
+000903  1  C5 55                CMP     CURENT          ;SAME AS CURRRENT
+000905  1  D0 06                BNE     FILLMR          ;IF NOT FILL MORE
+000907  1  A5 58                LDA     START+1         ;TRY HIGH
+000909  1  C5 56                CMP     CURENT+1        ;COMPARISON
+00090B  1  F0 0E                BEQ     FILLOK          ;IF SAME BEGIN READ
+00090D  1               FILLMR:
+00090D  1  A9 00                LDA     #NULL           ;ELSE
+00090F  1  20 B0 0A             JSR     INSERT          ;FILL COM
+000912  1  E6 55                INC     CURENT          ;THEN
+000914  1  D0 EB                BNE     TSTEQL          ;BUMP
+000916  1  E6 56                INC     CURENT+1        ;CURRENT AND
+000918  1  4C 01 09             JMP     TSTEQL          ;LOOP
+00091B  1               ;UPDATE CURENT <-- CURENT + COUNT
+00091B  1               FILLOK:
+00091B  1  A5 59                LDA     COUNT           ;FIRST
+00091D  1  18                   CLC                     ;UPDATE
+00091E  1  65 55                ADC     CURENT          ;CURRENT
+000920  1  85 55                STA     CURENT          ;POINTER
+000922  1  90 02                BCC     DOFILL          ;WITH
+000924  1  E6 56                INC     CURENT+1        ;CARRY
+000926  1               ;GET COUNT BYTES FROM .KIM AND CONVERT TO BINARY AND PUT IN .COM BUFFER
+000926  1               DOFILL:
+000926  1  20 BB 09             JSR     GETTWO          ;GET BYTE
+000929  1  20 B0 0A             JSR     INSERT          ;PUT IN COM
+00092C  1  C6 59                DEC     COUNT           ;COUNT DOWN
+00092E  1  D0 F6                BNE     DOFILL          ;AND LOOP
+000930  1               ;IGNORE TWO CHECKSUM BYTES
+000930  1  20 BB 09             JSR     GETTWO          ;IGNORE
+000933  1  20 BB 09             JSR     GETTWO          ;CHECKSUM
+000936  1  4C CD 08             JMP     MAIN            ;AND GET NEXT
+000939  1               ;EXIT SEQUENCE
+000939  1               ENDIT:
+000939  1  38                   SEC                     ;SET CARRY
+00093A  1  A5 53                LDA     COMPNT          ;IF POINTER
+00093C  1  E9 00                SBC     #<COMBUF        ;AT EVEN
+00093E  1  29 7F                AND     #127            ;RECORD
+000940  1  F0 08                BEQ     NOEXCY          ;THEN OK
+000942  1  A9 1A                LDA     #EOF            ;ELSE ADD
+000944  1  20 B0 0A             JSR     INSERT          ;EOF AND
+000947  1  4C 39 09             JMP     ENDIT           ;LOOP
+00094A  1               NOEXCY:
+00094A  1  A5 53                LDA     COMPNT          ;GET
+00094C  1  A4 54                LDY     COMPNT+1        ;POINTER
+00094E  1  85 5F                STA     COMMAX          ;AND SET
+000950  1  84 60                STY     COMMAX+1        ;LIMIT
+000952  1  20 CC 0A             JSR     WRTBUF          ;DO ONE MORE
+000955  1  20 19 0A             JSR     BUFCOM          ;GO BACK TO FRONT OF BUFFER
+000958  1               WRTDNE:
+000958  1  20 2D 0A             JSR     CLSCOM          ;CLOSE COM FILE
+00095B  1  D0 03                BNE     WRTCLS          ;IF OK CONTINUE
+00095D  1  4C 58 0A             JMP     OUTERR          ;ELSE ERROR
+000960  1               WRTCLS:
+000960  1  A9 0B                LDA     #<NXTADR        ;POINT TO
+000962  1  A0 0B                LDY     #>NXTADR        ;NEXT MESSAGE
+000964  1  20 42 0A             JSR     OUTBUF          ;AND SEND
+000967  1  A5 56                LDA     CURENT+1        ;SEND HIGH
+000969  1  20 F4 09             JSR     OUTBYT          ;BYTE
+00096C  1  A5 55                LDA     CURENT          ;AND LOW
+00096E  1  20 F4 09             JSR     OUTBYT          ;BYTE
+000971  1  A9 1B                LDA     #<BYTRDE        ;POINT TO
+000973  1  A0 0B                LDY     #>BYTRDE        ;NUMBER READ MESSAGE
+000975  1  20 42 0A             JSR     OUTBUF          ;AND SEND
+000978  1  A5 5B                LDA     BYTES+1         ;SEND HIGH
+00097A  1  20 F4 09             JSR     OUTBYT          ;BYTE
+00097D  1  A5 5A                LDA     BYTES           ;AND LOW
+00097F  1  20 F4 09             JSR     OUTBYT          ;BYTE
+000982  1  A9 29                LDA     #<RECWRT        ;POINT TO
+000984  1  A0 0B                LDY     #>RECWRT        ;NUMBER WRITTEN MESSAGE
+000986  1  20 42 0A             JSR     OUTBUF          ;SEND
+000989  1  A5 5D                LDA     RECORD+1        ;GET HIGH
+00098B  1  20 F4 09             JSR     OUTBYT          ;COUNT
+00098E  1  A5 5C                LDA     RECORD          ;AND LOW
+000990  1  20 F4 09             JSR     OUTBYT          ;THEN RETURN
+000993  1  4C 00 01             JMP     BOOT            ;WITH WARM BOOT
+000996  1               ;SUBROUTINES
+000996  1               ;GET CHARACTER FROM KIM FILE
+000996  1               GETCHR:
+000996  1  A6 52                LDX     KIMPNT          ;GET POINTER
+000998  1  10 19                BPL     NOREAD          ;IF OK USE
+00099A  1  20 00 0A             JSR     BUFKIM          ;POINT TO KIM
+00099D  1  20 10 0A             JSR     RDEKIM          ;READ RECORD
+0009A0  1  D0 03                BNE     *+5             ;IF NO ERROR CHECK FOR EOF
+0009A2  1  4C 4A 0A             JMP     INPERR          ;ELSE INPUT ERROR
+0009A5  1  C9 00                CMP     #0              ;IF NOT EOF
+0009A7  1  F0 07                BEQ     READOK          ;CONTINUE
+0009A9  1  A9 1A                LDA     #EOF            ;ELSE AN EOF
+0009AB  1  8D 28 01             STA     DFLBUF          ;INSERT IN BUFFER
+0009AE  1  A9 00                LDA     #0              ;CLEAR FOR OK
+0009B0  1               READOK:
+0009B0  1  AA                   TAX                     ;SET POINTER
+0009B1  1  86 52                STX     KIMPNT          ;AND SAVE
+0009B3  1               NOREAD:
+0009B3  1  E6 52                INC     KIMPNT          ;BUMP POINTER
+0009B5  1  BD 28 01             LDA     DFLBUF,X        ;GET CHAR
+0009B8  1  29 7F                AND     #%01111111      ;MASK OUT MSB
+0009BA  1  60                   RTS                     ;RETURN
+0009BB  1               ;GET BYTE
+0009BB  1               GETTWO:
+0009BB  1  20 BE 09             JSR     GETONE          ;GET FIRST AND CONTINUE
+0009BE  1               ;GET NIBBLE
+0009BE  1               GETONE:
+0009BE  1  20 96 09             JSR     GETCHR          ;GET CHAR
+0009C1  1  C9 30                CMP     #'0'            ;IF LESS THAN "0"
+0009C3  1  30 1E                BMI     PACKER          ;IS AN ERROR
+0009C5  1  C9 3A                CMP     #'9'+1          ;IF 0 TO 9 IS
+0009C7  1  30 0B                BMI     DECNUM          ;DECIMAL
+0009C9  1  C9 41                CMP     #'A'            ;IF LESS THAN A
+0009CB  1  30 16                BMI     PACKER          ;IS ERROR
+0009CD  1  C9 47                CMP     #'F'+1          ;IF MORE THAN F
+0009CF  1  10 12                BPL     PACKER          ;IS ERROR
+0009D1  1  18                   CLC                     ;ADD 9
+0009D2  1  69 09                ADC     #9              ;FOR A TO F
+0009D4  1               DECNUM:
+0009D4  1  2A                   ROL     A               ;SHIFT
+0009D5  1  2A                   ROL     A               ;TO
+0009D6  1  2A                   ROL     A               ;HIGH
+0009D7  1  2A                   ROL     A               ;NIBBLE
+0009D8  1  A2 04                LDX     #4              ;THEN
+0009DA  1               PACKLP:
+0009DA  1  2A                   ROL     A               ;SHIFT A
+0009DB  1  26 5E                ROL     NUMBER          ;TO NUMBER
+0009DD  1  CA                   DEX                     ;FOUR
+0009DE  1  D0 FA                BNE     PACKLP          ;TIMES
+0009E0  1  A5 5E                LDA     NUMBER          ;RETURN
+0009E2  1  60                   RTS                     ;WITH NUMBER
+0009E3  1               PACKER:
+0009E3  1  4C 51 0A             JMP     NTHXER          ;ERROR HANDLER
+0009E6  1               ;NIBBLE TO ASCII
+0009E6  1               HEX:
+0009E6  1  29 0F                AND     #$F             ;LOOK AT LOW
+0009E8  1  09 30                ORA     #'0'            ;ADD "0"
+0009EA  1  C9 3A                CMP     #'9'+1          ;IF 0 TO 9
+0009EC  1  30 03                BMI     NOTALP          ;OK
+0009EE  1  18                   CLC                     ;ELSE ADD
+0009EF  1  69 07                ADC     #7              ;7 FOR A TO F
+0009F1  1               NOTALP:
+0009F1  1  4C 3E 0A             JMP     CHROUT          ;SEND
+0009F4  1               ;BYTE TO ASCII
+0009F4  1               OUTBYT:
+0009F4  1  48                   PHA                     ;SAVE BYTE
+0009F5  1  4A                   LSR     A               ;MOVE
+0009F6  1  4A                   LSR     A               ;HIGH
+0009F7  1  4A                   LSR     A               ;TO
+0009F8  1  4A                   LSR     A               ;LOW
+0009F9  1  20 E6 09             JSR     HEX             ;CONVERT AND PRINT
+0009FC  1  68                   PLA                     ;SAME
+0009FD  1  4C E6 09             JMP     HEX             ;FOR LOW
+000A00  1               ;KIM FILE REFERENCES
+000A00  1               BUFKIM:
+000A00  1  A9 28                LDA     #<DFLBUF        ;POINT TO
+000A02  1  A0 01                LDY     #>DFLBUF        ;BUFFER
+000A04  1  A2 1A                LDX     #26             ;SET BUFFER
+000A06  1  D0 3C                BNE     PEMGO
+000A08  1               SRHKIM:
+000A08  1  A2 11                LDX     #17             ;SEARCH FOR FIRST
+000A0A  1  D0 06                BNE     SETKIM
+000A0C  1               OPNKIM:
+000A0C  1  A2 0F                LDX     #15             ;OPEN
+000A0E  1  D0 02                BNE     SETKIM
+000A10  1               RDEKIM:
+000A10  1  A2 14                LDX     #20             ;READ RECORD
+000A12  1               SETKIM:
+000A12  1  A9 07                LDA     #<DFLFCB        ;SET FCB
+000A14  1  A0 01                LDY     #>DFLFCB        ;TO DEFAULT
+000A16  1  4C 44 0A             JMP     PEMGO
+000A19  1               ;COM FILE REFERENCES
+000A19  1               BUFCOM:
+000A19  1  A9 00                LDA     #<COMBUF        ;SET BUFFER
+000A1B  1  A0 0C                LDY     #>COMBUF        ;TO COM
+000A1D  1  A2 1A                LDX     #26             ;SET BUFFER
+000A1F  1  D0 23                BNE     PEMGO
+000A21  1               DLTCOM:
+000A21  1  A2 13                LDX     #19             ;DELETE FILE
+000A23  1  D0 0E                BNE     SETCOM
+000A25  1               CRTCOM:
+000A25  1  A2 16                LDX     #22             ;CREATE FILE
+000A27  1  D0 0A                BNE     SETCOM
+000A29  1               WRTCOM:
+000A29  1  A2 15                LDX     #21             ;WRITE RECORD
+000A2B  1  D0 06                BNE     SETCOM
+000A2D  1               CLSCOM:
+000A2D  1  A2 10                LDX     #16             ;CLOSE FILE
+000A2F  1  D0 02                BNE     SETCOM
+000A31  1               OPNCOM:
+000A31  1  A2 0F                LDX     #15             ;OPEN FILE
+000A33  1               SETCOM:
+000A33  1  A9 70                LDA     #<COMFCB        ;POINT TO
+000A35  1  A0 00                LDY     #>COMFCB        ;COM FCB
+000A37  1  4C 44 0A             JMP     PEMGO
+000A3A  1               ;GENERAL PEM REFERENCES
+000A3A  1               WRMBTE:
+000A3A  1  A2 00                LDX     #0              ;WARM BOOT
+000A3C  1  F0 06                BEQ     PEMGO
+000A3E  1               CHROUT:
+000A3E  1  A2 02                LDX     #2              ;CHARACTER OUTPUT
+000A40  1  D0 02                BNE     PEMGO
+000A42  1               OUTBUF:
+000A42  1  A2 09                LDX     #9              ;STRING OUTPUT
+000A44  1               PEMGO:
+000A44  1  20 03 01             JSR     PEM             ;EXECUTE
+000A47  1  C9 FF                CMP     #255            ;TEST FOR INVALID
+000A49  1  60                   RTS
+000A4A  1               ;ERROR ROUTINES
+000A4A  1               INPERR:
+000A4A  1  A9 69                LDA     #<INERMS        ;INPUT FILE ERROR
+000A4C  1  A0 0A                LDY     #>INERMS
+000A4E  1  4C 63 0A             JMP     ERRSND
+000A51  1               NTHXER:
+000A51  1  A9 0A                LDA     #>ICERMS        ;INVALID CHARACTER
+000A53  1  A0 95                LDY     #<ICERMS
+000A55  1  4C 63 0A             JMP     ERRSND
+000A58  1               OUTERR:
+000A58  1  A9 75                LDA     #<OTERMS        ;OUTPUT FILE ERROR
+000A5A  1  A0 0A                LDY     #>OTERMS
+000A5C  1  4C 63 0A             JMP     ERRSND
+000A5F  1               SEQERR:
+000A5F  1  A9 82                LDA     #<SQERMS        ;SEQUENCE ERROR
+000A61  1  A0 0A                LDY     #>SQERMS
+000A63  1               ERRSND:
+000A63  1  20 42 0A             JSR     OUTBUF          ;SEND
+000A66  1  4C 3A 0A             JMP     WRMBTE          ;DO WARM BOOT
+000A69  1               ;ERROR MESSAGES
+000A69  1               INERMS:
+000A69  1  49 4E 50 55          .BYTE   "INPUT ERROR$"
+000A6D  1  54 20 45 52  
+000A71  1  52 4F 52 24  
+000A75  1               OTERMS:
+000A75  1  4F 55 54 50          .BYTE   "OUTPUT ERROR$"
+000A79  1  55 54 20 45  
+000A7D  1  52 52 4F 52  
+000A82  1               SQERMS:
+000A82  1  42 41 44 20          .BYTE   "BAD SEQUENCE ERROR$"
+000A86  1  53 45 51 55  
+000A8A  1  45 4E 43 45  
+000A95  1               ICERMS:
+000A95  1  49 4E 56 41          .BYTE   "INVALID CHARACTER$"
+000A99  1  4C 49 44 20  
+000A9D  1  43 48 41 52  
+000AA7  1               ;CLEAR COM POINTER
+000AA7  1               CLRCOM:
+000AA7  1  A9 00                LDA     #<COMBUF        ;GET LOW
+000AA9  1  A0 0C                LDY     #>COMBUF        ;AND HIGH
+000AAB  1  85 53                STA     COMPNT          ;POINTER
+000AAD  1  84 54                STY     COMPNT+1        ;AND SET
+000AAF  1  60                   RTS
+000AB0  1               ;INSERT BYTE INTO COM FILE
+000AB0  1               INSERT:
+000AB0  1  A6 53                LDX     COMPNT          ;COMPARE LOW POINTER
+000AB2  1  E4 5F                CPX     COMMAX          ;TO MAX
+000AB4  1  D0 0B                BNE     NOCMWR          ;BRANCH IF NOT THERE
+000AB6  1  A6 54                LDX     COMPNT+1        ;DO SAME
+000AB8  1  E4 60                CPX     COMMAX+1        ;FOR HIGH
+000ABA  1  D0 05                BNE     NOCMWR          ;BYTES
+000ABC  1  48                   PHA                     ;SAVE BYTE
+000ABD  1  20 CC 0A             JSR     WRTBUF          ;WRITE FILE
+000AC0  1  68                   PLA                     ;GET BYTE
+000AC1  1               NOCMWR:
+000AC1  1  A0 00                LDY     #0              ;CLEAR INDEX
+000AC3  1  91 53                STA     (COMPNT),Y      ;SAVE BYTE
+000AC5  1  E6 53                INC     COMPNT          ;BUMP
+000AC7  1  D0 02                BNE     *+4             ;POINTER
+000AC9  1  E6 54                INC     COMPNT+1        ;FOR NEXT
+000ACB  1  60                   RTS
+000ACC  1               ;WRITE COM BUFFER
+000ACC  1               WRTBUF:
+000ACC  1  20 A7 0A             JSR     CLRCOM          ;CLEAR POINTER
+000ACF  1               WRTCLP:
+000ACF  1  A5 53                LDA     COMPNT          ;SET
+000AD1  1  A4 54                LDY     COMPNT+1        ;POINTER
+000AD3  1  A2 1A                LDX     #26             ;AND SET
+000AD5  1  20 03 01             JSR     PEM             ;BUFFER ADDRESS
+000AD8  1  A5 53                LDA     COMPNT          ;GET LOW POINTER
+000ADA  1  C5 5F                CMP     COMMAX          ;COMPARE TO MAX
+000ADC  1  D0 09                BNE     DOCWRT          ;WRITE IF NOT THERE
+000ADE  1  A5 54                LDA     COMPNT+1        ;ALSO CHECK
+000AE0  1  C5 60                CMP     COMMAX+1        ;HIGH POINTER
+000AE2  1  D0 03                BNE     DOCWRT          ;WRITE IF DIFFERENT
+000AE4  1  4C A7 0A             JMP     CLRCOM          ;ELSE CLEAR POINTER AND EXIT
+000AE7  1               DOCWRT:
+000AE7  1  20 29 0A             JSR     WRTCOM          ;WRITE RECORD
+000AEA  1  C9 00                CMP     #0              ;TEST FOR OK
+000AEC  1  F0 03                BEQ     *+5             ;CONTINUE IF OK
+000AEE  1  4C 58 0A             JMP     OUTERR          ;ELSE ERROR
+000AF1  1  18                   CLC                     ;BUMP
+000AF2  1  A5 53                LDA     COMPNT          ;POINTER
+000AF4  1  69 80                ADC     #128            ;BY 128
+000AF6  1  85 53                STA     COMPNT          ;AND
+000AF8  1  90 02                BCC     *+4             ;SAVE FOR
+000AFA  1  E6 54                INC     COMPNT+1        ;NEXT
+000AFC  1  E6 5C                INC     RECORD          ;ALSO
+000AFE  1  D0 02                BNE     *+4             ;BUMP
+000B00  1  E6 5D                INC     RECORD+1        ;RECORD COUNT
+000B02  1  4C CF 0A             JMP     WRTCLP          ;AND LOOP
+000B05  1               ;TABLES
+000B05  1               KIMTYP:
+000B05  1  4B 49 4D             .BYTE   "KIM"
+000B08  1               COMTYP:
+000B08  1  43 4F 4D             .BYTE   "COM"
+000B0B  1               ;MESSAGES
+000B0B  1               NXTADR:
+000B0B  1  0D 0A 4E 45          .BYTE   CR,LF,"NEXT ADDRESS=$"
+000B0F  1  58 54 20 41  
+000B13  1  44 44 52 45  
+000B1B  1               BYTRDE:
+000B1B  1  0D 0A 42 59          .BYTE   CR,LF,"BYTES READ=$"
+000B1F  1  54 45 53 20  
+000B23  1  52 45 41 44  
+000B29  1               RECWRT:
+000B29  1  0D 0A 52 45          .BYTE   CR,LF,"RECORDS WRITTEN=$"
+000B2D  1  43 4F 52 44  
+000B31  1  53 20 57 52  
+000B3C  1               ;COM FILE BUFFER
+000B3C  1               MKCOMEND:
+000B3C  1                       .ORG    MKCOMEND/256*256+256
+000C00  1               COMBUF:
+000C00  1                       .END
