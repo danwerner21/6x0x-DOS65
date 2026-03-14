@@ -12,6 +12,7 @@
 ; * IMPLIMENT PRINT
 ; * IMPLIMENT A MORE CLEAN SHUTDOWN (CLEAR SCREEN, ETC.)
 ; * CHANGE TITLE BAR COLOR?
+; * ENSURE STARTUP PUTS SYSTEM IN 80COL AND ADJUSTS COLORS
 ;______________________________________________________________________________
         .PSC02
 

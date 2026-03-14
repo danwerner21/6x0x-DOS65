@@ -67,7 +67,7 @@ hlen            = $5A
 ;memory. scr: used by the refresh
 ;routine.
 
-curr            = $5F
+curr            = $61
 
 ;tex: An alternate location used in tan-
 ;dem with curr. COLR is used by RE-
