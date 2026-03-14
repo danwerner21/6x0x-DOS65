@@ -223,9 +223,6 @@ fcb_prep:
         RTS
 
 TSAVE:
-verify:
 catalog:
-dcmnd:
 print:
-;; stubs - not yet implemented
         RTS

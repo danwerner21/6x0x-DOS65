@@ -358,7 +358,7 @@ FOUND:
 ; Command key table - remapped for ASCII (Ctrl+letter combos)
 ; CTBL[1..N] are key codes, VECT[0..N-1] are matching function addresses
 CTBL:
-        .BYTE   28              ; 27 commands
+        .BYTE   30              ; 30 commands
         .BYTE   $F9             ; <RIGHT>:cursor right
         .BYTE   $F8             ; <LEFT>: cursor left
         .BYTE   $F1             ; <DEL>:  delete character at cursor
@@ -387,13 +387,15 @@ CTBL:
         .BYTE   23              ; Ctrl+W: word left
         .BYTE   21              ; Ctrl+U: word right
         .BYTE   $E2             ; <F3>:   return to os
+        .BYTE   $E0             ; <F1>:   disk catalog
+        .BYTE   $E8             ; <F9>:   print
 VECT:
-        .WORD   right-1         ; Ctrl+F
-        .WORD   left-1          ; Ctrl+B
-        .WORD   DELCHAR-1       ; Ctrl+T
+        .WORD   right-1         ; <RIGHT>
+        .WORD   left-1          ; <LEFT>
+        .WORD   DELCHAR-1       ; <DEL>
         .WORD   DELETE-1        ; Ctrl+D
         .WORD   HOME-1          ; Ctrl+S
-        .WORD   instgl-1        ; Ctrl+I
+        .WORD   instgl-1        ; <INSERT>
         .WORD   CLEAR-1         ; Ctrl+Q
         .WORD   ERAS-1          ; Ctrl+E
         .WORD   TLOAD-1         ; Ctrl+L
@@ -411,11 +413,13 @@ VECT:
         .WORD   tab-1           ; Ctrl+C
         .WORD   repstart-1      ; Ctrl+J
         .WORD   SANDR-1         ; Ctrl+G
-        .WORD   paright-1       ; Ctrl+N
-        .WORD   parleft-1       ; Ctrl+O
+        .WORD   paright-1       ; <DOWN>
+        .WORD   parleft-1       ; <UP>
         .WORD   wleft-1         ; Ctrl+W
         .WORD   wright-1        ; Ctrl+U
         .WORD   quit-1          ; <F3>
+        .WORD   catalog-1       ; <F1>
+        .WORD   print-1         ; <F9>
 ;The check routine first prevents the cursor from
 ;disappearing past the beginning or end-of-text memory,
 ;and prevents us from cursoring past the end-of-text pointer.
