@@ -53,7 +53,7 @@ Current file: dos65.asm
 000000r 1               ;	write type for deblocking added
 000000r 1               ;	page zero 0 & 1 not used
 000000r 1               ;	allow _ in file names
-000000r 1
+000000r 1               
 000000r 1                       .INCLUDE "DOSDEFN.ASM"  ; base addresses and definitions
 000000r 2               ;________________________________________________________________________________________________________________________________
 000000r 2               ;
@@ -61,7 +61,7 @@ Current file: dos65.asm
 000000r 2               ;
 000000r 2               ;  DWERNER 04/24/2022 	Initial
 000000r 2               ;________________________________________________________________________________________________________________________________
-000000r 2
+000000r 2               
 000000r 2               ;base addresses and definitions
 000000r 2               btejmp          = $0100         ; warm boot jump
 000000r 2               pemjmp          = $0103         ; jump to pem
@@ -77,8 +77,8 @@ Current file: dos65.asm
 000000r 2               ;
 000000r 2               ; DRIVER WORKING STORAGE
 000000r 2               ;
-000000r 2
-000000r 2
+000000r 2               
+000000r 2               
 000000r 2               DSKY_BUF        = $0600         ; Eight Bytes DSKY display buffer
 000000r 2               DSKY_BUFLEN     = 8             ;
 000000r 2               DSKY_HEXBUF     = $0608         ; Four Bytes DSKY hex buffer
@@ -117,21 +117,21 @@ Current file: dos65.asm
 000000r 2               CSRCOLOR        = $064B         ; CURRENT CURSOR COLOR (MEMORY MAPPED)
 000000r 2               VIDEOMODE       = $064C         ; CURRENT VIDEO MODE (MEMORY MAPPED) 00=40 COL, 01=80 COL
 000000r 2               UNDERCRSR       = $064D         ; ORIGINAL COLOR UNDER CURSOR
-000000r 2
+000000r 2               
 000000r 2               tea             = $800          ;tea start
-000000r 2
+000000r 2               
 000000r 2               ;zero page for setup
 000000r 2               addinp          = $02           ;initialized to a,y
 000000r 2               bufadd          = $04           ;buffer address
 000000r 2               alcpnt          = $06           ;allocation map pointer
 000000r 2               chkpnt          = $08           ;checksum map pointer
 000000r 2               numvar          = 8             ;eight bytes
-000000r 2
-000000r 2
+000000r 2               
+000000r 2               
 000000r 2               msgptr          = chkpnt+2      ;message pointer
 000000r 2               movptr          = msgptr        ;and move pointer
 000000r 2               dcbloc          = msgptr+2      ;pointer to dcb
-000000r 2
+000000r 2               
 000000r 2               dcbpc           = $2C           ;pointer to DCB table
 000000r 2               dskcfpc         = $2E           ;pointer to disk configuration table
 000000r 2               cmdlnp          = $30           ;pointer to command line buffer
@@ -146,22 +146,22 @@ Current file: dos65.asm
 000000r 2               TEMPWORD3       = $44           ;
 000000r 2               STRPTR          = $41           ;
 000000r 2               DSKYMODE        = $43           ; DSKY MODE (0=NONE, 1=DSKY, 2=DSKY NG
-000000r 2
-000000r 2
+000000r 2               
+000000r 2               
 000000r 2               DO_FARCALL      = $FFF0
-000000r 2
+000000r 2               
 000000r 2               ;page zero and system ram assignments
 000000r 2               DEST            = $EC           ;pointer for OutMsg
 000000r 2               SRC             = $EE           ;pointer for OutMsg
 000000r 2               OUTMSG_W        = $F0           ;pointer for OutMsg
 000000r 2               dmaadr          = $f4           ;pointer for r/w
-000000r 2
-000000r 2
+000000r 2               
+000000r 2               
 000000r 2               ;pem constants on entry to write
 000000r 2               wrall           = 0             ;write to allocated
 000000r 2               wrdir           = 1             ;write to directory
 000000r 2               wrual           = 2             ;write to unallocated
-000000r 2
+000000r 2               
 000000r 2               ;fixed parameters
 000000r 2               lf              = $a            ;linefeeed
 000000r 2               cr              = $d            ;return
@@ -178,27 +178,27 @@ Current file: dos65.asm
 000000r 2               delete          = $08           ;delete character
 000000r 2               numcmd          = 36            ;number commands
 000000r 2               DEFDRV          = 0             ; SET TO DEFAULT DRIVE LETTER
-000000r 2
-000000r 2
+000000r 2               
+000000r 2               
 000000r 2                       .IFDEF  RBC6X0X
 000000r 2                       .DEFINE COMSUFFIX "COM"
 000000r 2                       .ENDIF
-000000r 2
+000000r 2               
 000000r 2                       .IFDEF  PC6502
 000000r 2                       .DEFINE COMSUFFIX "COM"
 000000r 2                       .ENDIF
-000000r 2
+000000r 2               
 000000r 2                       .IFDEF  NHYODYNE
 000000r 2                       .DEFINE COMSUFFIX "CO6"
 000000r 2                       .ENDIF
-000000r 2
+000000r 2               
 000000r 2               DEBUG           = 0
 000000r 2               BANKED_DRIVER_DISPATCHER=$8800
-000000r 2
-000000r 1
-000000r 1
-000000r 1
-000000r 1
+000000r 2               
+000000r 1               
+000000r 1               
+000000r 1               
+000000r 1               
 000000r 1                       .SEGMENT "OS"
 000000r 1                       .ORG    DOSBEGIN
 00B800  1                       .INCLUDE "ccm215.asm"
@@ -207,7 +207,7 @@ Current file: dos65.asm
 00B800  2               ;	DOS/65 console command module (ccm)
 00B800  2               ;
 00B800  2               ;________________________________________________________________________________________________________________________________
-00B800  2
+00B800  2               
 00B800  2               ;ccm unique definitions
 00B800  2               nbuilt          = 7             ;number built in commands
 00B800  2               ;main program
@@ -370,7 +370,7 @@ Current file: dos65.asm
 00B902  2  AD F2 BF             LDA     sixten          ;set across
 00B905  2  8D F1 BF             STA     across          ;to four
 00B908  2  20 DC BB             JSR     ccrlf           ;do a crlf
-00B90B  2
+00B90B  2               
 00B90B  2               dirl:
 00B90B  2  20 67 BC             JSR     hdr             ;do header
 00B90E  2  A9 3A                LDA     #':'            ;then a
@@ -1216,55 +1216,55 @@ Current file: dos65.asm
 00BEAA  2  00                   .BYTE   0
 00BEAB  2               nospms          = *-msgtbl
 00BEAB  2  4E 4F 20 53          .BYTE   "NO SPACE",0
-00BEAF  2  50 41 43 45
-00BEB3  2  00
+00BEAF  2  50 41 43 45  
+00BEB3  2  00           
 00BEB4  2               ntclms          = *-msgtbl
 00BEB4  2  43 41 4E 20          .BYTE   "CAN NOT CLOSE",0
-00BEB8  2  4E 4F 54 20
-00BEBC  2  43 4C 4F 53
+00BEB8  2  4E 4F 54 20  
+00BEBC  2  43 4C 4F 53  
 00BEC2  2               alflms          = *-msgtbl
 00BEC2  2  41 4C 4C 20          .BYTE   "ALL FILES (Y/N)?",0
-00BEC6  2  46 49 4C 45
-00BECA  2  53 20 28 59
+00BEC6  2  46 49 4C 45  
+00BECA  2  53 20 28 59  
 00BED3  2               rderms          = *-msgtbl
 00BED3  2  52 45 41 44          .BYTE   "READ ERROR",0
-00BED7  2  20 45 52 52
-00BEDB  2  4F 52 00
+00BED7  2  20 45 52 52  
+00BEDB  2  4F 52 00     
 00BEDE  2               ntfnms          = *-msgtbl
 00BEDE  2  4E 4F 54 20          .BYTE   "NOT FOUND",0
-00BEE2  2  46 4F 55 4E
-00BEE6  2  44 00
+00BEE2  2  46 4F 55 4E  
+00BEE6  2  44 00        
 00BEE8  2               flexms          = *-msgtbl
 00BEE8  2  46 49 4C 45          .BYTE   "FILE EXISTS",0
-00BEEC  2  20 45 58 49
-00BEF0  2  53 54 53 00
+00BEEC  2  20 45 58 49  
+00BEF0  2  53 54 53 00  
 00BEF4  2               lderms          = *-msgtbl
 00BEF4  2  4C 4F 41 44          .BYTE   "LOAD ERROR",0
-00BEF8  2  20 45 52 52
-00BEFC  2  4F 52 00
+00BEF8  2  20 45 52 52  
+00BEFC  2  4F 52 00     
 00BEFF  2               cnnoms          = *-msgtbl
 00BEFF  2  43 41 4E 20          .BYTE   "CAN NOT OPEN",0
-00BF03  2  4E 4F 54 20
-00BF07  2  4F 50 45 4E
+00BF03  2  4E 4F 54 20  
+00BF07  2  4F 50 45 4E  
 00BF0C  2               wrerms          = *-msgtbl
 00BF0C  2  57 52 49 54          .BYTE   "WRITE ERROR",0
-00BF10  2  45 20 45 52
-00BF14  2  52 4F 52 00
+00BF10  2  45 20 45 52  
+00BF14  2  52 4F 52 00  
 00BF18  2               ;function name table
 00BF18  2               fnctbl:
 00BF18  2  44 49 52 20          .BYTE   "DIR ",0
-00BF1C  2  00
+00BF1C  2  00           
 00BF1D  2  53 41 56 45          .BYTE   "SAVE ",0
-00BF21  2  20 00
+00BF21  2  20 00        
 00BF23  2  45 52 41 20          .BYTE   "ERA ",0
-00BF27  2  00
+00BF27  2  00           
 00BF28  2  54 59 50 45          .BYTE   "TYPE ",0
-00BF2C  2  20 00
+00BF2C  2  20 00        
 00BF2E  2  52 45 4E 20          .BYTE   "REN ",0
-00BF32  2  00
+00BF32  2  00           
 00BF33  2  47 4F 20 00          .BYTE   "GO ",0
 00BF37  2  4C 4F 41 44          .BYTE   "LOAD ",0
-00BF3B  2  20 00
+00BF3B  2  20 00        
 00BF3D  2               ;input buffer
 00BF3D  2               cnsbuf:
 00BF3D  2               cnsmax:
@@ -1273,18 +1273,18 @@ Current file: dos65.asm
 00BF3E  2  00                   .BYTE   0
 00BF3F  2               cnstxt:
 00BF3F  2  xx xx xx xx          .RES    127
-00BF43  2  xx xx xx xx
-00BF47  2  xx xx xx xx
+00BF43  2  xx xx xx xx  
+00BF47  2  xx xx xx xx  
 00BFBE  2               ;fcb one
 00BFBE  2               fcbone:
 00BFBE  2  xx xx xx xx          .RES    33
-00BFC2  2  xx xx xx xx
-00BFC6  2  xx xx xx xx
+00BFC2  2  xx xx xx xx  
+00BFC6  2  xx xx xx xx  
 00BFDF  2               ;com type field
-00BFDF  2
+00BFDF  2               
 00BFDF  2               typcom:
 00BFDF  2  43 4F 4D             .BYTE   COMSUFFIX
-00BFE2  2
+00BFE2  2               
 00BFE2  2               ;variable storage
 00BFE2  2               cnbfpt:
 00BFE2  2  00                   .BYTE   0               ;buffer index
@@ -1324,7 +1324,7 @@ Current file: dos65.asm
 00BFF6  2  00 00                .WORD   0               ;temp in bldnum
 00BFF8  2               sadr:
 00BFF8  2  00 08                .WORD   tea             ;save start address
-00BFFA  2
+00BFFA  2               
 00BFFA  1                       .INCLUDE "pemrbc.asm"
 00BFFA  2               ;________________________________________________________________________________________________________________________________
 00BFFA  2               ;
@@ -1332,12 +1332,12 @@ Current file: dos65.asm
 00BFFA  2               ;
 00BFFA  2               ;
 00BFFA  2               ;________________________________________________________________________________________________________________________________
-00BFFA  2
+00BFFA  2               
 00BFFA  2               ;main program
 00BFFA  2               ; input:x=command,a=value,a&y=address
 00BFFA  2               ; returns:a=value,a&y=address
 00BFFA  2               ; alters:all
-00BFFA  2
+00BFFA  2               
 00BFFA  2               pem:
 00BFFA  2  D8                   CLD                     ;set binary mode
 00BFFB  2  8D 8F CB             STA     bytinp          ;save input
@@ -1454,11 +1454,11 @@ Current file: dos65.asm
 00C0F0  2  8D 8E CB             STA     swcflg          ;flag
 00C0F3  2               dowmbt:
 00C0F3  2  4C DF CB             JMP     sim+3           ;go to sim
-00C0F6  2
+00C0F6  2               
 00C0F6  2               ;execute read real time clock
 00C0F6  2               xrtclo:
 00C0F6  2  20 0C CC             JSR     sim+48          ;read clock
-00C0F9  2
+00C0F9  2               
 00C0F9  2  8D BD CB             STA     rtclk           ;save low
 00C0FC  2  8C BE CB             STY     rtclk+1         ;middle
 00C0FF  2  8E BF CB             STX     rtclk+2         ;high
@@ -1743,7 +1743,7 @@ Current file: dos65.asm
 00C2F9  2  85 04                STA     bufadd          ;then store
 00C2FB  2  84 05                STY     bufadd+1        ;in address
 00C2FD  2  4C 00 CC             JMP     sim+36          ;then go to sim
-00C300  2
+00C300  2               
 00C300  2               ;change drive
 00C300  2               ; input:bytinp
 00C300  2               ; returns:none
@@ -1789,7 +1789,7 @@ Current file: dos65.asm
 00C33A  2  85 02                STA     addinp          ;and set up
 00C33C  2  84 03                STY     addinp+1        ;parameters
 00C33E  2  20 F5 C2             JSR     chgdma          ;change address
-00C341  2
+00C341  2               
 00C341  2               ;log in drive and set pointers and maps
 00C341  2               ; input:curdrv
 00C341  2               ; returns:none
@@ -1803,16 +1803,16 @@ Current file: dos65.asm
 00C34B  2  AD DD CA             LDA     sltmvc          ;point to
 00C34E  2  AC DE CA             LDY     sltmvc+1        ;select message
 00C351  2  20 C7 C8             JSR     sndstr          ;and send it
-00C354  2
+00C354  2               
 00C354  2  4C E6 C0             JMP     xwboot          ;and abort
-00C357  2
+00C357  2               
 00C357  2               vlddrv:
 00C357  2               ; meep meep meep -- SELF MODIFYING CODE ALERT!
 00C357  2  20 F7 CB             JSR     sim+27          ;go to sim to set
 00C35A  2  8D 68 C3             STA     cptdcb+1        ;save
 00C35D  2  8C 69 C3             STY     cptdcb+2
 00C360  2  0D 69 C3             ORA     cptdcb+2        ;see if invalid
-00C363  2
+00C363  2               
 00C363  2  F0 E3                BEQ     drserr          ;error if is
 00C365  2               ;capture dcb
 00C365  2  A0 0D                LDY     #14-1           ;do 14 bytes
@@ -1851,7 +1851,7 @@ Current file: dos65.asm
 00C3A3  2               ntm255:
 00C3A3  2  B9 7F CB             LDA     exmtbl,y        ;get extent mask
 00C3A6  2  8D D2 CB             STA     exm
-00C3A9  2
+00C3A9  2               
 00C3A9  2  38                   SEC                     ;now calculate cexm1f
 00C3AA  2  A9 1F                LDA     #31
 00C3AC  2  F9 7F CB             SBC     exmtbl,y
@@ -1864,7 +1864,7 @@ Current file: dos65.asm
 00C3C0  2  0D A3 CB             ORA     lginvc          ;set in log-in
 00C3C3  2  8D A3 CB             STA     lginvc          ;and update
 00C3C6  2  4C CA C3             JMP     flinal          ;then fill in maps
-00C3C9  2
+00C3C9  2               
 00C3C9  2               extstm:
 00C3C9  2  60                   RTS                     ;and return
 00C3CA  2               ;fill in allocation map
@@ -1934,7 +1934,7 @@ Current file: dos65.asm
 00C45B  2               ;at this point directory space is mapped
 00C45B  2  20 7A C4             JSR     intdrv          ;initialize drive
 00C45E  2  20 D5 C7             JSR     cldrnm          ;clear directory number
-00C461  2
+00C461  2               
 00C461  2               fillpe:
 00C461  2  A2 01                LDX     #1              ;parameter for fill
 00C463  2  20 1C C7             JSR     nxtdir          ;execute for next directory
@@ -1957,7 +1957,7 @@ Current file: dos65.asm
 00C47D  2  AD C7 CB             LDA     nsystr          ;get number of system tracks
 00C480  2  AC C8 CB             LDY     nsystr+1
 00C483  2  4C FA CB             JMP     sim+30          ;and set in sim
-00C486  2
+00C486  2               
 00C486  2               ;directory record set up
 00C486  2               ; input:dirnum
 00C486  2               ; returns:none
@@ -2022,7 +2022,7 @@ Current file: dos65.asm
 00C4FF  2  A8                   TAY                     ;move to correct registers
 00C500  2  8A                   TXA
 00C501  2  20 FA CB             JSR     sim+30          ;then set in sim
-00C504  2
+00C504  2               
 00C504  2  38                   SEC                     ;back
 00C505  2  AD 9A CB             LDA     countr          ;counter down
 00C508  2  ED C5 CB             SBC     sectrk          ;by sectors per track
@@ -2039,9 +2039,9 @@ Current file: dos65.asm
 00C525  2  A8                   TAY                     ;move to correct registers
 00C526  2  8A                   TXA
 00C527  2  20 0F CC             JSR     sim+51          ;translate
-00C52A  2
+00C52A  2               
 00C52A  2  4C FD CB             JMP     sim+33          ;and set through sim
-00C52D  2
+00C52D  2               
 00C52D  2               ;get block bit mask and index
 00C52D  2               ; input:a&y=block number
 00C52D  2               ; returns:a=bit mask and y=0
@@ -2387,8 +2387,8 @@ Current file: dos65.asm
 00C6E5  2  AD B1 CB             LDA     dirmod          ;get number
 00C6E8  2               extmke:
 00C6E8  2  60                   RTS                     ;and quit
-00C6E9  2
-00C6E9  2
+00C6E9  2               
+00C6E9  2               
 00C6E9  2               ;extend file
 00C6E9  2               ; input:fcb@(addinp), x=1 read
 00C6E9  2               ;		        0 write
@@ -2432,7 +2432,7 @@ Current file: dos65.asm
 00C71E  2  EE A5 CB             INC     dirnum          ;bump directory
 00C721  2  D0 03                BNE     *+5
 00C723  2  EE A6 CB             INC     dirnum+1
-00C726  2
+00C726  2               
 00C726  2  AD CA CB             LDA     maxdir          ;if not at limit continue
 00C729  2  CD A5 CB             CMP     dirnum
 00C72C  2  AD CB CB             LDA     maxdir+1
@@ -2531,11 +2531,11 @@ Current file: dos65.asm
 00C7B9  2  B1 02                LDA     (addinp),y      ;else get high
 00C7BB  2  8D A9 CB             STA     blknum+1        ;high byte
 00C7BE  2  60                   RTS                     ;and return
-00C7BF  2
+00C7BF  2               
 00C7BF  2                       .IFDEF  DUODYNE
 00C7BF  2                       .RES    100
 00C7BF  2                       .ENDIF
-00C7BF  2
+00C7BF  2               
 00C7BF  2               ;calculate chkpnt as function of dirrec and chkmap
 00C7BF  2               ; input:dirrec,chkmap
 00C7BF  2               ; returns:y=0
@@ -2623,7 +2623,7 @@ Current file: dos65.asm
 00C834  2               ;read sector
 00C834  2               rdesec:
 00C834  2  20 03 CC             JSR     sim+39          ;do read
-00C837  2
+00C837  2               
 00C837  2  4C 46 C8             JMP     chkrwe          ;check for error
 00C83A  2               ;update checksum and directory
 00C83A  2               updtck:
@@ -2636,7 +2636,7 @@ Current file: dos65.asm
 00C840  2  AD D1 CB             LDA     pemwrtype       ;get write type
 00C843  2               secwrt:
 00C843  2  20 06 CC             JSR     sim+42          ;do write
-00C846  2
+00C846  2               
 00C846  2               chkrwe:
 00C846  2  C9 00                CMP     #0              ;if not ok
 00C848  2  F0 E9                BEQ     exttro          ;done if zero
@@ -2688,7 +2688,7 @@ Current file: dos65.asm
 00C88B  2  68                   PLA                     ;restore
 00C88C  2  D0 03                BNE     extget          ;exit if not null
 00C88E  2  20 E5 CB             JSR     sim+9           ;else get new
-00C891  2
+00C891  2               
 00C891  2               extget:
 00C891  2  60                   RTS                     ;and return
 00C892  2               ;check keyboard status
@@ -3038,7 +3038,7 @@ Current file: dos65.asm
 00CAD5  2  E8                   INX
 00CAD6  2  10 F7                BPL     mvfrom          ;loop until done
 00CAD8  2  60                   RTS
-00CAD9  2
+00CAD9  2               
 00CAD9  2               ;relocatable vectors
 00CAD9  2  4C                   .BYTE   $4c
 00CADA  2               extevc:
@@ -3066,55 +3066,55 @@ Current file: dos65.asm
 00CAEF  2               ;messages
 00CAEF  2               romsg:
 00CAEF  2  20 2D 20 52          .BYTE   " - R/O$"
-00CAF3  2  2F 4F 24
+00CAF3  2  2F 4F 24     
 00CAF6  2               bdsmsg:
 00CAF6  2  20 2D 20 42          .BYTE   " - BAD SECTOR"
-00CAFA  2  41 44 20 53
-00CAFE  2  45 43 54 4F
+00CAFA  2  41 44 20 53  
+00CAFE  2  45 43 54 4F  
 00CB03  2  0D 0A 3C 52          .BYTE   cr,lf,"<RET> TO IGNORE -- <OTHER> "
-00CB07  2  45 54 3E 20
-00CB0B  2  54 4F 20 49
+00CB07  2  45 54 3E 20  
+00CB0B  2  54 4F 20 49  
 00CB20  2  54 4F 20 41          .BYTE   "TO ABORT$"
-00CB24  2  42 4F 52 54
-00CB28  2  24
+00CB24  2  42 4F 52 54  
+00CB28  2  24           
 00CB29  2               pemmsg:
 00CB29  2  0D 0A 50 45          .BYTE   cr,lf,"PEM ERROR ON $"
-00CB2D  2  4D 20 45 52
-00CB31  2  52 4F 52 20
+00CB2D  2  4D 20 45 52  
+00CB31  2  52 4F 52 20  
 00CB39  2               sltmsg:
 00CB39  2  20 2D 20 49          .BYTE   " - INVALID DRIVE$"
-00CB3D  2  4E 56 41 4C
-00CB41  2  49 44 20 44
-00CB4A  2
+00CB3D  2  4E 56 41 4C  
+00CB41  2  49 44 20 44  
+00CB4A  2               
 00CB4A  2               ;dummy fcb
 00CB4A  2               empty:
 00CB4A  2  E5                   .BYTE   $e5
 00CB4B  2               ;zero page switch enable table
 00CB4B  2               swctbl:
 00CB4B  2  00 00 00 00          .BYTE   0,0,0,0,0,0,0,0
-00CB4F  2  00 00 00 00
+00CB4F  2  00 00 00 00  
 00CB53  2  00 00 01 00          .BYTE   0,0,1,0,0,1,1,1
-00CB57  2  00 01 01 01
+00CB57  2  00 01 01 01  
 00CB5B  2  01 01 01 01          .BYTE   1,1,1,1,1,1,1,1
-00CB5F  2  01 01 01 01
+00CB5F  2  01 01 01 01  
 00CB63  2  00 00 01 00          .BYTE   0,0,1,0,0,0,0,0
-00CB67  2  00 00 00 00
+00CB67  2  00 00 00 00  
 00CB6B  2  00 00 00 00          .BYTE   0,0,0,0
 00CB6F  2               ;bit mask table
 00CB6F  2               bitmsk:
 00CB6F  2  80 40 20 10          .BYTE   128,64,32,16,8,4,2,1
-00CB73  2  08 04 02 01
+00CB73  2  08 04 02 01  
 00CB77  2               ;bit map table
 00CB77  2               bitmap:
 00CB77  2  01 02 04 08          .BYTE   1,2,4,8,16,32,64,128
-00CB7B  2  10 20 40 80
+00CB7B  2  10 20 40 80  
 00CB7F  2               ;extent mask table (also uses 3 bytes in sabtbl
 00CB7F  2               exmtbl:
 00CB7F  2  00 01 03             .BYTE   0,1,3
 00CB82  2               ;sab table
 00CB82  2               sabtbl:
 00CB82  2  07 0F 1F 3F          .BYTE   7,15,31,63,127
-00CB86  2  7F
+00CB86  2  7F           
 00CB87  2               ;variable storage
 00CB87  2               skpdir:
 00CB87  2  00                   .BYTE   0               ;positive if no change
@@ -3238,21 +3238,21 @@ Current file: dos65.asm
 00CBD4  2               varblk:
 00CBD4  2               lowin:
 00CBD4  2  xx xx xx xx          .RES    numvar
-00CBD8  2  xx xx xx xx
-00CBDC  2
+00CBD8  2  xx xx xx xx  
+00CBDC  2               
 00CBDC  1                       .INCLUDE "simrbc.asm"
 00CBDC  2               ;--------------------------------
 00CBDC  2               ;dos/65 system interface module (sim)
 00CBDC  2               ;--------------------------------
-00CBDC  2
-00CBDC  2
+00CBDC  2               
+00CBDC  2               
 00CBDC  2               ;dos/65 system interface module (sim)
 00CBDC  2               ;version 3.00
 00CBDC  2               ;this version is designed to work with the 6x0x
-00CBDC  2
+00CBDC  2               
 00CBDC  2               ;fixed parameters
 00CBDC  2               simstart:
-00CBDC  2
+00CBDC  2               
 00CBDC  2               ;main program
 00CBDC  2               ;jump vector used by pem
 00CBDC  2               sim:
@@ -3276,7 +3276,7 @@ Current file: dos65.asm
 00CC0B  2  60                   RTS
 00CC0C  2  4C F0 CE             JMP     rdtime          ;clock entry
 00CC0F  2  4C F3 CE             JMP     xlate           ;translate
-00CC12  2
+00CC12  2               
 00CC12  2               ;console definition block
 00CC12  2               sysdef:
 00CC12  2  08                   .BYTE   8               ;backspace
@@ -3289,44 +3289,44 @@ Current file: dos65.asm
 00CC19  2  0C                   .BYTE   $c              ;formfeed
 00CC1A  2  1E                   .BYTE   $1e             ;home
 00CC1B  2  02                   .BYTE   2               ;clear to end of screen
-00CC1C  2
+00CC1C  2               
 00CC1C  2               ;opening id message
 00CC1C  2               opnmsg:
 00CC1C  2  0D 0A                .BYTE   cr, lf
-00CC1E  2
+00CC1E  2               
 00CC1E  2  64 38 38 38          .BYTE   "d8888b.  .d88b.  .d8888.    dD     ooooo", cr, lf
-00CC22  2  38 62 2E 20
-00CC26  2  20 2E 64 38
+00CC22  2  38 62 2E 20  
+00CC26  2  20 2E 64 38  
 00CC48  2  38 38 20 20          .BYTE   "88  `8D .8P  Y8. 88'  YP   d8'    8P~~~~", cr, lf
-00CC4C  2  60 38 44 20
-00CC50  2  2E 38 50 20
+00CC4C  2  60 38 44 20  
+00CC50  2  2E 38 50 20  
 00CC72  2  38 38 20 20          .BYTE   "88   88 88    88 `8bo.    d8'    dP", cr, lf
-00CC76  2  20 38 38 20
-00CC7A  2  38 38 20 20
+00CC76  2  20 38 38 20  
+00CC7A  2  38 38 20 20  
 00CC97  2  38 38 20 20          .BYTE   "88   88 88    88   `Y8b. d8888b. V8888b.", cr, lf,0
-00CC9B  2  20 38 38 20
-00CC9F  2  38 38 20 20
+00CC9B  2  20 38 38 20  
+00CC9F  2  38 38 20 20  
 00CCC2  2               opnmsg1:
 00CCC2  2  38 38 20 20          .BYTE   "88  .8D `8b  d8' db   8D 88' `8D     `8D ", cr, lf
-00CCC6  2  2E 38 44 20
-00CCCA  2  60 38 62 20
+00CCC6  2  2E 38 44 20  
+00CCCA  2  60 38 62 20  
 00CCED  2  59 38 38 38          .BYTE   "Y8888D'  `Y88P'  `8888Y' `8888P  88oobY'", cr, lf
-00CCF1  2  38 44 27 20
-00CCF5  2  20 60 59 38
+00CCF1  2  38 44 27 20  
+00CCF5  2  20 60 59 38  
 00CD17  2  44 4F 53 2F          .BYTE   "DOS/65 V3.00", cr, lf, 0
-00CD1B  2  36 35 20 56
-00CD1F  2  33 2E 30 30
-00CD26  2
+00CD1B  2  36 35 20 56  
+00CD1F  2  33 2E 30 30  
+00CD26  2               
 00CD26  2               DSKYMSG:
 00CD26  2  54 6E 5C 5E          .BYTE   $54, $6E, $5C, $5E, $6E, $54, $79, $40
-00CD2A  2  6E 54 79 40
-00CD2E  2
+00CD2A  2  6E 54 79 40  
+00CD2E  2               
 00CD2E  2               ;cold entry from loader
 00CD2E  2               boot:
 00CD2E  2  A5 3A                LDA     CONSOLE
 00CD30  2  C9 13                CMP     #19
 00CD32  2  F0 0E                BEQ     :+
-00CD34  2
+00CD34  2               
 00CD34  2  A9 1C                LDA     #<opnmsg        ;point to message
 00CD36  2  A0 CC                LDY     #>opnmsg
 00CD38  2  20 F4 CE             JSR     outmsg          ;send it
@@ -3335,7 +3335,7 @@ Current file: dos65.asm
 00CD3F  2  20 F4 CE             JSR     outmsg          ;send it
 00CD42  2               :
 00CD42  2               ;set up jumps into dos/65 in page one
-00CD42  2
+00CD42  2               
 00CD42  2               ; setup diskconfig table
 00CD42  2  A2 00                LDX     #0
 00CD44  2               :
@@ -3344,40 +3344,40 @@ Current file: dos65.asm
 00CD4A  2  E8                   INX
 00CD4B  2  E0 10                CPX     #$10
 00CD4D  2  D0 F5                BNE     :-
-00CD4F  2
+00CD4F  2               
 00CD4F  2  A9 17                LDA     #23            ; Mapped Video INITIALIZE
 00CD51  2  85 32                STA     farfunct
 00CD53  2  20 F0 FF             JSR     DO_FARCALL
-00CD56  2
+00CD56  2               
 00CD56  2  A9 0D                LDA     #13             ; ESP Video INITIALIZE
 00CD58  2  85 32                STA     farfunct
 00CD5A  2  20 F0 FF             JSR     DO_FARCALL
-00CD5D  2
+00CD5D  2               
 00CD5D  2  A9 28                LDA     #40             ; DSKY INITIALIZE
 00CD5F  2  85 32                STA     farfunct
 00CD61  2  20 F0 FF             JSR     DO_FARCALL
-00CD64  2
+00CD64  2               
 00CD64  2  A9 34                LDA     #52             ; RTC_RESET
 00CD66  2  85 32                STA     farfunct
 00CD68  2  20 F0 FF             JSR     DO_FARCALL
-00CD6B  2
+00CD6B  2               
 00CD6B  2  A9 3C                LDA     #60             ; IDE INITIALIZE
 00CD6D  2  85 32                STA     farfunct
 00CD6F  2  20 F0 FF             JSR     DO_FARCALL
-00CD72  2
+00CD72  2               
 00CD72  2  A9 3F                LDA     #63             ; SD INITIALIZE
 00CD74  2  85 32                STA     farfunct
 00CD76  2  20 F0 FF             JSR     DO_FARCALL
-00CD79  2
+00CD79  2               
 00CD79  2  A9 42                LDA     #66             ; FLOPPY INITIALIZE
 00CD7B  2  85 32                STA     farfunct
 00CD7D  2  20 F0 FF             JSR     DO_FARCALL
-00CD80  2
+00CD80  2               
 00CD80  2  A9 24                LDA     #36             ; MULTI IO INITIALIZE
 00CD82  2  85 32                STA     farfunct
 00CD84  2  20 F0 FF             JSR     DO_FARCALL
-00CD87  2
-00CD87  2
+00CD87  2               
+00CD87  2               
 00CD87  2               wboot:
 00CD87  2                       .IFDEF  DUODYNE
 00CD87  2                       CLD                     ; VERIFY DECIMAL MODE IS OFF
@@ -3395,17 +3395,17 @@ Current file: dos65.asm
 00CD8A  2  9A                   TXS                     ;pointer
 00CD8B  2  D8                   CLD                     ;set binary mode
 00CD8C  2                       .ENDIF
-00CD8C  2
+00CD8C  2               
 00CD8C  2  A9 3F                LDA     #<cnstxt        ; STORE POINTER TO COMMAND LINE
 00CD8E  2  85 30                STA     cmdlnp
 00CD90  2  A9 BF                LDA     #>cnstxt
 00CD92  2  85 31                STA     cmdlnp + 1
-00CD94  2
+00CD94  2               
 00CD94  2  A9 17                LDA     #<dskcfg        ; STORE POINTER TO DISK CONFIG TABLE FOR APPS
 00CD96  2  85 2E                STA     dskcfpc
 00CD98  2  A9 06                LDA     #>dskcfg
 00CD9A  2  85 2F                STA     dskcfpc + 1
-00CD9C  2
+00CD9C  2               
 00CD9C  2  A9 8C                LDA     #<dcba          ; STORE POINTER TO DCB TABLES FOR APPS
 00CD9E  2  85 2C                STA     dcbpc
 00CDA0  2  A9 D0                LDA     #>dcba
@@ -3423,7 +3423,7 @@ Current file: dos65.asm
 00CDB3  2  A0 01                LDY     #>dflbuf        ;and high
 00CDB5  2  20 C8 CE             JSR     setdma          ;and set
 00CDB8  2  AD 16 06             LDA     sekdsk          ;get disk
-00CDBB  2
+00CDBB  2               
 00CDBB  2  A2 00                LDX     #$00            ; SHOW A STARTUP MESSAGE ON DSKY
 00CDBD  2               :
 00CDBD  2  BD 26 CD             LDA     DSKYMSG,x
@@ -3434,7 +3434,7 @@ Current file: dos65.asm
 00CDC8  2  A9 29                LDA     #41             ; DSKY_SHOW
 00CDCA  2  85 32                STA     farfunct
 00CDCC  2  20 F0 FF             JSR     DO_FARCALL
-00CDCF  2
+00CDCF  2               
 00CDCF  2  A9 00                LDA     #DEFDRV         ;set zero
 00CDD1  2  20 E2 CD             JSR     seldsk          ;and select drive zero
 00CDD4  2  20 00 CE             JSR     home            ;home that drive
@@ -3443,12 +3443,12 @@ Current file: dos65.asm
 00CDDC  2               ;initialization table
 00CDDC  2               inttbl:
 00CDDC  2  4C DF CB 4C          .BYTE   $4c,<wboote,>wboote,$4c,<pem,>pem
-00CDE0  2  FA BF
+00CDE0  2  FA BF        
 00CDE2  2               ;warm boot-read dos/65 back except sim and then
 00CDE2  2               ; jump to ccm.
-00CDE2  2
-00CDE2  2
-00CDE2  2
+00CDE2  2               
+00CDE2  2               
+00CDE2  2               
 00CDE2  2               ;__SELDSK_________________________________________________________________________________________________
 00CDE2  2               ;
 00CDE2  2               ; 	PERFORM DOS/65 DISK DRIVE SELECT
@@ -3462,7 +3462,7 @@ Current file: dos65.asm
 00CDE9  2  BD F0 CD             LDA     dcbtbl,x        ;get address
 00CDEC  2  BC F1 CD             LDY     dcbtbl+1,x
 00CDEF  2  60                   RTS
-00CDF0  2
+00CDF0  2               
 00CDF0  2               ;table of dcb addresses
 00CDF0  2               dcbtbl:
 00CDF0  2  8C D0                .WORD   dcba
@@ -3473,9 +3473,9 @@ Current file: dos65.asm
 00CDFA  2  D2 D0                .WORD   dcbf
 00CDFC  2  E0 D0                .WORD   dcbg
 00CDFE  2  EE D0                .WORD   dcbh
-00CE00  2
-00CE00  2
-00CE00  2
+00CE00  2               
+00CE00  2               
+00CE00  2               
 00CE00  2               ;__HOME__________________________________________________________________________________________________
 00CE00  2               ;
 00CE00  2               ; 	PERFORM DOS/65 HEAD HOME
@@ -3483,7 +3483,7 @@ Current file: dos65.asm
 00CE00  2               home:
 00CE00  2  A9 00                LDA     #$00
 00CE02  2  A0 00                LDY     #$00
-00CE04  2
+00CE04  2               
 00CE04  2               ;__SELTRK________________________________________________________________________________________________
 00CE04  2               ;
 00CE04  2               ; 	PERFORM DOS/65 SELECT TRACK
@@ -3495,7 +3495,7 @@ Current file: dos65.asm
 00CE04  2  8D 0C 06             STA     sektrk          ;save number
 00CE07  2  8C 0D 06             STY     sektrk+1
 00CE0A  2  60                   RTS
-00CE0B  2
+00CE0B  2               
 00CE0B  2               ;__SELSEC________________________________________________________________________________________________
 00CE0B  2               ;
 00CE0B  2               ; 	PERFORM DOS/65 SECTOR SELECT
@@ -3507,7 +3507,7 @@ Current file: dos65.asm
 00CE0B  2  8D 0E 06             STA     seksec          ;save low and high
 00CE0E  2  8C 0F 06             STY     seksec+1
 00CE11  2  60                   RTS
-00CE12  2
+00CE12  2               
 00CE12  2               ;__READ__________________________________________________________________________________________________
 00CE12  2               ;
 00CE12  2               ; PERFORM DOS / 65 SECTOR READ
@@ -3571,8 +3571,8 @@ Current file: dos65.asm
 00CE5C  2               :
 00CE5C  2  A9 FF                LDA     #$FF            ; signal error
 00CE5E  2  60                   RTS                     ;
-00CE5F  2
-00CE5F  2
+00CE5F  2               
+00CE5F  2               
 00CE5F  2               ;__WRITE_________________________________________________________________________________________________
 00CE5F  2               ;
 00CE5F  2               ; PERFORM DOS / 65 SECTOR WRITE
@@ -3580,7 +3580,7 @@ Current file: dos65.asm
 00CE5F  2               write:
 00CE5F  2  20 6A D0             JSR     GET_DRIVE_DEVICE;
 00CE62  2  29 F0                AND     #$F0            ; only want first nybble
-00CE64  2
+00CE64  2               
 00CE64  2  C9 00                CMP     #$00
 00CE66  2  D0 12                BNE     :+              ; not MD drive
 00CE68  2               ;MD
@@ -3602,7 +3602,7 @@ Current file: dos65.asm
 00CE7E  2  20 08 CF             JSR     CONVERT_SECTOR_LBA
 00CE81  2                       .ENDIF
 00CE81  2                       .ENDIF
-00CE81  2
+00CE81  2               
 00CE81  2  A9 40                LDA     #64             ;READ_SECTOR
 00CE83  2  85 32                STA     farfunct
 00CE85  2  20 F0 FF             JSR     DO_FARCALL
@@ -3612,7 +3612,7 @@ Current file: dos65.asm
 00CE8F  2  20 F0 FF             JSR     DO_FARCALL
 00CE92  2  60                   RTS
 00CE93  2               :
-00CE93  2
+00CE93  2               
 00CE93  2  C9 20                CMP     #$20
 00CE95  2  D0 15                BNE     :+              ; not floppy drive
 00CE97  2               ;FD
@@ -3640,7 +3640,7 @@ Current file: dos65.asm
 00CEB0  2  20 08 CF             JSR     CONVERT_SECTOR_LBA
 00CEB3  2                       .ENDIF
 00CEB3  2                       .ENDIF
-00CEB3  2
+00CEB3  2               
 00CEB3  2  A9 3D                LDA     #61             ; IDE read sector
 00CEB5  2  85 32                STA     farfunct
 00CEB7  2  20 F0 FF             JSR     DO_FARCALL
@@ -3652,8 +3652,8 @@ Current file: dos65.asm
 00CEC5  2               :
 00CEC5  2  A9 FF                LDA     #$FF            ; signal error
 00CEC7  2  60                   RTS                     ;
-00CEC8  2
-00CEC8  2
+00CEC8  2               
+00CEC8  2               
 00CEC8  2               ;__SETDMA________________________________________________________________________________________________
 00CEC8  2               ;
 00CEC8  2               ; 	PERFORM DOS/65 BUFFER ADDRESS SELECTION
@@ -3665,8 +3665,8 @@ Current file: dos65.asm
 00CEC8  2  85 F4                STA     dmaadr          ;store low
 00CECA  2  84 F5                STY     dmaadr+1        ;and high
 00CECC  2  60                   RTS
-00CECD  2
-00CECD  2
+00CECD  2               
+00CECD  2               
 00CECD  2               ;__CONSTS________________________________________________________________________________________________
 00CECD  2               ;
 00CECD  2               ; 	GET DOS/65 CONSOLE STATUS
@@ -3675,7 +3675,7 @@ Current file: dos65.asm
 00CECD  2  A9 03                LDA     #03
 00CECF  2  85 32                STA     farfunct
 00CED1  2  4C F0 FF             JMP     DO_FARCALL
-00CED4  2
+00CED4  2               
 00CED4  2               ;__CONRDE________________________________________________________________________________________________
 00CED4  2               ;
 00CED4  2               ; 	PERFORM DOS/65 CONSOLE READ
@@ -3684,7 +3684,7 @@ Current file: dos65.asm
 00CED4  2  A9 02                LDA     #02
 00CED6  2  85 32                STA     farfunct
 00CED8  2  4C F0 FF             JMP     DO_FARCALL      ;console read
-00CEDB  2
+00CEDB  2               
 00CEDB  2               ;__CONWRT________________________________________________________________________________________________
 00CEDB  2               ;
 00CEDB  2               ; 	PERFORM DOS/65 CONSOLE WRITE
@@ -3695,7 +3695,7 @@ Current file: dos65.asm
 00CEDE  2  85 32                STA     farfunct
 00CEE0  2  68                   PLA
 00CEE1  2  4C F0 FF             JMP     DO_FARCALL
-00CEE4  2
+00CEE4  2               
 00CEE4  2               prnwrt:
 00CEE4  2  48                   PHA
 00CEE5  2  A9 22                LDA     #34             ; LPT OUT BYTE
@@ -3703,21 +3703,21 @@ Current file: dos65.asm
 00CEE9  2  68                   PLA
 00CEEA  2  20 F0 FF             JSR     DO_FARCALL
 00CEED  2  60                   RTS                     ;printer
-00CEEE  2
+00CEEE  2               
 00CEEE  2               punwrt:
 00CEEE  2  60                   RTS                     ;punch output
-00CEEF  2
+00CEEF  2               
 00CEEF  2               rdrinp:
 00CEEF  2  60                   RTS                     ;reader input
-00CEF0  2
+00CEF0  2               
 00CEF0  2               rdtime:
 00CEF0  2  A2 80                LDX     #128
 00CEF2  2  60                   RTS                     ;read clock
-00CEF3  2
+00CEF3  2               
 00CEF3  2               xlate:
 00CEF3  2  60                   RTS                     ;sector translate
-00CEF4  2
-00CEF4  2
+00CEF4  2               
+00CEF4  2               
 00CEF4  2               ;__OUTMSG________________________________________________________________________________________________
 00CEF4  2               ;
 00CEF4  2               ; 	WRITE A NULL TERMINATED STRING TO THE CONSOLE
@@ -3738,7 +3738,7 @@ Current file: dos65.asm
 00CF04  2  4C FA CE             JMP     OUTSTRLP        ; DO NEXT CHAR
 00CF07  2               ENDOUTSTR:
 00CF07  2  60                   RTS                     ; RETURN
-00CF08  2
+00CF08  2               
 00CF08  2                       .IFDEF  DUODYNE
 00CF08  2                       .ELSE
 00CF08  2                       .IFNDEF PC6502
@@ -3762,7 +3762,7 @@ Current file: dos65.asm
 00CF1C  2  8A                   TXA                     ; GET HEAD BACK
 00CF1D  2  0D 12 06             ORA     debsehd
 00CF20  2  8D 12 06             STA     debsehd         ; STORE IN SECTOR/HEAD
-00CF23  2
+00CF23  2               
 00CF23  2  AD 0C 06             LDA     sektrk
 00CF26  2  8D 10 06             STA     debcyll         ; STORE IN TRACK (lsb)
 00CF29  2  AD 0D 06             LDA     sektrk+1
@@ -3774,21 +3774,21 @@ Current file: dos65.asm
 00CF36  2  AD 10 06             LDA     debcyll
 00CF39  2  6A                   ROR     A
 00CF3A  2  8D 10 06             STA     debcyll
-00CF3D  2
+00CF3D  2               
 00CF3D  2  AD 11 06             LDA     debcylm
 00CF40  2  4A                   LSR     A
 00CF41  2  8D 11 06             STA     debcylm
 00CF44  2  AD 10 06             LDA     debcyll
 00CF47  2  6A                   ROR     A
 00CF48  2  8D 10 06             STA     debcyll
-00CF4B  2
+00CF4B  2               
 00CF4B  2  AD 11 06             LDA     debcylm
 00CF4E  2  4A                   LSR     A
 00CF4F  2  8D 11 06             STA     debcylm
 00CF52  2  AD 10 06             LDA     debcyll
 00CF55  2  6A                   ROR     A
 00CF56  2  8D 10 06             STA     debcyll
-00CF59  2
+00CF59  2               
 00CF59  2  AD 11 06             LDA     debcylm
 00CF5C  2  4A                   LSR     A
 00CF5D  2  8D 11 06             STA     debcylm
@@ -3810,7 +3810,7 @@ Current file: dos65.asm
 00CF7E  2  6E 31 06             ROR     slicetmp
 00CF81  2  6E 32 06             ROR     slicetmp+1
 00CF84  2  6E 31 06             ROR     slicetmp
-00CF87  2
+00CF87  2               
 00CF87  2  BD 17 06             LDA     dskcfg,X        ; GET SLICE#
 00CF8A  2  18                   CLC
 00CF8B  2  6D 31 06             ADC     slicetmp
@@ -3818,7 +3818,7 @@ Current file: dos65.asm
 00CF91  2  A9 00                LDA     #$00            ; LOGIC ERROR FOR SLICES THAT CARRY?
 00CF93  2  6D 32 06             ADC     slicetmp+1      ;
 00CF96  2  8D 32 06             STA     slicetmp+1      ;
-00CF99  2
+00CF99  2               
 00CF99  2               ; ADD SLICE OFFSET TO TRACK #
 00CF99  2  18                   CLC                     ; clear carry
 00CF9A  2  AD 31 06             LDA     slicetmp
@@ -3827,8 +3827,8 @@ Current file: dos65.asm
 00CFA3  2  AD 32 06             LDA     slicetmp+1
 00CFA6  2  6D 11 06             ADC     debcylm         ; add the MSBs using carry from
 00CFA9  2  8D 11 06             STA     debcylm         ; the previous calculation
-00CFAC  2
-00CFAC  2
+00CFAC  2               
+00CFAC  2               
 00CFAC  2               ; DISPLAY ON DSKY IF PRESENT
 00CFAC  2  AD 16 06             LDA     sekdsk
 00CFAF  2  8D 08 06             STA     DSKY_HEXBUF
@@ -3845,7 +3845,7 @@ Current file: dos65.asm
 00CFCD  2  85 32                STA     farfunct
 00CFCF  2  20 F0 FF             JSR     DO_FARCALL
 00CFD2  2  60                   RTS
-00CFD3  2
+00CFD3  2               
 00CFD3  2               ;__SETUP_FD_CHS__________________________________________________________________________________________________________________
 00CFD3  2               ;
 00CFD3  2               ; 	TRANSFORM DOS65 CHS TO FLOPPY
@@ -3862,7 +3862,7 @@ Current file: dos65.asm
 00CFE5  2  4A                   LSR     A               ;
 00CFE6  2  4A                   LSR     A               ; DIVIDE BY 4 (FOR BLOCKING)
 00CFE7  2  8D 12 06             STA     debsehd         ; STORE IN SECTOR
-00CFEA  2
+00CFEA  2               
 00CFEA  2  AD 16 06             LDA     sekdsk
 00CFED  2  8D 08 06             STA     DSKY_HEXBUF
 00CFF0  2  AD 11 06             LDA     debcylm
@@ -3880,8 +3880,8 @@ Current file: dos65.asm
 00D010  2  60                   RTS
 00D011  2                       .ENDIF
 00D011  2                       .ENDIF
-00D011  2
-00D011  2
+00D011  2               
+00D011  2               
 00D011  2               ;___DEBSECR______________________________________________________________________________________________
 00D011  2               ;
 00D011  2               ;	DEBLOCK 512 BYTE SECTOR FOR DOS/65
@@ -3908,14 +3908,14 @@ Current file: dos65.asm
 00D031  2  68                   PLA
 00D032  2  28                   PLP
 00D033  2  60                   RTS
-00D034  2
+00D034  2               
 00D034  2               DEBTAB:
 00D034  2  00 04                .WORD   hstbuf          ;
 00D036  2  80 04                .WORD   hstbuf+128      ;
 00D038  2  00 05                .WORD   hstbuf+256      ;
 00D03A  2  80 05                .WORD   hstbuf+384      ;
-00D03C  2
-00D03C  2
+00D03C  2               
+00D03C  2               
 00D03C  2               ;___BLKSECR______________________________________________________________________________________________
 00D03C  2               ;
 00D03C  2               ;	BLOCK 512 BYTE SECTOR FOR DOS/65
@@ -3940,8 +3940,8 @@ Current file: dos65.asm
 00D058  2  20 5D D0             JSR     COPY_DOS_SECTOR ;
 00D05B  2  28                   PLP
 00D05C  2  60                   RTS
-00D05D  2
-00D05D  2
+00D05D  2               
+00D05D  2               
 00D05D  2               ;___COPY_DOS_SECTOR______________________________________________________________________________________
 00D05D  2               ;
 00D05D  2               ;	COPY 128 BYTE SECTOR FOR DOS/65
@@ -3957,7 +3957,7 @@ Current file: dos65.asm
 00D065  2  C9 80                CMP     #$80            ;
 00D067  2  D0 F6                BNE     COPY_DOS_SECTOR1;
 00D069  2  60                   RTS
-00D06A  2
+00D06A  2               
 00D06A  2               ;___GET_DRIVE_DEVICE_____________________________________________________________________________________
 00D06A  2               ;
 00D06A  2               ; GET SELECTED DEVICE TYPE AND UNIT, RETURN IN "A"
@@ -3979,11 +3979,11 @@ Current file: dos65.asm
 00D084  2  BD 17 06             LDA     dskcfg, X       ; GET device
 00D087  2  AE 8B D0             LDX     GET_DRIVE_DEVICE_TMP
 00D08A  2  60                   RTS
-00D08B  2
+00D08B  2               
 00D08B  2               GET_DRIVE_DEVICE_TMP:
 00D08B  2  00                   .BYTE   00
 00D08C  2               ;------------------------------------------------------------------------------------
-00D08C  2
+00D08C  2               
 00D08C  2                       .IFDEF  RBC6X0X
 00D08C  2               ;disk control blocks
 00D08C  2               dcba:
@@ -4058,7 +4058,7 @@ Current file: dos65.asm
 00D0F7  2  0C D8                .WORD   almph           ;address of map for a
 00D0F9  2  80                   .BYTE   128             ;no checksums
 00D0FA  2  0C D9                .WORD   ckmp            ;checksum map
-00D0FC  2
+00D0FC  2               
 00D0FC  2               ; See Platform Documentation for Drive Types.
 00D0FC  2               dftdskcfg:
 00D0FC  2  10 00                .BYTE   $10, $00        ; disk A: unit, slice (invalid for floppy disks) SD
@@ -4069,11 +4069,11 @@ Current file: dos65.asm
 00D106  2  90 00                .BYTE   $90, $00        ; disk F: unit, slice (invalid for floppy disks)
 00D108  2  90 00                .BYTE   $90, $00        ; disk G: unit, slice (invalid for floppy disks)
 00D10A  2  90 00                .BYTE   $90, $00        ; disk H: unit, slice (invalid for floppy disks)
-00D10C  2
-00D10C  2
-00D10C  2
+00D10C  2               
+00D10C  2               
+00D10C  2               
 00D10C  2                       .ENDIF
-00D10C  2
+00D10C  2               
 00D10C  2               ;__________________________________________________________________________________________________________________________________
 00D10C  2                       .IFDEF  PC6502
 00D10C  2               ;disk control blocks
@@ -4149,7 +4149,7 @@ Current file: dos65.asm
 00D10C  2                       .WORD   almph           ;address of map for a
 00D10C  2                       .BYTE   128             ;no checksums
 00D10C  2                       .WORD   ckmp            ;checksum map
-00D10C  2
+00D10C  2               
 00D10C  2               ; See Platform Documentation for Drive Types.
 00D10C  2               dftdskcfg:
 00D10C  2                       .BYTE   $30, $00        ; disk A: unit, slice (invalid for floppy disks) XT-IDE
@@ -4161,8 +4161,8 @@ Current file: dos65.asm
 00D10C  2                       .BYTE   $90, $00        ; disk G: unit, slice (invalid for floppy disks)
 00D10C  2                       .BYTE   $90, $00        ; disk H: unit, slice (invalid for floppy disks)
 00D10C  2                       .ENDIF
-00D10C  2
-00D10C  2
+00D10C  2               
+00D10C  2               
 00D10C  2               ;__________________________________________________________________________________________________________________________________
 00D10C  2                       .IFDEF  NHYODYNE
 00D10C  2               dcba:
@@ -4237,7 +4237,7 @@ Current file: dos65.asm
 00D10C  2                       .WORD   almph           ;address of map for h
 00D10C  2                       .BYTE   0               ;do checksums
 00D10C  2                       .WORD   ckmp            ;checksum map
-00D10C  2
+00D10C  2               
 00D10C  2               dftdskcfg:
 00D10C  2                       .BYTE   $00, $00        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
 00D10C  2                       .BYTE   $01, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
@@ -4247,9 +4247,9 @@ Current file: dos65.asm
 00D10C  2                       .BYTE   $30, $03        ; disk F: unit, slice IDE
 00D10C  2                       .BYTE   $30, $04        ; disk G: unit, slice IDE
 00D10C  2                       .BYTE   $30, $00        ; disk H: unit, slice IDE
-00D10C  2
+00D10C  2               
 00D10C  2                       .ENDIF
-00D10C  2
+00D10C  2               
 00D10C  2               ;__________________________________________________________________________________________________________________________________
 00D10C  2                       .IFDEF  DUODYNE
 00D10C  2               dcba:
@@ -4324,7 +4324,7 @@ Current file: dos65.asm
 00D10C  2                       .WORD   almph           ;address of map for h
 00D10C  2                       .BYTE   0               ;do checksums
 00D10C  2                       .WORD   ckmp            ;checksum map
-00D10C  2
+00D10C  2               
 00D10C  2               dftdskcfg:
 00D10C  2                       .BYTE   $30, $02        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
 00D10C  2                       .BYTE   $30, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
@@ -4335,7 +4335,7 @@ Current file: dos65.asm
 00D10C  2                       .BYTE   $30, $05        ; disk G: unit, slice
 00D10C  2                       .BYTE   $30, $06        ; disk H: unit, slice
 00D10C  2                       .ENDIF
-00D10C  2
+00D10C  2               
 00D10C  2               ;__________________________________________________________________________________________________________________________________
 00D10C  2                       .IFDEF  DUODYNE02
 00D10C  2               dcba:
@@ -4410,7 +4410,7 @@ Current file: dos65.asm
 00D10C  2                       .WORD   almph           ;address of map for h
 00D10C  2                       .BYTE   0               ;do checksums
 00D10C  2                       .WORD   ckmp            ;checksum map
-00D10C  2
+00D10C  2               
 00D10C  2               dftdskcfg:
 00D10C  2                       .BYTE   $30, $02        ; disk A: unit, slice (invalid for floppy and RAM disks) MD RAM
 00D10C  2                       .BYTE   $30, $00        ; disk B: unit, slice (invalid for floppy and RAM disks) MD ROM
@@ -4421,48 +4421,48 @@ Current file: dos65.asm
 00D10C  2                       .BYTE   $30, $05        ; disk G: unit, slice
 00D10C  2                       .BYTE   $30, $06        ; disk H: unit, slice
 00D10C  2                       .ENDIF
-00D10C  2
-00D10C  2
+00D10C  2               
+00D10C  2               
 00D10C  2               ;allocation maps
 00D10C  2               almpa:
 00D10C  2  xx xx xx xx          .RES    256
-00D110  2  xx xx xx xx
-00D114  2  xx xx xx xx
+00D110  2  xx xx xx xx  
+00D114  2  xx xx xx xx  
 00D20C  2               almpb:
 00D20C  2  xx xx xx xx          .RES    256
-00D210  2  xx xx xx xx
-00D214  2  xx xx xx xx
+00D210  2  xx xx xx xx  
+00D214  2  xx xx xx xx  
 00D30C  2               almpc:
 00D30C  2  xx xx xx xx          .RES    256
-00D310  2  xx xx xx xx
-00D314  2  xx xx xx xx
+00D310  2  xx xx xx xx  
+00D314  2  xx xx xx xx  
 00D40C  2               almpd:
 00D40C  2  xx xx xx xx          .RES    256
-00D410  2  xx xx xx xx
-00D414  2  xx xx xx xx
+00D410  2  xx xx xx xx  
+00D414  2  xx xx xx xx  
 00D50C  2               almpe:
 00D50C  2  xx xx xx xx          .RES    256
-00D510  2  xx xx xx xx
-00D514  2  xx xx xx xx
+00D510  2  xx xx xx xx  
+00D514  2  xx xx xx xx  
 00D60C  2               almpf:
 00D60C  2  xx xx xx xx          .RES    256
-00D610  2  xx xx xx xx
-00D614  2  xx xx xx xx
+00D610  2  xx xx xx xx  
+00D614  2  xx xx xx xx  
 00D70C  2               almpg:
 00D70C  2  xx xx xx xx          .RES    256
-00D710  2  xx xx xx xx
-00D714  2  xx xx xx xx
+00D710  2  xx xx xx xx  
+00D714  2  xx xx xx xx  
 00D80C  2               almph:
 00D80C  2  xx xx xx xx          .RES    256
-00D810  2  xx xx xx xx
-00D814  2  xx xx xx xx
-00D90C  2
+00D810  2  xx xx xx xx  
+00D814  2  xx xx xx xx  
+00D90C  2               
 00D90C  2               ;checksum maps
 00D90C  2               ;drive a
 00D90C  2               ckmp:
 00D90C  2  xx xx xx xx          .RES    128
-00D910  2  xx xx xx xx
-00D914  2  xx xx xx xx
-00D98C  2
-00D98C  1
+00D910  2  xx xx xx xx  
+00D914  2  xx xx xx xx  
+00D98C  2               
+00D98C  1               
 00D98C  1                       .END

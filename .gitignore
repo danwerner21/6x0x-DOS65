@@ -4,3 +4,4 @@ gamefiles/
 *.o
 *.out
 .vscode/
+.claude/

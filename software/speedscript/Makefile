@@ -11,6 +11,8 @@ spsc.com: spsc.out
 	srec_cat  spscA.s -o spsc.com  -BINARY
 	@rm -f spscA.s
 	sed -i -e '$$aS9' spsc.s19
+	@cpmrm -f wbw_hd512 ../../bin/6502PC/DOS65_6502PC.IMG 0:spsc.com
+	cpmcp -f wbw_hd512 ../../bin/6502PC/DOS65_6502PC.IMG  spsc.com 0:spsc.com
 
 
 

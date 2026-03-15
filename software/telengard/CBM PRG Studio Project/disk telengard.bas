@@ -1,32 +1,32 @@
 1 REM TELENGARD/64 V4.18 (C)COPYRIGHT 1981 ORION SOFTWARE - ALL RIGHTS RESERVED
 2 REM Telengard Remastered v1.0 - 2016-02-09 - Remastering by Eric B. Pratt
 3 GOSUB905:GOTO113
-!-------------------------------------------------------------------------------
-!- Generate Dungeon View
-!-------------------------------------------------------------------------------
-!- set border color to medium gray if Time Stop is active; black otherwise
+REM------------------------------------------------------------------------------
+REM Generate Dungeon View
+REM------------------------------------------------------------------------------
+REM set border color to medium gray if Time Stop is active; black otherwise
 4 POKEBD,0:IFSF(9)>0THENPOKEBD,12
-!- Display all Player sprites and set Player Sprite color to black if invisible
+REM Display all Player sprites and set Player Sprite color to black if invisible
 5 SYSRA:POKESG,5:POKEGI,1:SYSDS:IFSF(6)>0THENPOKEC9+7,0:POKEC9+6,0:POKEC9+5,0
-!- Draw dungeon and set some grid values for later use
+REM Draw dungeon and set some grid values for later use
 6 POKE709,CX:POKE710,CY:POKE713,CZ:SYSRP:P12=PEEK(740):P21=PEEK(746)
-!- Decide if light spell is active.  If so, render it.
+REM Decide if light spell is active.  If so, render it.
 7 IFSF(3)>0THENSYSRL
-!- Fall through to Spell Effects status refresh
-!-------------------------------------------------------------------------------
-!- Refresh Spell Effects Status
-!-------------------------------------------------------------------------------
+REM Fall through to Spell Effects status refresh
+REM------------------------------------------------------------------------------
+REM Refresh Spell Effects Status
+REM------------------------------------------------------------------------------
 8 GOSUB106:PRINT"{up*2}{blue}":FORI=1TO11:IFSF(I)<1THEN11
 9 IFPOS(0)>19THENPRINT:PRINT"{up*2}{blue}";
 10 PRINTMID$("STRGDTRPLGHTPROTLEVTINVSFEARASTWTMSTRSEDDRNK",I*4-3,4)":";
 11 NEXT:PRINT"{white}";:L%=PEEK(739)*TF+PEEK(738):RETURN
-!-------------------------------------------------------------------------------
-!- Load Character Menu
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Load Character Menu
+REM------------------------------------------------------------------------------
 12 PRINT:PRINT:PRINT"{white}Loading character list";
-!-------------------------------------------------------------------------------
-!- Get List of Sequential Files
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Get List of Sequential Files
+REM------------------------------------------------------------------------------
 13 A=0:OPEN1,8,0,"$":FORN=1TO28:GET#1,W$:NEXT
 14 GET#1,W$,W$,W$,W$
 15 IFSTTHEN22
@@ -38,17 +38,17 @@
 21 GOTO14
 22 CLOSE1
 23 PRINT"{clear}{down*2}{reverse on}{light gray}  Character Name    Level    Permadeath {reverse off}"
-!-------------------------------------------------------------------------------
-!- Check for Available Characters
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Check for Available Characters
+REM------------------------------------------------------------------------------
 24 IFA>0THEN29
 25 PRINTTAB(9)"{light green}No characters on disk!{light gray}"
 26 PRINT"{down}"TAB(8)"Press any key to go back"
 27 GETC$:IFC$=""THEN27
 28 RETURN
-!-------------------------------------------------------------------------------
-!- Get Character Information and Display Menu
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Get Character Information and Display Menu
+REM------------------------------------------------------------------------------
 29 TC=0:FORI=0TOA-1:OPEN2,8,15:OPEN1,8,3,"0:"+E$(I)+",s,r":INPUT#2,ER,ER$
 30 IFER<>0THENCLOSE1:CLOSE2:NEXT
 31 INPUT#1,TN$:INPUT#1,TV:IFTV=4.18THEN33
@@ -58,9 +58,9 @@
 35 FORJ=0TO5:INPUT#1,CQ:NEXT:INPUT#1,TC$(I,2):CLOSE1:CLOSE2
 36 TC$(I,3)="Yes":IFLEFT$(TN$,2)="sv"THENTC$(I,3)="No"
 37 PRINT"{green} "TC$(I,1)TAB(22)TC$(I,2)TAB(33)TC$(I,3):TC=TC+1:NEXT
-!-------------------------------------------------------------------------------
-!- Make Menu Interactive
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Make Menu Interactive
+REM------------------------------------------------------------------------------
 38 IN=4:MT=IN+TC-1:J=2
 39 TP=IN-4:IFJ=0THENPRINT"{up}":GOTO42
 40 IFJ=1THENPRINT"{down}":GOTO42
@@ -74,41 +74,41 @@
 48 IFC$="d"THEN55
 49 IFC$="b"THEN151
 50 GOTO44
-!- Move select bar up
+REM Move select bar up
 51 IFIN=4THEN39
 52 GOSUB61:IN=IN-1:GOTO39
-!- Move select bar up
+REM Move select bar up
 53 IFIN=MTTHEN39
 54 GOSUB61:IN=IN+1:GOTO39
-!- Delete Character
+REM Delete Character
 55 PRINT"{home}"TAB(10)"Are you sure? (Y/N)"
 56 GETC$:IFC$=""THEN56
 57 IFC$="y"THEN60
 58 IFC$="n"THENPRINT"{home}"TAB(10)"{space*19}":GOTO39
 59 GOTO56
 60 OPEN1,8,15,"s0:"+TC$(TP,0):CLOSE1:GOTO13
-!-------------------------------------------------------------------------------
-!- Unselect Menu Option
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Unselect Menu Option
+REM------------------------------------------------------------------------------
 61 PRINT"{up}{space*39}"
 62 PRINT"{up} "TC$(TP,1)TAB(22)TC$(TP,2)TAB(33)TC$(TP,3):RETURN
-!-------------------------------------------------------------------------------
-!- Delay, Draw Room Feature, Clear Text, and Reposition Cursor
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Delay, Draw Room Feature, Clear Text, and Reposition Cursor
+REM------------------------------------------------------------------------------
 63 GOSUB65
-!-------------------------------------------------------------------------------
-!- Clear Text Output and Reposition Cursor
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Clear Text Output and Reposition Cursor
+REM------------------------------------------------------------------------------
 64 SYSC5:GOSUB106:RETURN
-!-------------------------------------------------------------------------------
-!- Delay 1 Second and Draw Room Feature
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Delay 1 Second and Draw Room Feature
+REM------------------------------------------------------------------------------
 65 TI$="000000"
 66 IFTI<60THEN66:IFANTHENGOSUB857
 67 RETURN
-!-------------------------------------------------------------------------------
-!- Get User Command
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Get User Command
+REM------------------------------------------------------------------------------
 68 POKE198,0
 69 IFANTHEN852
 70 FORQ=1TO400:GETC$:IFC$=""THEN75
@@ -118,77 +118,77 @@
 74 POKEBD,0:PRINT"{space*6}{left*6}";:GOTO69
 75 NEXT:IFNM$="Demo"THEN69
 76 C$="{cm +}":RETURN
-!-------------------------------------------------------------------------------
-!- Display Blank Character Sheet
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Blank Character Sheet
+REM------------------------------------------------------------------------------
 77 PRINT"{home}":PRINTTAB(23)"{up}{light blue}"NP$
 78 PRINTTAB(23)"{gray}Level":PRINTTAB(23)"STR"TAB(31)"CON"
 79 PRINTTAB(23)"INT"TAB(31)"DEX":PRINTTAB(23)"WIS"TAB(31)"CHR"
 80 PRINTTAB(23)"HP":PRINTTAB(23)"SU":PRINTTAB(23)"EX":PRINTTAB(23)"GD"
 81 PRINTTAB(24)MA$(1):PRINTTAB(24)MA$(2):PRINTTAB(24)MA$(3):RETURN
-!-------------------------------------------------------------------------------
-!- Character Sheet Routines
-!-------------------------------------------------------------------------------
-!- Display Character Level
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Character Sheet Routines
+REM------------------------------------------------------------------------------
+REM Display Character Level
+REM------------------------------------------------------------------------------
 82 PRINT"{home}{down}{white}"TAB(28)STR$(LV)" ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Strength
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Strength
+REM------------------------------------------------------------------------------
 83 POKESP,1:PRINT:PRINTTAB(26)STR$(S(0))"  ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Intelligence
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Intelligence
+REM------------------------------------------------------------------------------
 84 POKESP,1:PRINT:PRINTTAB(34)STR$(S(1))"  ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Wisdom
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Wisdom
+REM------------------------------------------------------------------------------
 85 POKESP,2:PRINT:PRINTTAB(26)STR$(S(2))"  ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Constitution
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Constitution
+REM------------------------------------------------------------------------------
 86 POKESP,2:PRINT:PRINTTAB(34)STR$(S(3))"  ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Dexterity
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Dexterity
+REM------------------------------------------------------------------------------
 87 POKESP,3:PRINT:PRINTTAB(26)STR$(S(4))"  ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Charisma
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Charisma
+REM------------------------------------------------------------------------------
 88 POKESP,3:PRINT:PRINTTAB(34)STR$(S(5))"  ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Hit Points
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Hit Points
+REM------------------------------------------------------------------------------
 89 POKESP,4:PRINT:PRINTTAB(25)"{green}"STR$(CH)"{gray}/{white}"MID$(STR$(HP),2)"  ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Spell Units
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Spell Units
+REM------------------------------------------------------------------------------
 90 POKESP,5:PRINT:PRINTTAB(25)"{purple}"STR$(CS)"{gray}/{white}"MID$(STR$(SU),2)"  ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Experience Points
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Experience Points
+REM------------------------------------------------------------------------------
 91 C$=LEFT$(STR$(EX),14):POKESP,6:PRINT
 92 PRINTTAB(25)"{white}";C$;LEFT$("{space*10}",14-LEN(C$)):GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Gold
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Gold
+REM------------------------------------------------------------------------------
 93 C$=LEFT$(STR$(GD),14):POKESP,7:PRINT
 94 PRINTTAB(25)"{white}";C$;LEFT$("{space*10}",14-LEN(C$)):GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Sword
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Sword
+REM------------------------------------------------------------------------------
 95 IFI(1)>0THENPOKESP,8:PRINT:PRINTTAB(30)"+"MID$(STR$(I(1)),2);" ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Armor
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Armor
+REM------------------------------------------------------------------------------
 96 IFI(2)>0THENPOKESP,9:PRINT:PRINTTAB(30)"+"MID$(STR$(I(2)),2);" ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Character Shield
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Character Shield
+REM------------------------------------------------------------------------------
 97 IFI(3)>0THENPOKESP,10:PRINT:PRINTTAB(31)"+"MID$(STR$(I(3)),2);" ":GOTO106
-!-------------------------------------------------------------------------------
-!- Display Extra Inventory
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Display Extra Inventory
+REM------------------------------------------------------------------------------
 98 POKESP,11:PRINT:FORI=4TO10:IFI<4THENIFI(I)>=0THEN100
 99 IFI(I)<1THEN105
 100 PRINTTAB(24);:IFI>7THEN104
@@ -197,69 +197,69 @@
 103 PRINT:GOTO105
 104 PRINTSTR$(I(I))" {gray}"MA$(I)   "{white}"
 105 NEXT:PRINTTAB(23)"{space*16}";:GOTO106
-!-------------------------------------------------------------------------------
-!- Position cursor at column 1 row 21
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Position cursor at column 1 row 21
+REM------------------------------------------------------------------------------
 106 PRINT"{home}{down*20}";:RETURN
-!-------------------------------------------------------------------------------
-!- TURN SOUND OFF
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM TURN SOUND OFF
+REM------------------------------------------------------------------------------
 107 FORFQ=0TO24:POKEF+FQ,0:NEXT:RETURN
-!-------------------------------------------------------------------------------
-!- SETUP FOR SOUND EFFECT
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM SETUP FOR SOUND EFFECT
+REM------------------------------------------------------------------------------
 108 FORFQ=0TO2:POKEF+5+FQ*7,18:POKEF+6+FQ*7,244:F(FQ)=17:NEXT:POKEFV,10:RETURN
-!-------------------------------------------------------------------------------
-!- Clear Monster Track
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Clear Monster Track
+REM------------------------------------------------------------------------------
 109 FORQ=1TO20:M%(Q)=0:L%(Q)=0:H%(Q)=0:NEXT:GOTO843
-!-------------------------------------------------------------------------------
-!- Clear Monster Encounter From Screen
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Clear Monster Encounter From Screen
+REM------------------------------------------------------------------------------
 110 POKESP,18:PRINT:PRINTTAB(21);"{space*17}"
 111 GOSUB64:POKESE,TE:RETURN
-!-------------------------------------------------------------------------------
-!- Delay Loop
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Delay Loop
+REM------------------------------------------------------------------------------
 112 FORQ=1TO100:NEXT:RETURN
-!-
-!- ****************************************************************************
-!- ******************                                        ******************
-!- ******************           Main Program Start           ******************
-!- ******************                                        ******************
-!- ****************************************************************************
-!-
-!-------------------------------------------------------------------------------
-!- Define Functions
-!-------------------------------------------------------------------------------
+REM
+REM ****************************************************************************
+REM ******************                                        ******************
+REM ******************           Main Program Start           ******************
+REM ******************                                        ******************
+REM ****************************************************************************
+REM
+REM------------------------------------------------------------------------------
+REM Define Functions
+REM------------------------------------------------------------------------------
 113 DEFFNUP(H)=HAND3:DEFFNLF(H)=INT(H/4)AND3:DEFFNR(H)=INT(RND(1)*H+1)
 114 DEFFNS(H)=INT(H/TF):DEFFNRD(H)=H-INT(H/10)*10
-!-------------------------------------------------------------------------------
-!- Define Floats
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Define Floats
+REM------------------------------------------------------------------------------
 115 VB=250:FZ=53270:CL=55296:SP=214:WW=64256:IB=198:SC=52224:EL=51924
 116 TF=256:TH=255:CP=53248:SL=53240:XX=CP+16:SE=CP+21:YE=CP+23:XE=CP+29
 117 MC=CP+28:M1=CP+37:M2=CP+38:C9=CP+39:BK=CP+33:BD=CP+32:TE=224:SG=699:GI=700
 118 JC=0:BM=49152:C5=BM+40:DV=BM+53:DC=BM+62:DP=BM+102:EP=BM+139:RL=BM+309
 119 SA=BM+618:RA=BM+679:RP=BM+703:CR=BM+1414:DS=BM+1825:DI=BM+2266:TL=BM+2370
-!-------------------------------------------------------------------------------
-!- Define Strings
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Define Strings
+REM------------------------------------------------------------------------------
 120 S$="STRINTWISCONDEXCHR":CM$="wxadshqpc82465{right}"+CHR$(20)+"{down}.{f1}{f3}{f5}{f7}"
 121 MO$="gnoll{space*3}kobold{space*2}skeletonhobbit{space*2}zombie{space*2}orc{space*5}fighter mummy{space*3}"
 122 MO$=MO$+"elf{space*5}ghoul{space*3}dwarf{space*3}troll{space*3}wraith{space*2}ogre{space*4}minotaur"
 123 MO$=MO$+"giant{space*3}specter vampire demon{space*3}dragon{space*2}"
 124 T$="refusesilvergold{space*2}gems{space*2}jewels":Q$=CHR$(34)
 125 B$="red{space*3}yellowgreen blue"
-!-------------------------------------------------------------------------------
-!- DIM Arrays
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM DIM Arrays
+REM------------------------------------------------------------------------------
 126 MM=19:DIME$(MM),TC$(MM,3),S(5),SF(11),MI$(10),MA$(10),I(10),SP$(36)
 127 DIMB(4),BW(23),PW(7),CL(5),NT%(59),F(2),M%(20),L%(20),H%(20),Z$(9,2),OH%(5)
 128 DIMOK%(11)
-!-------------------------------------------------------------------------------
-!- Populate Selected Arrays
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Populate Selected Arrays
+REM------------------------------------------------------------------------------
 129 FORI=1TO36:READSP$(I):NEXT:FORI=0TO2:FORK=0TO9:READZ$(K,I):NEXTK,I
 130 FORI=0TO23:READBW(I):NEXT:CL(1)=1:CL(2)=5:CL(3)=12:CL(4)=2:CL(5)=0
 131 LC(1)=15:LC(2)=13:LC(3)=15:LC(4)=10:LC(5)=11
@@ -272,31 +272,31 @@
 138 MA$(6)="Ring Reg":MI$(7)="ring of protection":MA$(7)="Ring Prot"
 139 MI$(8)="scroll of rescue":MA$(8)="Scrl Resc":MI$(9)="potion of healing"
 140 MA$(9)="Pot Heal":MI$(10)="potion of strength":MA$(10)="Pot Strg"
-!-------------------------------------------------------------------------------
-!- INIT CHAR GRAPHIC CHANGES
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM INIT CHAR GRAPHIC CHANGES
+REM------------------------------------------------------------------------------
 141 FORI=0TO23:POKEWW+I,BW(I):NEXT
-!-------------------------------------------------------------------------------
-!- Initialize Remaining Arrays
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Initialize Remaining Arrays
+REM------------------------------------------------------------------------------
 142 FORI=0TO7:PW(I)=2^I
 143 NEXT:FORI=0TOMM:E$(I)="":FORJ=0TO3:TC$(I,J)="":NEXT:NEXT
 144 FORI=0TO4:B(I)=0:NEXT:FORI=0TO5:S(I)=0:NEXT:FORI=0TO11:SF(I)=0:NEXT
 145 FORI=0TO10:I(I)=0:NEXT:FORI=0TO59:NT%(I)=0:NEXT:FORI=0TO2:F(I)=0:NEXT
 146 FORI=0TO20:M%(I)=0:L%(I)=0:H%(I)=0:NEXT
-!-------------------------------------------------------------------------------
-!- SETUP SOUND
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM SETUP SOUND
+REM------------------------------------------------------------------------------
 147 F=54272:F1=F:F2=F+7:F3=F+14:FV=F+24:FT=40704:FC=40849:F4=F+4:F5=F+11
 148 F6=F+18:I=8098:R=61176/64814:FORK=59TO0STEP-1:NT%(K)=INT(I):I=I*R:NEXT
 149 POKEF+27,TH:FORQ=0TO24:POKEF+Q,0:NEXT
-!-------------------------------------------------------------------------------
-!- Initialize Sprites
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Initialize Sprites
+REM------------------------------------------------------------------------------
 150 POKE53274,0:POKESE,0:POKEM1,0:POKEM2,0:POKEXX,0:POKEXE,0:POKEYE,0:POKEMC,0
-!-------------------------------------------------------------------------------
-!- Title Screen
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Title Screen
+REM------------------------------------------------------------------------------
 151 PRINT"{clear}{white}"TAB(11)"Welcome to{down*3}":PRINT"{space*2}{reverse on}{cm +}{space*4}{cm m}{reverse off}"
 152 PRINT"{space*3}{reverse on}{cm +}{cm m}{reverse off}{space*4}{reverse on}{cm +}{cm m}{reverse off}"TAB(38)"{reverse on}{cm +}{cm m}{reverse off}";
 153 PRINT"{space*2}{reverse on}{cm +}{cm m}{cm +} {reverse off}{sh pound} {reverse on}{cm +}{cm m}{cm +} {reverse off}{sh pound} {reverse on}{cm +}{space*2}{reverse off}{sh pound} {reverse on}{cm +}{space*3}{cm m}{cm +}{space*3}{cm m}{reverse off} {reverse on}{cm +}{space*2}{reverse off}{sh pound}{reverse on}{cm +}{space*3}{cm m}{reverse off}"
@@ -307,9 +307,9 @@
 158 PRINT"{space*3}{reverse on}{cyan}R{white}{reverse off}ead in an old one";
 159 GOSUB880:GOSUB69:I=RND(-TI):POKEFZ,200:SY=1:IFC$="{cm +}"THEN159
 160 IFC$<>"r"THENPRINT:PRINT:PRINT"START":GOSUB65:GOTO181
-!-------------------------------------------------------------------------------
-!- Load Character
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Load Character
+REM------------------------------------------------------------------------------
 161 D$="":GOSUB12:IFD$=""THEN151
 162 NM$=D$:PRINT:NP$=NM$:IFLEFT$(NM$,2)="sv"THENNP$=MID$(NM$,3)
 163 OPEN2,8,15:OPEN1,8,3,"0:"+NP$+",s,r":INPUT#2,ER,ER$
@@ -330,9 +330,9 @@
 178 PRINT#2,"s0:";NP$:INPUT#2,ER,ER$
 179 IFER<>1THENPRINT"ERR=";ER;"{reverse on}";ER$:PRINT"%Can't delete character":GOTO166
 180 CLOSE2:GOSUB65:PRINT"{clear}";:SYSDC:GOSUB198:GOSUB843:GOTO201
-!-------------------------------------------------------------------------------
-!- Create Character
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Create Character
+REM------------------------------------------------------------------------------
 181 PRINT"{clear}<RET> to use stats"
 182 FORI=0TO5:Q=0:FORQ1=1TO3:Q=Q+INT(RND(1)*6+1):NEXTQ1:S(I)=Q
 183 PRINTMID$(S$,I*3+1,3);STR$(S(I));"{space*2}":NEXT
@@ -350,99 +350,99 @@
 195 PRINT"{down}You are now descending into the"
 196 PRINT"depths of the Telengard dungeon...":PRINT"{down*3}{reverse on}beware....{reverse off}";
 197 GOSUB65:GOSUB65:PRINT"{clear}";:SYSDC:L=1:GOSUB198:GOSUB4:GOTO206
-!-------------------------------------------------------------------------------
-!- Draw Entire Character Sheet
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Draw Entire Character Sheet
+REM------------------------------------------------------------------------------
 198 GOSUB77:GOSUB82:GOSUB83:GOSUB84:GOSUB85:GOSUB86:GOSUB87:GOSUB88
 199 GOSUB89:GOSUB90:GOSUB91:GOSUB93:GOSUB95:GOSUB96:GOSUB97:GOSUB98
 200 RETURN
-!-------------------------------------------------------------------------------
-!- Start Next Turn
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Start Next Turn
+REM------------------------------------------------------------------------------
 201 FORI=1TO11:SF(I)=SF(I)-1:NEXT:L=CZ:GOSUB8:GOSUB64:IFSY=1THENGOSUB4
-!- Set view to re-plot and apply ring of rengeneration
+REM Set view to re-plot and apply ring of rengeneration
 202 POKE709,CX:POKE710,CY:POKE713,CZ:SYSTL:LS=PEEK(765)
 203 SY=1:IFI(6)=0ORCH=HPTHEN206
 204 CH=CH+I(6):IFCH>HPTHENCH=HP
 205 GOSUB89
-!-------------------------------------------------------------------------------
-!- 30% Chance of Random Encounter
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM 30% Chance of Random Encounter
+REM------------------------------------------------------------------------------
 206 IFRND(1)>.3THEN300
-!-------------------------------------------------------------------------------
-!- If Invisible, 80% Chance of Going Unnoticed
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM If Invisible, 80% Chance of Going Unnoticed
+REM------------------------------------------------------------------------------
 207 IFSF(6)>0ANDRND(1)>.2THEN300
-!-------------------------------------------------------------------------------
-!- Generate Monster
-!-------------------------------------------------------------------------------
-!- No weak monsters if you have cast fear
+REM------------------------------------------------------------------------------
+REM Generate Monster
+REM------------------------------------------------------------------------------
+REM No weak monsters if you have cast fear
 208 AI=0:M=INT(RND(1)*20+1):IFSF(7)>0ANDM<5THEN208
-!- Generate monster level and undead flag
+REM Generate monster level and undead flag
 209 ML=INT((RND(1)^1.5)*(CZ*2+2)+1):GOSUB652:I=1:IFM>16THENI=1.5
-!- Roll to see if you sneak up on monsters if you have elven cloak
+REM Roll to see if you sneak up on monsters if you have elven cloak
 210 IFAI=1THEN212:IFINT((RND(1)*20+1)+ML*I)<=I(4)THEN665
-!- 80% chance monster will not be undead if "Light" is cast
+REM 80% chance monster will not be undead if "Light" is cast
 211 IFSF(3)>0ANDUN=1ANDRND(1)>.8THEN208
-!-------------------------------------------------------------------------------
-!- Begin Encounter
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Begin Encounter
+REM------------------------------------------------------------------------------
 212 SYSRA:POKESG,1:POKEGI,M:SYSDS:GOSUB106:GOSUB635
 213 PRINT"You have encountered a lvl"ML;M$
-!- Dwarves, specters, vampires, demons, and dragons are immune to "Time Stop" spell
+REM Dwarves, specters, vampires, demons, and dragons are immune to "Time Stop" spell
 214 IFSF(9)>0ANDM<16ANDM<>11THENGOSUB63:GOTO300
-!- Preserve current line number and reposition
+REM Preserve current line number and reposition
 215 I=PEEK(SP):POKESP,18:PRINT
-!- Print monster's level and reposition cursor
+REM Print monster's level and reposition cursor
 216 PRINTTAB(21)"{reverse on}Level"STR$(ML)" "M$:POKESP,I-1:PRINT
-!- Generate monster's hit points
+REM Generate monster's hit points
 217 POKESP,I-1:PRINT:MH=INT((RND(1)^.5)*ML*M+1):L=ML
-!- 5% chance the monster heals you, steals from you, or gives you something
+REM 5% chance the monster heals you, steals from you, or gives you something
 218 IFRND(1)>.95THENONINT(RND(1)*3+1)GOTO 221,224,231
-!- But if it's an elf . . .
+REM But if it's an elf . . .
 219 IFM<>9THEN223
-!- . . . then, there is a higher chance it heals you (based on your charisma)
+REM . . . then, there is a higher chance it heals you (based on your charisma)
 220 IFRND(1)>.04*S(5)THEN223
-!- Get healed by monster
+REM Get healed by monster
 221 PRINT"The "M$" likes your body.":PRINT"He heals you to full strength!":CH=HP
-!- Update game status and end encounter
+REM Update game status and end encounter
 222 GOSUB89:GOSUB65:GOSUB110:GOTO300
-!- If it's a hobbit there is a higher chance it steals from you (based on your charisma)
+REM If it's a hobbit there is a higher chance it steals from you (based on your charisma)
 223 IFM<>4OR(RND(1)-.2+ML/2000)<.0555*S(5)THEN230
 224 PRINT"The "M$" makes a quick move":GOSUB65
 225 FORI=1TO10:IFI(I)>0THEN227
 226 NEXT:PRINT"You have nothing he wants to steal!":GOTO222
 227 I=INT(RND(1)*10+1):IFI(I)<1THEN227
 228 PRINT"He steals ";:IFI<8THENPRINT"your "MI$(I):I(I)=0:GOTO222
-!- Update game status and end encounter
+REM Update game status and end encounter
 229 PRINT"a "MI$(I):I(I)=I(I)-1:GOTO222
-!- Only dragons give you items and very rarely at that!
+REM Only dragons give you items and very rarely at that!
 230 IFM<>20ORRND(1)*30>S(5)THEN237
-!- Generate item to give.  Give nothing if item bonus is already higher than monster's level
+REM Generate item to give.  Give nothing if item bonus is already higher than monster's level
 231 I=INT(RND(1)*7+1):IFI(I)>=MLTHEN237
-!- Generate item bonus between monster's level and existing bonus
+REM Generate item bonus between monster's level and existing bonus
 232 C=ML-I(I):C=INT(RND(1)*C+1):I(I)=I(I)+C
 233 PRINT"The "M$" likes you!":GOSUB63
 234 PRINT"He gives you a "MI$(I)" +"I(I):IFI>3THENGOSUB98:GOSUB63:GOTO236
 235 ONIGOSUB 95,96,97:GOSUB380
-!- Update game status and end encoutner
+REM Update game status and end encoutner
 236 GOSUB110:GOTO300
-!-------------------------------------------------------------------------------
-!- Battle
-!-------------------------------------------------------------------------------
-!- Roll initiative
+REM------------------------------------------------------------------------------
+REM Battle
+REM------------------------------------------------------------------------------
+REM Roll initiative
 237 IFRND(1)>.5+S(4)*.02THEN253
-!-------------------------------------------------------------------------------
-!- - Player's Turn
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Player's Turn
+REM------------------------------------------------------------------------------
 238 PRINT"{reverse on}{cyan}F{white}{reverse off}ight, {reverse on}{cyan}C{white}{reverse off}ast, or {reverse on}{cyan}E{white}{reverse off}vade:";:GOSUB68
 239 IFC$="{cm +}"THENPRINT"wait"
 240 FORI=1TO7:IFMID$("fce{f3}{f5}{f7}{cm +}",I,1)=C$THEN242
 241 NEXT:PRINT:PRINT"The "M$" is not amused":GOSUB63:GOTO238
 242 ONIGOTO 243,283,284,243,283,284,253
-!-------------------------------------------------------------------------------
-!- - Player's Turn - Fight
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Player's Turn - Fight
+REM------------------------------------------------------------------------------
 243 I=INT(RND(1)*20)+LV+I(1)+S(0)/2:PRINT"Fight!"
 244 IFSF(1)>0THENI=I+4
 245 IFI<10THENPRINT"You missed...":GOTO253
@@ -453,9 +453,9 @@
 250 E=ML*M*10:EX=EX+E:GOSUB65
 251 GOSUB110:PRINT"You gain"E"experience points":GOSUB91:GOSUB623
 252 GOSUB63:GOTO298
-!-------------------------------------------------------------------------------
-!- - Monster's Turn - Initialize values
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Monster's Turn - Initialize values
+REM------------------------------------------------------------------------------
 253 DB=1:PA=0:DR=0:MB=0
 254 IFM=13THENDR=.1:GOTO260
 255 IFM=17THENDR=.2:GOTO260
@@ -463,18 +463,18 @@
 257 IFM=10THENPA=.5
 258 IFM=19THEN271
 259 IFM=20THEN273
-!-------------------------------------------------------------------------------
-!- - Monster's Turn - Attack
-!-------------------------------------------------------------------------------
-!- Roll to-hit against player
+REM------------------------------------------------------------------------------
+REM - Monster's Turn - Attack
+REM------------------------------------------------------------------------------
+REM Roll to-hit against player
 260 I=INT(RND(1)*20)+ML-I(2)-I(3)+MB
-!- Protection from Evil grants -6 on to-hit rolls by Specters, Vampires, and Demons
+REM Protection from Evil grants -6 on to-hit rolls by Specters, Vampires, and Demons
 261 IFM>16ANDM<20ANDSF(4)>0THENI=I-6
-!- Monster misses; End turn
+REM Monster misses; End turn
 262 IFI<10THENPRINT"It missed...":GOSUB63:GOTO238
-!- Roll damage against player
+REM Roll damage against player
 263 I=INT((RND(1)*8+RND(1)*ML*2+1)*DB):PRINT"It does"I"points damage."
-!- Apply damage to character
+REM Apply damage to character
 264 CH=CH-I:GOSUB89:IFCH<1THEN600
 265 GOSUB65:IFRND(1)>DRORSF(4)>0THEN269
 266 GOSUB64:PRINT"It drains a level!!!":EX=INT(EX/2)
@@ -482,12 +482,12 @@
 268 GOSUB623:GOSUB63:GOTO238
 269 IFRND(1)>PATHENGOSUB63:GOTO238
 270 GOSUB64:PRINT"You're paralyzed!!!!":GOSUB63:GOTO253
-!- The demon attacks
+REM The demon attacks
 271 GOSUB63:IFRND(1)>.6THENPRINT"It uses it's sword!!!":MB=4:DB=3:GOTO260
 272 PRINT"It uses it's whip!!":MB=2:DB=2:GOTO260
-!- The dragon attacks!  But does he breath fire?
+REM The dragon attacks!  But does he breath fire?
 273 IFRND(1)>.3THENMB=5:DB=2:GOTO260
-!- He does!
+REM He does!
 274 PRINT"The dragon breaths fire!!!":GOSUB108:POKEF1+1,20:POKEF2+1,30
 275 POKEF+E,196:POKEF+12,196:POKEF+19,196:POKEF3+1,37:POKEF4,129:POKEF5,129
 276 POKEF6,129:POKESG,5:POKEGI,3:SYSDS
@@ -497,18 +497,18 @@
 280 IFRND(1)<.05*S(3)THEN282
 281 PRINT"You partially dodge it.":I=INT(I/2+.5)
 282 PRINT"You burn for"I"points damage.":GOSUB65:POKEC9+7,11:GOTO264
-!-------------------------------------------------------------------------------
-!- - Player's Turn - Cast
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Player's Turn - Cast
+REM------------------------------------------------------------------------------
 283 D=1:GOTO669
-!-------------------------------------------------------------------------------
-!- - Player's Turn - Evade
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Player's Turn - Evade
+REM------------------------------------------------------------------------------
 284 Q=INT(RND(1)*18+1):PRINT"Evade"
 285 IFQ<S(4)+I(5)THEN287
 286 PRINT"You're rooted to the spot!":GOSUB63:GOSUB106:GOTO253
 287 IFSF(8)>0THENC=FNR(4):GOTO297
-!- Choose random direction to run
+REM Choose random direction to run
 288 ONFNR(4)GOTO 289,290,291,292
 289 C=1:IFFNUP(L%)<3THEN297
 290 C=2:IFFNUP(P21)<3THEN297
@@ -518,24 +518,24 @@
 294 C=2:IFFNUP(P21)<3THEN297
 295 C=3:IFFNLF(L%)<3THEN297
 296 GOTO286
-!-------------------------------------------------------------------------------
-!- - End Encounter and Run
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - End Encounter and Run
+REM------------------------------------------------------------------------------
 297 GOSUB110:GOSUB64:GOTO533
-!-------------------------------------------------------------------------------
-!- Treasure
-!-------------------------------------------------------------------------------
-!- check for treasure dropped by monster (50% chance)
+REM------------------------------------------------------------------------------
+REM Treasure
+REM------------------------------------------------------------------------------
+REM check for treasure dropped by monster (50% chance)
 298 IFRND(1)>.5THEN302
 299 GOTO344
-!- Clear non-player sprites and check for treasure not dropped by monster (20% chance)
+REM Clear non-player sprites and check for treasure not dropped by monster (20% chance)
 300 POKESE,TE:IFPEEK(765)=1THEN344
 301 IFRND(1)>.2THEN344
-!- 15% chance that treasure is trapped
+REM 15% chance that treasure is trapped
 302 T=0:IFRND(1)>.85THENT=1
-!- Reposition cursor; 30% chance of refuse,silver,gold,gems, or jewels
+REM Reposition cursor; 30% chance of refuse,silver,gold,gems, or jewels
 303 GOSUB106:C=0:IFRND(1)>.7THEN316
-!- Show Treasure
+REM Show Treasure
 304 TJ=INT(RND(1)*5):GOSUB850:PRINT"You see some ";
 305 PRINTMID$(T$,TJ*6+1,6):PRINT"<RET> to pick up:";
 306 IFT=1THENIFSF(2)>0ANDRND(1)>.1THENPRINT:PRINT"You detect traps!";
@@ -546,13 +546,13 @@
 311 PRINT"It's trapped!":PRINT"You suffer"Q"points of damage."
 312 CH=CH-Q:GOSUB89:IFCH<1THENGOSUB65:GOTO600
 313 POKESE,TE:J=INT(RND(1)*TJ*L*200+1):PRINT"It's worth"J"gold!"
-!- Update gold in character sheet; 20% chance of an item
+REM Update gold in character sheet; 20% chance of an item
 314 GD=GD+J:IFTJ=0ANDRND(1)>.8THENGOSUB93:GOSUB64:GOTO329
-!- Update character sheet and get no more treasure
+REM Update character sheet and get no more treasure
 315 GOSUB93:GOTO342
-!- 50% chance of Treasure Chest
+REM 50% chance of Treasure Chest
 316 IFRND(1)>.5THEN329
-!- Show Treasure Chest
+REM Show Treasure Chest
 317 POKESG,2:POKEGI,6:SYSDS
 318 PRINT"You have found a treasure chest!!"
 319 PRINT"<RET> to open it:";
@@ -563,12 +563,12 @@
 324 PRINT"You suffer"I"points of damage.":GOSUB89:IFCH<1THEN600
 325 GOSUB63:I=INT(RND(1)*1000*L^2+1)
 326 IFRND(1)>.9THENPRINT"Inside, there is only cobwebs...":GOTO342
-!- Assign Gold; Update Character Sheet; 50% chance of an item
+REM Assign Gold; Update Character Sheet; 50% chance of an item
 327 PRINT"Inside is"I"gold pieces!":GD=GD+I:GOSUB93:IFRND(1)>.5THEN342
 328 C=1:GOSUB63
-!- Calculate item found
+REM Calculate item found
 329 I=INT(RND(1)*10+1):PRINT"You see a ";
-!- Calculate item bonus
+REM Calculate item bonus
 330 J=INT((RND(1)+1)^.82*(L+1)):IFI>7THENPRINTMI$(I):GOTO332
 331 PRINTMI$(I)" +"J
 332 PRINT"<RET> to pick it up:";:GOSUB68:IFC$=CHR$(13)THEN334
@@ -581,14 +581,14 @@
 339 IFI>3THENGOSUB98:GOTO341
 340 ONIGOSUB 95,96,97
 341 IFC=1ANDRND(1)>.5THENGOSUB63:GOTO329
-!- Disable all sprites but player sprite and clear text
+REM Disable all sprites but player sprite and clear text
 342 POKESE,TE:GOSUB63
-!- 50% chance that monsters move one step closer
+REM 50% chance that monsters move one step closer
 343 IFRND(1)>.5THENGOSUB839:IFM<>0THEN212
-!-------------------------------------------------------------------------------
-!- Room Features
-!-------------------------------------------------------------------------------
-!- Calculate Room Features
+REM------------------------------------------------------------------------------
+REM Room Features
+REM------------------------------------------------------------------------------
+REM Calculate Room Features
 344 POKE711,CX:POKE712,CY:POKE713,CZ-1:SYSCR:H%=PEEK(715)*TF+PEEK(714)
 345 J=FNS(H%):I=FNS(L%):IFCZ=1THENJ=0
 346 IFI>9THENI=I-9:GOTO346
@@ -596,18 +596,18 @@
 348 IFCZ=VBANDI=4THENI=0
 349 IFI=0ANDJ<>4THEN527
 350 IFJ=4THEN408
-!-------------------------------------------------------------------------------
-!- Jump to Specific Room Feature Routines
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Jump to Specific Room Feature Routines
+REM------------------------------------------------------------------------------
 351 ONIGOTO 352,377,389,408,421,438,464,477,508
-!-------------------------------------------------------------------------------
-!- Room Feature: Inn (Level 1); Elevator (All Other Levels)
-!-------------------------------------------------------------------------------
-!- If not level 1, then elevator
+REM------------------------------------------------------------------------------
+REM Room Feature: Inn (Level 1); Elevator (All Other Levels)
+REM------------------------------------------------------------------------------
+REM If not level 1, then elevator
 352 IFCZ<>1THEN372
-!- Display stairs dialogue
+REM Display stairs dialogue
 353 J=4:GOTO408
-!- Come back if player goes up
+REM Come back if player goes up
 354 I1$=Z$(FNRD(CX*CY),0):I2$=Z$(FNRD(CX+CY),1):I3$=Z$(FNRD(CX*3+CY*7),2)
 355 I1=INT(4-LEN(I1$)/2)+1:I2=INT(4-LEN(I2$)/2)+2:I3=INT(4-LEN(I3$)/2)+1
 356 GOSUB64:SYSDV:SYSDC:SYSDP:SYSDI:POKESG,3:POKEGI,8:SYSDS:POKEBD,0
@@ -626,16 +626,16 @@
 369 AN=0:IFC$="{f1}"THENPRINT:SYSDV:POKESE,0:GOTO544
 370 IFC$<>CHR$(13)THENPRINT"???":GOSUB63:GOTO366
 371 PRINT"Reenter":POKESG,5:POKEGI,1:SYSDS:SYSDV:GOSUB63:CZ=1:GOTO201
-!- Display Elevator
+REM Display Elevator
 372 POKESG,3:POKEGI,3:SYSDS
 373 GOSUB106:PRINT"You feel heavy for a moment."
-!- Animate Elevator
+REM Animate Elevator
 374 GOSUB108:POKEF4,33:FORI=0TO40:POKECP+5,PEEK(CP+5)-1:POKECP+3,PEEK(CP+3)-1
 375 FORJ=11TO15STEP2:POKECP+J,PEEK(CP+J)-1:NEXT:POKEF1+1,I:NEXT:GOSUB107
 376 CZ=CZ-1:SYSDV:GOTO201
-!-------------------------------------------------------------------------------
-!- Room Feature: Pit (All but Lowest Level); Redirect to Elevator (Lowest Level)
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Room Feature: Pit (All but Lowest Level); Redirect to Elevator (Lowest Level)
+REM------------------------------------------------------------------------------
 377 IFCZ=VBTHEN372
 378 POKESG,3:POKEGI,9:SYSDS
 379 GOSUB106:PRINT"You see a pit."
@@ -648,9 +648,9 @@
 386 CZ=CZ+1:GOSUB108:POKESB,TH:POKEF4,17
 387 FORI=25TO0STEP-1:FORJ=11TO15STEP2:POKECP+J,PEEK(CP+J)+1:NEXT
 388 POKEF1+1,I*10:FORJ=1TO10:NEXT:NEXT:GOSUB107:SYSDV:GOTO201
-!-------------------------------------------------------------------------------
-!- Room Feature: Teleport
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Room Feature: Teleport
+REM------------------------------------------------------------------------------
 389 GOSUB106
 390 PRINT"ZZAP!! You've been teleported...":GOSUB109
 391 IF((CX+CY)AND1)=0THENCZ=CZ-1:IF((CX+CY)AND2)=2THENCZ=CZ+2
@@ -670,9 +670,9 @@
 405 Q2=Q2+1:POKEWW+J,BW(J)AND(RND(1)*PW(I))
 406 POKEQ,TH-Q2:NEXT:NEXT:NEXT:GOSUB107
 407 FORJ=0TO23:POKEWW+J,BW(J):NEXT:SY=0:GOTO201
-!-------------------------------------------------------------------------------
-!- Room Feature: Stairway
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Room Feature: Stairway
+REM------------------------------------------------------------------------------
 408 POKESG,3:POKEGI,5:SYSDS
 409 GOSUB64:PRINT"You have found a stairway."
 410 IFJ=4ANDCZ=1THENPRINT"You see {yellow}light{white} above."
@@ -686,9 +686,9 @@
 418 IFC$="d"ORC$="1"THENPRINT"DOWN":CZ=CZ+1:GOTO201
 419 IFC$="s"ORC$="5"THENGOSUB64:GOTO527
 420 PRINT"???":GOTO409
-!-------------------------------------------------------------------------------
-!- Room Feature: Altar
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Room Feature: Altar
+REM------------------------------------------------------------------------------
 421 POKESG,3:POKEGI,1:SYSDS:SYSSA:GOSUB64
 422 PRINT"You have found a holy altar.":PRINT"<RET> to worship";:GOSUB68
 423 IFC$=CHR$(13)THEN428
@@ -706,9 +706,9 @@
 435 I=INT(RND(1)*7+1):IFSF(I)<0THENSF(I)=0
 436 SF(I)=SF(I)+INT(RND(1)*100*C/(GD+C)+1)
 437 PRINT"You've been heard.":GOSUB63:GOTO527
-!-------------------------------------------------------------------------------
-!- Room Feature: Fountain
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Room Feature: Fountain
+REM------------------------------------------------------------------------------
 438 C=INT(RND(1)*5+1):POKESG,3:POKEGI,4:SYSDS:POKEM1,CL(C)
 439 POKESG,5:POKEGI,2:SYSDS:POKEC9,LC(C):AN=5:AR=8:AC=0
 440 GOSUB64:PRINT"You have found a fountain"
@@ -735,9 +735,9 @@
 461 PRINT"You feel refreshed!":GOSUB63:PRINT"Actually, you're drunk!!"
 462 IFSF(11)<0THENSF(11)=0
 463 SF(11)=SF(11)+INT(RND(1)*16+1):GOSUB4:GOSUB64:GOTO527
-!-------------------------------------------------------------------------------
-!- Room Feature: Gray Misty Cube
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Room Feature: Gray Misty Cube
+REM------------------------------------------------------------------------------
 464 POKESG,3:POKEGI,6:SYSDS:AN=1:AR=15
 465 GOSUB64:PRINT"You see a large gray misty cube."
 466 PRINT"<RET> to walk in:";:GOSUB68:AN=0:IFCHR$(13)<>C$THEN527
@@ -751,9 +751,9 @@
 474 GOSUB108:POKEF4,17:FORQQ=1TO4:POKEF1,29:POKEF1+1,21:GOSUB112
 475 POKEF1,92:POKEF1+1,22:GOSUB112:POKEF1,29:POKEF1+1,21:GOSUB112
 476 POKEF1,204:POKEF1+1,18:GOSUB112:NEXT:GOSUB107:GOTO201
-!-------------------------------------------------------------------------------
-!- Room Feature: Throne
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Room Feature: Throne
+REM------------------------------------------------------------------------------
 477 POKESG,3:POKEGI,7:SYSDS:AN=3:AR=10:AC=1
 478 GOSUB64:PRINT"You see a jewel encrusted throne."
 479 PRINT"Do you want to {reverse on}{cyan}P{white}{reverse off}ry some jewels,"
@@ -785,9 +785,9 @@
 505 M=INT(RND(1)*20+1):GOSUB635
 506 PRINT"The "M$" king returns!!":GOSUB63:GOSUB652
 507 PRINT"{space*3}";:ML=INT(RND(1)*CZ*5)+5:GOTO213
-!-------------------------------------------------------------------------------
-!- Room Feature: Small Box with Four Colored Lights
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Room Feature: Small Box with Four Colored Lights
+REM------------------------------------------------------------------------------
 508 AN=2:AR=4:AC=0:POKESG,3:POKEGI,2:SYSDS
 509 GOSUB64:GOSUB108:PRINT"You see a small box with four colored":POKEF4,17
 510 PRINT"lights. {reverse on}{cyan}P{white}{reverse off}ush buttons or {reverse on}{cyan}I{white}{reverse off}gnore:";:GOSUB68:AN=0:GOSUB107
@@ -807,50 +807,50 @@
 524 GOSUB63:PRINT"You suffer"I"points of damage!":CH=CH-I:GOSUB89
 525 IFCH<1THEN600
 526 GOSUB63
-!-------------------------------------------------------------------------------
-!- Command Prompt
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Command Prompt
+REM------------------------------------------------------------------------------
 527 AN=0:M=0:GOSUB106:GOSUB64:PRINT"->";:GOSUB68:IFC$="{cm +}"THENC$="s"
 528 FORC=1TO22:IFMID$(CM$,C,1)=C$THEN531
 529 NEXT
 530 PRINT"{left*2}NO";:FORI=1TO200:NEXT:GOTO527
 531 IFC>9THENC=C-9
-!-------------------------------------------------------------------------------
-!- Confusion Command Override
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Confusion Command Override
+REM------------------------------------------------------------------------------
 532 IFSF(11)>0ANDC<6THENPRINT"You're confused ->";:C=FNR(5)
-!-------------------------------------------------------------------------------
-!- User Commands
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM User Commands
+REM------------------------------------------------------------------------------
 533 ONCGOTO 534,536,538,540,542,565,562,584,599,544,586,592,595
-!-------------------------------------------------------------------------------
-!- - Go North
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Go North
+REM------------------------------------------------------------------------------
 534 IFFNUP(L%)>2ANDSF(8)<1ORCY=1THEN530
 535 PRINT"NORTH";:CY=CY-1:GOSUB846:GOTO201
-!-------------------------------------------------------------------------------
-!- - Go South
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Go South
+REM------------------------------------------------------------------------------
 536 IFFNUP(P21)>2ANDSF(8)<1ORCY=200THEN530
 537 PRINT"SOUTH";:CY=CY+1:GOSUB846:GOTO201
-!-------------------------------------------------------------------------------
-!- - Go West
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Go West
+REM------------------------------------------------------------------------------
 538 IFFNLF(L%)>2ANDSF(8)<1ORCX=1THEN530
 539 PRINT"WEST";:CX=CX-1:GOSUB846:GOTO201
-!-------------------------------------------------------------------------------
-!- - Go East
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Go East
+REM------------------------------------------------------------------------------
 540 IFFNLF(P12)>2ANDSF(8)<1ORCX=200THEN530
 541 PRINT"EAST";:CX=CX+1:GOSUB846:GOTO201
-!-------------------------------------------------------------------------------
-!- - Stay
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Stay
+REM------------------------------------------------------------------------------
 542 PRINT"STAY":GOSUB839:IFM<>0THEN212
 543 SY=0:GOTO201
-!-------------------------------------------------------------------------------
-!- - Save Character
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Save Character
+REM------------------------------------------------------------------------------
 544 PRINT"Store ";NP$:IFNM$<>"Demo"THEN546
 545 PRINT:PRINT"%Cannot store demonstration character!":GOTO560
 546 POKESE,0:OPEN2,8,15,"i0":INPUT#2,ER,ER$,ET,ES:IFERTHEN549
@@ -869,15 +869,15 @@
 559 CLOSE1:CLOSE2:PRINTNP$" stored":GOTO140
 560 GOSUB63:IFCZ=0THENGOTO366
 561 GOTO527
-!-------------------------------------------------------------------------------
-!- - Quit Game
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Quit Game
+REM------------------------------------------------------------------------------
 562 PRINT"QUIT":PRINT"Are you sure?";:GOSUB68
 563 IFC$<>"y"ANDC$<>"9"THENPRINT"NO":GOSUB63:GOTO527
 564 PRINT"Yes":PRINT"Good bye, cruel world!!":GOSUB65:GOTO600
-!-------------------------------------------------------------------------------
-!- - Print Help
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Print Help
+REM------------------------------------------------------------------------------
 565 SYSDV:POKESE,0:PRINT"{home}Commands are:{down}"
 566 PRINT"{space*6}North"
 567 PRINT"{blue}{space*7}{cm b}{sh asterisk}{cm asterisk}"
@@ -897,40 +897,40 @@
 581 PRINT"{light green}{reverse on}H{reverse off}{white}elp  {light green}{reverse on}R/S{reverse off}{white}=Pause"
 582 GOSUB64:PRINT"Hit any key to continue...";:GOSUB68:GOSUB64:SYSDV
 583 GOSUB4:GOTO527
-!-------------------------------------------------------------------------------
-!- - Re-Plot Screen
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Re-Plot Screen
+REM------------------------------------------------------------------------------
 584 PRINT"Re-Plot":GOSUB65:PRINT"{clear}";:SYSDC:GOSUB198:GOSUB4
 585 GOSUB843:GOTO527
-!-------------------------------------------------------------------------------
-!- - Use Scroll of Rescue
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Use Scroll of Rescue
+REM------------------------------------------------------------------------------
 586 PRINT"Use scroll of rescue"
 587 IFI(8)<1THEN590
 588 I(8)=I(8)-1:CX=25:CY=13:CZ=1:PRINT"***ZAP!!***":GOSUB65:GOSUB109
 589 GD=0:GOSUB93:GOTO201
 590 PRINT"You don't have one!!"
 591 GOSUB63:GOTO527
-!-------------------------------------------------------------------------------
-!- - Drink Potion of Healing
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Drink Potion of Healing
+REM------------------------------------------------------------------------------
 592 PRINT"Drink healing potion":IFI(9)<1THEN590
 593 I(9)=I(9)-1:CH=CH+FNR(20):IFCH>HPTHENCH=HP
 594 PRINT"You feel better!"::GOSUB98:GOSUB89:GOTO591
-!-------------------------------------------------------------------------------
-!- - Drink Potion of Strength
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Drink Potion of Strength
+REM------------------------------------------------------------------------------
 595 PRINT"Drink strength potion":IFI(10)<1THEN590
 596 IFSF(1)<0THENSF(1)=0
 597 SF(1)=SF(1)+10+INT(RND(1)*20):PRINT"Strength flows through your body!"
 598 I(10)=I(10)-1:GOSUB83:GOTO591
-!-------------------------------------------------------------------------------
-!- - Cast Spell
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast Spell
+REM------------------------------------------------------------------------------
 599 D=0:GOTO669
-!-------------------------------------------------------------------------------
-!- - Character Death
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Character Death
+REM------------------------------------------------------------------------------
 600 POKESE,0:GOSUB64:PRINT"You died!!":GOSUB63:IFSF(10)>0THEN820
 601 PRINT"{clear}{down*5}Another ";:IFLV<4THENPRINT"not so ";
 602 PRINT"mighty adventurer":PRINT"bites the dust{down*4}"
@@ -940,9 +940,9 @@
 606 IFC$="{cm +}"THEN605
 607 PRINT"Yes":GOTO140
 608 PRINT"No":PRINT"{down*2}So long.....":GOTO849
-!-------------------------------------------------------------------------------
-!- Enter Character Name
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Enter Character Name
+REM------------------------------------------------------------------------------
 609 D$="":NL=16
 610 PRINT"{reverse on} {reverse off}";
 611 GETC$:IFC$=""THEN611
@@ -957,9 +957,9 @@
 620 IF(C$>"{cm k}"ANDC$<"{sh +}")THEN622
 621 IFC$<>" "THEN610
 622 D$=D$+C$:PRINTC$;:GOTO610
-!-------------------------------------------------------------------------------
-!- Update Character Level
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Update Character Level
+REM------------------------------------------------------------------------------
 623 IFEX<1000*2^LVTHEN628
 624 GOSUB64:PRINT"You went up a level!";:LV=LV+1:J=INT(RND(1)*S(3)+1)
 625 I=1:GOSUB874:CH=CH+J:HP=HP+J:IFEX>1000*2^LVTHENEX=1000*2^LV-1
@@ -972,49 +972,49 @@
 632 GOSUB82:GOSUB89:GOSUB90:GOSUB91:GOSUB63:PRINT"you lose"J"hit points!"
 633 IFCH>0ANDLV>0THENRETURN
 634 GOSUB65:GOTO600
-!-------------------------------------------------------------------------------
-!- Generate Monster Name
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Generate Monster Name
+REM------------------------------------------------------------------------------
 635 M$=MID$(MO$,M*8-7,8)
-!-------------------------------------------------------------------------------
-!- Remove Trailing Space from Monster Name
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Remove Trailing Space from Monster Name
+REM------------------------------------------------------------------------------
 636 IFRIGHT$(M$,1)=" "THENM$=LEFT$(M$,LEN(M$)-1):GOTO636
 637 RETURN
-!-------------------------------------------------------------------------------
-!- Generate New Combination for Box
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Generate New Combination for Box
+REM------------------------------------------------------------------------------
 638 FORQ=1TO4:B(Q)=INT(RND(1)*4+1):NEXTQ:RETURN
-!-------------------------------------------------------------------------------
-!- Do Damage to Character
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Do Damage to Character
+REM------------------------------------------------------------------------------
 639 D=INT(RND(1)*L*6+1):PRINT"You suffer"D"points of damage!":CH=CH-D
 640 IFCH>0THENGOSUB89:RETURN
 641 PRINT"Your life has been terminated!":GOSUB89:GOSUB63:GOTO600
-!-------------------------------------------------------------------------------
-!- Modify Character Experience Points
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Modify Character Experience Points
+REM------------------------------------------------------------------------------
 642 I=INT(RND(1)*500*CZ+1):PRINT"You just ";
 643 IFRND(1)>.5THENPRINT"lost";:I=-I:GOTO645
 644 PRINT"gained";
 645 PRINTABS(I);"experience points!":EX=EX+I:GOSUB623:RETURN
-!-------------------------------------------------------------------------------
-!- Modify Character Stats
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Modify Character Stats
+REM------------------------------------------------------------------------------
 646 I=INT(RND(1)*6):IFRND(1)>.5THEN649
 647 IFS(I)=18THEN646
 648 PRINT"Your ";MID$(S$,I*3+1,3);" goes up";:S(I)=S(I)+1:GOTO651
 649 IFS(I)=3THEN646
 650 PRINT"Your ";MID$(S$,I*3+1,3);" goes down";:S(I)=S(I)-1
 651 PRINT" by 1!":ONIGOSUB 83,84,85,86,87,88:GOSUB390:RETURN
-!-------------------------------------------------------------------------------
-!- Decide if Monster is Undead
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Decide if Monster is Undead
+REM------------------------------------------------------------------------------
 652 UN=0:IFM=3ORM=5ORM=8ORM=10ORM=13ORM=17ORM=18THENUN=1
 653 RETURN
-!-------------------------------------------------------------------------------
-!- Get Coordinates
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Get Coordinates
+REM------------------------------------------------------------------------------
 654 D$=""
 655 GOSUB68:IFC$<>CHR$(20)THEN659
 656 IFD$=""THEN655
@@ -1026,16 +1026,16 @@
 662 IFC$="-"ANDD$=""THEN664
 663 IFC$<"0"ORC$>"9"THEN655
 664 PRINTC$;:D$=D$+C$:GOTO655
-!-------------------------------------------------------------------------------
-!- - Elven Cloak Encounter Handler
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Elven Cloak Encounter Handler
+REM------------------------------------------------------------------------------
 665 GOSUB106:POKESE,TE:PRINT"You have not been noticed...":POKESC+331,63
 666 PRINT"<RET> to approach:";:GOSUB68
 667 POKESC+331,32:IFC$=CHR$(13)THENGOSUB64:GOTO211
 668 GOSUB64:GOTO300
-!-------------------------------------------------------------------------------
-!- Cast Spell
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Cast Spell
+REM------------------------------------------------------------------------------
 669 PRINT"CAST":PRINT"Spell level:";:GOSUB68:C=VAL(C$):PRINTC$
 670 IFC>0ANDC<=INT(LV/3)+1ANDC<7THEN673
 671 IFC=0THEN690
@@ -1061,18 +1061,18 @@
 691 GOTO527
 692 GOSUB63:GOSUB110:GOTO300
 693 PRINT"Undead are already dead!!":GOTO688
-!-------------------------------------------------------------------------------
-!- Level 1 Spells
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Level 1 Spells
+REM------------------------------------------------------------------------------
 694 ONSGOTO 695,697,704,707,710,716
-!-------------------------------------------------------------------------------
-!- - Cast "Magic Missile"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Magic Missile"
+REM------------------------------------------------------------------------------
 695 PRINTSP$(1):GOSUB63:IFD=0THEN687
 696 POKEBK,2:GOSUB112:POKEBK,0:I=INT(RND(1)*8+5):GOTO684
-!-------------------------------------------------------------------------------
-!- - Cast "Sleep"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Sleep"
+REM------------------------------------------------------------------------------
 697 PRINTSP$(2):GOSUB63:IFD=0THEN687
 698 IFUN=1THENPRINT"Undead don't sleep!":GOTO253
 699 IFINT(RND(1)*20+1)>S(1)THENPRINT"The "M$" isn't sleepy!":GOTO253
@@ -1080,121 +1080,121 @@
 701 IFC$<>CHR$(13)THENGOSUB64:GOTO287
 702 IFRND(1)>.2THEN249
 703 PRINT"It woke up!!":GOSUB65:GOTO253
-!-------------------------------------------------------------------------------
-!- - Cast "Cure Light Wounds"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Cure Light Wounds"
+REM------------------------------------------------------------------------------
 704 PRINTSP$(3):I=INT(RND(1)*8+1):PRINT"You feel better!":CH=CH+I
 705 IFCH>HPTHENCH=HP
 706 GOSUB89:GOTO688
-!-------------------------------------------------------------------------------
-!- - Cast "Light"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Light"
+REM------------------------------------------------------------------------------
 707 S=4:T=3:U=11:POKE709,CX:POKE710,CY:POKE713,CZ:SYSCR:SYSRL
-!-------------------------------------------------------------------------------
-!- Exit Point for Duration-Based Spells
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Exit Point for Duration-Based Spells
+REM------------------------------------------------------------------------------
 708 PRINTSP$(S):IFSF(T)<0THENSF(T)=0
 709 SF(T)=SF(T)+INT(RND(1)*U+5):GOSUB8:GOTO688
-!-------------------------------------------------------------------------------
-!- - Cast "Turn Undead"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Turn Undead"
+REM------------------------------------------------------------------------------
 710 PRINTSP$(5):GOSUB63:IFD=0THEN687
 711 IFUN=1THEN713
 712 PRINT"The "M$" is insulted":PRINT"at being called undead!":GOTO688
 713 IFRND(1)<.05*S(2)+.05*LV-.05*MLTHEN715
 714 PRINT"The "M$" listens with deaf ears.":GOTO688
 715 ML=INT((ML/2)+.5):PRINT"It runs in fear!!":GOTO250
-!-------------------------------------------------------------------------------
-!- - Cast "Prot/Evil"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Prot/Evil"
+REM------------------------------------------------------------------------------
 716 S=6:T=4:U=11:GOTO708
-!-------------------------------------------------------------------------------
-!- Level 2 Spells
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Level 2 Spells
+REM------------------------------------------------------------------------------
 717 ONSGOTO 718,725,726,728,729,734
-!-------------------------------------------------------------------------------
-!- - Cast "Web"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Web"
+REM------------------------------------------------------------------------------
 718 PRINTSP$(7):GOSUB64:IFD=0THEN687
 719 IFINT(RND(1)^2*20+ML)>S(1)THENPRINT"The "M$" dodges aside!":GOTO253
-!- Display web sprite
+REM Display web sprite
 720 POKESG,4:POKEGI,4:SYSDS
 721 PRINT"The "M$" is webbed!":PRINT"Press <RET> to kill:";:GOSUB68
 722 IFC$<>CHR$(13)THENGOSUB64:GOTO287
 723 IFRND(1)-ML/20>.2THEN249
 724 PRINT"It broke free!!":POKESE,254:GOSUB65:GOTO253
-!-------------------------------------------------------------------------------
-!- - Cast "Levitate"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Levitate"
+REM------------------------------------------------------------------------------
 725 S=8:T=5:U=21:GOTO708
-!-------------------------------------------------------------------------------
-!- - Cast "Cause Light Wnds"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Cause Light Wnds"
+REM------------------------------------------------------------------------------
 726 PRINTSP$(9):GOSUB63:IFD=0THEN687
 727 I=INT(RND(1)*12+3):GOTO684
-!-------------------------------------------------------------------------------
-!- - Cast "Detect Traps"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Detect Traps"
+REM------------------------------------------------------------------------------
 728 S=10:T=2:U=21:GOTO708
-!-------------------------------------------------------------------------------
-!- - Cast "Charm"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Charm"
+REM------------------------------------------------------------------------------
 729 PRINTSP$(11):GOSUB64:IFD=0THEN687
 730 IFUN=1THENPRINT"The undead ignore your wiles!":GOTO253
 731 IFINT((RND(1)^2)*20+1)>S(5)THENPRINT"The "M$" resists you!":GOTO253
 732 PRINT"The "M$" is charmed!":PRINT"Press <RET> to kill:";:GOSUB68
 733 GOTO722
-!-------------------------------------------------------------------------------
-!- - Cast "Strength"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Strength"
+REM------------------------------------------------------------------------------
 734 S=12:T=1:U=21:GOTO708
-!-------------------------------------------------------------------------------
-!- Level 3 Spells
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Level 3 Spells
+REM------------------------------------------------------------------------------
 735 ONSGOTO 736,739,742,743,744,750
-!-------------------------------------------------------------------------------
-!- - Cast "Lightning Bolt"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Lightning Bolt"
+REM------------------------------------------------------------------------------
 736 PRINTSP$(13):GOSUB64:PRINT"ZZZZAAAAPP!!!":IFD=0THEN687
 737 POKEBK,1:GOSUB108:POKEF4,129:FORQ=1TO55:POKEF1+1,Q:NEXT:GOSUB107
 738 POKEBK,0:GOSUB65:I=INT(RND(1)*6*LV+15):GOTO684
-!-------------------------------------------------------------------------------
-!- - Cast "Cure Serious Wnds"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Cure Serious Wnds"
+REM------------------------------------------------------------------------------
 739 PRINTSP$(14):I=INT(RND(1)*24+1):PRINT"You feel better!":CH=CH+I
 740 IFCH>HPTHENCH=HP
 741 GOSUB89:GOTO688
-!-------------------------------------------------------------------------------
-!- - Cast "Continual Light"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Continual Light"
+REM------------------------------------------------------------------------------
 742 S=15:T=3:U=31:GOTO708
-!-------------------------------------------------------------------------------
-!- - Cast "Invisibility"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Invisibility"
+REM------------------------------------------------------------------------------
 743 S=16:T=6:U=21:GOTO708
-!-------------------------------------------------------------------------------
-!- - Cast "Hold Monster"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Hold Monster"
+REM------------------------------------------------------------------------------
 744 PRINTSP$(17):GOSUB63:IFD=0THEN687
 745 IFINT(RND(1)*20+ML)>S(1)THENPRINT"The "M$" ignores you!":GOTO253
 746 PRINT"The "M$" is held!":PRINT"Press <RET> to kill:";:GOSUB68
 747 IFC$<>CHR$(13)THENGOSUB64:GOTO287
 748 IFRND(1)>.2+ML*.03THEN249
 749 PRINT"It broke free!!":GOSUB65:GOTO253
-!-------------------------------------------------------------------------------
-!- - Cast "Phantasml Forces"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Phantasml Forces"
+REM------------------------------------------------------------------------------
 750 PRINTSP$(18):GOSUB63:IFD=0THEN687
 751 IFINT(RND(1)*22+ML)<S(1)THEN753
 752 PRINT"The "M$" doesn't believe!":GOTO253
 753 PRINT"It believes!....ARRGH...":GOTO249
-!-------------------------------------------------------------------------------
-!- Level 4 Spells
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Level 4 Spells
+REM------------------------------------------------------------------------------
 754 ONSGOTO 755,770,773,775,779,780
-!-------------------------------------------------------------------------------
-!- - Cast "Pass Wall"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Pass Wall"
+REM------------------------------------------------------------------------------
 755 PRINTSP$(19):GOSUB63:IFD=1THEN686
 756 PRINT"Direction>";:GOSUB68
 757 FORI=1TO9:IFMID$("wxad8246{cm +}",I,1)=C$THEN759
@@ -1210,42 +1210,42 @@
 767 FORQ=0TO25:FORJ=10TO14STEP2:POKECP+J,PEEK(CP+J)+2:NEXT:NEXT:GOTO769
 768 FORQ=0TO25:FORJ=11TO15STEP2:POKECP+J,PEEK(CP+J)+2:NEXT:NEXT
 769 ONIGOTO 535,537,539,541
-!-------------------------------------------------------------------------------
-!- - Cast "Fireball"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Fireball"
+REM------------------------------------------------------------------------------
 770 PRINTSP$(20):GOSUB64:PRINT"Whoooooshh!!!":IFD=0THEN687
 771 PRINT"The "M$" is burning!":I=INT(RND(1)*12*LV+15)
 772 FORQ=0TO127:POKEBK,2:POKEBK,8:NEXT:POKEBK,0:GOTO684
-!-------------------------------------------------------------------------------
-!- - Cast "Cause Serious Wnd"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Cause Serious Wnd"
+REM------------------------------------------------------------------------------
 773 PRINTSP$(21):GOSUB63:IFD=0THEN687
 774 I=INT(RND(1)*32+10):GOTO684
-!-------------------------------------------------------------------------------
-!- - Cast "Flesh to Stone"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Flesh to Stone"
+REM------------------------------------------------------------------------------
 775 PRINTSP$(22):GOSUB63:IFD=0THEN687
 776 IFRND(1)>.6THENPRINT"The "M$" isn't affected.":GOTO253
 777 POKEC9+1,12:POKEC9+2,15:POKEC9+3,11:POKEC9+4,12
 778 POKEM1,15:POKEM2,11:PRINT"One stone statue....":GOSUB65:GOTO249
-!-------------------------------------------------------------------------------
-!- - Cast "Fear"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Fear"
+REM------------------------------------------------------------------------------
 779 S=23:T=7:U=30:GOTO708
-!-------------------------------------------------------------------------------
-!- - Cast "Finger of Death"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Finger of Death"
+REM------------------------------------------------------------------------------
 780 PRINTSP$(24):GOSUB63:PRINT"DIE!!!!!!":IFD=0THEN687
 781 IFUN=1THEN693
 782 GOSUB65:IFRND(1)>.3+ML*.04-LV*.03THEN249
 783 PRINT"The "M$" laughs!":GOSUB63:GOTO253
-!-------------------------------------------------------------------------------
-!- Level 5 Spells
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Level 5 Spells
+REM------------------------------------------------------------------------------
 784 ONSGOTO 785,794,795,799,801,808
-!-------------------------------------------------------------------------------
-!- - Cast "Teleport"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Teleport"
+REM------------------------------------------------------------------------------
 785 PRINTSP$(25):GOSUB63:IFD=1THEN686
 786 PRINT"+North/-South:";:GOSUB654:NY=C:PRINT"+East/-West:";:GOSUB654
 787 NX=C:PRINT"+Up/-Down:";:GOSUB654:NZ=C:I=SQR(NX^2+NY^2+(NZ*5)^2)-.1
@@ -1255,25 +1255,25 @@
 791 PRINT"Only stone there....the spell fails..":GOTO688
 792 IFNZ<1THENPRINT"Only thin air...the spell fails":GOTO688
 793 CX=NX:CY=NY:CZ=NZ:PRINT"{cyan}{cm +*3}POOF!{cm +*3}{white}":GOSUB109:GOTO201
-!-------------------------------------------------------------------------------
-!- - Cast "Astral Walk"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Astral Walk"
+REM------------------------------------------------------------------------------
 794 S=26:T=8:U=16:GOTO708
-!-------------------------------------------------------------------------------
-!- - Cast "Power Word Kill"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Power Word Kill"
+REM------------------------------------------------------------------------------
 795 PRINTSP$(27):GOSUB63:IFD=0THEN687
 796 PRINT"QWERTY!!!!":GOSUB65:IFUN=0ANDRND(1)<.8THEN249
 797 IFUN=1THEN693
 798 PRINT"{up}The "M$" doesn't hear...":GOTO688
-!-------------------------------------------------------------------------------
-!- - Cast "Ice Storm"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Ice Storm"
+REM------------------------------------------------------------------------------
 799 PRINTSP$(28):GOSUB63:IFD=0THEN687
 800 PRINT"BRRRR!!!!":I=60:GOTO684
-!-------------------------------------------------------------------------------
-!- - Cast "Wall of Fire"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Wall of Fire"
+REM------------------------------------------------------------------------------
 801 PRINTSP$(29):GOSUB63:POKESG,4:POKEGI,3:SYSDS:PRINT"WWhhooooosshhh!!!"
 802 POKE1675,PEEK(1675)OR32
 803 PRINT"A wall of fire appears about you!":GOSUB65:GOSUB63
@@ -1281,146 +1281,146 @@
 805 POKESG,5:POKEGI,1:SYSDS:POKE1675,PEEK(1675)AND223
 806 IFRND(1)>.4THENPOKESE,TE:PRINT"The "M$" is gone.":GOTO692
 807 PRINT"The "M$" walks through!!!":I=INT(RND(1)*12+8):GOTO684
-!-------------------------------------------------------------------------------
-!- - Cast "Plague"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Plague"
+REM------------------------------------------------------------------------------
 808 PRINTSP$(30):GOSUB63:IFD=0THEN687
 809 IFUN=1THEN693
 810 PRINT"Black death for the "M$'.'
 811 GOSUB63:IFRND(1)>S(2)*.05THENPRINT"It is immune!":GOTO688
 812 IFRND(1)*2<S(3)*.03+1THEN249
 813 PRINT"The spell backfires!!":GOSUB63:GOTO600
-!-------------------------------------------------------------------------------
-!- Level 6 Spells
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Level 6 Spells
+REM------------------------------------------------------------------------------
 814 ONSGOTO 815,819,824,829,832,834
-!-------------------------------------------------------------------------------
-!- - Cast "Time Stop"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Time Stop"
+REM------------------------------------------------------------------------------
 815 PRINTSP$(31):GOSUB63:PRINT"Time is frozen, monsters cannot"
 816 PRINT"attack you.":IFSF(9)<0THENSF(9)=0
 817 SF(9)=SF(9)+FNR(20)+4:IFD=1THEN300
 818 GOTO688
-!-------------------------------------------------------------------------------
-!- - Cast "Raise Dead"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Raise Dead"
+REM------------------------------------------------------------------------------
 819 S=32:T=10:U=40:GOTO708
 820 PRINTSP$(32):GOSUB63:S(3)=S(3)-1
 821 SF(10)=0:IFRND(1)>S(3)*.06THEN823
 822 PRINT"It works!!":CH=HP:GOSUB89:POKESE,TE:GOSUB110:D=0:GOTO688
 823 PRINT"It doesn't work!":GOTO600
-!-------------------------------------------------------------------------------
-!- - Cast "Holy Symbol"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Holy Symbol"
+REM------------------------------------------------------------------------------
 824 PRINTSP$(33):GOSUB63:IFD=0THEN687
 825 SYSDP:POKESG,4:POKEGI,1:SYSDS:POKE1675,PEEK(1675)OR32
 826 GOSUB65:POKESG,5:POKEGI,1:SYSDS:POKE1675,PEEK(1675)AND223:SYSEP
 827 IFRND(1)<.9THEN249
 828 PRINT"The "M$" doesn't see...":GOTO688
-!-------------------------------------------------------------------------------
-!- - Cast "Word of Recall"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Word of Recall"
+REM------------------------------------------------------------------------------
 829 PRINTSP$(34):GOSUB63:IFD=1THEN686
 830 FORI=0TO10:I(I)=0:NEXT:GD=0:PRINT"{clear}";:GOSUB93:GOSUB109
 831 CX=25:CY=13:CZ=1:PRINT"***ZAP!!***":GOSUB65:GOTO201
-!-------------------------------------------------------------------------------
-!- - Cast "Restoration"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Restoration"
+REM------------------------------------------------------------------------------
 832 PRINTSP$(35):GOSUB63:PRINT"You feel better!":CH=HP:GOSUB89
 833 GOTO688
-!-------------------------------------------------------------------------------
-!- - Cast "Prismatic Wall"
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM - Cast "Prismatic Wall"
+REM------------------------------------------------------------------------------
 834 PRINTSP$(36):GOSUB63:PRINT"A shifting multi-colored wall appears."
 835 IFD=0THEN687
 836 POKESG,4:POKEGI,2:SYSDS:FORI=0TO4:FORJ=0TO6:POKEC9+5,P1(J):POKEC9+6,P2(J)
 837 POKEC9+7,P3(J):FORK=0TO30:NEXT:NEXT:NEXT:POKESG,5:POKEGI,1:SYSDS
 838 PRINT"The "M$" is gone.":GOTO692
-!-------------------------------------------------------------------------------
-!- Monsters Move One Step Closer
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Monsters Move One Step Closer
+REM------------------------------------------------------------------------------
 839 M=0:IFM%(1)=0THEN841
 840 M=M%(1):ML=L%(1):MH=H%(1):GOSUB652
 841 FORI=1TO19:M%(I)=M%(I+1):L%(I)=L%(I+1):H%(I)=H%(I+1):NEXT
 842 M%(20)=0:L%(20)=0:H%(20)=0
-!-------------------------------------------------------------------------------
-!- Print Evaded Monster Track
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Print Evaded Monster Track
+REM------------------------------------------------------------------------------
 843 PRINT"{home}":PRINTTAB(22)"{up}";:FORQ=1TO20:IFM%(Q)=0THENPRINT" {down}{left}";:GOTO845
 844 PRINT"{sh -}{down}{left}";
 845 NEXT:RETURN
-!-------------------------------------------------------------------------------
-!- Monsters Move Back One Step
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Monsters Move Back One Step
+REM------------------------------------------------------------------------------
 846 FORQ=19TO1STEP-1:M%(Q+1)=M%(Q):L%(Q+1)=L%(Q):H%(Q+1)=H%(Q):NEXT
 847 IFM=0THENM%(1)=0:L%(1)=0:H%(1)=0:GOTO843
 848 M%(1)=M:L%(1)=ML:H%(1)=MH:GOTO843
-!-------------------------------------------------------------------------------
-!- End Game and Return to BASIC
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM End Game and Return to BASIC
+REM------------------------------------------------------------------------------
 849 GOSUB65:SYS(PEEK(65532)+TF*PEEK(65533)):END
-!-------------------------------------------------------------------------------
-!- SETUP TREASURE
-!-------------------------------------------------------------------------------
-!- Setup treasure sprites and gems/jewels animation delay
+REM------------------------------------------------------------------------------
+REM SETUP TREASURE
+REM------------------------------------------------------------------------------
+REM Setup treasure sprites and gems/jewels animation delay
 850 SYSRA:POKESG,2:POKEGI,TJ+1:IFTJ+1>3THENAN=4:AR=20
-!- Display sprites
+REM Display sprites
 851 SYSDS:RETURN
-!-------------------------------------------------------------------------------
-!- INPUT ANIMATION ROUTINES
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM INPUT ANIMATION ROUTINES
+REM------------------------------------------------------------------------------
 852 AQ=INT(400/AR):FORQ=1TOAQ:FORQQ=1TOAR:GETC$:IFC$<>""THEN71
 853 NEXT
 854 GOSUB857
 855 NEXT:IFNM$="Demo"THEN852
 856 GOTO76
-!-------------------------------------------------------------------------------
-!- Select Room's Visual Effects
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Select Room's Visual Effects
+REM------------------------------------------------------------------------------
 857 ONANGOSUB 859,860,865,867,872
 858 RETURN
-!-------------------------------------------------------------------------------
-!- Gray Misty Cube: Cycle sprite colors
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Gray Misty Cube: Cycle sprite colors
+REM------------------------------------------------------------------------------
 859 I=PEEK(C9+3):POKEC9+3,PEEK(C9+2):POKEC9+2,PEEK(C9+1):POKEC9+1,I:RETURN
-!-------------------------------------------------------------------------------
-!- Flashing Box with Lights: Cycle sprite colors
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Flashing Box with Lights: Cycle sprite colors
+REM------------------------------------------------------------------------------
 860 POKEF1+1,20+AC*2:IF(AC=0)OR(AC=4)THENPOKEC9+2,10:POKEM2,6
 861 IF(AC=1)OR(AC=5)THENPOKEC9+1,8:POKEC9+2,2
 862 IF(AC=2)OR(AC=6)THENPOKEM1,13:POKEC9+1,7
 863 IF(AC=3)OR(AC=7)THENPOKEM2,14:POKEM1,5
 864 AC=(AC+1)AND7:RETURN
-!-------------------------------------------------------------------------------
-!- Throne: Cycle sprite colors
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Throne: Cycle sprite colors
+REM------------------------------------------------------------------------------
 865 POKEC9+3,AC:POKEM1,AC+1:POKEM2,AC+2:AC=(AC+2)AND15:IFAC=13THENAC=1
 866 RETURN
-!-------------------------------------------------------------------------------
-!- Gems/Jewels: Cycle sprite colors
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Gems/Jewels: Cycle sprite colors
+REM------------------------------------------------------------------------------
 867 IFJC=0THENPOKEM2,PEEK(M2)AND7:POKEC9+1,PEEK(C9+1)OR8
 868 IFJC=1THENPOKEC9+1,PEEK(C9+1)AND7:POKEM1,PEEK(M1)OR8
 869 IFJC=2THENPOKEM1,PEEK(M1)AND7:POKEM2,PEEK(M2)OR8
 870 JC=JC+1:IFJC=3THENJC=0
 871 RETURN
-!-------------------------------------------------------------------------------
-!- Fountain: Cycle sprite pointers
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM Fountain: Cycle sprite pointers
+REM------------------------------------------------------------------------------
 872 POKESL,181+AC:AC=AC+1:IFAC=3THENAC=0
 873 RETURN
-!-------------------------------------------------------------------------------
-!- CHIME I TIMES
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM CHIME I TIMES
+REM------------------------------------------------------------------------------
 874 IFPEEK(IB)THENRETURN
 875 POKEF1+1,11:POKEF1,0:POKEF+5,43:POKEF+6,0:POKEF3+1,5:POKEF3,0:POKEFV,15
 876 FORQ=1TOI:POKEF4,20:POKEF4,21:FORQQ=1TO10:POKEFZ,RND(1)*8+200:NEXT
 877 FORQQ=1TO600
 878 IFPEEK(IB)THENPOKEF4,0:POKEF5,0:POKEF6,0:POKEFV,0:POKEFZ,200:RETURN
 879 NEXT:NEXT:POKEF4,20:GOSUB65:POKEFV,0:POKEFZ,200:RETURN
-!-------------------------------------------------------------------------------
-!- TITLE PAGE MUSIC
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM TITLE PAGE MUSIC
+REM------------------------------------------------------------------------------
 880 POKEF+5,144:POKEF+6,217:POKEF+12,251:POKEF+13,27:POKEF+19,251:POKEF+20,27
 881 POKEF3,70:POKEF3+1,6:POKEF5,0
 882 POKEFV,8:FORJ=1TO500:NEXT:POKEF6,129:TI$="000000"
@@ -1434,9 +1434,9 @@
 890 FF=FT:GOSUB893:IFPEEK(IB)THEN892
 891 I=5:GOSUB874
 892 POKEF4,0:POKEF5,0:POKEF6,0:FORQ=0TO24:POKEF+Q,0:NEXT:RETURN
-!-------------------------------------------------------------------------------
-!- MUSIC SEQUENCER
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM MUSIC SEQUENCER
+REM------------------------------------------------------------------------------
 893 K=F1+1
 894 TI$="000000":FS=PEEK(FF)*3:IFFS=0THENRETURN
 895 FF=FF+1:FORI=0TO2:Q=PEEK(FF):IFQ=0THEN898
@@ -1447,22 +1447,22 @@
 900 IFPEEK(IB)THENRETURN
 901 IFTI<FSTHEN899
 902 GOTO894
-!-------------------------------------------------------------------------------
-!- THRONE MUSIC
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM THRONE MUSIC
+REM------------------------------------------------------------------------------
 903 FORFQ=0TO2:POKEF+5+FQ*7,18:POKEF+6+FQ*7,244:F(FQ)=17:NEXT:FF=FC
 904 POKEFV,10:GOSUB893:GOTO107
-!-------------------------------------------------------------------------------
-!- *TURN RUN/STOP OFF*
-!-------------------------------------------------------------------------------
+REM------------------------------------------------------------------------------
+REM *TURN RUN/STOP OFF*
+REM------------------------------------------------------------------------------
 905 POKE56334,PEEK(56334)AND254
 906 POKE788,96:POKE789,194
 907 POKE792,226:POKE793,252
 908 POKE56334,PEEK(56334)OR1:RETURN
-!-------------------------------------------------------------------------------
-!- DATA
-!-------------------------------------------------------------------------------
-!- Spells
+REM------------------------------------------------------------------------------
+REM DATA
+REM------------------------------------------------------------------------------
+REM Spells
 909 DATA mAGIC mISSILE,sLEEP,cURE lIGHT wOUNDS,lIGHT,tURN uNDEAD,pROT/eVIL,wEB
 910 DATA lEVITATE,cAUSE lIGHT wNDS,dETECT tRAPS,cHARM,sTRENGTH,lIGHTNING bOLT
 911 DATA cURE sERIOUS wNDS,cONTINUAL lIGHT,iNVISIBILITY,hOLD mONSTER
@@ -1470,9 +1470,9 @@
 913 DATA fEAR,fINGER OF dEATH,tELEPORT,aSTRAL wALK,pOWER wORD kILL,iCE sTORM
 914 DATA wALL OF fIRE,pLAGUE,tIME sTOP,rAISE dEAD,hOLY sYMBOL,wORD OF rECALL
 915 DATA rESTORATION,pRISMATIC wALL
-!- Inn Names
+REM Inn Names
 916 DATA sALTY,bOLD,lOUD,oLD,gOODLY,wORTHY,lOFTY,fINE,rOCKY,aGED
 917 DATA rOAD,eYE,tOOTH,dRAGON,mUG,dEMON,wHARF,bRIDGE,mEADE,aLE
 918 DATA tAVERN,aLEHOUSE,cELLAR,cLUB,iNN,hOUSE,iNN,lODGE,mEADHALL,rESTHOUSE
-!- Character Graphics (Doors and Walls)
+REM Character Graphics (Doors and Walls)
 919 DATA,247,247,247,,127,127,127,,,,255,255,,,,24,24,24,24,24,24,24,24
