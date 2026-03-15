@@ -5,14 +5,6 @@
 ; This project is a port of the Commodore 64 version of SpeedScript
 ; to the 6502PC running DOS/65 with the memory mapped video card.
 ;
-; TODO:
-; * FIX CURSOR STARTUP ISSUE
-; * IMPLIMENT CATALOG
-; * IMPLIMENT SAVE
-; * IMPLIMENT PRINT
-; * IMPLIMENT A MORE CLEAN SHUTDOWN (CLEAR SCREEN, ETC.)
-; * CHANGE TITLE BAR COLOR?
-; * ENSURE STARTUP PUTS SYSTEM IN 80COL AND ADJUSTS COLORS
 ;______________________________________________________________________________
         .PSC02
 
@@ -298,7 +290,7 @@ NESHIFT:
         CMP     #retchar
         BEQ     DOINS
         LDA     INSMODE
-        AND     #$F0            ; background color
+        CMP     #$00
         BEQ     NOTINST
 DOINS:
         JSR     inschar
@@ -813,8 +805,6 @@ DODELIN:
 ;Called by CTRL-D.  (etc)
 DELETE:
         JSR     killbuff
-        LDA     #$21            ; white on red
-        STA     windcolr
         JSR     topclr
         PRINTMESSAGE delmsg
         JSR     getakey
@@ -981,7 +971,7 @@ inout:
 ;command line.
 instgl:
         LDA     INSMODE
-        EOR     #INSCOLOR << 4
+        EOR     #1
         STA     INSMODE
         JMP     sysmsg
 ;Another example of modular code.
@@ -995,8 +985,6 @@ YORNKEY:                        ;JSR scnkey
         RTS
 ;Erase all text. (p108)
 CLEAR:
-        LDA     #$21            ;white on red
-        STA     windcolr
         JSR     topclr
         PRINTMESSAGE clrmsg
         JSR     YORN
@@ -1087,8 +1075,6 @@ erasagain:
         LDA     (curr)
         EOR     #$80
         STA     (curr)
-        LDA     #$21
-        STA     windcolr
         JSR     getakey
         ORA     #64
         CMP     #'w'
@@ -1184,7 +1170,7 @@ FORMAT:
         ORA     #$80
         PHA
         LDA     INSMODE
-        AND     #$F0            ;background color
+        CMP     #$00
         BEQ     NOINS
         JSR     inschar
 NOINS:
@@ -1511,6 +1497,14 @@ quit:
         BEQ     :+
         JMP     sysmsg
 :
+        LDA     #FC_COLOR
+        STA     farfunct
+        LDX     #SCNCOLOR
+        LDY     #CRCOLOR
+        JSR     DO_FARCALL
+        LDA     #FC_SCNCLR      ; CLEAR SCREEN
+        STA     farfunct
+        JSR     DO_FARCALL
         LDA     #1
         STA     SHOWCRSR        ; TURN ON CURSOR
         JMP     $0100

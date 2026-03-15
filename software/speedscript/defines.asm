@@ -27,6 +27,7 @@ FC_CHROUT       = 19            ;output character (A=char)
 FC_CHRIN        = 20            ;read keyboard (returns A=key or $FF)
 FC_LOCATE       = 37            ;set cursor position (X=col, Y=row)
 FC_SCNCLR       = 38            ;clear screen
+FC_SETMODE      = 57            ;set screen mode
 FC_COLOR        = 39            ;set color (X=fg|bg, Y=cursor_fg|bg)
 FC_SCROLLDN     = 56            ;scroll screen down
 FC_PAINTCSR     = 58            ;paint cursor at current position
@@ -37,8 +38,11 @@ TEXEND_INIT     = $9000
 TEXBUF_INIT     = $A000
 BUFEND_INIT     = $B800
 
-INSCOLOR        = 14
-TOPFGCOLOR      = 1
+INSCOLOR        = $7C
+TOPCOLOR        = $7B
+CRCOLOR         = $E1
+SCNCOLOR        = $1E
+
 DEFAULT_DEVICE  = 1
 
 ; constants
@@ -82,13 +86,10 @@ temp            = $5E
 indir           = $FD
 UNDERCURS       = $FA
 
-;WINDCOLR: Color of command line
-;window supported by refresh.
 ;RETCHAR is the screen-
 ;code value of the return mark (a left-
 ;pointing arrow).
 
-windcolr        = $0C
 retchar         = 31
 
 ; refresh routine state

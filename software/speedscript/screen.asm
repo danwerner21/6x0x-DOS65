@@ -15,6 +15,17 @@ INIT:
 ; Painting row 23 wraps cursor to row 24 which auto-scrolls.
         LDY     #23
         STY     ROWS
+; ensure 80 col
+        LDA     #FC_SETMODE
+        STA     farfunct
+        LDA     #1
+        JSR     DO_FARCALL
+; set colors
+        LDA     #FC_COLOR
+        STA     farfunct
+        LDX     #SCNCOLOR
+        LDY     #CRCOLOR
+        JSR     DO_FARCALL
 ; clear screen
         LDA     #FC_SCNCLR
         STA     farfunct
@@ -24,8 +35,7 @@ INIT:
         STA     csrrow
         STZ     csrcol
 
-        LDA     #TOPFGCOLOR
-        STA     INSMODE
+        STZ     INSMODE
         STZ     texstart
         STZ     texend
         STZ     texbuf
@@ -61,7 +71,21 @@ INIT3:
 ;sysmsg displays "SpeedScript" and the version.
 sysmsg:
         LDA     INSMODE
-        STA     windcolr
+        CMP     #1
+        BNE     :+
+        LDA     #FC_COLOR
+        STA     farfunct
+        LDX     #TOPCOLOR
+        LDY     #CRCOLOR
+        JSR     DO_FARCALL
+        JMP     :++
+:
+        LDA     #FC_COLOR
+        STA     farfunct
+        LDX     #INSCOLOR
+        LDY     #CRCOLOR
+        JSR     DO_FARCALL
+:
         JSR     topclr
         PRINTMESSAGE MSG1
         STZ     msgflg
@@ -74,13 +98,20 @@ topclr:
 ; map video text page into $A000-$AFFF
         LDY     #VIDTEXT_PAGE
         JSR     vid_enter
-; fill row 0 ($A000-$A04F) with spaces
+; fill row 0 text ($A000-$A04F) with spaces
         LDY     #79
         LDA     #space
 @tcloop:
         STA     $A000,Y
         DEY
         BPL     @tcloop
+; fill row 0 color ($A800-$A84F) with current color
+        LDY     #79
+        LDA     #TOPCOLOR
+@ccloop:
+        STA     $A800,Y
+        DEY
+        BPL     @ccloop
 ; unmap video
         JSR     vid_exit
 ; position firmware cursor at row 0, col 0 for PRINTMESSAGE
