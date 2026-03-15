@@ -11,9 +11,6 @@ Please note that this version of DOS/65 uses the ROMWBW track/sector mapping and
 
 
 ## todo:
-1. Add Dbasic Graphics support for 6502PC
-1. Clean Up SEDIT bugs
-1. ADD A NEW CLEAR DIRECTORY PROGRAM
 1. add dbasic docs
 1. add xmr & xms docs
 1. add FORMAT.COM docs
@@ -298,7 +295,8 @@ then use your terminal software to upload the following utilities (one at a time
 * PLANET.Z3
 * ZORK1.Z3
 * ZIPTEST.Z3
-
+* SPSC.COM (FOR 6502PC WITH MEMORY MAPPED VIDEO)
+* DBASICMM.COM (FOR 6502PC WITH MEMORY MAPPED VIDEO)
 
 ### Monitor Commands
 The 6x0x system utilzes the "SUPERMON" monitor program written by Jim Butterfield, with an extra command or two.
