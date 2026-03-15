@@ -38,8 +38,8 @@ Command Keys:
 * `Ctrl+C`: tab
 * `Ctrl+J`: replace start
 * `Ctrl+G`: search and replace
-* `<DOWN>`: paragraph right
-* `<UP>`:   paragraph left
+* `<DOWN>`: paragraph down
+* `<UP>`:   paragraph up
 * `Ctrl+W`: word left
 * `Ctrl+U`: word right
 * `<F3>`:   return to os
