@@ -1,0 +1,20 @@
+PROGRAM T18;
+VAR X, Y: INTEGER;
+
+PROCEDURE SWAP(VAR A, B: INTEGER);
+VAR T: INTEGER;
+BEGIN
+  T := A;
+  A := B;
+  B := T
+END;
+
+BEGIN
+  X := 10;
+  Y := 99;
+  WRITELN(X);
+  WRITELN(Y);
+  SWAP(X, Y);
+  WRITELN(X);
+  WRITELN(Y)
+END.

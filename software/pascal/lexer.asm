@@ -8,68 +8,114 @@
 ; Keyword table — each entry: length byte, ASCII chars, token code
 ; Searched linearly; 18 keywords.
 ; ---------------------------------------------------------------------------
-.segment "CODE"
+        .segment        "CODE"
 
 keyword_table:
-        ; length, chars..., token
-        .byte 3, "AND",       TOK_AND
-        .byte 5, "ARRAY",     TOK_ARRAY
-        .byte 5, "BEGIN",     TOK_BEGIN
-        .byte 4, "CASE",      TOK_CASE
-        .byte 5, "CONST",     TOK_CONST
-        .byte 3, "DIV",       TOK_DIV
-        .byte 2, "DO",        TOK_DO
-        .byte 6, "DOWNTO",    TOK_DOWNTO
-        .byte 4, "ELSE",      TOK_ELSE
-        .byte 3, "END",       TOK_END
-        .byte 3, "FOR",       TOK_FOR
-        .byte 8, "FUNCTION",  TOK_FUNCTION
-        .byte 2, "IF",        TOK_IF
-        .byte 3, "MOD",       TOK_MOD_KW
-        .byte 3, "NIL",       TOK_NIL
-        .byte 3, "NOT",       TOK_NOT
-        .byte 2, "OF",        TOK_OF
-        .byte 2, "OR",        TOK_OR
-        .byte 9, "PROCEDURE", TOK_PROCEDURE
-        .byte 7, "PROGRAM",   TOK_PROGRAM
-        .byte 6, "RECORD",    TOK_RECORD
-        .byte 6, "REPEAT",    TOK_REPEAT
-        .byte 4, "THEN",      TOK_THEN
-        .byte 2, "TO",        TOK_TO
-        .byte 4, "TYPE",      TOK_TYPE
-        .byte 5, "UNTIL",     TOK_UNTIL
-        .byte 3, "VAR",       TOK_VAR
-        .byte 5, "WHILE",     TOK_WHILE
-        .byte 4, "WITH",      TOK_WITH
-        .byte 0                         ; sentinel
+; length, chars..., token
+        .BYTE   3, "AND",       TOK_AND
+        .BYTE   5, "ARRAY",     TOK_ARRAY
+        .BYTE   5, "BEGIN",     TOK_BEGIN
+        .BYTE   4, "CASE",      TOK_CASE
+        .BYTE   5, "CONST",     TOK_CONST
+        .BYTE   3, "DIV",       TOK_DIV
+        .BYTE   2, "DO",        TOK_DO
+        .BYTE   6, "DOWNTO",    TOK_DOWNTO
+        .BYTE   4, "ELSE",      TOK_ELSE
+        .BYTE   3, "END",       TOK_END
+        .BYTE   3, "FOR",       TOK_FOR
+        .BYTE   8, "FUNCTION",  TOK_FUNCTION
+        .BYTE   2, "IF",        TOK_IF
+        .BYTE   3, "MOD",       TOK_MOD_KW
+        .BYTE   3, "NIL",       TOK_NIL
+        .BYTE   3, "NOT",       TOK_NOT
+        .BYTE   2, "OF",        TOK_OF
+        .BYTE   2, "OR",        TOK_OR
+        .BYTE   9, "PROCEDURE", TOK_PROCEDURE
+        .BYTE   7, "PROGRAM",   TOK_PROGRAM
+        .BYTE   6, "RECORD",    TOK_RECORD
+        .BYTE   6, "REPEAT",    TOK_REPEAT
+        .BYTE   4, "THEN",      TOK_THEN
+        .BYTE   2, "TO",        TOK_TO
+        .BYTE   4, "TYPE",      TOK_TYPE
+        .BYTE   5, "UNTIL",     TOK_UNTIL
+        .BYTE   3, "VAR",       TOK_VAR
+        .BYTE   5, "WHILE",     TOK_WHILE
+        .BYTE   4, "WITH",      TOK_WITH
+        .BYTE   0               ; sentinel
 
 ; Identifier buffer (max 63 chars + length byte at [0])
-ident_buf:      .res 64
+ident_buf:
+        .RES    64
 
 ; Saved-name buffer for parser (e.g. var-decl name preservation across
 ; parse_type_spec which clobbers ident_buf).
-save_name_buf:  .res 16
+save_name_buf:
+        .RES    16
 
 ; Saved symbol info — used by parse_assign_or_call to preserve symbol
 ; entry fields across next_token + parse_expression, which clobber tmp3.
-sym_save_kind:  .res 1
-sym_save_scope: .res 1
-sym_save_off:   .res 2
+sym_save_kind:
+        .RES    1
+sym_save_scope:
+        .RES    1
+sym_save_off:
+        .RES    2
+sym_save_pcount:
+        .RES    1                       ; SYM_PROC param count (entry offset 21)
+sym_save_vmask:
+        .RES    1               ; SYM_PROC/SYM_FUNC VAR-param bitmap (entry offset 22)
+sym_save_lsize:
+        .RES    1               ; SYM_PROC/SYM_FUNC total local-area size (entry offset 23)
+
+; Procedure-declaration scratch (parse_proc_decl; not nestable in this build).
+proc_param_count:
+        .RES    1               ; running count while parsing param list
+proc_entry_idx:
+        .RES    2               ; symtab index of the proc entry (for backpatch)
+param_var_mask:
+        .RES    1               ; bitmap of which params are VAR (bit i ↔ param i, max 8)
+group_is_var:
+        .RES    1               ; 1 while parsing the names of a VAR-prefixed group
+local_alloc_off:
+        .RES    1               ; next free local-AR offset; init = pcount*2 at proc entry
+
+; Function-call scratch (parse_factor @sym_func_call; nested fn calls in args
+; not yet supported — see TODO).
+fcall_pcount:
+        .RES    1
+fcall_lo:
+        .RES    1
+fcall_hi:
+        .RES    1
+fcall_type:
+        .RES    1
+fcall_vmask:
+        .RES    1               ; the called proc/func's VAR-param bitmap
+fcall_lsize:
+        .RES    1               ; the called proc/func's total local-area size (params+locals)
+
+; Main-program entry-point patch slot. compile_program emits a UJP at code
+; offset 0; parse_block patches it when it reaches the top-level BEGIN block
+; so the main body executes first (and proc bodies are reached only via CALL).
+; Hi byte = $FF means "already patched" (sentinel — never a valid patch addr
+; since cg_pc starts at 0).
+main_jmp_patch:
+        .RES    2
 
 ; ---------------------------------------------------------------------------
 ; lexer_init — reset lexer state; call before compile_program
 ; ---------------------------------------------------------------------------
 lexer_init:
-        lda     #1
-        sta     lex_line
-        lda     #0
-        sta     lex_line+1
-        sta     lex_col
-        sta     src_buf_pos
-        sta     src_buf_end
-        ; prime lex_char
-        jsr     lexer_getc
-        rts
+        LDA     #1
+        STA     lex_line
+        LDA     #0
+        STA     lex_line+1
+        STA     lex_col
+        STA     src_buf_pos
+        STA     src_buf_end
+; prime lex_char
+        JSR     lexer_getc
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; next_token — advance to next token, set tok_type
@@ -79,409 +125,437 @@ lexer_init:
 ;   ident_buf = identifier string (if TOK_IDENT)
 ; ---------------------------------------------------------------------------
 next_token:
-        ; skip whitespace and comments
-@skip:  lda     lex_char
-        beq     @eof
-        cmp     #' '
-        beq     @ws
-        cmp     #$09            ; TAB
-        beq     @ws
-        cmp     #$0D            ; CR — treat as whitespace, LF counts the line
-        beq     @ws
-        cmp     #$0A            ; LF
-        beq     @nl
-        cmp     #'{'            ; Pascal comment start
-        beq     @comment
-        jmp     @not_ws
-@ws:    jsr     lexer_getc
-        bra     @skip
-@nl:    inc     lex_line
-        bne     :+
-        inc     lex_line+1
-:       lda     #0
-        sta     lex_col
-        jsr     lexer_getc
-        bra     @skip
+; skip whitespace and comments
+@skip:
+        LDA     lex_char
+        BEQ     @eof
+        CMP     #' '
+        BEQ     @ws
+        CMP     #$09            ; TAB
+        BEQ     @ws
+        CMP     #$0D            ; CR — treat as whitespace, LF counts the line
+        BEQ     @ws
+        CMP     #$0A            ; LF
+        BEQ     @nl
+        CMP     #'{'            ; Pascal comment start
+        BEQ     @comment
+        JMP     @not_ws
+@ws:
+        JSR     lexer_getc
+        BRA     @skip
+@nl:
+        INC     lex_line
+        BNE     :+
+        INC     lex_line+1
+:
+        LDA     #0
+        STA     lex_col
+        JSR     lexer_getc
+        BRA     @skip
 @comment:
-        ; skip { ... }
-@cloop: jsr     lexer_getc
-        beq     @eof
-        cmp     #'}'
-        bne     @cloop
-        jsr     lexer_getc
-        bra     @skip
-@eof:   lda     #TOK_EOF
-        sta     tok_type
-        rts
+; skip { ... }
+@cloop:
+        JSR     lexer_getc
+        BEQ     @eof
+        CMP     #'}'
+        BNE     @cloop
+        JSR     lexer_getc
+        BRA     @skip
+@eof:
+        LDA     #TOK_EOF
+        STA     tok_type
+        RTS
 
 @not_ws:
-        ; letter → identifier or keyword
-        jsr     is_letter
-        bcs     @ident
+; letter → identifier or keyword
+        JSR     is_letter
+        BCS     @ident
 
-        ; digit → integer literal
-        jsr     is_digit
-        bcs     @number
+; digit → integer literal
+        JSR     is_digit
+        BCS     @number
 
-        ; string → string literal
-        cmp     #$27            ; single quote
-        beq     @string
+; string → string literal
+        CMP     #$27            ; single quote
+        BEQ     @string
 
-        ; operators and punctuation
-        jmp     @punct
+; operators and punctuation
+        JMP     @punct
 
 ; --- Identifier ---
-@ident: ldy     #0
+@ident:
+        LDY     #0
 @id_loop:
-        lda     lex_char
-        jsr     to_upper
-        sta     ident_buf+1,y
-        iny
-        cpy     #63
-        beq     @id_done
-        jsr     lexer_getc
-        lda     lex_char
-        jsr     is_letter
-        bcs     @id_loop
-        jsr     is_digit
-        bcs     @id_loop
+        LDA     lex_char
+        JSR     to_upper
+        STA     ident_buf+1,y
+        INY
+        CPY     #63
+        BEQ     @id_done
+        JSR     lexer_getc
+        LDA     lex_char
+        JSR     is_letter
+        BCS     @id_loop
+        JSR     is_digit
+        BCS     @id_loop
 @id_done:
-        tya
-        sta     ident_buf       ; length
-        ; check against keyword table
-        jsr     lookup_keyword
-        sta     tok_type
-        rts
+        TYA
+        STA     ident_buf       ; length
+; check against keyword table
+        JSR     lookup_keyword
+        STA     tok_type
+        RTS
 
 ; --- Integer literal ---
 @number:
-        lda     #0
-        sta     tok_ival_lo
-        sta     tok_ival_hi
+        LDA     #0
+        STA     tok_ival_lo
+        STA     tok_ival_hi
 @num_loop:
-        lda     lex_char
-        sec
-        sbc     #'0'
-        jsr     mul10_tokval    ; tokval = tokval*10 + digit
-        jsr     lexer_getc
-        lda     lex_char
-        jsr     is_digit
-        bcs     @num_loop
-        lda     #TOK_INT
-        sta     tok_type
-        rts
+        LDA     lex_char
+        SEC
+        SBC     #'0'
+        JSR     mul10_tokval    ; tokval = tokval*10 + digit
+        JSR     lexer_getc
+        LDA     lex_char
+        JSR     is_digit
+        BCS     @num_loop
+        LDA     #TOK_INT
+        STA     tok_type
+        RTS
 
 ; --- String literal ---
 @string:
-        jsr     lexer_getc      ; skip opening quote
-        ldy     #0
+        JSR     lexer_getc      ; skip opening quote
+        LDY     #0
 @str_loop:
-        lda     lex_char
-        beq     @str_done       ; EOF
-        cmp     #$27
-        beq     @str_close
-        sta     ident_buf+1,y
-        iny
-        jsr     lexer_getc
-        bra     @str_loop
+        LDA     lex_char
+        BEQ     @str_done       ; EOF
+        CMP     #$27
+        BEQ     @str_close
+        STA     ident_buf+1,y
+        INY
+        JSR     lexer_getc
+        BRA     @str_loop
 @str_close:
-        jsr     lexer_getc      ; skip closing quote
-        ; check for '' (escaped quote)
-        lda     lex_char
-        cmp     #$27
-        bne     @str_done
-        lda     #$27
-        sta     ident_buf+1,y
-        iny
-        jsr     lexer_getc
-        bra     @str_loop
+        JSR     lexer_getc      ; skip closing quote
+; check for '' (escaped quote)
+        LDA     lex_char
+        CMP     #$27
+        BNE     @str_done
+        LDA     #$27
+        STA     ident_buf+1,y
+        INY
+        JSR     lexer_getc
+        BRA     @str_loop
 @str_done:
-        tya
-        sta     ident_buf
-        lda     #TOK_STRING
-        sta     tok_type
-        rts
+        TYA
+        STA     ident_buf
+        LDA     #TOK_STRING
+        STA     tok_type
+        RTS
 
 ; --- Punctuation / operators ---
 @punct:
-        ldx     #0
-        lda     lex_char
-        cmp     #'+'
-        bne     :+
-        ldx     #TOK_PLUS
-:       cmp     #'-'
-        bne     :+
-        ldx     #TOK_MINUS
-:       cmp     #'*'
-        bne     :+
-        ldx     #TOK_STAR
-:       cmp     #'/'
-        bne     :+
-        ldx     #TOK_SLASH
-:       cmp     #'='
-        bne     :+
-        ldx     #TOK_EQ
-:       cmp     #'('
-        bne     :+
-        ldx     #TOK_LPAREN
-:       cmp     #')'
-        bne     :+
-        ldx     #TOK_RPAREN
-:       cmp     #'['
-        bne     :+
-        ldx     #TOK_LBRACK
-:       cmp     #']'
-        bne     :+
-        ldx     #TOK_RBRACK
-:       cmp     #','
-        bne     :+
-        ldx     #TOK_COMMA
-:       cmp     #';'
-        bne     :+
-        ldx     #TOK_SEMICOLON
-:       cmp     #'^'
-        bne     :+
-        ldx     #TOK_CARET
-:       cmp     #'<'
-        bne     @not_lt
-        jsr     lexer_getc
-        lda     lex_char
-        cmp     #'='
-        beq     @leq
-        cmp     #'>'
-        beq     @neq
-        lda     #TOK_LT
-        sta     tok_type
-        rts
-@leq:   jsr     lexer_getc
-        lda     #TOK_LEQ
-        sta     tok_type
-        rts
-@neq:   jsr     lexer_getc
-        lda     #TOK_NEQ
-        sta     tok_type
-        rts
+        LDX     #0
+        LDA     lex_char
+        CMP     #'+'
+        BNE     :+
+        LDX     #TOK_PLUS
+:
+        CMP     #'-'
+        BNE     :+
+        LDX     #TOK_MINUS
+:
+        CMP     #'*'
+        BNE     :+
+        LDX     #TOK_STAR
+:
+        CMP     #'/'
+        BNE     :+
+        LDX     #TOK_SLASH
+:
+        CMP     #'='
+        BNE     :+
+        LDX     #TOK_EQ
+:
+        CMP     #'('
+        BNE     :+
+        LDX     #TOK_LPAREN
+:
+        CMP     #')'
+        BNE     :+
+        LDX     #TOK_RPAREN
+:
+        CMP     #'['
+        BNE     :+
+        LDX     #TOK_LBRACK
+:
+        CMP     #']'
+        BNE     :+
+        LDX     #TOK_RBRACK
+:
+        CMP     #','
+        BNE     :+
+        LDX     #TOK_COMMA
+:
+        CMP     #';'
+        BNE     :+
+        LDX     #TOK_SEMICOLON
+:
+        CMP     #'^'
+        BNE     :+
+        LDX     #TOK_CARET
+:
+        CMP     #'<'
+        BNE     @not_lt
+        JSR     lexer_getc
+        LDA     lex_char
+        CMP     #'='
+        BEQ     @leq
+        CMP     #'>'
+        BEQ     @neq
+        LDA     #TOK_LT
+        STA     tok_type
+        RTS
+@leq:
+        JSR     lexer_getc
+        LDA     #TOK_LEQ
+        STA     tok_type
+        RTS
+@neq:
+        JSR     lexer_getc
+        LDA     #TOK_NEQ
+        STA     tok_type
+        RTS
 @not_lt:
-        cmp     #'>'
-        bne     @not_gt
-        jsr     lexer_getc
-        lda     lex_char
-        cmp     #'='
-        beq     @geq
-        lda     #TOK_GT
-        sta     tok_type
-        rts
-@geq:   jsr     lexer_getc
-        lda     #TOK_GEQ
-        sta     tok_type
-        rts
+        CMP     #'>'
+        BNE     @not_gt
+        JSR     lexer_getc
+        LDA     lex_char
+        CMP     #'='
+        BEQ     @geq
+        LDA     #TOK_GT
+        STA     tok_type
+        RTS
+@geq:
+        JSR     lexer_getc
+        LDA     #TOK_GEQ
+        STA     tok_type
+        RTS
 @not_gt:
-        cmp     #':'
-        bne     @not_colon
-        jsr     lexer_getc
-        lda     lex_char
-        cmp     #'='
-        beq     @assign
-        lda     #TOK_COLON
-        sta     tok_type
-        rts
+        CMP     #':'
+        BNE     @not_colon
+        JSR     lexer_getc
+        LDA     lex_char
+        CMP     #'='
+        BEQ     @assign
+        LDA     #TOK_COLON
+        STA     tok_type
+        RTS
 @assign:
-        jsr     lexer_getc
-        lda     #TOK_ASSIGN
-        sta     tok_type
-        rts
+        JSR     lexer_getc
+        LDA     #TOK_ASSIGN
+        STA     tok_type
+        RTS
 @not_colon:
-        cmp     #'.'
-        bne     @not_dot
-        jsr     lexer_getc
-        lda     lex_char
-        cmp     #'.'
-        beq     @dotdot
-        lda     #TOK_DOT
-        sta     tok_type
-        rts
+        CMP     #'.'
+        BNE     @not_dot
+        JSR     lexer_getc
+        LDA     lex_char
+        CMP     #'.'
+        BEQ     @dotdot
+        LDA     #TOK_DOT
+        STA     tok_type
+        RTS
 @dotdot:
-        jsr     lexer_getc
-        lda     #TOK_DOTDOT
-        sta     tok_type
-        rts
+        JSR     lexer_getc
+        LDA     #TOK_DOTDOT
+        STA     tok_type
+        RTS
 @not_dot:
-        ; If a single-byte operator matched above, X holds its TOK_* code.
-        ; Otherwise X=0 and the character is unknown — skip and retry.
-        cpx     #0
-        beq     @unknown
-        txa
-        sta     tok_type
-        jsr     lexer_getc
-        rts
+; If a single-byte operator matched above, X holds its TOK_* code.
+; Otherwise X=0 and the character is unknown — skip and retry.
+        CPX     #0
+        BEQ     @unknown
+        TXA
+        STA     tok_type
+        JSR     lexer_getc
+        RTS
 @unknown:
-        jsr     lexer_getc
-        jmp     next_token
+        JSR     lexer_getc
+        JMP     next_token
 
 ; ---------------------------------------------------------------------------
 ; lexer_getc — fetch next character into lex_char
 ; Refills sector buffer via file_read_sector when empty
 ; ---------------------------------------------------------------------------
 lexer_getc:
-        phy                     ; preserve caller's Y across refill + read
-        lda     src_buf_pos
-        cmp     src_buf_end
-        bcc     @from_buf       ; still have data
-        ; refill buffer — set tmp1 to source FCB first
-        ; (other code paths leave tmp1 pointing at output FCB)
-        lda     src_fcb
-        sta     tmp1
-        lda     src_fcb+1
-        sta     tmp1+1
-        jsr     file_read_sector
-        cmp     #0
-        bne     @eof_char
-        lda     #128
-        sta     src_buf_end
-        lda     #0
-        sta     src_buf_pos
+        PHY                     ; preserve caller's Y across refill + read
+        LDA     src_buf_pos
+        CMP     src_buf_end
+        BCC     @from_buf       ; still have data
+; refill buffer — set tmp1 to source FCB first
+; (other code paths leave tmp1 pointing at output FCB)
+        LDA     src_fcb
+        STA     tmp1
+        LDA     src_fcb+1
+        STA     tmp1+1
+        JSR     file_read_sector
+        CMP     #0
+        BNE     @eof_char
+        LDA     #128
+        STA     src_buf_end
+        LDA     #0
+        STA     src_buf_pos
 @from_buf:
-        ldy     src_buf_pos
-        lda     DMA_BUF,y
-        inc     src_buf_pos
-        sta     lex_char
-        inc     lex_col
-        ply
-        rts
+        LDY     src_buf_pos
+        LDA     DMA_BUF,y
+        INC     src_buf_pos
+        STA     lex_char
+        INC     lex_col
+        PLY
+        RTS
 @eof_char:
-        lda     #0
-        sta     lex_char
-        ply
-        rts
+        LDA     #0
+        STA     lex_char
+        PLY
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; lookup_keyword — check ident_buf against keyword_table
 ; Returns: A = keyword token code, or TOK_IDENT if not found
 ; ---------------------------------------------------------------------------
 lookup_keyword:
-        lda     #<keyword_table
-        sta     tmp2
-        lda     #>keyword_table
-        sta     tmp2+1
+        LDA     #<keyword_table
+        STA     tmp2
+        LDA     #>keyword_table
+        STA     tmp2+1
 @next_kw:
-        ldy     #0
-        lda     (tmp2),y        ; keyword length (0 = sentinel)
-        beq     @not_found
-        cmp     ident_buf       ; compare lengths first
-        bne     @advance
-        tax                     ; X = length
-        ldy     #1
+        LDY     #0
+        LDA     (tmp2),y        ; keyword length (0 = sentinel)
+        BEQ     @not_found
+        CMP     ident_buf       ; compare lengths first
+        BNE     @advance
+        TAX                     ; X = length
+        LDY     #1
 @cmp_loop:
-        lda     (tmp2),y
-        cmp     ident_buf,y
-        bne     @advance
-        iny
-        dex
-        bne     @cmp_loop
-        ; match: token code is at offset length+1
-        ldy     ident_buf
-        iny
-        lda     (tmp2),y
-        rts
+        LDA     (tmp2),y
+        CMP     ident_buf,y
+        BNE     @advance
+        INY
+        DEX
+        BNE     @cmp_loop
+; match: token code is at offset length+1
+        LDY     ident_buf
+        INY
+        LDA     (tmp2),y
+        RTS
 @advance:
-        ; skip to next entry: advance tmp2 by (length+2)
-        ; (Y may be >0 if we got here from @cmp_loop — reset to 0 first)
-        ldy     #0
-        lda     (tmp2),y        ; length byte
-        clc
-        adc     #2              ; +1 for length byte, +1 for token byte
-        clc
-        adc     tmp2
-        sta     tmp2
-        bcc     :+
-        inc     tmp2+1
-:       bra     @next_kw
+; skip to next entry: advance tmp2 by (length+2)
+; (Y may be >0 if we got here from @cmp_loop — reset to 0 first)
+        LDY     #0
+        LDA     (tmp2),y        ; length byte
+        CLC
+        ADC     #2              ; +1 for length byte, +1 for token byte
+        CLC
+        ADC     tmp2
+        STA     tmp2
+        BCC     :+
+        INC     tmp2+1
+:
+        BRA     @next_kw
 @not_found:
-        lda     #TOK_IDENT
-        rts
+        LDA     #TOK_IDENT
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; is_letter — test lex_char; carry set if A-Z or a-z
 ; ---------------------------------------------------------------------------
 is_letter:
-        lda     lex_char
-        cmp     #'A'
-        bcc     @no
-        cmp     #'Z'+1
-        bcc     @yes
-        cmp     #'a'
-        bcc     @no
-        cmp     #'z'+1
-        bcc     @yes
-        cmp     #'_'
-        beq     @yes
-@no:    clc
-        rts
-@yes:   sec
-        rts
+        LDA     lex_char
+        CMP     #'A'
+        BCC     @no
+        CMP     #'Z'+1
+        BCC     @yes
+        CMP     #'a'
+        BCC     @no
+        CMP     #'z'+1
+        BCC     @yes
+        CMP     #'_'
+        BEQ     @yes
+@no:
+        CLC
+        RTS
+@yes:
+        SEC
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; is_digit — test lex_char; carry set if 0-9
 ; ---------------------------------------------------------------------------
 is_digit:
-        lda     lex_char
-        cmp     #'0'
-        bcc     @no
-        cmp     #'9'+1
-        bcs     @no
-        sec
-        rts
-@no:    clc
-        rts
+        LDA     lex_char
+        CMP     #'0'
+        BCC     @no
+        CMP     #'9'+1
+        BCS     @no
+        SEC
+        RTS
+@no:
+        CLC
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; to_upper — convert A to uppercase (A-Z,a-z only, others pass through)
 ; ---------------------------------------------------------------------------
 to_upper:
-        cmp     #'a'
-        bcc     @done
-        cmp     #'z'+1
-        bcs     @done
-        and     #$DF
-@done:  rts
+        CMP     #'a'
+        BCC     @done
+        CMP     #'z'+1
+        BCS     @done
+        AND     #$DF
+@done:
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; mul10_tokval — tokval = tokval*10 + A  (A = digit 0-9)
 ; ---------------------------------------------------------------------------
 mul10_tokval:
-        pha
-        ; multiply tok_ival by 10: x10 = x*8 + x*2
-        lda     tok_ival_lo
-        asl                     ; *2
-        sta     tmp2
-        lda     tok_ival_hi
-        rol
-        sta     tmp2+1
-        lda     tmp2            ; *4
-        asl
-        sta     tmp3
-        lda     tmp2+1
-        rol
-        sta     tmp3+1
-        lda     tmp3            ; *8
-        asl
-        sta     tmp3
-        lda     tmp3+1
-        rol
-        sta     tmp3+1
-        ; *10 = *8 + *2
-        lda     tmp3
-        clc
-        adc     tmp2
-        sta     tok_ival_lo
-        lda     tmp3+1
-        adc     tmp2+1
-        sta     tok_ival_hi
-        ; add digit
-        pla
-        clc
-        adc     tok_ival_lo
-        sta     tok_ival_lo
-        bcc     :+
-        inc     tok_ival_hi
-:       rts
+        PHA
+; multiply tok_ival by 10: x10 = x*8 + x*2
+        LDA     tok_ival_lo
+        ASL                     ; *2
+        STA     tmp2
+        LDA     tok_ival_hi
+        ROL
+        STA     tmp2+1
+        LDA     tmp2            ; *4
+        ASL
+        STA     tmp3
+        LDA     tmp2+1
+        ROL
+        STA     tmp3+1
+        LDA     tmp3            ; *8
+        ASL
+        STA     tmp3
+        LDA     tmp3+1
+        ROL
+        STA     tmp3+1
+; *10 = *8 + *2
+        LDA     tmp3
+        CLC
+        ADC     tmp2
+        STA     tok_ival_lo
+        LDA     tmp3+1
+        ADC     tmp2+1
+        STA     tok_ival_hi
+; add digit
+        PLA
+        CLC
+        ADC     tok_ival_lo
+        STA     tok_ival_lo
+        BCC     :+
+        INC     tok_ival_hi
+:
+        RTS

@@ -376,7 +376,7 @@ The `.COM` convention: FCB at $005C contains the first argument (8.3 filename, n
 extension needed — compiler assumes `.PAS`, runtime assumes `.PCD`).
 
 ### Console I/O
-- Output: FARCALL #19 (chrout, cursor-aware, auto-scroll)
+- Output: FARCALL #02 (chrout, cursor-aware, auto-scroll)
 - Input:  PEM fn 11 (status check) + PEM fn 1 (blocking read with echo)
 - The `WRITELN` opcode emits CR ($0D) + LF ($0A)
 

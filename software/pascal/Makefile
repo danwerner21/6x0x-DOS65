@@ -49,6 +49,8 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/symtab.asm symtab.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/codegen.asm codegen.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/iolib.asm  iolib.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/codegen.asm codegen.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/zeropage.asm zeropage.asm
 
 clean:
 	@rm -f *.o *.out *.com *.map *.lst *.s19

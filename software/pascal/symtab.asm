@@ -21,6 +21,8 @@ SYM_PROC        = 3
 SYM_FUNC        = 4
 SYM_TYPE        = 5
 SYM_PARAM       = 6
+SYM_RETVAL      = 7             ; binding for `funcname := expr` in fn body
+SYM_VARREF      = 8             ; VAR (by-reference) parameter — local slot holds an address
 
 ; Data type codes
 TY_INT          = 1
@@ -32,19 +34,20 @@ TY_RECORD       = 6
 TY_PTR          = 7
 TY_NONE         = 0             ; for procedures
 
-.segment "CODE"
+        .segment        "CODE"
 
 ; Number of entries currently in symbol table
-symtab_count:   .word 0
+symtab_count:
+        .WORD   0
 
 ; ---------------------------------------------------------------------------
 ; symtab_init — clear symbol table
 ; ---------------------------------------------------------------------------
 symtab_init:
-        lda     #0
-        sta     symtab_count
-        sta     symtab_count+1
-        rts
+        LDA     #0
+        STA     symtab_count
+        STA     symtab_count+1
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; symtab_find — look up ident_buf in symbol table
@@ -53,60 +56,62 @@ symtab_init:
 ; Searches from newest (highest index) to oldest for proper scoping
 ; ---------------------------------------------------------------------------
 symtab_find:
-        lda     symtab_count
-        ora     symtab_count+1
-        bne     :+
-        clc
-        rts                     ; empty table
+        LDA     symtab_count
+        ORA     symtab_count+1
+        BNE     :+
+        CLC
+        RTS                     ; empty table
 :
-        ; start from last entry
-        lda     symtab_count
-        sta     tmp2
-        lda     symtab_count+1
-        sta     tmp2+1
+; start from last entry
+        LDA     symtab_count
+        STA     tmp2
+        LDA     symtab_count+1
+        STA     tmp2+1
 @loop:
-        lda     tmp2
-        ora     tmp2+1
-        beq     @not_found
-        ; decrement tmp2
-        lda     tmp2
-        bne     :+
-        dec     tmp2+1
-:       dec     tmp2
-        ; compute entry address: SYMTAB_BASE + tmp2 * SYM_ENTRY_SZ
-        ; tmp2 * 32 = tmp2 << 5
-        lda     tmp2
-        asl
-        asl
-        asl
-        asl
-        asl                     ; *32
-        clc
-        adc     #<SYMTAB_BASE
-        sta     tmp3
-        lda     tmp2+1
-        rol
-        adc     #>SYMTAB_BASE
-        sta     tmp3+1
-        ; compare name length
-        ldy     #0
-        lda     (tmp3),y
-        cmp     ident_buf
-        bne     @loop
-        ; compare name chars
-        tax                     ; X = length
-        ldy     #0
-@cmp:   iny
-        lda     (tmp3),y
-        cmp     ident_buf,y
-        bne     @loop
-        dex
-        bne     @cmp
-        sec
-        rts
+        LDA     tmp2
+        ORA     tmp2+1
+        BEQ     @not_found
+; decrement tmp2
+        LDA     tmp2
+        BNE     :+
+        DEC     tmp2+1
+:
+        DEC     tmp2
+; compute entry address: SYMTAB_BASE + tmp2 * SYM_ENTRY_SZ
+; tmp2 * 32 = tmp2 << 5
+        LDA     tmp2
+        ASL
+        ASL
+        ASL
+        ASL
+        ASL                     ; *32
+        CLC
+        ADC     #<SYMTAB_BASE
+        STA     tmp3
+        LDA     tmp2+1
+        ROL
+        ADC     #>SYMTAB_BASE
+        STA     tmp3+1
+; compare name length
+        LDY     #0
+        LDA     (tmp3),y
+        CMP     ident_buf
+        BNE     @loop
+; compare name chars
+        TAX                     ; X = length
+        LDY     #0
+@cmp:
+        INY
+        LDA     (tmp3),y
+        CMP     ident_buf,y
+        BNE     @loop
+        DEX
+        BNE     @cmp
+        SEC
+        RTS
 @not_found:
-        clc
-        rts
+        CLC
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; symtab_add — add entry to symbol table
@@ -118,144 +123,148 @@ symtab_find:
 ; Returns: tmp3 = pointer to new entry; carry set = table full
 ; ---------------------------------------------------------------------------
 symtab_add:
-        pha                     ; save kind (A) — the rest of this routine clobbers A
-        txa
-        pha                     ; save data type (X)
-        ; check capacity
-        lda     symtab_count+1
-        cmp     #(SYMTAB_MAXSZ / SYM_ENTRY_SZ) >> 8
-        bcc     :+
-        lda     symtab_count
-        cmp     #(SYMTAB_MAXSZ / SYM_ENTRY_SZ) & $FF
-        bcc     :+
-        pla                     ; discard saved type
-        pla                     ; discard saved kind
-        sec
-        rts                     ; table full
+        PHA                     ; save kind (A) — the rest of this routine clobbers A
+        TXA
+        PHA                     ; save data type (X)
+; check capacity
+        LDA     symtab_count+1
+        CMP     #(SYMTAB_MAXSZ / SYM_ENTRY_SZ) >> 8
+        BCC     :+
+        LDA     symtab_count
+        CMP     #(SYMTAB_MAXSZ / SYM_ENTRY_SZ) & $FF
+        BCC     :+
+        PLA                     ; discard saved type
+        PLA                     ; discard saved kind
+        SEC
+        RTS                     ; table full
 
 :       ; compute address of new entry
-        lda     symtab_count
-        asl
-        asl
-        asl
-        asl
-        asl                     ; *32
-        clc
-        adc     #<SYMTAB_BASE
-        sta     tmp3
-        lda     symtab_count+1
-        rol
-        adc     #>SYMTAB_BASE
-        sta     tmp3+1
+        LDA     symtab_count
+        ASL
+        ASL
+        ASL
+        ASL
+        ASL                     ; *32
+        CLC
+        ADC     #<SYMTAB_BASE
+        STA     tmp3
+        LDA     symtab_count+1
+        ROL
+        ADC     #>SYMTAB_BASE
+        STA     tmp3+1
 
-        ; copy name
-        ldy     #0
-        lda     ident_buf       ; length
-        sta     (tmp3),y
-        tax
+; copy name
+        LDY     #0
+        LDA     ident_buf       ; length
+        STA     (tmp3),y
+        TAX
 @name_copy:
-        iny
-        lda     ident_buf,y
-        sta     (tmp3),y
-        dex
-        bne     @name_copy
+        INY
+        LDA     ident_buf,y
+        STA     (tmp3),y
+        DEX
+        BNE     @name_copy
 
-        ; fill unused name bytes with space
-        iny
-@pad:   cpy     #16
-        bcs     @done_pad
-        lda     #' '
-        sta     (tmp3),y
-        iny
-        bra     @pad
+; fill unused name bytes with space
+        INY
+@pad:
+        CPY     #16
+        BCS     @done_pad
+        LDA     #' '
+        STA     (tmp3),y
+        INY
+        BRA     @pad
 @done_pad:
 
-        ; data type (was saved on stack first)
-        pla
-        ldy     #17
-        sta     (tmp3),y
+; data type (was saved on stack first)
+        PLA
+        LDY     #17
+        STA     (tmp3),y
 
-        ; kind (was saved on stack second-to-last → on top first)
-        pla
-        ldy     #16
-        sta     (tmp3),y
+; kind (was saved on stack second-to-last → on top first)
+        PLA
+        LDY     #16
+        STA     (tmp3),y
 
-        ; value/offset
-        lda     tmp2
-        ldy     #18
-        sta     (tmp3),y
-        lda     tmp2+1
-        ldy     #19
-        sta     (tmp3),y
+; value/offset
+        LDA     tmp2
+        LDY     #18
+        STA     (tmp3),y
+        LDA     tmp2+1
+        LDY     #19
+        STA     (tmp3),y
 
-        ; scope depth
-        lda     scope_depth
-        ldy     #20
-        sta     (tmp3),y
+; scope depth
+        LDA     scope_depth
+        LDY     #20
+        STA     (tmp3),y
 
-        ; zero rest
-        lda     #0
-        ldy     #21
-@zero:  sta     (tmp3),y
-        iny
-        cpy     #SYM_ENTRY_SZ
-        bcc     @zero
+; zero rest
+        LDA     #0
+        LDY     #21
+@zero:
+        STA     (tmp3),y
+        INY
+        CPY     #SYM_ENTRY_SZ
+        BCC     @zero
 
-        ; increment count
-        inc     symtab_count
-        bne     :+
-        inc     symtab_count+1
-:       clc
-        rts
+; increment count
+        INC     symtab_count
+        BNE     :+
+        INC     symtab_count+1
+:
+        CLC
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; symtab_enter_scope — increment scope depth
 ; ---------------------------------------------------------------------------
 symtab_enter_scope:
-        inc     scope_depth
-        rts
+        INC     scope_depth
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; symtab_leave_scope — remove all entries at current scope, decrement depth
 ; ---------------------------------------------------------------------------
 symtab_leave_scope:
-        ; Remove all entries added at current scope depth, then decrement depth.
-        ; Entries are appended in order, so trim from the end.
-@trim:  lda     symtab_count
-        ora     symtab_count+1
-        beq     @done           ; table empty
-        ; compute address of last entry: SYMTAB_BASE + (count-1)*32
-        lda     symtab_count
-        sec
-        sbc     #1
-        sta     tmp2
-        lda     symtab_count+1
-        sbc     #0
-        sta     tmp2+1
-        ; tmp2 * 32 (shift left 5) → entry address
-        lda     tmp2
-        asl
-        asl
-        asl
-        asl
-        asl
-        clc
-        adc     #<SYMTAB_BASE
-        sta     tmp3
-        lda     tmp2+1
-        rol
-        adc     #>SYMTAB_BASE
-        sta     tmp3+1
-        ; check scope depth field (offset 20 in entry)
-        ldy     #20
-        lda     (tmp3),y
-        cmp     scope_depth
-        bne     @done           ; entry belongs to an outer scope — stop
-        ; remove this entry
-        dec     symtab_count
-        bne     @trim
-        dec     symtab_count+1
-        bra     @trim
+; Remove all entries added at current scope depth, then decrement depth.
+; Entries are appended in order, so trim from the end.
+@trim:
+        LDA     symtab_count
+        ORA     symtab_count+1
+        BEQ     @done           ; table empty
+; compute address of last entry: SYMTAB_BASE + (count-1)*32
+        LDA     symtab_count
+        SEC
+        SBC     #1
+        STA     tmp2
+        LDA     symtab_count+1
+        SBC     #0
+        STA     tmp2+1
+; tmp2 * 32 (shift left 5) → entry address
+        LDA     tmp2
+        ASL
+        ASL
+        ASL
+        ASL
+        ASL
+        CLC
+        ADC     #<SYMTAB_BASE
+        STA     tmp3
+        LDA     tmp2+1
+        ROL
+        ADC     #>SYMTAB_BASE
+        STA     tmp3+1
+; check scope depth field (offset 20 in entry)
+        LDY     #20
+        LDA     (tmp3),y
+        CMP     scope_depth
+        BNE     @done           ; entry belongs to an outer scope — stop
+; remove this entry
+        DEC     symtab_count
+        BNE     @trim
+        DEC     symtab_count+1
+        BRA     @trim
 @done:
-        dec     scope_depth
-        rts
+        DEC     scope_depth
+        RTS

@@ -3,269 +3,313 @@
 ; All generated p-code accumulates in CODEBUF_BASE.
 ; cg_pc (zero page) tracks the next write offset.
 
-.segment "CODE"
+        .segment        "CODE"
 
 ; ---------------------------------------------------------------------------
 ; emit_byte — append byte A to code buffer
 ; ---------------------------------------------------------------------------
 emit_byte:
-        pha                     ; save byte to emit
-        ; check buffer full
-        lda     cg_pc+1
-        cmp     #>CODEBUF_MAXSZ
-        bcc     :+
-        lda     cg_pc
-        cmp     #<CODEBUF_MAXSZ
-        bcc     :+
-        ; error: p-code buffer full
-        pla
-        lda     #<err_pcd_full
-        sta     tmp0
-        lda     #>err_pcd_full
-        sta     tmp0+1
-        jsr     compile_error
-        rts
+        PHA                     ; save byte to emit
+; check buffer full
+        LDA     cg_pc+1
+        CMP     #>CODEBUF_MAXSZ
+        BCC     :+
+        LDA     cg_pc
+        CMP     #<CODEBUF_MAXSZ
+        BCC     :+
+; error: p-code buffer full
+        PLA
+        LDA     #<err_pcd_full
+        STA     tmp0
+        LDA     #>err_pcd_full
+        STA     tmp0+1
+        JSR     compile_error
+        RTS
 :
-        ; store at CODEBUF_BASE + cg_pc
-        lda     cg_pc
-        clc
-        adc     #<CODEBUF_BASE
-        sta     tmp2
-        lda     cg_pc+1
-        adc     #>CODEBUF_BASE
-        sta     tmp2+1
-        pla
-        ldy     #0
-        sta     (tmp2),y
-        ; advance cg_pc
-        inc     cg_pc
-        bne     :+
-        inc     cg_pc+1
-:       rts
+; store at CODEBUF_BASE + cg_pc
+        LDA     cg_pc
+        CLC
+        ADC     #<CODEBUF_BASE
+        STA     tmp2
+        LDA     cg_pc+1
+        ADC     #>CODEBUF_BASE
+        STA     tmp2+1
+        PLA
+        LDY     #0
+        STA     (tmp2),y
+; advance cg_pc
+        INC     cg_pc
+        BNE     :+
+        INC     cg_pc+1
+:
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; emit_word — append word (lo then hi) from tmp2 to code buffer
 ; ---------------------------------------------------------------------------
 emit_word:
-        lda     tmp2
-        jsr     emit_byte
-        lda     tmp2+1
-        jsr     emit_byte
-        rts
+        LDA     tmp2
+        JSR     emit_byte
+        LDA     tmp2+1
+        JSR     emit_byte
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; emit_opcode — emit single opcode byte in A
 ; ---------------------------------------------------------------------------
 emit_opcode:
-        jsr     emit_byte
-        rts
+        JSR     emit_byte
+        RTS
 
 ; --- Constant emitters ---
 
 emit_LDCI:                      ; push sign-extended byte in A
-        pha
-        lda     #OP_LDCI
-        jsr     emit_byte
-        pla
-        jsr     emit_byte
-        rts
+        PHA
+        LDA     #OP_LDCI
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        RTS
 
 emit_LDCW:                      ; push word: lo in A, hi in scratch
-        pha
-        lda     #OP_LDCW
-        jsr     emit_byte
-        pla
-        jsr     emit_byte
-        lda     scratch
-        jsr     emit_byte
-        rts
+        PHA
+        LDA     #OP_LDCW
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        LDA     scratch
+        JSR     emit_byte
+        RTS
 
 emit_LDCC:                      ; push char in A
-        pha
-        lda     #OP_LDCC
-        jsr     emit_byte
-        pla
-        jsr     emit_byte
-        rts
+        PHA
+        LDA     #OP_LDCC
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        RTS
 
 emit_LDCB:                      ; push boolean in A (0=false, 1=true)
-        pha
-        lda     #OP_LDCB
-        jsr     emit_byte
-        pla
-        jsr     emit_byte
-        rts
+        PHA
+        LDA     #OP_LDCB
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        RTS
 
 emit_LDCN:
-        lda     #OP_LDCN
-        jsr     emit_byte
-        rts
+        LDA     #OP_LDCN
+        JSR     emit_byte
+        RTS
+
+; emit_LDCS — emit OP_LDCS followed by length byte and string bytes.
+; Source string lives in ident_buf (length at [0], chars at [1..N]).
+; The runtime will inline-fetch length+chars and push the address of
+; the length byte as a Pascal-style string pointer.
+emit_LDCS:
+        LDA     #OP_LDCS
+        JSR     emit_byte
+        LDA     ident_buf       ; length
+        STA     scratch         ; counter / length cache
+        JSR     emit_byte       ; emit length byte
+        LDX     #0
+@loop:
+        CPX     scratch
+        BCS     @done
+        LDA     ident_buf+1,x
+        PHX
+        JSR     emit_byte       ; clobbers tmp2 only
+        PLX
+        INX
+        BRA     @loop
+@done:
+        RTS
 
 ; --- Local variable emitters ---
 
 emit_LDL:                       ; byte offset in A
-        pha
-        lda     #OP_LDL
-        jsr     emit_byte
-        pla
-        jsr     emit_byte
-        rts
+        PHA
+        LDA     #OP_LDL
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        RTS
 
 emit_STL:
-        pha
-        lda     #OP_STL
-        jsr     emit_byte
-        pla
-        jsr     emit_byte
-        rts
+        PHA
+        LDA     #OP_STL
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        RTS
 
 emit_LDA_L:
-        pha
-        lda     #OP_LDA_L
-        jsr     emit_byte
-        pla
-        jsr     emit_byte
-        rts
+        PHA
+        LDA     #OP_LDA_L
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        RTS
 
 ; --- Global variable emitters ---
 
 emit_LDG:                       ; word offset: lo in A, hi in scratch
-        pha
-        lda     #OP_LDG
-        jsr     emit_byte
-        pla
-        jsr     emit_byte
-        lda     scratch
-        jsr     emit_byte
-        rts
+        PHA
+        LDA     #OP_LDG
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        LDA     scratch
+        JSR     emit_byte
+        RTS
 
 emit_STG:
-        pha
-        lda     #OP_STG
-        jsr     emit_byte
-        pla
-        jsr     emit_byte
-        lda     scratch
-        jsr     emit_byte
-        rts
+        PHA
+        LDA     #OP_STG
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        LDA     scratch
+        JSR     emit_byte
+        RTS
+
+emit_LDA_G:                     ; word offset: lo in A, hi in scratch
+        PHA
+        LDA     #OP_LDA_G
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        LDA     scratch
+        JSR     emit_byte
+        RTS
+
+; --- Indirect (VAR-param) emitters ---
+
+emit_LDIND:
+        LDA     #OP_LDIND
+        JMP     emit_byte
+
+emit_STIND:
+        LDA     #OP_STIND
+        JMP     emit_byte
 
 ; --- Arithmetic emitters ---
 
 emit_ADI:
-        lda     #OP_ADI
-        jmp     emit_byte
+        LDA     #OP_ADI
+        JMP     emit_byte
 
 emit_SBI:
-        lda     #OP_SBI
-        jmp     emit_byte
+        LDA     #OP_SBI
+        JMP     emit_byte
 
 emit_MPI:
-        lda     #OP_MPI
-        jmp     emit_byte
+        LDA     #OP_MPI
+        JMP     emit_byte
 
 emit_DVI:
-        lda     #OP_DVI
-        jmp     emit_byte
+        LDA     #OP_DVI
+        JMP     emit_byte
 
 emit_MOD:
-        lda     #OP_MOD
-        jmp     emit_byte
+        LDA     #OP_MOD
+        JMP     emit_byte
 
 emit_NGI:
-        lda     #OP_NGI
-        jmp     emit_byte
+        LDA     #OP_NGI
+        JMP     emit_byte
 
 ; --- Comparison emitters ---
 
 emit_EQUI:
-        lda     #OP_EQUI
-        jmp     emit_byte
+        LDA     #OP_EQUI
+        JMP     emit_byte
 
 emit_NEQI:
-        lda     #OP_NEQI
-        jmp     emit_byte
+        LDA     #OP_NEQI
+        JMP     emit_byte
 
 emit_LESI:
-        lda     #OP_LESI
-        jmp     emit_byte
+        LDA     #OP_LESI
+        JMP     emit_byte
 
 emit_LEQI:
-        lda     #OP_LEQI
-        jmp     emit_byte
+        LDA     #OP_LEQI
+        JMP     emit_byte
 
 emit_GTRI:
-        lda     #OP_GTRI
-        jmp     emit_byte
+        LDA     #OP_GTRI
+        JMP     emit_byte
 
 emit_GEQI:
-        lda     #OP_GEQI
-        jmp     emit_byte
+        LDA     #OP_GEQI
+        JMP     emit_byte
 
 ; --- Logical ---
 
 emit_LAND:
-        lda     #OP_LAND
-        jmp     emit_byte
+        LDA     #OP_LAND
+        JMP     emit_byte
 
 emit_LOR:
-        lda     #OP_LOR
-        jmp     emit_byte
+        LDA     #OP_LOR
+        JMP     emit_byte
 
 emit_LNOT:
-        lda     #OP_LNOT
-        jmp     emit_byte
+        LDA     #OP_LNOT
+        JMP     emit_byte
 
 ; --- Jump emitters ---
 ; Returns: A/scratch = offset of the word operand in code buffer
 ; (needed for backpatching)
 
 emit_UJP:                       ; emit UJP with placeholder offset
-        lda     #OP_UJP
-        jsr     emit_byte
-        lda     cg_pc           ; save patch address
-        pha
-        lda     cg_pc+1
-        pha
-        lda     #$00
-        jsr     emit_byte       ; placeholder lo
-        lda     #$00
-        jsr     emit_byte       ; placeholder hi
-        pla
-        sta     scratch
-        pla                     ; lo of patch address
-        rts                     ; caller: save A/scratch as patch point
+        LDA     #OP_UJP
+        JSR     emit_byte
+        LDA     cg_pc           ; save patch address
+        PHA
+        LDA     cg_pc+1
+        PHA
+        LDA     #$00
+        JSR     emit_byte       ; placeholder lo
+        LDA     #$00
+        JSR     emit_byte       ; placeholder hi
+        PLA
+        STA     scratch
+        PLA                     ; lo of patch address
+        RTS                     ; caller: save A/scratch as patch point
 
 emit_FJP:
-        lda     #OP_FJP
-        jsr     emit_byte
-        lda     cg_pc
-        pha
-        lda     cg_pc+1
-        pha
-        lda     #$00
-        jsr     emit_byte
-        lda     #$00
-        jsr     emit_byte
-        pla
-        sta     scratch
-        pla
-        rts
+        LDA     #OP_FJP
+        JSR     emit_byte
+        LDA     cg_pc
+        PHA
+        LDA     cg_pc+1
+        PHA
+        LDA     #$00
+        JSR     emit_byte
+        LDA     #$00
+        JSR     emit_byte
+        PLA
+        STA     scratch
+        PLA
+        RTS
 
 emit_TJP:
-        lda     #OP_TJP
-        jsr     emit_byte
-        lda     cg_pc
-        pha
-        lda     cg_pc+1
-        pha
-        lda     #$00
-        jsr     emit_byte
-        lda     #$00
-        jsr     emit_byte
-        pla
-        sta     scratch
-        pla
-        rts
+        LDA     #OP_TJP
+        JSR     emit_byte
+        LDA     cg_pc
+        PHA
+        LDA     cg_pc+1
+        PHA
+        LDA     #$00
+        JSR     emit_byte
+        LDA     #$00
+        JSR     emit_byte
+        PLA
+        STA     scratch
+        PLA
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; patch_jump — fill in jump offset at patch address stored in tmp2 (word)
@@ -273,116 +317,152 @@ emit_TJP:
 ; i.e. relative to instruction after the operand word
 ; ---------------------------------------------------------------------------
 patch_jump:
-        ; delta = cg_pc - (patch_addr + 2)
-        ;   compute (cg_pc - 2) first, then subtract patch_addr
-        lda     cg_pc
-        sec
-        sbc     #2
-        sta     scratch         ; lo of (cg_pc - 2)
-        lda     cg_pc+1
-        sbc     #0
-        sta     scratch+1       ; hi of (cg_pc - 2)
-        sec
-        lda     scratch
-        sbc     tmp2
-        pha
-        lda     scratch+1
-        sbc     tmp2+1
-        sta     scratch+1       ; high byte of delta
-        pla
-        sta     scratch         ; low byte of delta
-        ; write delta at patch address (CODEBUF_BASE + tmp2)
-        lda     tmp2
-        clc
-        adc     #<CODEBUF_BASE
-        sta     tmp3
-        lda     tmp2+1
-        adc     #>CODEBUF_BASE
-        sta     tmp3+1
-        ldy     #0
-        lda     scratch
-        sta     (tmp3),y
-        iny
-        lda     scratch+1
-        sta     (tmp3),y
-        rts
+; delta = cg_pc - (patch_addr + 2)
+;   compute (cg_pc - 2) first, then subtract patch_addr
+        LDA     cg_pc
+        SEC
+        SBC     #2
+        STA     scratch         ; lo of (cg_pc - 2)
+        LDA     cg_pc+1
+        SBC     #0
+        STA     scratch+1       ; hi of (cg_pc - 2)
+        SEC
+        LDA     scratch
+        SBC     tmp2
+        PHA
+        LDA     scratch+1
+        SBC     tmp2+1
+        STA     scratch+1       ; high byte of delta
+        PLA
+        STA     scratch         ; low byte of delta
+; write delta at patch address (CODEBUF_BASE + tmp2)
+        LDA     tmp2
+        CLC
+        ADC     #<CODEBUF_BASE
+        STA     tmp3
+        LDA     tmp2+1
+        ADC     #>CODEBUF_BASE
+        STA     tmp3+1
+        LDY     #0
+        LDA     scratch
+        STA     (tmp3),y
+        INY
+        LDA     scratch+1
+        STA     (tmp3),y
+        RTS
 
 ; --- I/O emitters ---
 
 emit_WRITI:
-        lda     #OP_WRITI
-        jmp     emit_byte
+        LDA     #OP_WRITI
+        JMP     emit_byte
 
 emit_WRITC:
-        lda     #OP_WRITC
-        jmp     emit_byte
+        LDA     #OP_WRITC
+        JMP     emit_byte
 
 emit_WRITB:
-        lda     #OP_WRITB
-        jmp     emit_byte
+        LDA     #OP_WRITB
+        JMP     emit_byte
 
 emit_WRITS:
-        lda     #OP_WRITS
-        jmp     emit_byte
+        LDA     #OP_WRITS
+        JMP     emit_byte
 
 emit_WRITLN:
-        lda     #OP_WRITLN
-        jmp     emit_byte
+        LDA     #OP_WRITLN
+        JMP     emit_byte
 
 emit_READI:
-        lda     #OP_READI
-        jmp     emit_byte
+        LDA     #OP_READI
+        JMP     emit_byte
 
 emit_READC:
-        lda     #OP_READC
-        jmp     emit_byte
+        LDA     #OP_READC
+        JMP     emit_byte
 
 ; --- Stack ---
 
 emit_DUP:
-        lda     #OP_DUP
-        jmp     emit_byte
+        LDA     #OP_DUP
+        JMP     emit_byte
 
 emit_POP:
-        lda     #OP_POP
-        jmp     emit_byte
+        LDA     #OP_POP
+        JMP     emit_byte
 
 ; --- Calls ---
 
 emit_MRKSTK:                    ; local size in A
-        pha
-        lda     #OP_MRKSTK
-        jsr     emit_byte
-        pla
-        jmp     emit_byte
+        PHA
+        LDA     #OP_MRKSTK
+        JSR     emit_byte
+        PLA
+        JMP     emit_byte
 
 emit_RET:
-        lda     #OP_RET
-        jmp     emit_byte
+        LDA     #OP_RET
+        JMP     emit_byte
 
 emit_RETF:
-        lda     #OP_RETF
-        jmp     emit_byte
+        LDA     #OP_RETF
+        JMP     emit_byte
+
+emit_STR:
+        LDA     #OP_STR
+        JMP     emit_byte
+
+; emit_CALL — A = target absolute code-buffer addr lo, scratch = hi
+; Emits OP_CALL + signed 16-bit offset = target - (cg_pc_after_operand)
+emit_CALL:
+        PHA                     ; target lo
+        LDA     scratch
+        PHA                     ; target hi
+        LDA     #OP_CALL
+        JSR     emit_byte       ; clobbers tmp2; preserves scratch & 6502 stack
+; compute offset = target - cg_pc - 2 (16-bit)
+        PLA                     ; target hi
+        TAX
+        PLA                     ; target lo
+        SEC
+        SBC     #2
+        PHA                     ; partial lo
+        TXA                     ; target hi
+        SBC     #0
+        STA     scratch         ; partial hi
+        PLA                     ; partial lo
+        SEC
+        SBC     cg_pc
+        PHA                     ; offset lo
+        LDA     scratch
+        SBC     cg_pc+1
+        STA     scratch         ; offset hi
+        PLA
+        JSR     emit_byte       ; emit offset lo
+        LDA     scratch
+        JSR     emit_byte       ; emit offset hi
+        RTS
 
 emit_HALT:
-        lda     #OP_HALT
-        jmp     emit_byte
+        LDA     #OP_HALT
+        JMP     emit_byte
 
 ; ---------------------------------------------------------------------------
 ; codegen_alloc_global — reserve N bytes in global area; return offset in tmp2
 ; N in A
 ; ---------------------------------------------------------------------------
 codegen_alloc_global:
-        lda     cg_globals
-        sta     tmp2
-        lda     cg_globals+1
-        sta     tmp2+1
-        ; advance by N (passed in A — caller puts size here)
-        ; For now allocate 2 bytes (word) per variable
-        lda     cg_globals
-        clc
-        adc     #2
-        sta     cg_globals
-        bcc     :+
-        inc     cg_globals+1
-:       rts
+        LDA     cg_globals
+        STA     tmp2
+        LDA     cg_globals+1
+        STA     tmp2+1
+; advance by N (passed in A — caller puts size here)
+; For now allocate 2 bytes (word) per variable
+        LDA     cg_globals
+        CLC
+        ADC     #2
+        STA     cg_globals
+        BCC     :+
+        INC     cg_globals+1
+:
+        RTS

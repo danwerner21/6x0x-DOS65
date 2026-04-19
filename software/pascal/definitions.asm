@@ -8,9 +8,6 @@ WARM_BOOT       = $0100
 DEFAULT_FCB     = $0107         ; DOS/65 dflfcb (parsed argument FCB)
 DMA_BUF         = $0128         ; DOS/65 dflbuf (default DMA buffer)
 
-FARFUNCT        = $32           ; zero-page: FARCALL function number
-DO_FARCALL      = $FFF0
-
 ; PEM function numbers
 PEM_CONIN       = 1             ; console input with echo (blocking)
 PEM_CONOUT      = 2             ; console output (A=char)
@@ -23,16 +20,6 @@ PEM_DELETE      = 19
 PEM_READ        = 20
 PEM_WRITE       = 21
 PEM_MAKE        = 22
-
-; FARCALL function numbers
-FC_CHROUT       = 19            ; output char (A=char)
-FC_RDKBD        = 20            ; read keyboard non-blocking (A=key or $FF)
-FC_SETCUR       = 37            ; set cursor (X=col, Y=row)
-FC_CLRSCR       = 38            ; clear screen
-FC_SETCOLOR     = 39            ; set color (X=fg|bg, Y=cursor)
-FC_SCROLL       = 56            ; scroll down
-FC_HIDECUR      = 58            ; unpaint cursor
-FC_SHOWCUR      = 59            ; paint cursor
 
 ; ---------------------------------------------------------------------------
 ; P-code opcodes
@@ -106,6 +93,7 @@ OP_RET          = $62           ; return from procedure
 OP_RETF         = $63           ; return from function (leave result on stack)
 OP_MRKSTK       = $64           ; set up activation record (byte: local size)
 OP_DEPSTK       = $65           ; tear down activation record
+OP_STR          = $66           ; pop word, store at MP+AR_RET_VAL (function result)
 
 ; --- Heap ---
 OP_NEW          = $70           ; allocate (word size follows); push pointer
@@ -212,25 +200,6 @@ TOK_WITH        = $5C
 ; ---------------------------------------------------------------------------
 ; Useful macros
 ; ---------------------------------------------------------------------------
-
-; Call a FARCALL function that does NOT use A as input (clobbers A).
-; Use for FC_CLRSCR, FC_SCROLL, FC_SETCUR, FC_SETCOLOR, etc.
-.macro FARCALL func
-        lda     #func
-        sta     FARFUNCT
-        jsr     DO_FARCALL
-.endmacro
-
-; Output the character already in A via FARCALL #2.
-; PEM_CONOUT requires A=char when DO_FARCALL is called, so we must
-; set FARFUNCT first, then restore the char before the jsr.
-.macro CHROUT
-        pha
-        lda     #PEM_CONOUT
-        sta     FARFUNCT
-        pla
-        jsr     DO_FARCALL
-.endmacro
 
 ; Call PEM with function number in X
 .macro PEM func
