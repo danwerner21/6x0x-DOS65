@@ -1,0 +1,7 @@
+PROGRAM T09;
+VAR
+  I : INTEGER;
+BEGIN
+  FOR I := 1 TO 5 DO
+    WRITELN(I)
+END.

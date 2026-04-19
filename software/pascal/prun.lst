@@ -1,0 +1,1876 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : prun.asm
+Current file: prun.asm
+
+000000r 1               ; prun.asm — P-Code Runtime for DOS/65
+000000r 1               ;
+000000r 1               ; Usage: PRUN <filename>   (loads <filename>.PCD and executes it)
+000000r 1               ;
+000000r 1               ; Memory layout at runtime:
+000000r 1               ;   $0800-$13FF  this interpreter (code, dispatch tables, FCB, iolib, msgs)
+000000r 1               ;   $1400-$1FFF  p-code loaded from .PCD (3 KB)
+000000r 1               ;   $2000-$7FFF  p-machine value stack (grows up)
+000000r 1               ;   $8000-$AFFF  heap (grows down from $B000)
+000000r 1               ;   $B000-$B7DF  globals + string pool
+000000r 1               
+000000r 1               .include "definitions.asm"
+000000r 2               ; definitions.asm — constants, token codes, p-code opcodes, macros
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; DOS/65 system entry points
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               PEM_ENTRY       = $0103         ; JSR here; function # in X
+000000r 2               WARM_BOOT       = $0100
+000000r 2               DEFAULT_FCB     = $0107         ; DOS/65 dflfcb (parsed argument FCB)
+000000r 2               DMA_BUF         = $0128         ; DOS/65 dflbuf (default DMA buffer)
+000000r 2               
+000000r 2               FARFUNCT        = $32           ; zero-page: FARCALL function number
+000000r 2               DO_FARCALL      = $FFF0
+000000r 2               
+000000r 2               ; PEM function numbers
+000000r 2               PEM_CONIN       = 1             ; console input with echo (blocking)
+000000r 2               PEM_CONOUT      = 2             ; console output (A=char)
+000000r 2               PEM_DIRCON      = 6             ; direct console I/O (BLOCKING — use fn 11 first)
+000000r 2               PEM_CONSTAT     = 11            ; console status (non-blocking)
+000000r 2               PEM_OPEN        = 15
+000000r 2               PEM_CLOSE       = 16
+000000r 2               PEM_SEARCH      = 17
+000000r 2               PEM_DELETE      = 19
+000000r 2               PEM_READ        = 20
+000000r 2               PEM_WRITE       = 21
+000000r 2               PEM_MAKE        = 22
+000000r 2               
+000000r 2               ; FARCALL function numbers
+000000r 2               FC_CHROUT       = 19            ; output char (A=char)
+000000r 2               FC_RDKBD        = 20            ; read keyboard non-blocking (A=key or $FF)
+000000r 2               FC_SETCUR       = 37            ; set cursor (X=col, Y=row)
+000000r 2               FC_CLRSCR       = 38            ; clear screen
+000000r 2               FC_SETCOLOR     = 39            ; set color (X=fg|bg, Y=cursor)
+000000r 2               FC_SCROLL       = 56            ; scroll down
+000000r 2               FC_HIDECUR      = 58            ; unpaint cursor
+000000r 2               FC_SHOWCUR      = 59            ; paint cursor
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; P-code opcodes
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               
+000000r 2               ; --- Constants ---
+000000r 2               OP_LDCI         = $00           ; push sign-extended byte constant
+000000r 2               OP_LDCW         = $01           ; push word constant (lo, hi)
+000000r 2               OP_LDCC         = $02           ; push char constant
+000000r 2               OP_LDCB         = $03           ; push boolean constant (0/1)
+000000r 2               OP_LDCS         = $04           ; push string constant (len + bytes)
+000000r 2               OP_LDCN         = $05           ; push NIL
+000000r 2               
+000000r 2               ; --- Local variable access ---
+000000r 2               OP_LDL          = $10           ; push 16-bit local (byte offset from MP+8)
+000000r 2               OP_STL          = $11           ; pop into 16-bit local
+000000r 2               OP_LDA_L        = $12           ; push address of local
+000000r 2               OP_LDB_L        = $13           ; push byte/char/bool local
+000000r 2               OP_STB_L        = $14           ; pop byte into local
+000000r 2               
+000000r 2               ; --- Global variable access ---
+000000r 2               OP_LDG          = $18           ; push 16-bit global (word offset from BASE)
+000000r 2               OP_STG          = $19           ; pop into 16-bit global
+000000r 2               OP_LDA_G        = $1A           ; push address of global
+000000r 2               OP_LDB_G        = $1B           ; push byte global
+000000r 2               OP_STB_G        = $1C           ; pop byte into global
+000000r 2               
+000000r 2               ; --- Indirect / array ---
+000000r 2               OP_LDIND        = $20           ; TOS=addr → push word at addr
+000000r 2               OP_STIND        = $21           ; NOS=addr, TOS=val → store
+000000r 2               OP_LDB_IND      = $22           ; TOS=addr → push byte at addr
+000000r 2               OP_STB_IND      = $23           ; NOS=addr, TOS=val → store byte
+000000r 2               OP_INDEX        = $24           ; array index: addr=NOS+TOS*elemsize (word follows)
+000000r 2               
+000000r 2               ; --- Integer arithmetic ---
+000000r 2               OP_ADI          = $30
+000000r 2               OP_SBI          = $31
+000000r 2               OP_MPI          = $32
+000000r 2               OP_DVI          = $33
+000000r 2               OP_MOD          = $34
+000000r 2               OP_NGI          = $35           ; negate
+000000r 2               OP_ABI          = $36           ; absolute value
+000000r 2               OP_SQI          = $37           ; square
+000000r 2               
+000000r 2               ; --- Logical / bitwise ---
+000000r 2               OP_LAND         = $38
+000000r 2               OP_LOR          = $39
+000000r 2               OP_LNOT         = $3A           ; logical NOT ($0000 ↔ $FFFF)
+000000r 2               OP_BNOT         = $3B           ; bitwise complement
+000000r 2               
+000000r 2               ; --- Comparison (push $FFFF=true, $0000=false) ---
+000000r 2               OP_EQUI         = $40
+000000r 2               OP_NEQI         = $41
+000000r 2               OP_LESI         = $42
+000000r 2               OP_LEQI         = $43
+000000r 2               OP_GTRI         = $44
+000000r 2               OP_GEQI         = $45
+000000r 2               OP_EQUB         = $46           ; byte equality
+000000r 2               OP_EQUS         = $47           ; string equality
+000000r 2               
+000000r 2               ; --- Control flow ---
+000000r 2               OP_UJP          = $50           ; unconditional jump (signed word offset)
+000000r 2               OP_FJP          = $51           ; jump if false (pop TOS)
+000000r 2               OP_TJP          = $52           ; jump if true  (pop TOS)
+000000r 2               OP_IXPJP        = $53           ; case jump table
+000000r 2               
+000000r 2               ; --- Procedure/function calls ---
+000000r 2               OP_CALL         = $60           ; call (signed word offset from current IPC)
+000000r 2               OP_CALI         = $61           ; call absolute address (word)
+000000r 2               OP_RET          = $62           ; return from procedure
+000000r 2               OP_RETF         = $63           ; return from function (leave result on stack)
+000000r 2               OP_MRKSTK       = $64           ; set up activation record (byte: local size)
+000000r 2               OP_DEPSTK       = $65           ; tear down activation record
+000000r 2               
+000000r 2               ; --- Heap ---
+000000r 2               OP_NEW          = $70           ; allocate (word size follows); push pointer
+000000r 2               OP_DISP         = $71           ; free pointer on TOS
+000000r 2               
+000000r 2               ; --- I/O ---
+000000r 2               OP_WRITI        = $80           ; write integer
+000000r 2               OP_WRITC        = $81           ; write character
+000000r 2               OP_WRITB        = $82           ; write boolean
+000000r 2               OP_WRITS        = $83           ; write string
+000000r 2               OP_WRITLN       = $84           ; write newline
+000000r 2               OP_READI        = $85           ; read integer
+000000r 2               OP_READC        = $86           ; read character
+000000r 2               OP_READS        = $87           ; read string
+000000r 2               
+000000r 2               ; --- Stack manipulation ---
+000000r 2               OP_DUP          = $90
+000000r 2               OP_POP          = $91
+000000r 2               OP_SWAP         = $92
+000000r 2               OP_MOVS         = $93           ; copy n bytes (byte count follows)
+000000r 2               
+000000r 2               ; --- Halt ---
+000000r 2               OP_HALT         = $FF
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; .PCD file magic / version
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               PCD_MAGIC_0     = $50           ; 'P'
+000000r 2               PCD_MAGIC_1     = $43           ; 'C'
+000000r 2               PCD_VERSION     = $01
+000000r 2               
+000000r 2               ; PCD header offsets
+000000r 2               PCD_MAGIC       = 0
+000000r 2               PCD_VER         = 2
+000000r 2               PCD_CODESZ      = 4             ; word: code section size
+000000r 2               PCD_GLOBSZ      = 6             ; word: global data size
+000000r 2               PCD_STRSZ       = 8             ; word: string pool size
+000000r 2               PCD_ENTRY       = 10            ; word: entry point offset into code
+000000r 2               PCD_HEADER_SZ   = 12
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; Token codes (used by compiler lexer/parser)
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               TOK_EOF         = 0
+000000r 2               TOK_IDENT       = 1
+000000r 2               TOK_INT         = 2
+000000r 2               TOK_STRING      = 3
+000000r 2               TOK_CHAR        = 4
+000000r 2               
+000000r 2               ; Operators / punctuation
+000000r 2               TOK_PLUS        = $10           ; +
+000000r 2               TOK_MINUS       = $11           ; -
+000000r 2               TOK_STAR        = $12           ; *
+000000r 2               TOK_SLASH       = $13           ; /
+000000r 2               TOK_EQ          = $14           ; =
+000000r 2               TOK_NEQ         = $15           ; <>
+000000r 2               TOK_LT          = $16           ; <
+000000r 2               TOK_GT          = $17           ; >
+000000r 2               TOK_LEQ         = $18           ; <=
+000000r 2               TOK_GEQ         = $19           ; >=
+000000r 2               TOK_ASSIGN      = $1A           ; :=
+000000r 2               TOK_LPAREN      = $1B           ; (
+000000r 2               TOK_RPAREN      = $1C           ; )
+000000r 2               TOK_LBRACK      = $1D           ; [
+000000r 2               TOK_RBRACK      = $1E           ; ]
+000000r 2               TOK_COMMA       = $1F           ; ,
+000000r 2               TOK_SEMICOLON   = $20           ; ;
+000000r 2               TOK_COLON       = $21           ; :
+000000r 2               TOK_DOT         = $22           ; .
+000000r 2               TOK_DOTDOT      = $23           ; ..
+000000r 2               TOK_CARET       = $24           ; ^
+000000r 2               
+000000r 2               ; Keywords
+000000r 2               TOK_AND         = $40
+000000r 2               TOK_ARRAY       = $41
+000000r 2               TOK_BEGIN       = $42
+000000r 2               TOK_CASE        = $43
+000000r 2               TOK_CONST       = $44
+000000r 2               TOK_DIV         = $45
+000000r 2               TOK_DO          = $46
+000000r 2               TOK_DOWNTO      = $47
+000000r 2               TOK_ELSE        = $48
+000000r 2               TOK_END         = $49
+000000r 2               TOK_FOR         = $4A
+000000r 2               TOK_FUNCTION    = $4B
+000000r 2               TOK_IF          = $4C
+000000r 2               TOK_MOD_KW      = $4D
+000000r 2               TOK_NIL         = $4E
+000000r 2               TOK_NOT         = $4F
+000000r 2               TOK_OF          = $50
+000000r 2               TOK_OR          = $51
+000000r 2               TOK_PROCEDURE   = $52
+000000r 2               TOK_PROGRAM     = $53
+000000r 2               TOK_RECORD      = $54
+000000r 2               TOK_REPEAT      = $55
+000000r 2               TOK_THEN        = $56
+000000r 2               TOK_TO          = $57
+000000r 2               TOK_TYPE        = $58
+000000r 2               TOK_UNTIL       = $59
+000000r 2               TOK_VAR         = $5A
+000000r 2               TOK_WHILE       = $5B
+000000r 2               TOK_WITH        = $5C
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; Useful macros
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               
+000000r 2               ; Call a FARCALL function that does NOT use A as input (clobbers A).
+000000r 2               ; Use for FC_CLRSCR, FC_SCROLL, FC_SETCUR, FC_SETCOLOR, etc.
+000000r 2               .macro FARCALL func
+000000r 2                       lda     #func
+000000r 2                       sta     FARFUNCT
+000000r 2                       jsr     DO_FARCALL
+000000r 2               .endmacro
+000000r 2               
+000000r 2               ; Output the character already in A via FARCALL #2.
+000000r 2               ; PEM_CONOUT requires A=char when DO_FARCALL is called, so we must
+000000r 2               ; set FARFUNCT first, then restore the char before the jsr.
+000000r 2               .macro CHROUT
+000000r 2                       pha
+000000r 2                       lda     #PEM_CONOUT
+000000r 2                       sta     FARFUNCT
+000000r 2                       pla
+000000r 2                       jsr     DO_FARCALL
+000000r 2               .endmacro
+000000r 2               
+000000r 2               ; Call PEM with function number in X
+000000r 2               .macro PEM func
+000000r 2                       ldx     #func
+000000r 2                       jsr     PEM_ENTRY
+000000r 2               .endmacro
+000000r 2               
+000000r 1               .include "zeropage.asm"
+000000r 2               ; zeropage.asm — zero-page variable layout for PASCAL.COM and PRUN.COM
+000000r 2               ;
+000000r 2               ; Avoid $00-$2F (DOS/65 system), $32 (FARFUNCT), $39-$3A (DOS/65).
+000000r 2               ; Safe range: $50-$EF
+000000r 2               
+000000r 2               .segment "ZEROPAGE"
+000000r 2               
+000000r 2  xx xx xx xx          .res    $50             ; skip $00-$4F (DOS/65 system zero page)
+000004r 2  xx xx xx xx  
+000008r 2  xx xx xx xx  
+000050r 2               
+000050r 2               ; ---------------------------------------------------------------------------
+000050r 2               ; P-machine registers — start at $50 as noted in comments below
+000050r 2               ; ---------------------------------------------------------------------------
+000050r 2               
+000050r 2  xx xx        pm_ipc:         .res 2          ; $50-$51  interpreter program counter
+000052r 2  xx xx        pm_sp:          .res 2          ; $52-$53  p-machine stack pointer
+000054r 2  xx xx        pm_mp:          .res 2          ; $54-$55  mark/frame pointer
+000056r 2  xx xx        pm_base:        .res 2          ; $56-$57  global variable base
+000058r 2  xx xx        pm_np:          .res 2          ; $58-$59  heap top (grows downward)
+00005Ar 2               
+00005Ar 2               ; General-purpose temporaries
+00005Ar 2  xx xx        tmp0:           .res 2          ; $5A-$5B
+00005Cr 2  xx xx        tmp1:           .res 2          ; $5C-$5D
+00005Er 2  xx xx        tmp2:           .res 2          ; $5E-$5F
+000060r 2  xx xx        tmp3:           .res 2          ; $60-$61
+000062r 2               
+000062r 2               ; Byte-width scratch (often used by macros)
+000062r 2  xx           scratch:        .res 1          ; $62
+000063r 2               
+000063r 2               ; ---------------------------------------------------------------------------
+000063r 2               ; Compiler-specific zero-page variables (only used by PASCAL.COM)
+000063r 2               ; ---------------------------------------------------------------------------
+000063r 2               
+000063r 2               ; Lexer state
+000063r 2  xx xx        lex_line:       .res 2          ; $63-$64  current source line number
+000065r 2  xx           lex_col:        .res 1          ; $65      current column
+000066r 2  xx           lex_char:       .res 1          ; $66      lookahead character
+000067r 2  xx           tok_type:       .res 1          ; $67      current token type
+000068r 2  xx           tok_ival_lo:    .res 1          ; $68      integer token value (lo)
+000069r 2  xx           tok_ival_hi:    .res 1          ; $69      integer token value (hi)
+00006Ar 2               
+00006Ar 2               ; Parser / code generator state
+00006Ar 2  xx xx        cg_pc:          .res 2          ; $6A-$6B  current emit offset into code buffer
+00006Cr 2  xx xx        cg_globals:     .res 2          ; $6C-$6D  next available global variable offset
+00006Er 2  xx           scope_depth:    .res 1          ; $6E      current lexical nesting depth (0=global)
+00006Fr 2  xx xx        sym_chain:      .res 2          ; $6F-$70  pointer into symbol table chain
+000071r 2               
+000071r 2               ; FCB pointers (compiler I/O)
+000071r 2  xx xx        src_fcb:        .res 2          ; $71-$72  pointer to source FCB
+000073r 2  xx xx        out_fcb:        .res 2          ; $73-$74  pointer to output FCB
+000075r 2  xx           src_buf_pos:    .res 1          ; $75      position within 128-byte sector buffer
+000076r 2  xx           src_buf_end:    .res 1          ; $76      bytes valid in sector buffer
+000077r 2               
+000077r 2               ; FOR-loop scratch (parse_for; not nestable)
+000077r 2  xx xx        for_loop_top:   .res 2          ; $77-$78  cg_pc of loop test (back-jump target)
+000079r 2  xx xx        for_patch:      .res 2          ; $79-$7A  FJP exit patch address
+00007Br 2               
+00007Br 1               
+00007Br 1               ; ---------------------------------------------------------------------------
+00007Br 1               ; Runtime memory layout constants
+00007Br 1               ; ---------------------------------------------------------------------------
+00007Br 1               ; PCODE_BASE must lie above the end of the CODE segment so that loading
+00007Br 1               ; a .PCD file does not overwrite iolib/messages. CODE currently ends near
+00007Br 1               ; $12CD; $1400 gives a safety margin for growth.
+00007Br 1               PCODE_BASE      = $1400         ; where p-code is loaded
+00007Br 1               STACK_BASE      = $2000         ; bottom of p-machine value stack
+00007Br 1               STACK_TOP       = $8000         ; top of stack (grows up)
+00007Br 1               HEAP_TOP        = $B000         ; heap grows down from here
+00007Br 1               GLOBALS_BASE    = $B000         ; global variable area (below heap top)
+00007Br 1               
+00007Br 1               ; Activation record offsets from MP
+00007Br 1               AR_DYN_LINK     = 0             ; 2 bytes: saved MP
+00007Br 1               AR_RET_ADDR     = 2             ; 2 bytes: saved IPC
+00007Br 1               AR_STAT_LINK    = 4             ; 2 bytes: static link
+00007Br 1               AR_RET_VAL      = 6             ; 2 bytes: function return value slot
+00007Br 1               AR_LOCALS       = 8             ; start of local variables
+00007Br 1               
+00007Br 1               ; ---------------------------------------------------------------------------
+00007Br 1               ; P-code load buffer (at PCODE_BASE, filled by loader)
+00007Br 1               ; Actual code lives at runtime in $1000 range.
+00007Br 1               ; FCB and other data live in CODE segment (placed by ld65 after dispatch
+00007Br 1               ; tables) — keeping them out of the $2000+ stack region.
+00007Br 1               ; ---------------------------------------------------------------------------
+00007Br 1               
+00007Br 1               .segment "TEA"
+000000r 1               
+000000r 1               ; ---------------------------------------------------------------------------
+000000r 1               ; Entry point — DOS/65 loads .COM at $0800 and jumps here
+000000r 1               ; ---------------------------------------------------------------------------
+000000r 1  4C rr rr             jmp     prun_main
+000003r 1               
+000003r 1               ; ---------------------------------------------------------------------------
+000003r 1               ; prun_main
+000003r 1               ; ---------------------------------------------------------------------------
+000003r 1               .segment "CODE"
+000000r 1               prun_main:
+000000r 1                       ; print banner
+000000r 1  A9 rr                lda     #<msg_rt_banner
+000002r 1  85 rr                sta     tmp0
+000004r 1  A9 rr                lda     #>msg_rt_banner
+000006r 1  85 rr                sta     tmp0+1
+000008r 1  20 rr rr             jsr     console_print_sz
+00000Br 1               
+00000Br 1                       ; build FCB from DEFAULT_FCB (DOS/65 fills $0107 with first argument)
+00000Br 1  20 rr rr             jsr     build_pcd_fcb   ; copy $0107 → pcd_fcb, append .PCD extension
+00000Er 1  B0 30                bcs     @no_file
+000010r 1               
+000010r 1                       ; open the .PCD file
+000010r 1  A9 rr                lda     #<pcd_fcb
+000012r 1  85 rr                sta     tmp1
+000014r 1  A9 rr                lda     #>pcd_fcb
+000016r 1  85 rr                sta     tmp1+1
+000018r 1  20 rr rr             jsr     file_open
+00001Br 1  C9 FF                cmp     #$FF            ; PEM open returns $FF=not found, 0-3=dir entry
+00001Dr 1  F0 21                beq     @no_file
+00001Fr 1               
+00001Fr 1                       ; load p-code into memory starting at PCODE_BASE
+00001Fr 1  20 rr rr             jsr     load_pcd
+000022r 1  B0 2A                bcs     @load_err
+000024r 1               
+000024r 1                       ; execute
+000024r 1  20 rr rr             jsr     prun_execute
+000027r 1               
+000027r 1                       ; clean exit
+000027r 1  A9 rr                lda     #<pcd_fcb
+000029r 1  85 rr                sta     tmp1
+00002Br 1  A9 rr                lda     #>pcd_fcb
+00002Dr 1  85 rr                sta     tmp1+1
+00002Fr 1  20 rr rr             jsr     file_close
+000032r 1  A9 rr                lda     #<msg_rt_done
+000034r 1  85 rr                sta     tmp0
+000036r 1  A9 rr                lda     #>msg_rt_done
+000038r 1  85 rr                sta     tmp0+1
+00003Ar 1  20 rr rr             jsr     console_print_sz
+00003Dr 1  4C 00 01             jmp     WARM_BOOT
+000040r 1               
+000040r 1               @no_file:
+000040r 1  A9 rr                lda     #<err_nofile
+000042r 1  85 rr                sta     tmp0
+000044r 1  A9 rr                lda     #>err_nofile
+000046r 1  85 rr                sta     tmp0+1
+000048r 1  20 rr rr             jsr     console_print_sz
+00004Br 1  4C 00 01             jmp     WARM_BOOT
+00004Er 1               
+00004Er 1               @load_err:
+00004Er 1  A9 rr                lda     #<err_rt_magic
+000050r 1  85 rr                sta     tmp0
+000052r 1  A9 rr                lda     #>err_rt_magic
+000054r 1  85 rr                sta     tmp0+1
+000056r 1  20 rr rr             jsr     console_print_sz
+000059r 1  4C 00 01             jmp     WARM_BOOT
+00005Cr 1               
+00005Cr 1               ; ---------------------------------------------------------------------------
+00005Cr 1               ; build_pcd_fcb — copy DEFAULT_FCB ($0107) to pcd_fcb, force extension "PCD"
+00005Cr 1               ; DOS/65 CCM copies the parsed argument FCB to dflfcb=$0107, not $005C.
+00005Cr 1               ; Returns: carry clear = ok, carry set = no filename given
+00005Cr 1               ; ---------------------------------------------------------------------------
+00005Cr 1               build_pcd_fcb:
+00005Cr 1  A2 00                ldx     #0
+00005Er 1  BD 07 01     @copy:  lda     DEFAULT_FCB,x
+000061r 1  9D rr rr             sta     pcd_fcb,x
+000064r 1  E8                   inx
+000065r 1  E0 0C                cpx     #12
+000067r 1  90 F5                bcc     @copy
+000069r 1                       ; zero the rest of FCB
+000069r 1  A9 00                lda     #0
+00006Br 1  9D rr rr     @zero:  sta     pcd_fcb,x
+00006Er 1  E8                   inx
+00006Fr 1  E0 24                cpx     #36
+000071r 1  90 F8                bcc     @zero
+000073r 1                       ; check filename is non-blank
+000073r 1  AD rr rr             lda     pcd_fcb+1       ; first char of filename field
+000076r 1  C9 20                cmp     #' '
+000078r 1  F0 11                beq     @noname
+00007Ar 1                       ; force extension bytes 9-11 to "PCD"
+00007Ar 1  A9 50                lda     #'P'
+00007Cr 1  8D rr rr             sta     pcd_fcb+9
+00007Fr 1  A9 43                lda     #'C'
+000081r 1  8D rr rr             sta     pcd_fcb+10
+000084r 1  A9 44                lda     #'D'
+000086r 1  8D rr rr             sta     pcd_fcb+11
+000089r 1  18                   clc
+00008Ar 1  60                   rts
+00008Br 1               @noname:
+00008Br 1  38                   sec
+00008Cr 1  60                   rts
+00008Dr 1               
+00008Dr 1               ; ---------------------------------------------------------------------------
+00008Dr 1               ; load_pcd — read .PCD header, validate, load code + globals + strings
+00008Dr 1               ; Returns: carry clear = ok, carry set = error
+00008Dr 1               ; ---------------------------------------------------------------------------
+00008Dr 1               load_pcd:
+00008Dr 1                       ; ensure tmp1 points to pcd_fcb for all file I/O calls
+00008Dr 1  A9 rr                lda     #<pcd_fcb
+00008Fr 1  85 rr                sta     tmp1
+000091r 1  A9 rr                lda     #>pcd_fcb
+000093r 1  85 rr                sta     tmp1+1
+000095r 1                       ; Read first sector (contains header + start of code)
+000095r 1  20 rr rr             jsr     file_read_sector
+000098r 1  C9 00                cmp     #0
+00009Ar 1  D0 62                bne     @err
+00009Cr 1               
+00009Cr 1                       ; validate magic
+00009Cr 1  AD 28 01             lda     DMA_BUF+0
+00009Fr 1  C9 50                cmp     #PCD_MAGIC_0
+0000A1r 1  D0 5B                bne     @err
+0000A3r 1  AD 29 01             lda     DMA_BUF+1
+0000A6r 1  C9 43                cmp     #PCD_MAGIC_1
+0000A8r 1  D0 54                bne     @err
+0000AAr 1               
+0000AAr 1                       ; entry point — preserved in tmp3 for prun_execute
+0000AAr 1  AD 32 01             lda     DMA_BUF+PCD_ENTRY
+0000ADr 1  85 rr                sta     tmp3
+0000AFr 1  AD 33 01             lda     DMA_BUF+PCD_ENTRY+1
+0000B2r 1  85 rr                sta     tmp3+1
+0000B4r 1               
+0000B4r 1                       ; remaining bytes still to copy = code size
+0000B4r 1  AD 2C 01             lda     DMA_BUF+PCD_CODESZ
+0000B7r 1  85 rr                sta     tmp2
+0000B9r 1  AD 2D 01             lda     DMA_BUF+PCD_CODESZ+1
+0000BCr 1  85 rr                sta     tmp2+1
+0000BEr 1               
+0000BEr 1                       ; dest = PCODE_BASE - PCD_HEADER_SZ so that for the first sector
+0000BEr 1                       ; (tmp0),Y with Y=12..127 lands at PCODE_BASE+0..115.
+0000BEr 1  38                   sec
+0000BFr 1  A9 00                lda     #<PCODE_BASE
+0000C1r 1  E9 0C                sbc     #PCD_HEADER_SZ
+0000C3r 1  85 rr                sta     tmp0
+0000C5r 1  A9 14                lda     #>PCODE_BASE
+0000C7r 1  E9 00                sbc     #0
+0000C9r 1  85 rr                sta     tmp0+1
+0000CBr 1               
+0000CBr 1  A0 0C                ldy     #PCD_HEADER_SZ
+0000CDr 1  A5 rr        @cloop: lda     tmp2
+0000CFr 1  05 rr                ora     tmp2+1
+0000D1r 1  F0 29                beq     @done_ok
+0000D3r 1  C0 80                cpy     #128
+0000D5r 1  90 14                bcc     @cbyte
+0000D7r 1                       ; sector exhausted — advance dest by 128 and read the next one
+0000D7r 1  18                   clc
+0000D8r 1  A5 rr                lda     tmp0
+0000DAr 1  69 80                adc     #128
+0000DCr 1  85 rr                sta     tmp0
+0000DEr 1  90 02                bcc     :+
+0000E0r 1  E6 rr                inc     tmp0+1
+0000E2r 1  20 rr rr     :       jsr     file_read_sector
+0000E5r 1  C9 00                cmp     #0
+0000E7r 1  D0 15                bne     @err
+0000E9r 1  A0 00                ldy     #0
+0000EBr 1  B9 28 01     @cbyte: lda     DMA_BUF,y
+0000EEr 1  91 rr                sta     (tmp0),y
+0000F0r 1  C8                   iny
+0000F1r 1  A5 rr                lda     tmp2
+0000F3r 1  D0 02                bne     :+
+0000F5r 1  C6 rr                dec     tmp2+1
+0000F7r 1  C6 rr        :       dec     tmp2
+0000F9r 1  4C rr rr             jmp     @cloop
+0000FCr 1               
+0000FCr 1               @done_ok:
+0000FCr 1  18                   clc
+0000FDr 1  60                   rts
+0000FEr 1  38           @err:   sec
+0000FFr 1  60                   rts
+000100r 1               
+000100r 1               ; ---------------------------------------------------------------------------
+000100r 1               ; prun_execute — main fetch-decode-execute loop
+000100r 1               ; ---------------------------------------------------------------------------
+000100r 1               prun_execute:
+000100r 1                       ; initialise p-machine registers
+000100r 1  A9 00                lda     #<PCODE_BASE
+000102r 1  18                   clc
+000103r 1  65 rr                adc     tmp3            ; entry offset lo
+000105r 1  85 rr                sta     pm_ipc
+000107r 1  A9 14                lda     #>PCODE_BASE
+000109r 1  65 rr                adc     tmp3+1
+00010Br 1  85 rr                sta     pm_ipc+1
+00010Dr 1               
+00010Dr 1  A9 00                lda     #<STACK_BASE
+00010Fr 1  85 rr                sta     pm_sp
+000111r 1  A9 20                lda     #>STACK_BASE
+000113r 1  85 rr                sta     pm_sp+1
+000115r 1               
+000115r 1  A9 00                lda     #<STACK_BASE    ; first frame at bottom of stack
+000117r 1  85 rr                sta     pm_mp
+000119r 1  A9 20                lda     #>STACK_BASE
+00011Br 1  85 rr                sta     pm_mp+1
+00011Dr 1               
+00011Dr 1  A9 00                lda     #<GLOBALS_BASE
+00011Fr 1  85 rr                sta     pm_base
+000121r 1  A9 B0                lda     #>GLOBALS_BASE
+000123r 1  85 rr                sta     pm_base+1
+000125r 1               
+000125r 1  A9 00                lda     #<HEAP_TOP
+000127r 1  85 rr                sta     pm_np
+000129r 1  A9 B0                lda     #>HEAP_TOP
+00012Br 1  85 rr                sta     pm_np+1
+00012Dr 1               
+00012Dr 1               ; ---------------------------------------------------------------------------
+00012Dr 1               ; Fetch-decode-execute inner loop
+00012Dr 1               ; ---------------------------------------------------------------------------
+00012Dr 1               prun_loop:
+00012Dr 1                       ; fetch opcode at pm_ipc
+00012Dr 1  A0 00                ldy     #0
+00012Fr 1  B1 rr                lda     (pm_ipc),y
+000131r 1                       ; advance IPC
+000131r 1  E6 rr                inc     pm_ipc
+000133r 1  D0 02                bne     :+
+000135r 1  E6 rr                inc     pm_ipc+1
+000137r 1               :
+000137r 1                       ; dispatch via jump table
+000137r 1  AA                   tax                     ; X = opcode
+000138r 1  BD rr rr             lda     dispatch_lo,x
+00013Br 1  85 rr                sta     tmp0
+00013Dr 1  BD rr rr             lda     dispatch_hi,x
+000140r 1  85 rr                sta     tmp0+1
+000142r 1  6C rr rr             jmp     (tmp0)
+000145r 1               
+000145r 1               ; ---------------------------------------------------------------------------
+000145r 1               ; Stack helpers
+000145r 1               ; push 16-bit value in A(lo) / scratch(hi) onto p-machine stack
+000145r 1               ; ---------------------------------------------------------------------------
+000145r 1               pm_push:
+000145r 1  A0 00                ldy     #0
+000147r 1  91 rr                sta     (pm_sp),y
+000149r 1  C8                   iny
+00014Ar 1  A5 rr                lda     scratch
+00014Cr 1  91 rr                sta     (pm_sp),y
+00014Er 1  18                   clc
+00014Fr 1  A5 rr                lda     pm_sp
+000151r 1  69 02                adc     #2
+000153r 1  85 rr                sta     pm_sp
+000155r 1  90 02                bcc     :+
+000157r 1  E6 rr                inc     pm_sp+1
+000159r 1  60           :       rts
+00015Ar 1               
+00015Ar 1               ; pop 16-bit value from p-machine stack → A(lo) / scratch(hi)
+00015Ar 1               pm_pop:
+00015Ar 1  38                   sec
+00015Br 1  A5 rr                lda     pm_sp
+00015Dr 1  E9 02                sbc     #2
+00015Fr 1  85 rr                sta     pm_sp
+000161r 1  B0 02                bcs     :+
+000163r 1  C6 rr                dec     pm_sp+1
+000165r 1  A0 00        :       ldy     #0
+000167r 1  B1 rr                lda     (pm_sp),y
+000169r 1  48                   pha
+00016Ar 1  C8                   iny
+00016Br 1  B1 rr                lda     (pm_sp),y
+00016Dr 1  85 rr                sta     scratch
+00016Fr 1  68                   pla
+000170r 1  60                   rts
+000171r 1               
+000171r 1               ; peek at TOS without popping → A(lo) / scratch(hi)
+000171r 1               pm_peek:
+000171r 1  A5 rr                lda     pm_sp
+000173r 1  38                   sec
+000174r 1  E9 02                sbc     #2
+000176r 1  85 rr                sta     tmp1
+000178r 1  A5 rr                lda     pm_sp+1
+00017Ar 1  E9 00                sbc     #0
+00017Cr 1  85 rr                sta     tmp1+1
+00017Er 1  A0 00                ldy     #0
+000180r 1  B1 rr                lda     (tmp1),y
+000182r 1  48                   pha
+000183r 1  C8                   iny
+000184r 1  B1 rr                lda     (tmp1),y
+000186r 1  85 rr                sta     scratch
+000188r 1  68                   pla
+000189r 1  60                   rts
+00018Ar 1               
+00018Ar 1               ; fetch inline byte at IPC (advances IPC), returns in A
+00018Ar 1               pm_fetch_byte:
+00018Ar 1  A0 00                ldy     #0
+00018Cr 1  B1 rr                lda     (pm_ipc),y
+00018Er 1  E6 rr                inc     pm_ipc
+000190r 1  D0 02                bne     :+
+000192r 1  E6 rr                inc     pm_ipc+1
+000194r 1  60           :       rts
+000195r 1               
+000195r 1               ; fetch inline word (lo then hi) at IPC, returns lo in A, hi in scratch
+000195r 1               pm_fetch_word:
+000195r 1  20 rr rr             jsr     pm_fetch_byte
+000198r 1  48                   pha
+000199r 1  20 rr rr             jsr     pm_fetch_byte
+00019Cr 1  85 rr                sta     scratch
+00019Er 1  68                   pla
+00019Fr 1  60                   rts
+0001A0r 1               
+0001A0r 1               ; ---------------------------------------------------------------------------
+0001A0r 1               ; Runtime error handler
+0001A0r 1               ; ---------------------------------------------------------------------------
+0001A0r 1               rt_error:
+0001A0r 1                       ; tmp0 already points to error string (caller's responsibility)
+0001A0r 1  20 rr rr             jsr     console_print_sz
+0001A3r 1  4C 00 01             jmp     WARM_BOOT
+0001A6r 1               
+0001A6r 1               ; ---------------------------------------------------------------------------
+0001A6r 1               ; Opcode handlers
+0001A6r 1               ; ---------------------------------------------------------------------------
+0001A6r 1               
+0001A6r 1               ; OP_HALT ($FF) — stop execution
+0001A6r 1               op_HALT:
+0001A6r 1  60                   rts                     ; return to prun_main
+0001A7r 1               
+0001A7r 1               ; OP_LDCI ($00) — push sign-extended byte constant
+0001A7r 1               op_LDCI:
+0001A7r 1  20 rr rr             jsr     pm_fetch_byte
+0001AAr 1  48                   pha
+0001ABr 1                       ; sign-extend: if bit 7 set, high byte = $FF else $00
+0001ABr 1  29 80                and     #$80
+0001ADr 1  F0 04                beq     :+
+0001AFr 1  A9 FF                lda     #$FF
+0001B1r 1  D0 02                bne     :++
+0001B3r 1  A9 00        :       lda     #$00
+0001B5r 1  85 rr        :       sta     scratch
+0001B7r 1  68                   pla
+0001B8r 1  20 rr rr             jsr     pm_push
+0001BBr 1  4C rr rr             jmp     prun_loop
+0001BEr 1               
+0001BEr 1               ; OP_LDCW ($01) — push word constant
+0001BEr 1               op_LDCW:
+0001BEr 1  20 rr rr             jsr     pm_fetch_word   ; A=lo, scratch=hi
+0001C1r 1  20 rr rr             jsr     pm_push
+0001C4r 1  4C rr rr             jmp     prun_loop
+0001C7r 1               
+0001C7r 1               ; OP_LDCC ($02) — push char constant (zero-extended)
+0001C7r 1               op_LDCC:
+0001C7r 1  20 rr rr             jsr     pm_fetch_byte
+0001CAr 1  48                   pha
+0001CBr 1  A9 00                lda     #0
+0001CDr 1  85 rr                sta     scratch
+0001CFr 1  68                   pla
+0001D0r 1  20 rr rr             jsr     pm_push
+0001D3r 1  4C rr rr             jmp     prun_loop
+0001D6r 1               
+0001D6r 1               ; OP_LDCB ($03) — push boolean constant
+0001D6r 1               op_LDCB:
+0001D6r 1  20 rr rr             jsr     pm_fetch_byte
+0001D9r 1  F0 0C                beq     :+
+0001DBr 1  A9 FF                lda     #$FF            ; TRUE = $FFFF
+0001DDr 1  85 rr                sta     scratch
+0001DFr 1  A9 FF                lda     #$FF
+0001E1r 1  20 rr rr             jsr     pm_push
+0001E4r 1  4C rr rr             jmp     prun_loop
+0001E7r 1  A9 00        :       lda     #0
+0001E9r 1  85 rr                sta     scratch
+0001EBr 1  20 rr rr             jsr     pm_push
+0001EEr 1  4C rr rr             jmp     prun_loop
+0001F1r 1               
+0001F1r 1               ; OP_LDCN ($05) — push NIL ($0000)
+0001F1r 1               op_LDCN:
+0001F1r 1  A9 00                lda     #0
+0001F3r 1  85 rr                sta     scratch
+0001F5r 1  20 rr rr             jsr     pm_push
+0001F8r 1  4C rr rr             jmp     prun_loop
+0001FBr 1               
+0001FBr 1               ; OP_LDL ($10) — push 16-bit local var
+0001FBr 1               op_LDL:
+0001FBr 1  20 rr rr             jsr     pm_fetch_byte   ; byte offset
+0001FEr 1  18                   clc
+0001FFr 1  69 08                adc     #AR_LOCALS      ; offset from MP
+000201r 1  48                   pha
+000202r 1  A5 rr                lda     pm_mp
+000204r 1  18                   clc
+000205r 1  68                   pla
+000206r 1  65 rr                adc     pm_mp
+000208r 1  85 rr                sta     tmp1
+00020Ar 1  A5 rr                lda     pm_mp+1
+00020Cr 1  69 00                adc     #0
+00020Er 1  85 rr                sta     tmp1+1
+000210r 1  A0 00                ldy     #0
+000212r 1  B1 rr                lda     (tmp1),y
+000214r 1  48                   pha
+000215r 1  C8                   iny
+000216r 1  B1 rr                lda     (tmp1),y
+000218r 1  85 rr                sta     scratch
+00021Ar 1  68                   pla
+00021Br 1  20 rr rr             jsr     pm_push
+00021Er 1  4C rr rr             jmp     prun_loop
+000221r 1               
+000221r 1               ; OP_STL ($11) — pop into 16-bit local var
+000221r 1               op_STL:
+000221r 1  20 rr rr             jsr     pm_fetch_byte   ; byte offset
+000224r 1  18                   clc
+000225r 1  69 08                adc     #AR_LOCALS
+000227r 1  18                   clc
+000228r 1  65 rr                adc     pm_mp
+00022Ar 1  85 rr                sta     tmp1
+00022Cr 1  A5 rr                lda     pm_mp+1
+00022Er 1  69 00                adc     #0
+000230r 1  85 rr                sta     tmp1+1
+000232r 1  20 rr rr             jsr     pm_pop          ; A=lo, scratch=hi
+000235r 1  A0 00                ldy     #0
+000237r 1  91 rr                sta     (tmp1),y
+000239r 1  C8                   iny
+00023Ar 1  A5 rr                lda     scratch
+00023Cr 1  91 rr                sta     (tmp1),y
+00023Er 1  4C rr rr             jmp     prun_loop
+000241r 1               
+000241r 1               ; OP_LDG ($18) — push 16-bit global var (word offset from pm_base)
+000241r 1               op_LDG:
+000241r 1  20 rr rr             jsr     pm_fetch_word   ; A=lo offset, scratch=hi offset
+000244r 1  18                   clc
+000245r 1  65 rr                adc     pm_base
+000247r 1  85 rr                sta     tmp1
+000249r 1  A5 rr                lda     scratch
+00024Br 1  65 rr                adc     pm_base+1
+00024Dr 1  85 rr                sta     tmp1+1
+00024Fr 1  A0 00                ldy     #0
+000251r 1  B1 rr                lda     (tmp1),y
+000253r 1  48                   pha
+000254r 1  C8                   iny
+000255r 1  B1 rr                lda     (tmp1),y
+000257r 1  85 rr                sta     scratch
+000259r 1  68                   pla
+00025Ar 1  20 rr rr             jsr     pm_push
+00025Dr 1  4C rr rr             jmp     prun_loop
+000260r 1               
+000260r 1               ; OP_STG ($19) — pop into 16-bit global var
+000260r 1               op_STG:
+000260r 1  20 rr rr             jsr     pm_fetch_word   ; A=lo offset, scratch=hi offset
+000263r 1  18                   clc
+000264r 1  65 rr                adc     pm_base
+000266r 1  85 rr                sta     tmp1
+000268r 1  A5 rr                lda     scratch
+00026Ar 1  65 rr                adc     pm_base+1
+00026Cr 1  85 rr                sta     tmp1+1
+00026Er 1  20 rr rr             jsr     pm_pop          ; A=lo, scratch=hi
+000271r 1  A0 00                ldy     #0
+000273r 1  91 rr                sta     (tmp1),y
+000275r 1  C8                   iny
+000276r 1  A5 rr                lda     scratch
+000278r 1  91 rr                sta     (tmp1),y
+00027Ar 1  4C rr rr             jmp     prun_loop
+00027Dr 1               
+00027Dr 1               ; OP_ADI ($30) — integer add
+00027Dr 1               op_ADI:
+00027Dr 1  20 rr rr             jsr     pm_pop          ; b: A=lo, scratch=hi
+000280r 1  85 rr                sta     tmp2
+000282r 1  A5 rr                lda     scratch
+000284r 1  85 rr                sta     tmp2+1
+000286r 1  20 rr rr             jsr     pm_pop          ; a: A=lo, scratch=hi
+000289r 1  18                   clc
+00028Ar 1  65 rr                adc     tmp2            ; a.lo + b.lo
+00028Cr 1  48                   pha
+00028Dr 1  A5 rr                lda     scratch
+00028Fr 1  65 rr                adc     tmp2+1          ; a.hi + b.hi + carry
+000291r 1  85 rr                sta     scratch
+000293r 1  68                   pla
+000294r 1  20 rr rr             jsr     pm_push
+000297r 1  4C rr rr             jmp     prun_loop
+00029Ar 1               
+00029Ar 1               ; OP_SBI ($31) — integer subtract
+00029Ar 1               op_SBI:
+00029Ar 1  20 rr rr             jsr     pm_pop          ; b: A=lo, scratch=hi
+00029Dr 1  85 rr                sta     tmp2
+00029Fr 1  A5 rr                lda     scratch
+0002A1r 1  85 rr                sta     tmp2+1
+0002A3r 1  20 rr rr             jsr     pm_pop          ; a: A=lo, scratch=hi
+0002A6r 1  38                   sec
+0002A7r 1  E5 rr                sbc     tmp2            ; a.lo - b.lo
+0002A9r 1  48                   pha
+0002AAr 1  A5 rr                lda     scratch
+0002ACr 1  E5 rr                sbc     tmp2+1          ; a.hi - b.hi - borrow
+0002AEr 1  85 rr                sta     scratch
+0002B0r 1  68                   pla
+0002B1r 1  20 rr rr             jsr     pm_push
+0002B4r 1  4C rr rr             jmp     prun_loop
+0002B7r 1               
+0002B7r 1               ; OP_NGI ($35) — negate TOS
+0002B7r 1               op_NGI:
+0002B7r 1  20 rr rr             jsr     pm_pop          ; A=lo, scratch=hi
+0002BAr 1  85 rr                sta     tmp2
+0002BCr 1  A5 rr                lda     scratch
+0002BEr 1  85 rr                sta     tmp2+1
+0002C0r 1  A9 00                lda     #0
+0002C2r 1  38                   sec
+0002C3r 1  E5 rr                sbc     tmp2            ; negate lo
+0002C5r 1  48                   pha
+0002C6r 1  A9 00                lda     #0
+0002C8r 1  E5 rr                sbc     tmp2+1          ; negate hi
+0002CAr 1  85 rr                sta     scratch
+0002CCr 1  68                   pla
+0002CDr 1  20 rr rr             jsr     pm_push
+0002D0r 1  4C rr rr             jmp     prun_loop
+0002D3r 1               
+0002D3r 1               ; ---------------------------------------------------------------------------
+0002D3r 1               ; mul/div helpers — operate on tmp2 (a) and tmp1 (b), result in tmp2
+0002D3r 1               ; ---------------------------------------------------------------------------
+0002D3r 1               
+0002D3r 1               ; mul16: tmp2 = tmp2 * tmp1 (low 16 bits, unsigned)
+0002D3r 1               mul16:
+0002D3r 1  A9 00                lda     #0
+0002D5r 1  85 rr                sta     scratch         ; result lo
+0002D7r 1  85 rr                sta     scratch+1       ; result hi
+0002D9r 1  A2 10                ldx     #16
+0002DBr 1  46 rr        @bit:   lsr     tmp1+1
+0002DDr 1  66 rr                ror     tmp1
+0002DFr 1  90 0D                bcc     @no_add
+0002E1r 1  18                   clc
+0002E2r 1  A5 rr                lda     scratch
+0002E4r 1  65 rr                adc     tmp2
+0002E6r 1  85 rr                sta     scratch
+0002E8r 1  A5 rr                lda     scratch+1
+0002EAr 1  65 rr                adc     tmp2+1
+0002ECr 1  85 rr                sta     scratch+1
+0002EEr 1               @no_add:
+0002EEr 1  06 rr                asl     tmp2
+0002F0r 1  26 rr                rol     tmp2+1
+0002F2r 1  CA                   dex
+0002F3r 1  D0 E6                bne     @bit
+0002F5r 1  A5 rr                lda     scratch
+0002F7r 1  85 rr                sta     tmp2
+0002F9r 1  A5 rr                lda     scratch+1
+0002FBr 1  85 rr                sta     tmp2+1
+0002FDr 1  60                   rts
+0002FEr 1               
+0002FEr 1               ; udiv16: tmp2 = tmp2 / tmp1, scratch = tmp2 mod tmp1 (unsigned)
+0002FEr 1               udiv16:
+0002FEr 1  A9 00                lda     #0
+000300r 1  85 rr                sta     scratch         ; remainder lo
+000302r 1  85 rr                sta     scratch+1       ; remainder hi
+000304r 1  A2 10                ldx     #16
+000306r 1  06 rr        @bit:   asl     tmp2            ; shift dividend left, top bit into rem
+000308r 1  26 rr                rol     tmp2+1
+00030Ar 1  26 rr                rol     scratch
+00030Cr 1  26 rr                rol     scratch+1
+00030Er 1                       ; try subtract divisor from remainder
+00030Er 1  A5 rr                lda     scratch
+000310r 1  38                   sec
+000311r 1  E5 rr                sbc     tmp1
+000313r 1  A8                   tay
+000314r 1  A5 rr                lda     scratch+1
+000316r 1  E5 rr                sbc     tmp1+1
+000318r 1  90 06                bcc     @no_sub
+00031Ar 1  85 rr                sta     scratch+1
+00031Cr 1  84 rr                sty     scratch
+00031Er 1  E6 rr                inc     tmp2            ; quotient bit
+000320r 1               @no_sub:
+000320r 1  CA                   dex
+000321r 1  D0 E3                bne     @bit
+000323r 1  60                   rts
+000324r 1               
+000324r 1               ; sign16: returns A=0 if tmp2>=0, A=$FF if negative
+000324r 1               sign16:
+000324r 1  A5 rr                lda     tmp2+1
+000326r 1  29 80                and     #$80
+000328r 1  F0 03                beq     @pos
+00032Ar 1  A9 FF                lda     #$FF
+00032Cr 1  60                   rts
+00032Dr 1  A9 00        @pos:   lda     #0
+00032Fr 1  60                   rts
+000330r 1               
+000330r 1               ; neg_tmp2: tmp2 = -tmp2 (16-bit two's complement)
+000330r 1               neg_tmp2:
+000330r 1  38                   sec
+000331r 1  A9 00                lda     #0
+000333r 1  E5 rr                sbc     tmp2
+000335r 1  85 rr                sta     tmp2
+000337r 1  A9 00                lda     #0
+000339r 1  E5 rr                sbc     tmp2+1
+00033Br 1  85 rr                sta     tmp2+1
+00033Dr 1  60                   rts
+00033Er 1               
+00033Er 1               ; OP_MPI ($32) — integer multiply (low 16 bits, sign doesn't matter)
+00033Er 1               op_MPI:
+00033Er 1  20 rr rr             jsr     pm_pop          ; b → tmp1
+000341r 1  85 rr                sta     tmp1
+000343r 1  A5 rr                lda     scratch
+000345r 1  85 rr                sta     tmp1+1
+000347r 1  20 rr rr             jsr     pm_pop          ; a → tmp2
+00034Ar 1  85 rr                sta     tmp2
+00034Cr 1  A5 rr                lda     scratch
+00034Er 1  85 rr                sta     tmp2+1
+000350r 1  20 rr rr             jsr     mul16           ; tmp2 = a*b
+000353r 1  A5 rr                lda     tmp2
+000355r 1  A6 rr                ldx     tmp2+1
+000357r 1  86 rr                stx     scratch
+000359r 1  20 rr rr             jsr     pm_push
+00035Cr 1  4C rr rr             jmp     prun_loop
+00035Fr 1               
+00035Fr 1               ; OP_DVI ($33) — signed integer divide (truncate toward zero)
+00035Fr 1               op_DVI:
+00035Fr 1  20 rr rr             jsr     pm_pop          ; b → tmp1
+000362r 1  85 rr                sta     tmp1
+000364r 1  A5 rr                lda     scratch
+000366r 1  85 rr                sta     tmp1+1
+000368r 1  20 rr rr             jsr     pm_pop          ; a → tmp2
+00036Br 1  85 rr                sta     tmp2
+00036Dr 1  A5 rr                lda     scratch
+00036Fr 1  85 rr                sta     tmp2+1
+000371r 1                       ; compute result sign = sign(a) XOR sign(b)
+000371r 1  A5 rr                lda     tmp2+1
+000373r 1  45 rr                eor     tmp1+1
+000375r 1  29 80                and     #$80
+000377r 1  48                   pha                     ; save result sign on 6502 stack
+000378r 1                       ; abs(a)
+000378r 1  24 rr                bit     tmp2+1
+00037Ar 1  10 03                bpl     :+
+00037Cr 1  20 rr rr             jsr     neg_tmp2
+00037Fr 1               :       ; abs(b) — temporarily move tmp1 to tmp2 area? simpler: inline negate of tmp1
+00037Fr 1  24 rr                bit     tmp1+1
+000381r 1  10 0D                bpl     :+
+000383r 1  38                   sec
+000384r 1  A9 00                lda     #0
+000386r 1  E5 rr                sbc     tmp1
+000388r 1  85 rr                sta     tmp1
+00038Ar 1  A9 00                lda     #0
+00038Cr 1  E5 rr                sbc     tmp1+1
+00038Er 1  85 rr                sta     tmp1+1
+000390r 1  20 rr rr     :       jsr     udiv16          ; tmp2 = quotient
+000393r 1  68                   pla                     ; result sign
+000394r 1  F0 03                beq     :+
+000396r 1  20 rr rr             jsr     neg_tmp2
+000399r 1  A5 rr        :       lda     tmp2
+00039Br 1  A6 rr                ldx     tmp2+1
+00039Dr 1  86 rr                stx     scratch
+00039Fr 1  20 rr rr             jsr     pm_push
+0003A2r 1  4C rr rr             jmp     prun_loop
+0003A5r 1               
+0003A5r 1               ; OP_MOD ($34) — signed modulo: a MOD b = a - (a DIV b)*b
+0003A5r 1               op_MOD:
+0003A5r 1  20 rr rr             jsr     pm_pop          ; b → tmp1
+0003A8r 1  85 rr                sta     tmp1
+0003AAr 1  A5 rr                lda     scratch
+0003ACr 1  85 rr                sta     tmp1+1
+0003AEr 1  20 rr rr             jsr     pm_pop          ; a → tmp2
+0003B1r 1  85 rr                sta     tmp2
+0003B3r 1  A5 rr                lda     scratch
+0003B5r 1  85 rr                sta     tmp2+1
+0003B7r 1                       ; result sign follows dividend (a) for Pascal MOD
+0003B7r 1  A5 rr                lda     tmp2+1
+0003B9r 1  29 80                and     #$80
+0003BBr 1  48                   pha
+0003BCr 1  24 rr                bit     tmp2+1
+0003BEr 1  10 03                bpl     :+
+0003C0r 1  20 rr rr             jsr     neg_tmp2
+0003C3r 1  24 rr        :       bit     tmp1+1
+0003C5r 1  10 0D                bpl     :+
+0003C7r 1  38                   sec
+0003C8r 1  A9 00                lda     #0
+0003CAr 1  E5 rr                sbc     tmp1
+0003CCr 1  85 rr                sta     tmp1
+0003CEr 1  A9 00                lda     #0
+0003D0r 1  E5 rr                sbc     tmp1+1
+0003D2r 1  85 rr                sta     tmp1+1
+0003D4r 1  20 rr rr     :       jsr     udiv16          ; remainder in scratch
+0003D7r 1  A5 rr                lda     scratch
+0003D9r 1  85 rr                sta     tmp2
+0003DBr 1  A5 rr                lda     scratch+1
+0003DDr 1  85 rr                sta     tmp2+1
+0003DFr 1  68                   pla
+0003E0r 1  F0 03                beq     :+
+0003E2r 1  20 rr rr             jsr     neg_tmp2
+0003E5r 1  A5 rr        :       lda     tmp2
+0003E7r 1  A6 rr                ldx     tmp2+1
+0003E9r 1  86 rr                stx     scratch
+0003EBr 1  20 rr rr             jsr     pm_push
+0003EEr 1  4C rr rr             jmp     prun_loop
+0003F1r 1               
+0003F1r 1               ; OP_EQUI ($40) — integer equal
+0003F1r 1               op_EQUI:
+0003F1r 1  20 rr rr             jsr     pm_pop          ; b
+0003F4r 1  85 rr                sta     tmp2
+0003F6r 1  A5 rr                lda     scratch
+0003F8r 1  85 rr                sta     tmp2+1
+0003FAr 1  20 rr rr             jsr     pm_pop          ; a
+0003FDr 1  C5 rr                cmp     tmp2
+0003FFr 1  D0 10                bne     @false
+000401r 1  A5 rr                lda     scratch
+000403r 1  C5 rr                cmp     tmp2+1
+000405r 1  D0 0A                bne     @false
+000407r 1  A9 FF                lda     #$FF
+000409r 1  85 rr                sta     scratch
+00040Br 1  20 rr rr             jsr     pm_push
+00040Er 1  4C rr rr             jmp     prun_loop
+000411r 1  A9 00        @false: lda     #0
+000413r 1  85 rr                sta     scratch
+000415r 1  20 rr rr             jsr     pm_push
+000418r 1  4C rr rr             jmp     prun_loop
+00041Br 1               
+00041Br 1               ; OP_LESI ($42) — a < b  (signed)
+00041Br 1               op_LESI:
+00041Br 1  20 rr rr             jsr     pm_pop          ; b → tmp2
+00041Er 1  85 rr                sta     tmp2
+000420r 1  A5 rr                lda     scratch
+000422r 1  85 rr                sta     tmp2+1
+000424r 1  20 rr rr             jsr     pm_pop          ; a
+000427r 1                       ; signed compare: (a - b), check N and V
+000427r 1  38                   sec
+000428r 1  E5 rr                sbc     tmp2
+00042Ar 1  A5 rr                lda     scratch
+00042Cr 1  E5 rr                sbc     tmp2+1
+00042Er 1                       ; N XOR V indicates a < b
+00042Er 1  70 04                bvs     @ov
+000430r 1  30 0E                bmi     @true
+000432r 1  10 02                bpl     @false2
+000434r 1  10 0A        @ov:    bpl     @true
+000436r 1               @false2:
+000436r 1  A9 00                lda     #0
+000438r 1  85 rr                sta     scratch
+00043Ar 1  20 rr rr             jsr     pm_push
+00043Dr 1  4C rr rr             jmp     prun_loop
+000440r 1  A9 FF        @true:  lda     #$FF
+000442r 1  85 rr                sta     scratch
+000444r 1  20 rr rr             jsr     pm_push
+000447r 1  4C rr rr             jmp     prun_loop
+00044Ar 1               
+00044Ar 1               ; OP_NEQI ($41) — integer not-equal
+00044Ar 1               op_NEQI:
+00044Ar 1  20 rr rr             jsr     pm_pop
+00044Dr 1  85 rr                sta     tmp2
+00044Fr 1  A5 rr                lda     scratch
+000451r 1  85 rr                sta     tmp2+1
+000453r 1  20 rr rr             jsr     pm_pop
+000456r 1  C5 rr                cmp     tmp2
+000458r 1  D0 10                bne     @true
+00045Ar 1  A5 rr                lda     scratch
+00045Cr 1  C5 rr                cmp     tmp2+1
+00045Er 1  D0 0A                bne     @true
+000460r 1  A9 00                lda     #0
+000462r 1  85 rr                sta     scratch
+000464r 1  20 rr rr             jsr     pm_push
+000467r 1  4C rr rr             jmp     prun_loop
+00046Ar 1  A9 FF        @true:  lda     #$FF
+00046Cr 1  85 rr                sta     scratch
+00046Er 1  20 rr rr             jsr     pm_push
+000471r 1  4C rr rr             jmp     prun_loop
+000474r 1               
+000474r 1               ; OP_LEQI ($43) — a <= b  (signed)
+000474r 1               op_LEQI:
+000474r 1  20 rr rr             jsr     pm_pop          ; b → tmp2
+000477r 1  85 rr                sta     tmp2
+000479r 1  A5 rr                lda     scratch
+00047Br 1  85 rr                sta     tmp2+1
+00047Dr 1  20 rr rr             jsr     pm_pop          ; a (lo=A, hi=scratch)
+000480r 1  38                   sec
+000481r 1  E5 rr                sbc     tmp2            ; A = a_lo - b_lo
+000483r 1  AA                   tax                     ; preserve low result for zero-test
+000484r 1  A5 rr                lda     scratch
+000486r 1  E5 rr                sbc     tmp2+1          ; A = a_hi - b_hi (with borrow)
+000488r 1                       ; if a < b → N XOR V == 1
+000488r 1  70 0B                bvs     @ov
+00048Ar 1  30 15                bmi     @true
+00048Cr 1  D0 09                bne     @false3         ; positive non-zero hi → a > b
+00048Er 1  E0 00                cpx     #0
+000490r 1  F0 0F                beq     @true           ; a == b
+000492r 1  4C rr rr             jmp     @false3
+000495r 1  10 0A        @ov:    bpl     @true           ; a < b under overflow
+000497r 1               @false3:
+000497r 1  A9 00                lda     #0
+000499r 1  85 rr                sta     scratch
+00049Br 1  20 rr rr             jsr     pm_push
+00049Er 1  4C rr rr             jmp     prun_loop
+0004A1r 1  A9 FF        @true:  lda     #$FF
+0004A3r 1  85 rr                sta     scratch
+0004A5r 1  20 rr rr             jsr     pm_push
+0004A8r 1  4C rr rr             jmp     prun_loop
+0004ABr 1               
+0004ABr 1               ; OP_GTRI ($44) — a > b  (signed) ; equivalent to b < a
+0004ABr 1               op_GTRI:
+0004ABr 1  20 rr rr             jsr     pm_pop          ; b
+0004AEr 1  85 rr                sta     tmp2
+0004B0r 1  A5 rr                lda     scratch
+0004B2r 1  85 rr                sta     tmp2+1
+0004B4r 1  20 rr rr             jsr     pm_pop          ; a
+0004B7r 1                       ; compute b - a  (i.e. swap operands of LESI)
+0004B7r 1                       ; flip via: result_true if a > b, i.e. (a - b) > 0
+0004B7r 1  38                   sec
+0004B8r 1  E5 rr                sbc     tmp2            ; lo
+0004BAr 1  AA                   tax
+0004BBr 1  A5 rr                lda     scratch
+0004BDr 1  E5 rr                sbc     tmp2+1          ; hi with borrow
+0004BFr 1  70 0B                bvs     @ov
+0004C1r 1  30 15                bmi     @false4         ; a < b
+0004C3r 1  D0 09                bne     @true           ; positive non-zero hi → a > b
+0004C5r 1  E0 00                cpx     #0
+0004C7r 1  F0 0F                beq     @false4         ; a == b
+0004C9r 1  4C rr rr             jmp     @true
+0004CCr 1  10 0A        @ov:    bpl     @false4
+0004CEr 1  A9 FF        @true:  lda     #$FF
+0004D0r 1  85 rr                sta     scratch
+0004D2r 1  20 rr rr             jsr     pm_push
+0004D5r 1  4C rr rr             jmp     prun_loop
+0004D8r 1               @false4:
+0004D8r 1  A9 00                lda     #0
+0004DAr 1  85 rr                sta     scratch
+0004DCr 1  20 rr rr             jsr     pm_push
+0004DFr 1  4C rr rr             jmp     prun_loop
+0004E2r 1               
+0004E2r 1               ; OP_GEQI ($45) — a >= b  (signed) ; equivalent to NOT (a < b)
+0004E2r 1               op_GEQI:
+0004E2r 1  20 rr rr             jsr     pm_pop          ; b
+0004E5r 1  85 rr                sta     tmp2
+0004E7r 1  A5 rr                lda     scratch
+0004E9r 1  85 rr                sta     tmp2+1
+0004EBr 1  20 rr rr             jsr     pm_pop          ; a
+0004EEr 1  38                   sec
+0004EFr 1  E5 rr                sbc     tmp2
+0004F1r 1  A5 rr                lda     scratch
+0004F3r 1  E5 rr                sbc     tmp2+1
+0004F5r 1  70 05                bvs     @ov
+0004F7r 1  30 0F                bmi     @false5         ; a < b
+0004F9r 1  4C rr rr             jmp     @true
+0004FCr 1  10 0A        @ov:    bpl     @false5
+0004FEr 1  A9 FF        @true:  lda     #$FF
+000500r 1  85 rr                sta     scratch
+000502r 1  20 rr rr             jsr     pm_push
+000505r 1  4C rr rr             jmp     prun_loop
+000508r 1               @false5:
+000508r 1  A9 00                lda     #0
+00050Ar 1  85 rr                sta     scratch
+00050Cr 1  20 rr rr             jsr     pm_push
+00050Fr 1  4C rr rr             jmp     prun_loop
+000512r 1               
+000512r 1               ; OP_UJP ($50) — unconditional jump (signed word offset from current IPC)
+000512r 1               op_UJP:
+000512r 1  20 rr rr             jsr     pm_fetch_word   ; A=lo, scratch=hi (signed offset)
+000515r 1  18                   clc
+000516r 1  65 rr                adc     pm_ipc
+000518r 1  85 rr                sta     pm_ipc
+00051Ar 1  A5 rr                lda     scratch
+00051Cr 1  65 rr                adc     pm_ipc+1
+00051Er 1  85 rr                sta     pm_ipc+1
+000520r 1  4C rr rr             jmp     prun_loop
+000523r 1               
+000523r 1               ; OP_FJP ($51) — jump if TOS is false (0)
+000523r 1               op_FJP:
+000523r 1  20 rr rr             jsr     pm_fetch_word
+000526r 1  48                   pha
+000527r 1  A5 rr                lda     scratch
+000529r 1  48                   pha
+00052Ar 1  20 rr rr             jsr     pm_pop          ; condition
+00052Dr 1  05 rr                ora     scratch         ; zero?
+00052Fr 1  D0 12                bne     @no_jump        ; not zero = true, no jump
+000531r 1  68                   pla                     ; hi offset
+000532r 1  85 rr                sta     scratch
+000534r 1  68                   pla                     ; lo offset
+000535r 1  18                   clc
+000536r 1  65 rr                adc     pm_ipc
+000538r 1  85 rr                sta     pm_ipc
+00053Ar 1  A5 rr                lda     scratch
+00053Cr 1  65 rr                adc     pm_ipc+1
+00053Er 1  85 rr                sta     pm_ipc+1
+000540r 1  4C rr rr             jmp     prun_loop
+000543r 1               @no_jump:
+000543r 1  68                   pla
+000544r 1  68                   pla
+000545r 1  4C rr rr             jmp     prun_loop
+000548r 1               
+000548r 1               ; OP_TJP ($52) — jump if TOS is true (≠0)
+000548r 1               op_TJP:
+000548r 1  20 rr rr             jsr     pm_fetch_word
+00054Br 1  48                   pha
+00054Cr 1  A5 rr                lda     scratch
+00054Er 1  48                   pha
+00054Fr 1  20 rr rr             jsr     pm_pop
+000552r 1  05 rr                ora     scratch
+000554r 1  F0 12                beq     @no_jump2
+000556r 1  68                   pla
+000557r 1  85 rr                sta     scratch
+000559r 1  68                   pla
+00055Ar 1  18                   clc
+00055Br 1  65 rr                adc     pm_ipc
+00055Dr 1  85 rr                sta     pm_ipc
+00055Fr 1  A5 rr                lda     scratch
+000561r 1  65 rr                adc     pm_ipc+1
+000563r 1  85 rr                sta     pm_ipc+1
+000565r 1  4C rr rr             jmp     prun_loop
+000568r 1               @no_jump2:
+000568r 1  68                   pla
+000569r 1  68                   pla
+00056Ar 1  4C rr rr             jmp     prun_loop
+00056Dr 1               
+00056Dr 1               ; OP_MRKSTK ($64) — push activation record, reserve locals
+00056Dr 1               ; Operand: 1 byte = size of local area in bytes
+00056Dr 1               op_MRKSTK:
+00056Dr 1  20 rr rr             jsr     pm_fetch_byte   ; local size
+000570r 1  85 rr                sta     tmp2            ; save local size
+000572r 1               
+000572r 1                       ; save dynamic link (current MP) into new frame at current SP
+000572r 1  A0 00                ldy     #0
+000574r 1  A5 rr                lda     pm_mp
+000576r 1  91 rr                sta     (pm_sp),y       ; store at current SP (dynamic link lo)
+000578r 1                       ; ... full activation record setup deferred to Phase 1 implementation
+000578r 1                       ; For now: advance SP by AR_LOCALS + local_size
+000578r 1  A5 rr                lda     pm_sp
+00057Ar 1  18                   clc
+00057Br 1  69 08                adc     #AR_LOCALS
+00057Dr 1  85 rr                sta     pm_mp           ; new MP = old SP (frame base)
+00057Fr 1  A5 rr                lda     pm_sp+1
+000581r 1  69 00                adc     #0
+000583r 1  85 rr                sta     pm_mp+1
+000585r 1  A5 rr                lda     pm_sp
+000587r 1  18                   clc
+000588r 1  65 rr                adc     tmp2
+00058Ar 1  18                   clc
+00058Br 1  69 08                adc     #AR_LOCALS
+00058Dr 1  85 rr                sta     pm_sp
+00058Fr 1  A5 rr                lda     pm_sp+1
+000591r 1  69 00                adc     #0
+000593r 1  85 rr                sta     pm_sp+1
+000595r 1  4C rr rr             jmp     prun_loop
+000598r 1               
+000598r 1               ; OP_CALL ($60) — call procedure (signed word offset)
+000598r 1               op_CALL:
+000598r 1  20 rr rr             jsr     pm_fetch_word   ; A=lo, scratch=hi
+00059Br 1                       ; TODO: full activation record push
+00059Br 1                       ; placeholder: just jump
+00059Br 1  18                   clc
+00059Cr 1  65 rr                adc     pm_ipc
+00059Er 1  85 rr                sta     pm_ipc
+0005A0r 1  A5 rr                lda     scratch
+0005A2r 1  65 rr                adc     pm_ipc+1
+0005A4r 1  85 rr                sta     pm_ipc+1
+0005A6r 1  4C rr rr             jmp     prun_loop
+0005A9r 1               
+0005A9r 1               ; OP_RET ($62) — return from procedure
+0005A9r 1               op_RET:
+0005A9r 1                       ; TODO: restore MP and IPC from activation record
+0005A9r 1                       ; placeholder: halt for now
+0005A9r 1  60                   rts
+0005AAr 1               
+0005AAr 1               ; OP_WRITI ($80) — pop integer, print decimal
+0005AAr 1               op_WRITI:
+0005AAr 1  20 rr rr             jsr     pm_pop          ; A=lo, scratch=hi
+0005ADr 1  85 rr                sta     tmp0
+0005AFr 1  A5 rr                lda     scratch
+0005B1r 1  85 rr                sta     tmp0+1
+0005B3r 1  20 rr rr             jsr     console_print_dec
+0005B6r 1  4C rr rr             jmp     prun_loop
+0005B9r 1               
+0005B9r 1               ; OP_WRITC ($81) — pop char, print
+0005B9r 1               op_WRITC:
+0005B9r 1  20 rr rr             jsr     pm_pop
+0005BCr 1  20 rr rr             jsr     console_putc
+0005BFr 1  4C rr rr             jmp     prun_loop
+0005C2r 1               
+0005C2r 1               ; OP_WRITB ($82) — pop boolean, print TRUE/FALSE
+0005C2r 1               op_WRITB:
+0005C2r 1  20 rr rr             jsr     pm_pop
+0005C5r 1  05 rr                ora     scratch
+0005C7r 1  F0 0E                beq     @false3
+0005C9r 1  A9 rr                lda     #<str_true
+0005CBr 1  85 rr                sta     tmp0
+0005CDr 1  A9 rr                lda     #>str_true
+0005CFr 1  85 rr                sta     tmp0+1
+0005D1r 1  20 rr rr             jsr     console_print_sz
+0005D4r 1  4C rr rr             jmp     prun_loop
+0005D7r 1               @false3:
+0005D7r 1  A9 rr                lda     #<str_false
+0005D9r 1  85 rr                sta     tmp0
+0005DBr 1  A9 rr                lda     #>str_false
+0005DDr 1  85 rr                sta     tmp0+1
+0005DFr 1  20 rr rr             jsr     console_print_sz
+0005E2r 1  4C rr rr             jmp     prun_loop
+0005E5r 1               
+0005E5r 1               ; OP_WRITS ($83) — TOS = address of length-prefixed string, print it
+0005E5r 1               op_WRITS:
+0005E5r 1  20 rr rr             jsr     pm_pop
+0005E8r 1  85 rr                sta     tmp0
+0005EAr 1  A5 rr                lda     scratch
+0005ECr 1  85 rr                sta     tmp0+1
+0005EEr 1  20 rr rr             jsr     console_print_pstr
+0005F1r 1  4C rr rr             jmp     prun_loop
+0005F4r 1               
+0005F4r 1               ; OP_WRITLN ($84) — newline
+0005F4r 1               op_WRITLN:
+0005F4r 1  20 rr rr             jsr     console_newline
+0005F7r 1  4C rr rr             jmp     prun_loop
+0005FAr 1               
+0005FAr 1               ; OP_READI ($85) — read integer from console, push
+0005FAr 1               op_READI:
+0005FAr 1                       ; TODO: implement proper integer input
+0005FAr 1  A9 00                lda     #0
+0005FCr 1  85 rr                sta     scratch
+0005FEr 1  20 rr rr             jsr     pm_push
+000601r 1  4C rr rr             jmp     prun_loop
+000604r 1               
+000604r 1               ; OP_READC ($86) — read char from console, push
+000604r 1               op_READC:
+000604r 1  A2 01 20 03          PEM PEM_CONIN
+000608r 1  01           
+000609r 1  48                   pha
+00060Ar 1  A9 00                lda     #0
+00060Cr 1  85 rr                sta     scratch
+00060Er 1  68                   pla
+00060Fr 1  20 rr rr             jsr     pm_push
+000612r 1  4C rr rr             jmp     prun_loop
+000615r 1               
+000615r 1               ; OP_DUP ($90) — duplicate TOS
+000615r 1               op_DUP:
+000615r 1  20 rr rr             jsr     pm_peek
+000618r 1  20 rr rr             jsr     pm_push
+00061Br 1  4C rr rr             jmp     prun_loop
+00061Er 1               
+00061Er 1               ; OP_POP ($91) — discard TOS
+00061Er 1               op_POP:
+00061Er 1  20 rr rr             jsr     pm_pop
+000621r 1  4C rr rr             jmp     prun_loop
+000624r 1               
+000624r 1               ; ---------------------------------------------------------------------------
+000624r 1               ; Unimplemented opcode handler
+000624r 1               ; ---------------------------------------------------------------------------
+000624r 1               op_UNIMP:
+000624r 1  A9 rr                lda     #<err_rt_opcode
+000626r 1  85 rr                sta     tmp0
+000628r 1  A9 rr                lda     #>err_rt_opcode
+00062Ar 1  85 rr                sta     tmp0+1
+00062Cr 1  20 rr rr             jsr     rt_error
+00062Fr 1                       ; rt_error does not return (jumps to warm boot)
+00062Fr 1               
+00062Fr 1               ; ---------------------------------------------------------------------------
+00062Fr 1               ; String literals for boolean output
+00062Fr 1               ; ---------------------------------------------------------------------------
+00062Fr 1  54 52 55 45  str_true:       .byte "TRUE",0
+000633r 1  00           
+000634r 1  46 41 4C 53  str_false:      .byte "FALSE",0
+000638r 1  45 00        
+00063Ar 1  50 52 55 4E  msg_rt_banner:  .byte "PRUN v0.1 - Pascal P-Code Runtime for DOS/65",13,10,0
+00063Er 1  20 76 30 2E  
+000642r 1  31 20 2D 20  
+000669r 1               
+000669r 1               ; ---------------------------------------------------------------------------
+000669r 1               ; Dispatch table — 256 entries of (lo, hi) pointer pairs
+000669r 1               ; ---------------------------------------------------------------------------
+000669r 1  xx xx xx xx  .align 256
+00066Dr 1  xx xx xx xx  
+000671r 1  xx xx xx xx  
+000700r 1               dispatch_lo:
+000700r 1                       ; $00-$07
+000700r 1  rr rr rr rr          .byte <op_LDCI,  <op_LDCW,  <op_LDCC,  <op_LDCB
+000704r 1  rr rr rr rr          .byte <op_UNIMP, <op_LDCN,  <op_UNIMP, <op_UNIMP
+000708r 1                       ; $08-$0F
+000708r 1  rr rr rr rr          .repeat 8
+00070Cr 1  rr rr rr rr  
+000710r 1                       .byte <op_UNIMP
+000710r 1                       .endrepeat
+000710r 1                       ; $10-$17
+000710r 1  rr rr rr rr          .byte <op_LDL,   <op_STL,   <op_UNIMP, <op_UNIMP
+000714r 1  rr rr rr rr          .repeat 4
+000718r 1                       .byte <op_UNIMP
+000718r 1                       .endrepeat
+000718r 1                       ; $18-$2F
+000718r 1  rr rr                .byte <op_LDG,   <op_STG
+00071Ar 1  rr rr rr rr          .repeat 22
+00071Er 1  rr rr rr rr  
+000722r 1  rr rr rr rr  
+000730r 1                       .byte <op_UNIMP
+000730r 1                       .endrepeat
+000730r 1                       ; $30-$3F
+000730r 1  rr rr rr rr          .byte <op_ADI,   <op_SBI,   <op_MPI,   <op_DVI
+000734r 1  rr rr rr rr          .byte <op_MOD,   <op_NGI,   <op_UNIMP, <op_UNIMP
+000738r 1  rr rr rr rr          .repeat 8
+00073Cr 1  rr rr rr rr  
+000740r 1                       .byte <op_UNIMP
+000740r 1                       .endrepeat
+000740r 1                       ; $40-$4F
+000740r 1  rr rr rr rr          .byte <op_EQUI,  <op_NEQI,  <op_LESI,  <op_LEQI
+000744r 1  rr rr rr rr          .byte <op_GTRI,  <op_GEQI,  <op_UNIMP, <op_UNIMP
+000748r 1  rr rr rr rr          .repeat 8
+00074Cr 1  rr rr rr rr  
+000750r 1                       .byte <op_UNIMP
+000750r 1                       .endrepeat
+000750r 1                       ; $50-$5F
+000750r 1  rr rr rr rr          .byte <op_UJP,   <op_FJP,   <op_TJP,   <op_UNIMP
+000754r 1  rr rr rr rr          .repeat 12
+000758r 1  rr rr rr rr  
+00075Cr 1  rr rr rr rr  
+000760r 1                       .byte <op_UNIMP
+000760r 1                       .endrepeat
+000760r 1                       ; $60-$6F
+000760r 1  rr rr rr rr          .byte <op_CALL,  <op_UNIMP, <op_RET,   <op_UNIMP
+000764r 1  rr rr rr rr          .byte <op_MRKSTK,<op_UNIMP, <op_UNIMP, <op_UNIMP
+000768r 1  rr rr rr rr          .repeat 8
+00076Cr 1  rr rr rr rr  
+000770r 1                       .byte <op_UNIMP
+000770r 1                       .endrepeat
+000770r 1                       ; $70-$7F
+000770r 1  rr rr rr rr          .repeat 16
+000774r 1  rr rr rr rr  
+000778r 1  rr rr rr rr  
+000780r 1                       .byte <op_UNIMP
+000780r 1                       .endrepeat
+000780r 1                       ; $80-$8F
+000780r 1  rr rr rr rr          .byte <op_WRITI, <op_WRITC, <op_WRITB, <op_WRITS
+000784r 1  rr rr rr rr          .byte <op_WRITLN,<op_READI, <op_READC, <op_UNIMP
+000788r 1  rr rr rr rr          .repeat 8
+00078Cr 1  rr rr rr rr  
+000790r 1                       .byte <op_UNIMP
+000790r 1                       .endrepeat
+000790r 1                       ; $90-$FE
+000790r 1  rr rr rr rr          .byte <op_DUP,   <op_POP,   <op_UNIMP, <op_UNIMP
+000794r 1  rr rr rr rr          .repeat 107
+000798r 1  rr rr rr rr  
+00079Cr 1  rr rr rr rr  
+0007FFr 1                       .byte <op_UNIMP
+0007FFr 1                       .endrepeat
+0007FFr 1                       ; $FF
+0007FFr 1  rr                   .byte <op_HALT
+000800r 1               
+000800r 1               dispatch_hi:
+000800r 1                       ; $00-$07
+000800r 1  rr rr rr rr          .byte >op_LDCI,  >op_LDCW,  >op_LDCC,  >op_LDCB
+000804r 1  rr rr rr rr          .byte >op_UNIMP, >op_LDCN,  >op_UNIMP, >op_UNIMP
+000808r 1                       ; $08-$0F
+000808r 1  rr rr rr rr          .repeat 8
+00080Cr 1  rr rr rr rr  
+000810r 1                       .byte >op_UNIMP
+000810r 1                       .endrepeat
+000810r 1                       ; $10-$17
+000810r 1  rr rr rr rr          .byte >op_LDL,   >op_STL,   >op_UNIMP, >op_UNIMP
+000814r 1  rr rr rr rr          .repeat 4
+000818r 1                       .byte >op_UNIMP
+000818r 1                       .endrepeat
+000818r 1                       ; $18-$2F
+000818r 1  rr rr                .byte >op_LDG,   >op_STG
+00081Ar 1  rr rr rr rr          .repeat 22
+00081Er 1  rr rr rr rr  
+000822r 1  rr rr rr rr  
+000830r 1                       .byte >op_UNIMP
+000830r 1                       .endrepeat
+000830r 1                       ; $30-$3F
+000830r 1  rr rr rr rr          .byte >op_ADI,   >op_SBI,   >op_MPI,   >op_DVI
+000834r 1  rr rr rr rr          .byte >op_MOD,   >op_NGI,   >op_UNIMP, >op_UNIMP
+000838r 1  rr rr rr rr          .repeat 8
+00083Cr 1  rr rr rr rr  
+000840r 1                       .byte >op_UNIMP
+000840r 1                       .endrepeat
+000840r 1                       ; $40-$4F
+000840r 1  rr rr rr rr          .byte >op_EQUI,  >op_NEQI,  >op_LESI,  >op_LEQI
+000844r 1  rr rr rr rr          .byte >op_GTRI,  >op_GEQI,  >op_UNIMP, >op_UNIMP
+000848r 1  rr rr rr rr          .repeat 8
+00084Cr 1  rr rr rr rr  
+000850r 1                       .byte >op_UNIMP
+000850r 1                       .endrepeat
+000850r 1                       ; $50-$5F
+000850r 1  rr rr rr rr          .byte >op_UJP,   >op_FJP,   >op_TJP,   >op_UNIMP
+000854r 1  rr rr rr rr          .repeat 12
+000858r 1  rr rr rr rr  
+00085Cr 1  rr rr rr rr  
+000860r 1                       .byte >op_UNIMP
+000860r 1                       .endrepeat
+000860r 1                       ; $60-$6F
+000860r 1  rr rr rr rr          .byte >op_CALL,  >op_UNIMP, >op_RET,   >op_UNIMP
+000864r 1  rr rr rr rr          .byte >op_MRKSTK,>op_UNIMP, >op_UNIMP, >op_UNIMP
+000868r 1  rr rr rr rr          .repeat 8
+00086Cr 1  rr rr rr rr  
+000870r 1                       .byte >op_UNIMP
+000870r 1                       .endrepeat
+000870r 1                       ; $70-$7F
+000870r 1  rr rr rr rr          .repeat 16
+000874r 1  rr rr rr rr  
+000878r 1  rr rr rr rr  
+000880r 1                       .byte >op_UNIMP
+000880r 1                       .endrepeat
+000880r 1                       ; $80-$8F
+000880r 1  rr rr rr rr          .byte >op_WRITI, >op_WRITC, >op_WRITB, >op_WRITS
+000884r 1  rr rr rr rr          .byte >op_WRITLN,>op_READI, >op_READC, >op_UNIMP
+000888r 1  rr rr rr rr          .repeat 8
+00088Cr 1  rr rr rr rr  
+000890r 1                       .byte >op_UNIMP
+000890r 1                       .endrepeat
+000890r 1                       ; $90-$FE
+000890r 1  rr rr rr rr          .byte >op_DUP,   >op_POP,   >op_UNIMP, >op_UNIMP
+000894r 1  rr rr rr rr          .repeat 107
+000898r 1  rr rr rr rr  
+00089Cr 1  rr rr rr rr  
+0008FFr 1                       .byte >op_UNIMP
+0008FFr 1                       .endrepeat
+0008FFr 1                       ; $FF
+0008FFr 1  rr                   .byte >op_HALT
+000900r 1               
+000900r 1               ; ---------------------------------------------------------------------------
+000900r 1               ; FCB for the .PCD file (placed in CODE segment, well below STACK_BASE)
+000900r 1               ; ---------------------------------------------------------------------------
+000900r 1  xx xx xx xx  pcd_fcb:        .res 36         ; FCB (36 bytes as per CP/M/DOS65)
+000904r 1  xx xx xx xx  
+000908r 1  xx xx xx xx  
+000924r 1               
+000924r 1               ; ---------------------------------------------------------------------------
+000924r 1               ; Include shared I/O library
+000924r 1               ; ---------------------------------------------------------------------------
+000924r 1               .include "iolib.asm"
+000924r 2               .pc02
+000924r 2               ; iolib.asm — console and file I/O wrappers for DOS/65
+000924r 2               ;
+000924r 2               ; Uses PEM function 2 (CONOUT) for character output.
+000924r 2               ; This routes through DFT_CONSOLE and works on all platforms
+000924r 2               ; (serial, ESP video, memory-mapped video) regardless of which
+000924r 2               ; console driver is active.
+000924r 2               
+000924r 2               .segment "CODE"
+000924r 2               
+000924r 2               ; ---------------------------------------------------------------------------
+000924r 2               ; console_putc — output character in A to console via PEM #2
+000924r 2               ; ---------------------------------------------------------------------------
+000924r 2               console_putc:
+000924r 2  48                   pha
+000925r 2  A2 02                ldx     #PEM_CONOUT
+000927r 2  20 03 01             jsr     PEM_ENTRY
+00092Ar 2  68                   pla
+00092Br 2  60                   rts
+00092Cr 2               
+00092Cr 2               ; ---------------------------------------------------------------------------
+00092Cr 2               ; console_newline — emit CR+LF
+00092Cr 2               ; ---------------------------------------------------------------------------
+00092Cr 2               console_newline:
+00092Cr 2  A9 0D                lda     #$0D
+00092Er 2  A2 02                ldx     #PEM_CONOUT
+000930r 2  20 03 01             jsr     PEM_ENTRY
+000933r 2  A9 0A                lda     #$0A
+000935r 2  A2 02                ldx     #PEM_CONOUT
+000937r 2  20 03 01             jsr     PEM_ENTRY
+00093Ar 2  60                   rts
+00093Br 2               
+00093Br 2               ; ---------------------------------------------------------------------------
+00093Br 2               ; console_print_sz — print null-terminated string at tmp0
+00093Br 2               ; ---------------------------------------------------------------------------
+00093Br 2               console_print_sz:
+00093Br 2  A0 00                ldy     #0
+00093Dr 2  B1 rr        @loop:  lda     (tmp0),y
+00093Fr 2  F0 08                beq     @done
+000941r 2  A2 02                ldx     #PEM_CONOUT
+000943r 2  20 03 01             jsr     PEM_ENTRY
+000946r 2  C8                   iny
+000947r 2  D0 F4                bne     @loop
+000949r 2  60           @done:  rts
+00094Ar 2               
+00094Ar 2               ; ---------------------------------------------------------------------------
+00094Ar 2               ; console_print_pstr — print length-prefixed Pascal string at tmp0
+00094Ar 2               ; ---------------------------------------------------------------------------
+00094Ar 2               console_print_pstr:
+00094Ar 2  A0 00                ldy     #0
+00094Cr 2  B1 rr                lda     (tmp0),y        ; length byte
+00094Er 2  F0 10                beq     @done
+000950r 2  AA                   tax                     ; X = remaining chars — but X used by PEM!
+000951r 2                       ; save length, use tmp1 as counter
+000951r 2  85 rr                sta     tmp1
+000953r 2  C8                   iny
+000954r 2  B1 rr        @loop:  lda     (tmp0),y
+000956r 2  A2 02                ldx     #PEM_CONOUT
+000958r 2  20 03 01             jsr     PEM_ENTRY
+00095Br 2  C8                   iny
+00095Cr 2  C6 rr                dec     tmp1
+00095Er 2  D0 F4                bne     @loop
+000960r 2  60           @done:  rts
+000961r 2               
+000961r 2               ; ---------------------------------------------------------------------------
+000961r 2               ; console_print_dec — print signed 16-bit integer in tmp0:tmp0+1
+000961r 2               ; ---------------------------------------------------------------------------
+000961r 2               console_print_dec:
+000961r 2  A5 rr                lda     tmp0+1
+000963r 2  10 14                bpl     @positive
+000965r 2  A9 2D                lda     #'-'
+000967r 2  A2 02                ldx     #PEM_CONOUT
+000969r 2  20 03 01             jsr     PEM_ENTRY
+00096Cr 2  A9 00                lda     #0
+00096Er 2  38                   sec
+00096Fr 2  E5 rr                sbc     tmp0
+000971r 2  85 rr                sta     tmp0
+000973r 2  A9 00                lda     #0
+000975r 2  E5 rr                sbc     tmp0+1
+000977r 2  85 rr                sta     tmp0+1
+000979r 2               @positive:
+000979r 2  A9 00                lda     #0
+00097Br 2  48                   pha                     ; sentinel
+00097Cr 2               @div_loop:
+00097Cr 2  20 rr rr             jsr     div16_by10      ; quotient→tmp0, remainder→scratch
+00097Fr 2  A5 rr                lda     scratch
+000981r 2  18                   clc
+000982r 2  69 30                adc     #'0'
+000984r 2  48                   pha
+000985r 2  A5 rr                lda     tmp0
+000987r 2  05 rr                ora     tmp0+1
+000989r 2  D0 F1                bne     @div_loop
+00098Br 2               @print_loop:
+00098Br 2  68                   pla
+00098Cr 2  F0 07                beq     @done2          ; sentinel
+00098Er 2  A2 02                ldx     #PEM_CONOUT
+000990r 2  20 03 01             jsr     PEM_ENTRY
+000993r 2  80 F6                bra     @print_loop
+000995r 2  60           @done2: rts
+000996r 2               
+000996r 2               ; ---------------------------------------------------------------------------
+000996r 2               ; div16_by10 — divide tmp0:tmp0+1 by 10
+000996r 2               ; Result: quotient in tmp0:tmp0+1, remainder in scratch
+000996r 2               ; ---------------------------------------------------------------------------
+000996r 2               div16_by10:
+000996r 2  A9 00                lda     #0
+000998r 2  85 rr                sta     scratch
+00099Ar 2  A2 10                ldx     #16
+00099Cr 2  06 rr        @bit:   asl     tmp0
+00099Er 2  26 rr                rol     tmp0+1
+0009A0r 2  26 rr                rol     scratch
+0009A2r 2  A5 rr                lda     scratch
+0009A4r 2  C9 0A                cmp     #10
+0009A6r 2  90 06                bcc     @no_sub
+0009A8r 2  E9 0A                sbc     #10
+0009AAr 2  85 rr                sta     scratch
+0009ACr 2  E6 rr                inc     tmp0
+0009AEr 2               @no_sub:
+0009AEr 2  CA                   dex
+0009AFr 2  D0 EB                bne     @bit
+0009B1r 2  60                   rts
+0009B2r 2               
+0009B2r 2               ; ---------------------------------------------------------------------------
+0009B2r 2               ; console_read_line — read a line into buffer at tmp0, max len in x_save
+0009B2r 2               ; Returns: Y = length (not including CR)
+0009B2r 2               ; ---------------------------------------------------------------------------
+0009B2r 2               console_read_line:
+0009B2r 2  8E rr rr             stx     x_save
+0009B5r 2  A0 00                ldy     #0
+0009B7r 2  A2 01        @loop:  ldx     #PEM_CONIN
+0009B9r 2  20 03 01             jsr     PEM_ENTRY
+0009BCr 2  C9 0D                cmp     #$0D
+0009BEr 2  F0 28                beq     @done
+0009C0r 2  C9 08                cmp     #$08            ; backspace
+0009C2r 2  D0 1C                bne     @store
+0009C4r 2  C0 00                cpy     #0
+0009C6r 2  F0 EF                beq     @loop
+0009C8r 2  88                   dey
+0009C9r 2  A9 08                lda     #$08
+0009CBr 2  A2 02                ldx     #PEM_CONOUT
+0009CDr 2  20 03 01             jsr     PEM_ENTRY
+0009D0r 2  A9 20                lda     #' '
+0009D2r 2  A2 02                ldx     #PEM_CONOUT
+0009D4r 2  20 03 01             jsr     PEM_ENTRY
+0009D7r 2  A9 08                lda     #$08
+0009D9r 2  A2 02                ldx     #PEM_CONOUT
+0009DBr 2  20 03 01             jsr     PEM_ENTRY
+0009DEr 2  80 D7                bra     @loop
+0009E0r 2  91 rr        @store: sta     (tmp0),y
+0009E2r 2  C8                   iny
+0009E3r 2  CC rr rr             cpy     x_save
+0009E6r 2  90 CF                bcc     @loop
+0009E8r 2  60           @done:  rts
+0009E9r 2  00           x_save: .byte   0
+0009EAr 2               
+0009EAr 2               ; ---------------------------------------------------------------------------
+0009EAr 2               ; file_open — open file via FCB at tmp1; returns A=0 success, $FF=not found
+0009EAr 2               ; PEM calling convention: X=function, A=FCB addr lo, Y=FCB addr hi
+0009EAr 2               ; ---------------------------------------------------------------------------
+0009EAr 2               file_open:
+0009EAr 2  A5 rr                lda     tmp1
+0009ECr 2  A4 rr                ldy     tmp1+1
+0009EEr 2  A2 0F                ldx     #PEM_OPEN
+0009F0r 2  20 03 01             jsr     PEM_ENTRY
+0009F3r 2  60                   rts
+0009F4r 2               
+0009F4r 2               ; ---------------------------------------------------------------------------
+0009F4r 2               ; file_make — create/truncate file via FCB at tmp1
+0009F4r 2               ; ---------------------------------------------------------------------------
+0009F4r 2               file_make:
+0009F4r 2  A5 rr                lda     tmp1
+0009F6r 2  A4 rr                ldy     tmp1+1
+0009F8r 2  A2 16                ldx     #PEM_MAKE
+0009FAr 2  20 03 01             jsr     PEM_ENTRY
+0009FDr 2  60                   rts
+0009FEr 2               
+0009FEr 2               ; ---------------------------------------------------------------------------
+0009FEr 2               ; file_read_sector — read 128 bytes into DMA_BUF; returns A=0 ok, A=1 EOF
+0009FEr 2               ; ---------------------------------------------------------------------------
+0009FEr 2               file_read_sector:
+0009FEr 2  A5 rr                lda     tmp1
+000A00r 2  A4 rr                ldy     tmp1+1
+000A02r 2  A2 14                ldx     #PEM_READ
+000A04r 2  20 03 01             jsr     PEM_ENTRY
+000A07r 2  60                   rts
+000A08r 2               
+000A08r 2               ; ---------------------------------------------------------------------------
+000A08r 2               ; file_write_sector — write 128 bytes from DMA_BUF
+000A08r 2               ; ---------------------------------------------------------------------------
+000A08r 2               file_write_sector:
+000A08r 2  A5 rr                lda     tmp1
+000A0Ar 2  A4 rr                ldy     tmp1+1
+000A0Cr 2  A2 15                ldx     #PEM_WRITE
+000A0Er 2  20 03 01             jsr     PEM_ENTRY
+000A11r 2  60                   rts
+000A12r 2               
+000A12r 2               ; ---------------------------------------------------------------------------
+000A12r 2               ; file_close — close FCB at tmp1
+000A12r 2               ; ---------------------------------------------------------------------------
+000A12r 2               file_close:
+000A12r 2  A5 rr                lda     tmp1
+000A14r 2  A4 rr                ldy     tmp1+1
+000A16r 2  A2 10                ldx     #PEM_CLOSE
+000A18r 2  20 03 01             jsr     PEM_ENTRY
+000A1Br 2  60                   rts
+000A1Cr 2               
+000A1Cr 1               .include "messages.asm"
+000A1Cr 2               ; messages.asm — compiler error and status strings (null-terminated)
+000A1Cr 2               
+000A1Cr 2               .segment "CODE"
+000A1Cr 2               
+000A1Cr 2  50 61 73 63  msg_banner:     .byte "Pascal/65 Compiler v0.1 for DOS/65",13,10,0
+000A20r 2  61 6C 2F 36  
+000A24r 2  35 20 43 6F  
+000A41r 2  43 6F 6D 70  msg_compiling:  .byte "Compiling: ",0
+000A45r 2  69 6C 69 6E  
+000A49r 2  67 3A 20 00  
+000A4Dr 2  4F 4B 0D 0A  msg_ok:         .byte "OK",13,10,0
+000A51r 2  00           
+000A52r 2  20 65 72 72  msg_errors:     .byte " error(s)",13,10,0
+000A56r 2  6F 72 28 73  
+000A5Ar 2  29 0D 0A 00  
+000A5Er 2  20 4C 69 6E  msg_line:       .byte " Line ",0
+000A62r 2  65 20 00     
+000A65r 2  20 43 6F 6C  msg_col:        .byte " Col ",0
+000A69r 2  20 00        
+000A6Br 2               
+000A6Br 2               ; Compiler errors
+000A6Br 2  55 6E 65 78  err_unexpected: .byte "Unexpected token",0
+000A6Fr 2  70 65 63 74  
+000A73r 2  65 64 20 74  
+000A7Cr 2  49 64 65 6E  err_expected_id:.byte "Identifier expected",0
+000A80r 2  74 69 66 69  
+000A84r 2  65 72 20 65  
+000A90r 2  27 3D 27 20  err_expected_eq:.byte "'=' expected",0
+000A94r 2  65 78 70 65  
+000A98r 2  63 74 65 64  
+000A9Dr 2  27 3B 27 20  err_expected_sm:.byte "';' expected",0
+000AA1r 2  65 78 70 65  
+000AA5r 2  63 74 65 64  
+000AAAr 2  27 42 45 47  err_expected_be:.byte "'BEGIN' expected",0
+000AAEr 2  49 4E 27 20  
+000AB2r 2  65 78 70 65  
+000ABBr 2  27 45 4E 44  err_expected_en:.byte "'END' expected",0
+000ABFr 2  27 20 65 78  
+000AC3r 2  70 65 63 74  
+000ACAr 2  27 44 4F 27  err_expected_do:.byte "'DO' expected",0
+000ACEr 2  20 65 78 70  
+000AD2r 2  65 63 74 65  
+000AD8r 2  27 4F 46 27  err_expected_of:.byte "'OF' expected",0
+000ADCr 2  20 65 78 70  
+000AE0r 2  65 63 74 65  
+000AE6r 2  27 54 48 45  err_expected_th:.byte "'THEN' expected",0
+000AEAr 2  4E 27 20 65  
+000AEEr 2  78 70 65 63  
+000AF6r 2  27 54 4F 27  err_expected_to:.byte "'TO' or 'DOWNTO' expected",0
+000AFAr 2  20 6F 72 20  
+000AFEr 2  27 44 4F 57  
+000B10r 2  27 55 4E 54  err_expected_un:.byte "'UNTIL' expected",0
+000B14r 2  49 4C 27 20  
+000B18r 2  65 78 70 65  
+000B21r 2  27 28 27 20  err_expected_lp:.byte "'(' expected",0
+000B25r 2  65 78 70 65  
+000B29r 2  63 74 65 64  
+000B2Er 2  27 29 27 20  err_expected_rp:.byte "')' expected",0
+000B32r 2  65 78 70 65  
+000B36r 2  63 74 65 64  
+000B3Br 2  27 5D 27 20  err_expected_rb:.byte "']' expected",0
+000B3Fr 2  65 78 70 65  
+000B43r 2  63 74 65 64  
+000B48r 2  27 3A 27 20  err_expected_co:.byte "':' expected",0
+000B4Cr 2  65 78 70 65  
+000B50r 2  63 74 65 64  
+000B55r 2  27 3A 3D 27  err_expected_as:.byte "':=' expected",0
+000B59r 2  20 65 78 70  
+000B5Dr 2  65 63 74 65  
+000B63r 2  55 6E 64 65  err_undef:      .byte "Undefined identifier",0
+000B67r 2  66 69 6E 65  
+000B6Br 2  64 20 69 64  
+000B78r 2  49 64 65 6E  err_redef:      .byte "Identifier redefined",0
+000B7Cr 2  74 69 66 69  
+000B80r 2  65 72 20 72  
+000B8Dr 2  54 79 70 65  err_type:       .byte "Type mismatch",0
+000B91r 2  20 6D 69 73  
+000B95r 2  6D 61 74 63  
+000B9Br 2  56 61 72 69  err_not_var:    .byte "Variable expected",0
+000B9Fr 2  61 62 6C 65  
+000BA3r 2  20 65 78 70  
+000BADr 2  50 72 6F 63  err_not_proc:   .byte "Procedure/function expected",0
+000BB1r 2  65 64 75 72  
+000BB5r 2  65 2F 66 75  
+000BC9r 2  54 6F 6F 20  err_too_many:   .byte "Too many locals",0
+000BCDr 2  6D 61 6E 79  
+000BD1r 2  20 6C 6F 63  
+000BD9r 2  49 6E 74 65  err_overflow:   .byte "Integer overflow",0
+000BDDr 2  67 65 72 20  
+000BE1r 2  6F 76 65 72  
+000BEAr 2  53 74 72 69  err_string_long:.byte "String too long",0
+000BEEr 2  6E 67 20 74  
+000BF2r 2  6F 6F 20 6C  
+000BFAr 2  43 61 6E 6E  err_nofile:     .byte "Cannot open source file",0
+000BFEr 2  6F 74 20 6F  
+000C02r 2  70 65 6E 20  
+000C12r 2  43 61 6E 6E  err_outfile:    .byte "Cannot create output file",0
+000C16r 2  6F 74 20 63  
+000C1Ar 2  72 65 61 74  
+000C2Cr 2  50 2D 63 6F  err_pcd_full:   .byte "P-code buffer full",0
+000C30r 2  64 65 20 62  
+000C34r 2  75 66 66 65  
+000C3Fr 2               
+000C3Fr 2               ; Runtime errors (for PRUN.COM)
+000C3Fr 2  4E 6F 74 20  err_rt_magic:   .byte "Not a .PCD file",13,10,0
+000C43r 2  61 20 2E 50  
+000C47r 2  43 44 20 66  
+000C51r 2  53 74 61 63  err_rt_stack:   .byte "Stack overflow",13,10,0
+000C55r 2  6B 20 6F 76  
+000C59r 2  65 72 66 6C  
+000C62r 2  44 69 76 69  err_rt_div0:    .byte "Division by zero",13,10,0
+000C66r 2  73 69 6F 6E  
+000C6Ar 2  20 62 79 20  
+000C75r 2  41 72 72 61  err_rt_bounds:  .byte "Array out of bounds",13,10,0
+000C79r 2  79 20 6F 75  
+000C7Dr 2  74 20 6F 66  
+000C8Br 2  4E 69 6C 20  err_rt_nil:     .byte "Nil pointer dereference",13,10,0
+000C8Fr 2  70 6F 69 6E  
+000C93r 2  74 65 72 20  
+000CA5r 2  55 6E 6B 6E  err_rt_opcode:  .byte "Unknown opcode",13,10,0
+000CA9r 2  6F 77 6E 20  
+000CADr 2  6F 70 63 6F  
+000CB6r 2  0D 0A 5B 50  msg_rt_done:    .byte 13,10,"[Program exited]",13,10,0
+000CBAr 2  72 6F 67 72  
+000CBEr 2  61 6D 20 65  
+000CCBr 2               
+000CCBr 1               

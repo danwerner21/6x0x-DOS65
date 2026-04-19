@@ -574,7 +574,7 @@ LAB_134B:
         DEX                     ; decrement the buffer counter (delete)
         .BYTE   $2C             ; make LDX into BIT abs
 
-        .IFNDEF  MEMORYMAPPEDSCREEN
+        .IFNDEF MEMORYMAPPEDSCREEN
 LAB_1357:
         .ENDIF
 

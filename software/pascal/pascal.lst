@@ -1,0 +1,3298 @@
+ca65 V2.18 - Ubuntu 2.19-1
+Main file   : pascal.asm
+Current file: pascal.asm
+
+000000r 1               ; pascal.asm — Pascal/65 Compiler for DOS/65
+000000r 1               ;
+000000r 1               ; Usage: PASCAL <sourcename>
+000000r 1               ;   Reads <sourcename>.PAS, writes <sourcename>.PCD
+000000r 1               ;
+000000r 1               ; Phase 1 entry point and top-level driver only.
+000000r 1               ; Lexer, parser, symbol table, and code generator are in separate files
+000000r 1               ; included at the bottom of this file.
+000000r 1               
+000000r 1               .include "definitions.asm"
+000000r 2               ; definitions.asm — constants, token codes, p-code opcodes, macros
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; DOS/65 system entry points
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               PEM_ENTRY       = $0103         ; JSR here; function # in X
+000000r 2               WARM_BOOT       = $0100
+000000r 2               DEFAULT_FCB     = $0107         ; DOS/65 dflfcb (parsed argument FCB)
+000000r 2               DMA_BUF         = $0128         ; DOS/65 dflbuf (default DMA buffer)
+000000r 2               
+000000r 2               FARFUNCT        = $32           ; zero-page: FARCALL function number
+000000r 2               DO_FARCALL      = $FFF0
+000000r 2               
+000000r 2               ; PEM function numbers
+000000r 2               PEM_CONIN       = 1             ; console input with echo (blocking)
+000000r 2               PEM_CONOUT      = 2             ; console output (A=char)
+000000r 2               PEM_DIRCON      = 6             ; direct console I/O (BLOCKING — use fn 11 first)
+000000r 2               PEM_CONSTAT     = 11            ; console status (non-blocking)
+000000r 2               PEM_OPEN        = 15
+000000r 2               PEM_CLOSE       = 16
+000000r 2               PEM_SEARCH      = 17
+000000r 2               PEM_DELETE      = 19
+000000r 2               PEM_READ        = 20
+000000r 2               PEM_WRITE       = 21
+000000r 2               PEM_MAKE        = 22
+000000r 2               
+000000r 2               ; FARCALL function numbers
+000000r 2               FC_CHROUT       = 19            ; output char (A=char)
+000000r 2               FC_RDKBD        = 20            ; read keyboard non-blocking (A=key or $FF)
+000000r 2               FC_SETCUR       = 37            ; set cursor (X=col, Y=row)
+000000r 2               FC_CLRSCR       = 38            ; clear screen
+000000r 2               FC_SETCOLOR     = 39            ; set color (X=fg|bg, Y=cursor)
+000000r 2               FC_SCROLL       = 56            ; scroll down
+000000r 2               FC_HIDECUR      = 58            ; unpaint cursor
+000000r 2               FC_SHOWCUR      = 59            ; paint cursor
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; P-code opcodes
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               
+000000r 2               ; --- Constants ---
+000000r 2               OP_LDCI         = $00           ; push sign-extended byte constant
+000000r 2               OP_LDCW         = $01           ; push word constant (lo, hi)
+000000r 2               OP_LDCC         = $02           ; push char constant
+000000r 2               OP_LDCB         = $03           ; push boolean constant (0/1)
+000000r 2               OP_LDCS         = $04           ; push string constant (len + bytes)
+000000r 2               OP_LDCN         = $05           ; push NIL
+000000r 2               
+000000r 2               ; --- Local variable access ---
+000000r 2               OP_LDL          = $10           ; push 16-bit local (byte offset from MP+8)
+000000r 2               OP_STL          = $11           ; pop into 16-bit local
+000000r 2               OP_LDA_L        = $12           ; push address of local
+000000r 2               OP_LDB_L        = $13           ; push byte/char/bool local
+000000r 2               OP_STB_L        = $14           ; pop byte into local
+000000r 2               
+000000r 2               ; --- Global variable access ---
+000000r 2               OP_LDG          = $18           ; push 16-bit global (word offset from BASE)
+000000r 2               OP_STG          = $19           ; pop into 16-bit global
+000000r 2               OP_LDA_G        = $1A           ; push address of global
+000000r 2               OP_LDB_G        = $1B           ; push byte global
+000000r 2               OP_STB_G        = $1C           ; pop byte into global
+000000r 2               
+000000r 2               ; --- Indirect / array ---
+000000r 2               OP_LDIND        = $20           ; TOS=addr → push word at addr
+000000r 2               OP_STIND        = $21           ; NOS=addr, TOS=val → store
+000000r 2               OP_LDB_IND      = $22           ; TOS=addr → push byte at addr
+000000r 2               OP_STB_IND      = $23           ; NOS=addr, TOS=val → store byte
+000000r 2               OP_INDEX        = $24           ; array index: addr=NOS+TOS*elemsize (word follows)
+000000r 2               
+000000r 2               ; --- Integer arithmetic ---
+000000r 2               OP_ADI          = $30
+000000r 2               OP_SBI          = $31
+000000r 2               OP_MPI          = $32
+000000r 2               OP_DVI          = $33
+000000r 2               OP_MOD          = $34
+000000r 2               OP_NGI          = $35           ; negate
+000000r 2               OP_ABI          = $36           ; absolute value
+000000r 2               OP_SQI          = $37           ; square
+000000r 2               
+000000r 2               ; --- Logical / bitwise ---
+000000r 2               OP_LAND         = $38
+000000r 2               OP_LOR          = $39
+000000r 2               OP_LNOT         = $3A           ; logical NOT ($0000 ↔ $FFFF)
+000000r 2               OP_BNOT         = $3B           ; bitwise complement
+000000r 2               
+000000r 2               ; --- Comparison (push $FFFF=true, $0000=false) ---
+000000r 2               OP_EQUI         = $40
+000000r 2               OP_NEQI         = $41
+000000r 2               OP_LESI         = $42
+000000r 2               OP_LEQI         = $43
+000000r 2               OP_GTRI         = $44
+000000r 2               OP_GEQI         = $45
+000000r 2               OP_EQUB         = $46           ; byte equality
+000000r 2               OP_EQUS         = $47           ; string equality
+000000r 2               
+000000r 2               ; --- Control flow ---
+000000r 2               OP_UJP          = $50           ; unconditional jump (signed word offset)
+000000r 2               OP_FJP          = $51           ; jump if false (pop TOS)
+000000r 2               OP_TJP          = $52           ; jump if true  (pop TOS)
+000000r 2               OP_IXPJP        = $53           ; case jump table
+000000r 2               
+000000r 2               ; --- Procedure/function calls ---
+000000r 2               OP_CALL         = $60           ; call (signed word offset from current IPC)
+000000r 2               OP_CALI         = $61           ; call absolute address (word)
+000000r 2               OP_RET          = $62           ; return from procedure
+000000r 2               OP_RETF         = $63           ; return from function (leave result on stack)
+000000r 2               OP_MRKSTK       = $64           ; set up activation record (byte: local size)
+000000r 2               OP_DEPSTK       = $65           ; tear down activation record
+000000r 2               
+000000r 2               ; --- Heap ---
+000000r 2               OP_NEW          = $70           ; allocate (word size follows); push pointer
+000000r 2               OP_DISP         = $71           ; free pointer on TOS
+000000r 2               
+000000r 2               ; --- I/O ---
+000000r 2               OP_WRITI        = $80           ; write integer
+000000r 2               OP_WRITC        = $81           ; write character
+000000r 2               OP_WRITB        = $82           ; write boolean
+000000r 2               OP_WRITS        = $83           ; write string
+000000r 2               OP_WRITLN       = $84           ; write newline
+000000r 2               OP_READI        = $85           ; read integer
+000000r 2               OP_READC        = $86           ; read character
+000000r 2               OP_READS        = $87           ; read string
+000000r 2               
+000000r 2               ; --- Stack manipulation ---
+000000r 2               OP_DUP          = $90
+000000r 2               OP_POP          = $91
+000000r 2               OP_SWAP         = $92
+000000r 2               OP_MOVS         = $93           ; copy n bytes (byte count follows)
+000000r 2               
+000000r 2               ; --- Halt ---
+000000r 2               OP_HALT         = $FF
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; .PCD file magic / version
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               PCD_MAGIC_0     = $50           ; 'P'
+000000r 2               PCD_MAGIC_1     = $43           ; 'C'
+000000r 2               PCD_VERSION     = $01
+000000r 2               
+000000r 2               ; PCD header offsets
+000000r 2               PCD_MAGIC       = 0
+000000r 2               PCD_VER         = 2
+000000r 2               PCD_CODESZ      = 4             ; word: code section size
+000000r 2               PCD_GLOBSZ      = 6             ; word: global data size
+000000r 2               PCD_STRSZ       = 8             ; word: string pool size
+000000r 2               PCD_ENTRY       = 10            ; word: entry point offset into code
+000000r 2               PCD_HEADER_SZ   = 12
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; Token codes (used by compiler lexer/parser)
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               TOK_EOF         = 0
+000000r 2               TOK_IDENT       = 1
+000000r 2               TOK_INT         = 2
+000000r 2               TOK_STRING      = 3
+000000r 2               TOK_CHAR        = 4
+000000r 2               
+000000r 2               ; Operators / punctuation
+000000r 2               TOK_PLUS        = $10           ; +
+000000r 2               TOK_MINUS       = $11           ; -
+000000r 2               TOK_STAR        = $12           ; *
+000000r 2               TOK_SLASH       = $13           ; /
+000000r 2               TOK_EQ          = $14           ; =
+000000r 2               TOK_NEQ         = $15           ; <>
+000000r 2               TOK_LT          = $16           ; <
+000000r 2               TOK_GT          = $17           ; >
+000000r 2               TOK_LEQ         = $18           ; <=
+000000r 2               TOK_GEQ         = $19           ; >=
+000000r 2               TOK_ASSIGN      = $1A           ; :=
+000000r 2               TOK_LPAREN      = $1B           ; (
+000000r 2               TOK_RPAREN      = $1C           ; )
+000000r 2               TOK_LBRACK      = $1D           ; [
+000000r 2               TOK_RBRACK      = $1E           ; ]
+000000r 2               TOK_COMMA       = $1F           ; ,
+000000r 2               TOK_SEMICOLON   = $20           ; ;
+000000r 2               TOK_COLON       = $21           ; :
+000000r 2               TOK_DOT         = $22           ; .
+000000r 2               TOK_DOTDOT      = $23           ; ..
+000000r 2               TOK_CARET       = $24           ; ^
+000000r 2               
+000000r 2               ; Keywords
+000000r 2               TOK_AND         = $40
+000000r 2               TOK_ARRAY       = $41
+000000r 2               TOK_BEGIN       = $42
+000000r 2               TOK_CASE        = $43
+000000r 2               TOK_CONST       = $44
+000000r 2               TOK_DIV         = $45
+000000r 2               TOK_DO          = $46
+000000r 2               TOK_DOWNTO      = $47
+000000r 2               TOK_ELSE        = $48
+000000r 2               TOK_END         = $49
+000000r 2               TOK_FOR         = $4A
+000000r 2               TOK_FUNCTION    = $4B
+000000r 2               TOK_IF          = $4C
+000000r 2               TOK_MOD_KW      = $4D
+000000r 2               TOK_NIL         = $4E
+000000r 2               TOK_NOT         = $4F
+000000r 2               TOK_OF          = $50
+000000r 2               TOK_OR          = $51
+000000r 2               TOK_PROCEDURE   = $52
+000000r 2               TOK_PROGRAM     = $53
+000000r 2               TOK_RECORD      = $54
+000000r 2               TOK_REPEAT      = $55
+000000r 2               TOK_THEN        = $56
+000000r 2               TOK_TO          = $57
+000000r 2               TOK_TYPE        = $58
+000000r 2               TOK_UNTIL       = $59
+000000r 2               TOK_VAR         = $5A
+000000r 2               TOK_WHILE       = $5B
+000000r 2               TOK_WITH        = $5C
+000000r 2               
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               ; Useful macros
+000000r 2               ; ---------------------------------------------------------------------------
+000000r 2               
+000000r 2               ; Call a FARCALL function that does NOT use A as input (clobbers A).
+000000r 2               ; Use for FC_CLRSCR, FC_SCROLL, FC_SETCUR, FC_SETCOLOR, etc.
+000000r 2               .macro FARCALL func
+000000r 2                       lda     #func
+000000r 2                       sta     FARFUNCT
+000000r 2                       jsr     DO_FARCALL
+000000r 2               .endmacro
+000000r 2               
+000000r 2               ; Output the character already in A via FARCALL #2.
+000000r 2               ; PEM_CONOUT requires A=char when DO_FARCALL is called, so we must
+000000r 2               ; set FARFUNCT first, then restore the char before the jsr.
+000000r 2               .macro CHROUT
+000000r 2                       pha
+000000r 2                       lda     #PEM_CONOUT
+000000r 2                       sta     FARFUNCT
+000000r 2                       pla
+000000r 2                       jsr     DO_FARCALL
+000000r 2               .endmacro
+000000r 2               
+000000r 2               ; Call PEM with function number in X
+000000r 2               .macro PEM func
+000000r 2                       ldx     #func
+000000r 2                       jsr     PEM_ENTRY
+000000r 2               .endmacro
+000000r 2               
+000000r 1               .include "zeropage.asm"
+000000r 2               ; zeropage.asm — zero-page variable layout for PASCAL.COM and PRUN.COM
+000000r 2               ;
+000000r 2               ; Avoid $00-$2F (DOS/65 system), $32 (FARFUNCT), $39-$3A (DOS/65).
+000000r 2               ; Safe range: $50-$EF
+000000r 2               
+000000r 2               .segment "ZEROPAGE"
+000000r 2               
+000000r 2  xx xx xx xx          .res    $50             ; skip $00-$4F (DOS/65 system zero page)
+000004r 2  xx xx xx xx  
+000008r 2  xx xx xx xx  
+000050r 2               
+000050r 2               ; ---------------------------------------------------------------------------
+000050r 2               ; P-machine registers — start at $50 as noted in comments below
+000050r 2               ; ---------------------------------------------------------------------------
+000050r 2               
+000050r 2  xx xx        pm_ipc:         .res 2          ; $50-$51  interpreter program counter
+000052r 2  xx xx        pm_sp:          .res 2          ; $52-$53  p-machine stack pointer
+000054r 2  xx xx        pm_mp:          .res 2          ; $54-$55  mark/frame pointer
+000056r 2  xx xx        pm_base:        .res 2          ; $56-$57  global variable base
+000058r 2  xx xx        pm_np:          .res 2          ; $58-$59  heap top (grows downward)
+00005Ar 2               
+00005Ar 2               ; General-purpose temporaries
+00005Ar 2  xx xx        tmp0:           .res 2          ; $5A-$5B
+00005Cr 2  xx xx        tmp1:           .res 2          ; $5C-$5D
+00005Er 2  xx xx        tmp2:           .res 2          ; $5E-$5F
+000060r 2  xx xx        tmp3:           .res 2          ; $60-$61
+000062r 2               
+000062r 2               ; Byte-width scratch (often used by macros)
+000062r 2  xx           scratch:        .res 1          ; $62
+000063r 2               
+000063r 2               ; ---------------------------------------------------------------------------
+000063r 2               ; Compiler-specific zero-page variables (only used by PASCAL.COM)
+000063r 2               ; ---------------------------------------------------------------------------
+000063r 2               
+000063r 2               ; Lexer state
+000063r 2  xx xx        lex_line:       .res 2          ; $63-$64  current source line number
+000065r 2  xx           lex_col:        .res 1          ; $65      current column
+000066r 2  xx           lex_char:       .res 1          ; $66      lookahead character
+000067r 2  xx           tok_type:       .res 1          ; $67      current token type
+000068r 2  xx           tok_ival_lo:    .res 1          ; $68      integer token value (lo)
+000069r 2  xx           tok_ival_hi:    .res 1          ; $69      integer token value (hi)
+00006Ar 2               
+00006Ar 2               ; Parser / code generator state
+00006Ar 2  xx xx        cg_pc:          .res 2          ; $6A-$6B  current emit offset into code buffer
+00006Cr 2  xx xx        cg_globals:     .res 2          ; $6C-$6D  next available global variable offset
+00006Er 2  xx           scope_depth:    .res 1          ; $6E      current lexical nesting depth (0=global)
+00006Fr 2  xx xx        sym_chain:      .res 2          ; $6F-$70  pointer into symbol table chain
+000071r 2               
+000071r 2               ; FCB pointers (compiler I/O)
+000071r 2  xx xx        src_fcb:        .res 2          ; $71-$72  pointer to source FCB
+000073r 2  xx xx        out_fcb:        .res 2          ; $73-$74  pointer to output FCB
+000075r 2  xx           src_buf_pos:    .res 1          ; $75      position within 128-byte sector buffer
+000076r 2  xx           src_buf_end:    .res 1          ; $76      bytes valid in sector buffer
+000077r 2               
+000077r 2               ; FOR-loop scratch (parse_for; not nestable)
+000077r 2  xx xx        for_loop_top:   .res 2          ; $77-$78  cg_pc of loop test (back-jump target)
+000079r 2  xx xx        for_patch:      .res 2          ; $79-$7A  FJP exit patch address
+00007Br 2               
+00007Br 1               
+00007Br 1               ; ---------------------------------------------------------------------------
+00007Br 1               ; FCBs and file buffers
+00007Br 1               ; ---------------------------------------------------------------------------
+00007Br 1               .segment "CPMDATA"
+000000r 1               
+000000r 1  xx xx xx xx  comp_src_fcb:   .res 36         ; source file FCB (.PAS)
+000004r 1  xx xx xx xx  
+000008r 1  xx xx xx xx  
+000024r 1  xx xx xx xx  comp_out_fcb:   .res 36         ; output file FCB (.PCD)
+000028r 1  xx xx xx xx  
+00002Cr 1  xx xx xx xx  
+000048r 1               
+000048r 1               ; 128-byte sector buffer for source reads
+000048r 1  xx xx xx xx  src_sector:     .res 128
+00004Cr 1  xx xx xx xx  
+000050r 1  xx xx xx xx  
+0000C8r 1               
+0000C8r 1               ; Output sector buffer (128-byte sectors written to .PCD)
+0000C8r 1  xx xx xx xx  out_sector:     .res 128
+0000CCr 1  xx xx xx xx  
+0000D0r 1  xx xx xx xx  
+000148r 1  00           out_sec_pos:    .byte 0         ; next write position in out_sector (0..127)
+000149r 1               
+000149r 1               ; Code generation buffer — p-code accumulates here until file write
+000149r 1               ; Overlaps the CPMDATA area above $2000 after FCBs.
+000149r 1               ; This holds up to ~32KB of generated p-code.
+000149r 1               CODEBUF_BASE    = $3000
+000149r 1               CODEBUF_MAXSZ   = $8000         ; 32 KB
+000149r 1               
+000149r 1               ; Symbol table area
+000149r 1               SYMTAB_BASE     = $8000
+000149r 1               SYMTAB_MAXSZ    = $1800         ; 6 KB (≈200 entries at ~30 bytes each)
+000149r 1               
+000149r 1               ; String pool for identifier strings and string literals
+000149r 1               STRPOOL_BASE    = $9800
+000149r 1               STRPOOL_MAXSZ   = $0800         ; 2 KB
+000149r 1               
+000149r 1               ; ---------------------------------------------------------------------------
+000149r 1               ; Entry point
+000149r 1               ; ---------------------------------------------------------------------------
+000149r 1               .segment "TEA"
+000000r 1               
+000000r 1  4C rr rr             jmp     pascal_main
+000003r 1               
+000003r 1               .segment "CODE"
+000000r 1               
+000000r 1               pascal_main:
+000000r 1                       ; print banner
+000000r 1  A9 rr                lda     #<msg_banner
+000002r 1  85 rr                sta     tmp0
+000004r 1  A9 rr                lda     #>msg_banner
+000006r 1  85 rr                sta     tmp0+1
+000008r 1  20 rr rr             jsr     console_print_sz
+00000Br 1               
+00000Br 1                       ; build source FCB from DEFAULT_FCB ($0107) argument
+00000Br 1  20 rr rr             jsr     build_src_fcb
+00000Er 1  90 03                bcc     :+
+000010r 1  4C rr rr             jmp     @no_file
+000013r 1               :
+000013r 1                       ; print "Compiling: <name>"
+000013r 1  A9 rr                lda     #<msg_compiling
+000015r 1  85 rr                sta     tmp0
+000017r 1  A9 rr                lda     #>msg_compiling
+000019r 1  85 rr                sta     tmp0+1
+00001Br 1  20 rr rr             jsr     console_print_sz
+00001Er 1               
+00001Er 1                       ; open source file
+00001Er 1  A9 rr                lda     #<comp_src_fcb
+000020r 1  85 rr                sta     src_fcb
+000022r 1  A9 rr                lda     #>comp_src_fcb
+000024r 1  85 rr                sta     src_fcb+1
+000026r 1  A9 rr                lda     #<comp_src_fcb
+000028r 1  85 rr                sta     tmp1
+00002Ar 1  A9 rr                lda     #>comp_src_fcb
+00002Cr 1  85 rr                sta     tmp1+1
+00002Er 1  20 rr rr             jsr     file_open
+000031r 1  C9 FF                cmp     #$FF            ; PEM open: $FF=not found, 0-3=dir entry
+000033r 1  D0 03                bne     :+
+000035r 1  4C rr rr             jmp     @no_file
+000038r 1  A9 31        :       lda     #'1'            ; DBG: source file opened
+00003Ar 1  20 rr rr             jsr     dbg_putc
+00003Dr 1               
+00003Dr 1                       ; create output .PCD file
+00003Dr 1  20 rr rr             jsr     build_out_fcb
+000040r 1  A9 rr                lda     #<comp_out_fcb
+000042r 1  85 rr                sta     tmp1
+000044r 1  A9 rr                lda     #>comp_out_fcb
+000046r 1  85 rr                sta     tmp1+1
+000048r 1  20 rr rr             jsr     file_make
+00004Br 1  C9 FF                cmp     #$FF            ; PEM make: $FF=dir full, 0-3=dir entry
+00004Dr 1  D0 03                bne     :+
+00004Fr 1  4C rr rr             jmp     @out_err
+000052r 1               :
+000052r 1  A9 32                lda     #'2'            ; DBG: output file made
+000054r 1  20 rr rr             jsr     dbg_putc
+000057r 1               
+000057r 1                       ; initialise compiler state
+000057r 1  20 rr rr             jsr     compiler_init
+00005Ar 1  A9 33                lda     #'3'            ; DBG: compiler_init done
+00005Cr 1  20 rr rr             jsr     dbg_putc
+00005Fr 1               
+00005Fr 1                       ; run compilation
+00005Fr 1  20 rr rr             jsr     compile_program
+000062r 1  A9 34                lda     #'4'            ; DBG: compile_program done
+000064r 1  20 rr rr             jsr     dbg_putc
+000067r 1                       ; DBG: print cg_pc (bytes emitted)
+000067r 1  A9 3D                lda     #'='
+000069r 1  20 rr rr             jsr     dbg_putc
+00006Cr 1  A5 rr                lda     cg_pc
+00006Er 1  85 rr                sta     tmp0
+000070r 1  A5 rr                lda     cg_pc+1
+000072r 1  85 rr                sta     tmp0+1
+000074r 1  20 rr rr             jsr     console_print_dec
+000077r 1  A9 20                lda     #' '
+000079r 1  20 rr rr             jsr     dbg_putc
+00007Cr 1               
+00007Cr 1                       ; write .PCD file
+00007Cr 1  20 rr rr             jsr     write_pcd
+00007Fr 1  A9 35                lda     #'5'            ; DBG: write_pcd done
+000081r 1  20 rr rr             jsr     dbg_putc
+000084r 1               
+000084r 1                       ; close files
+000084r 1  A9 rr                lda     #<comp_src_fcb
+000086r 1  85 rr                sta     tmp1
+000088r 1  A9 rr                lda     #>comp_src_fcb
+00008Ar 1  85 rr                sta     tmp1+1
+00008Cr 1  20 rr rr             jsr     file_close
+00008Fr 1  A9 rr                lda     #<comp_out_fcb
+000091r 1  85 rr                sta     tmp1
+000093r 1  A9 rr                lda     #>comp_out_fcb
+000095r 1  85 rr                sta     tmp1+1
+000097r 1  20 rr rr             jsr     file_close
+00009Ar 1               
+00009Ar 1                       ; print result
+00009Ar 1  AD rr rr             lda     error_count
+00009Dr 1  0D rr rr             ora     error_count+1
+0000A0r 1  D0 0E                bne     @had_errors
+0000A2r 1  A9 rr                lda     #<msg_ok
+0000A4r 1  85 rr                sta     tmp0
+0000A6r 1  A9 rr                lda     #>msg_ok
+0000A8r 1  85 rr                sta     tmp0+1
+0000AAr 1  20 rr rr             jsr     console_print_sz
+0000ADr 1  4C 00 01             jmp     WARM_BOOT
+0000B0r 1               
+0000B0r 1               @had_errors:
+0000B0r 1  AD rr rr             lda     error_count
+0000B3r 1  85 rr                sta     tmp0
+0000B5r 1  AD rr rr             lda     error_count+1
+0000B8r 1  85 rr                sta     tmp0+1
+0000BAr 1  20 rr rr             jsr     console_print_dec
+0000BDr 1  A9 rr                lda     #<msg_errors
+0000BFr 1  85 rr                sta     tmp0
+0000C1r 1  A9 rr                lda     #>msg_errors
+0000C3r 1  85 rr                sta     tmp0+1
+0000C5r 1  20 rr rr             jsr     console_print_sz
+0000C8r 1  4C 00 01             jmp     WARM_BOOT
+0000CBr 1               
+0000CBr 1               @no_file:
+0000CBr 1  A9 rr                lda     #<err_nofile
+0000CDr 1  85 rr                sta     tmp0
+0000CFr 1  A9 rr                lda     #>err_nofile
+0000D1r 1  85 rr                sta     tmp0+1
+0000D3r 1  20 rr rr             jsr     console_print_sz
+0000D6r 1  4C 00 01             jmp     WARM_BOOT
+0000D9r 1               
+0000D9r 1               @out_err:
+0000D9r 1  A9 rr                lda     #<err_outfile
+0000DBr 1  85 rr                sta     tmp0
+0000DDr 1  A9 rr                lda     #>err_outfile
+0000DFr 1  85 rr                sta     tmp0+1
+0000E1r 1  20 rr rr             jsr     console_print_sz
+0000E4r 1  4C 00 01             jmp     WARM_BOOT
+0000E7r 1               
+0000E7r 1               ; ---------------------------------------------------------------------------
+0000E7r 1               ; build_src_fcb — populate comp_src_fcb from DEFAULT_FCB ($0107), force ".PAS"
+0000E7r 1               ; DOS/65 CCM copies the parsed argument FCB to dflfcb=$0107, not $005C.
+0000E7r 1               ; Returns: carry clear = ok, carry set = no filename
+0000E7r 1               ; ---------------------------------------------------------------------------
+0000E7r 1               build_src_fcb:
+0000E7r 1  A2 00                ldx     #0
+0000E9r 1  BD 07 01     @copy:  lda     DEFAULT_FCB,x
+0000ECr 1  9D rr rr             sta     comp_src_fcb,x
+0000EFr 1  E8                   inx
+0000F0r 1  E0 0C                cpx     #12
+0000F2r 1  90 F5                bcc     @copy
+0000F4r 1  A9 00                lda     #0
+0000F6r 1  9D rr rr     @zero:  sta     comp_src_fcb,x
+0000F9r 1  E8                   inx
+0000FAr 1  E0 24                cpx     #36
+0000FCr 1  90 F8                bcc     @zero
+0000FEr 1  AD rr rr             lda     comp_src_fcb+1
+000101r 1  C9 20                cmp     #' '
+000103r 1  F0 11                beq     @noname
+000105r 1  A9 50                lda     #'P'
+000107r 1  8D rr rr             sta     comp_src_fcb+9
+00010Ar 1  A9 41                lda     #'A'
+00010Cr 1  8D rr rr             sta     comp_src_fcb+10
+00010Fr 1  A9 53                lda     #'S'
+000111r 1  8D rr rr             sta     comp_src_fcb+11
+000114r 1  18                   clc
+000115r 1  60                   rts
+000116r 1               @noname:
+000116r 1  38                   sec
+000117r 1  60                   rts
+000118r 1               
+000118r 1               ; ---------------------------------------------------------------------------
+000118r 1               ; build_out_fcb — copy filename from comp_src_fcb, change extension to "PCD"
+000118r 1               ; ---------------------------------------------------------------------------
+000118r 1               build_out_fcb:
+000118r 1  A2 00                ldx     #0
+00011Ar 1  BD rr rr     @copy:  lda     comp_src_fcb,x
+00011Dr 1  9D rr rr             sta     comp_out_fcb,x
+000120r 1  E8                   inx
+000121r 1  E0 24                cpx     #36
+000123r 1  90 F5                bcc     @copy
+000125r 1  A9 50                lda     #'P'
+000127r 1  8D rr rr             sta     comp_out_fcb+9
+00012Ar 1  A9 43                lda     #'C'
+00012Cr 1  8D rr rr             sta     comp_out_fcb+10
+00012Fr 1  A9 44                lda     #'D'
+000131r 1  8D rr rr             sta     comp_out_fcb+11
+000134r 1  60                   rts
+000135r 1               
+000135r 1               ; ---------------------------------------------------------------------------
+000135r 1               ; compiler_init — zero-out compiler state
+000135r 1               ; ---------------------------------------------------------------------------
+000135r 1  00 00        error_count:    .word 0
+000137r 1               
+000137r 1               compiler_init:
+000137r 1  A9 00                lda     #0
+000139r 1  8D rr rr             sta     error_count
+00013Cr 1  8D rr rr             sta     error_count+1
+00013Fr 1                       ; IPC starts at 0 (offset into code buffer)
+00013Fr 1  85 rr                sta     cg_pc
+000141r 1  85 rr                sta     cg_pc+1
+000143r 1                       ; globals start at 0
+000143r 1  85 rr                sta     cg_globals
+000145r 1  85 rr                sta     cg_globals+1
+000147r 1                       ; scope depth 0 = global
+000147r 1  85 rr                sta     scope_depth
+000149r 1                       ; init lexer and prime first token
+000149r 1  20 rr rr             jsr     lexer_init
+00014Cr 1  20 rr rr             jsr     next_token
+00014Fr 1  60                   rts
+000150r 1               
+000150r 1               ; ---------------------------------------------------------------------------
+000150r 1               ; compile_error — print error with line/col; increment error_count
+000150r 1               ; tmp0 = pointer to error string
+000150r 1               ; ---------------------------------------------------------------------------
+000150r 1               compile_error:
+000150r 1                       ; save caller's message pointer (tmp0) into tmp3
+000150r 1  A5 rr                lda     tmp0
+000152r 1  85 rr                sta     tmp3
+000154r 1  A5 rr                lda     tmp0+1
+000156r 1  85 rr                sta     tmp3+1
+000158r 1                       ; print "Line "
+000158r 1  A9 rr                lda     #<msg_line
+00015Ar 1  85 rr                sta     tmp0
+00015Cr 1  A9 rr                lda     #>msg_line
+00015Er 1  85 rr                sta     tmp0+1
+000160r 1  20 rr rr             jsr     console_print_sz
+000163r 1                       ; print line number
+000163r 1  A5 rr                lda     lex_line
+000165r 1  85 rr                sta     tmp0
+000167r 1  A5 rr                lda     lex_line+1
+000169r 1  85 rr                sta     tmp0+1
+00016Br 1  20 rr rr             jsr     console_print_dec
+00016Er 1                       ; print ": "
+00016Er 1  A9 3A                lda     #':'
+000170r 1  A2 02                ldx     #PEM_CONOUT
+000172r 1  20 03 01             jsr     PEM_ENTRY
+000175r 1  A9 20                lda     #' '
+000177r 1  A2 02                ldx     #PEM_CONOUT
+000179r 1  20 03 01             jsr     PEM_ENTRY
+00017Cr 1                       ; print the error message text
+00017Cr 1  A5 rr                lda     tmp3
+00017Er 1  85 rr                sta     tmp0
+000180r 1  A5 rr                lda     tmp3+1
+000182r 1  85 rr                sta     tmp0+1
+000184r 1  20 rr rr             jsr     console_print_sz
+000187r 1  20 rr rr             jsr     console_newline
+00018Ar 1                       ; increment error count
+00018Ar 1  EE rr rr             inc     error_count
+00018Dr 1  D0 03                bne     :+
+00018Fr 1  EE rr rr             inc     error_count+1
+000192r 1  60           :       rts
+000193r 1               
+000193r 1               ; ---------------------------------------------------------------------------
+000193r 1               ; write_pcd — write .PCD header + code buffer to output file
+000193r 1               ; ---------------------------------------------------------------------------
+000193r 1               write_pcd:
+000193r 1                       ; build header in out_sector
+000193r 1  A9 50                lda     #PCD_MAGIC_0
+000195r 1  8D rr rr             sta     out_sector+0
+000198r 1  A9 43                lda     #PCD_MAGIC_1
+00019Ar 1  8D rr rr             sta     out_sector+1
+00019Dr 1  A9 01                lda     #PCD_VERSION
+00019Fr 1  8D rr rr             sta     out_sector+2
+0001A2r 1  A9 00                lda     #0
+0001A4r 1  8D rr rr             sta     out_sector+3
+0001A7r 1                       ; code size
+0001A7r 1  A5 rr                lda     cg_pc
+0001A9r 1  8D rr rr             sta     out_sector+PCD_CODESZ
+0001ACr 1  A5 rr                lda     cg_pc+1
+0001AEr 1  8D rr rr             sta     out_sector+PCD_CODESZ+1
+0001B1r 1                       ; global size
+0001B1r 1  A5 rr                lda     cg_globals
+0001B3r 1  8D rr rr             sta     out_sector+PCD_GLOBSZ
+0001B6r 1  A5 rr                lda     cg_globals+1
+0001B8r 1  8D rr rr             sta     out_sector+PCD_GLOBSZ+1
+0001BBr 1                       ; string pool size (placeholder)
+0001BBr 1  A9 00                lda     #0
+0001BDr 1  8D rr rr             sta     out_sector+PCD_STRSZ
+0001C0r 1  8D rr rr             sta     out_sector+PCD_STRSZ+1
+0001C3r 1                       ; entry point = 0 (main starts at beginning of code)
+0001C3r 1  8D rr rr             sta     out_sector+PCD_ENTRY
+0001C6r 1  8D rr rr             sta     out_sector+PCD_ENTRY+1
+0001C9r 1                       ; zero remainder of first output sector
+0001C9r 1  A2 0C                ldx     #PCD_HEADER_SZ
+0001CBr 1  9D rr rr     @zero:  sta     out_sector,x
+0001CEr 1  E8                   inx
+0001CFr 1  E0 80                cpx     #128
+0001D1r 1  90 F8                bcc     @zero
+0001D3r 1               
+0001D3r 1                       ; copy code buffer header into sector (bytes after header)
+0001D3r 1  A0 0C                ldy     #PCD_HEADER_SZ
+0001D5r 1  A2 00                ldx     #0
+0001D7r 1  BD 00 30     @fill:  lda     CODEBUF_BASE,x
+0001DAr 1  99 rr rr             sta     out_sector,y
+0001DDr 1  E8                   inx
+0001DEr 1  C8                   iny
+0001DFr 1  C0 80                cpy     #128
+0001E1r 1  90 F4                bcc     @fill
+0001E3r 1               
+0001E3r 1                       ; write first sector
+0001E3r 1                       ; (copy out_sector → DMA_BUF, then PEM write)
+0001E3r 1  A0 00                ldy     #0
+0001E5r 1  B9 rr rr     @dma:   lda     out_sector,y
+0001E8r 1  99 28 01             sta     DMA_BUF,y
+0001EBr 1  C8                   iny
+0001ECr 1  C0 80                cpy     #128
+0001EEr 1  90 F5                bcc     @dma
+0001F0r 1  A9 rr                lda     #<comp_out_fcb
+0001F2r 1  85 rr                sta     tmp1
+0001F4r 1  A9 rr                lda     #>comp_out_fcb
+0001F6r 1  85 rr                sta     tmp1+1
+0001F8r 1  20 rr rr             jsr     file_write_sector
+0001FBr 1               
+0001FBr 1                       ; TODO: write additional sectors for code > (128-PCD_HEADER_SZ) bytes
+0001FBr 1               
+0001FBr 1  60                   rts
+0001FCr 1               
+0001FCr 1               ; ---------------------------------------------------------------------------
+0001FCr 1               ; dbg_putc — print A as a single character via PEM #2
+0001FCr 1               ; ---------------------------------------------------------------------------
+0001FCr 1               dbg_putc:
+0001FCr 1  A2 02                ldx     #PEM_CONOUT
+0001FEr 1  20 03 01             jsr     PEM_ENTRY
+000201r 1  60                   rts
+000202r 1               
+000202r 1               ; ---------------------------------------------------------------------------
+000202r 1               ; Include sub-modules (compiler phases)
+000202r 1               ; ---------------------------------------------------------------------------
+000202r 1               .include "lexer.asm"
+000202r 2               .PC02
+000202r 2               ; lexer.asm — Pascal tokenizer
+000202r 2               ;
+000202r 2               ; Reads source file through 128-byte sector buffer.
+000202r 2               ; Produces token stream via next_token (sets tok_type + value vars in ZP).
+000202r 2               
+000202r 2               ; ---------------------------------------------------------------------------
+000202r 2               ; Keyword table — each entry: length byte, ASCII chars, token code
+000202r 2               ; Searched linearly; 18 keywords.
+000202r 2               ; ---------------------------------------------------------------------------
+000202r 2               .segment "CODE"
+000202r 2               
+000202r 2               keyword_table:
+000202r 2                       ; length, chars..., token
+000202r 2  03 41 4E 44          .byte 3, "AND",       TOK_AND
+000206r 2  40           
+000207r 2  05 41 52 52          .byte 5, "ARRAY",     TOK_ARRAY
+00020Br 2  41 59 41     
+00020Er 2  05 42 45 47          .byte 5, "BEGIN",     TOK_BEGIN
+000212r 2  49 4E 42     
+000215r 2  04 43 41 53          .byte 4, "CASE",      TOK_CASE
+000219r 2  45 43        
+00021Br 2  05 43 4F 4E          .byte 5, "CONST",     TOK_CONST
+00021Fr 2  53 54 44     
+000222r 2  03 44 49 56          .byte 3, "DIV",       TOK_DIV
+000226r 2  45           
+000227r 2  02 44 4F 46          .byte 2, "DO",        TOK_DO
+00022Br 2  06 44 4F 57          .byte 6, "DOWNTO",    TOK_DOWNTO
+00022Fr 2  4E 54 4F 47  
+000233r 2  04 45 4C 53          .byte 4, "ELSE",      TOK_ELSE
+000237r 2  45 48        
+000239r 2  03 45 4E 44          .byte 3, "END",       TOK_END
+00023Dr 2  49           
+00023Er 2  03 46 4F 52          .byte 3, "FOR",       TOK_FOR
+000242r 2  4A           
+000243r 2  08 46 55 4E          .byte 8, "FUNCTION",  TOK_FUNCTION
+000247r 2  43 54 49 4F  
+00024Br 2  4E 4B        
+00024Dr 2  02 49 46 4C          .byte 2, "IF",        TOK_IF
+000251r 2  03 4D 4F 44          .byte 3, "MOD",       TOK_MOD_KW
+000255r 2  4D           
+000256r 2  03 4E 49 4C          .byte 3, "NIL",       TOK_NIL
+00025Ar 2  4E           
+00025Br 2  03 4E 4F 54          .byte 3, "NOT",       TOK_NOT
+00025Fr 2  4F           
+000260r 2  02 4F 46 50          .byte 2, "OF",        TOK_OF
+000264r 2  02 4F 52 51          .byte 2, "OR",        TOK_OR
+000268r 2  09 50 52 4F          .byte 9, "PROCEDURE", TOK_PROCEDURE
+00026Cr 2  43 45 44 55  
+000270r 2  52 45 52     
+000273r 2  07 50 52 4F          .byte 7, "PROGRAM",   TOK_PROGRAM
+000277r 2  47 52 41 4D  
+00027Br 2  53           
+00027Cr 2  06 52 45 43          .byte 6, "RECORD",    TOK_RECORD
+000280r 2  4F 52 44 54  
+000284r 2  06 52 45 50          .byte 6, "REPEAT",    TOK_REPEAT
+000288r 2  45 41 54 55  
+00028Cr 2  04 54 48 45          .byte 4, "THEN",      TOK_THEN
+000290r 2  4E 56        
+000292r 2  02 54 4F 57          .byte 2, "TO",        TOK_TO
+000296r 2  04 54 59 50          .byte 4, "TYPE",      TOK_TYPE
+00029Ar 2  45 58        
+00029Cr 2  05 55 4E 54          .byte 5, "UNTIL",     TOK_UNTIL
+0002A0r 2  49 4C 59     
+0002A3r 2  03 56 41 52          .byte 3, "VAR",       TOK_VAR
+0002A7r 2  5A           
+0002A8r 2  05 57 48 49          .byte 5, "WHILE",     TOK_WHILE
+0002ACr 2  4C 45 5B     
+0002AFr 2  04 57 49 54          .byte 4, "WITH",      TOK_WITH
+0002B3r 2  48 5C        
+0002B5r 2  00                   .byte 0                         ; sentinel
+0002B6r 2               
+0002B6r 2               ; Identifier buffer (max 63 chars + length byte at [0])
+0002B6r 2  xx xx xx xx  ident_buf:      .res 64
+0002BAr 2  xx xx xx xx  
+0002BEr 2  xx xx xx xx  
+0002F6r 2               
+0002F6r 2               ; Saved-name buffer for parser (e.g. var-decl name preservation across
+0002F6r 2               ; parse_type_spec which clobbers ident_buf).
+0002F6r 2  xx xx xx xx  save_name_buf:  .res 16
+0002FAr 2  xx xx xx xx  
+0002FEr 2  xx xx xx xx  
+000306r 2               
+000306r 2               ; Saved symbol info — used by parse_assign_or_call to preserve symbol
+000306r 2               ; entry fields across next_token + parse_expression, which clobber tmp3.
+000306r 2  xx           sym_save_kind:  .res 1
+000307r 2  xx           sym_save_scope: .res 1
+000308r 2  xx xx        sym_save_off:   .res 2
+00030Ar 2               
+00030Ar 2               ; ---------------------------------------------------------------------------
+00030Ar 2               ; lexer_init — reset lexer state; call before compile_program
+00030Ar 2               ; ---------------------------------------------------------------------------
+00030Ar 2               lexer_init:
+00030Ar 2  A9 01                lda     #1
+00030Cr 2  85 rr                sta     lex_line
+00030Er 2  A9 00                lda     #0
+000310r 2  85 rr                sta     lex_line+1
+000312r 2  85 rr                sta     lex_col
+000314r 2  85 rr                sta     src_buf_pos
+000316r 2  85 rr                sta     src_buf_end
+000318r 2                       ; prime lex_char
+000318r 2  20 rr rr             jsr     lexer_getc
+00031Br 2  60                   rts
+00031Cr 2               
+00031Cr 2               ; ---------------------------------------------------------------------------
+00031Cr 2               ; next_token — advance to next token, set tok_type
+00031Cr 2               ; On return:
+00031Cr 2               ;   tok_type  = token code
+00031Cr 2               ;   tok_ival  = integer value (if TOK_INT)
+00031Cr 2               ;   ident_buf = identifier string (if TOK_IDENT)
+00031Cr 2               ; ---------------------------------------------------------------------------
+00031Cr 2               next_token:
+00031Cr 2                       ; skip whitespace and comments
+00031Cr 2  A5 rr        @skip:  lda     lex_char
+00031Er 2  F0 39                beq     @eof
+000320r 2  C9 20                cmp     #' '
+000322r 2  F0 13                beq     @ws
+000324r 2  C9 09                cmp     #$09            ; TAB
+000326r 2  F0 0F                beq     @ws
+000328r 2  C9 0D                cmp     #$0D            ; CR — treat as whitespace, LF counts the line
+00032Ar 2  F0 0B                beq     @ws
+00032Cr 2  C9 0A                cmp     #$0A            ; LF
+00032Er 2  F0 0C                beq     @nl
+000330r 2  C9 7B                cmp     #'{'            ; Pascal comment start
+000332r 2  F0 17                beq     @comment
+000334r 2  4C rr rr             jmp     @not_ws
+000337r 2  20 rr rr     @ws:    jsr     lexer_getc
+00033Ar 2  80 E0                bra     @skip
+00033Cr 2  E6 rr        @nl:    inc     lex_line
+00033Er 2  D0 02                bne     :+
+000340r 2  E6 rr                inc     lex_line+1
+000342r 2  A9 00        :       lda     #0
+000344r 2  85 rr                sta     lex_col
+000346r 2  20 rr rr             jsr     lexer_getc
+000349r 2  80 D1                bra     @skip
+00034Br 2               @comment:
+00034Br 2                       ; skip { ... }
+00034Br 2  20 rr rr     @cloop: jsr     lexer_getc
+00034Er 2  F0 09                beq     @eof
+000350r 2  C9 7D                cmp     #'}'
+000352r 2  D0 F7                bne     @cloop
+000354r 2  20 rr rr             jsr     lexer_getc
+000357r 2  80 C3                bra     @skip
+000359r 2  A9 00        @eof:   lda     #TOK_EOF
+00035Br 2  85 rr                sta     tok_type
+00035Dr 2  60                   rts
+00035Er 2               
+00035Er 2               @not_ws:
+00035Er 2                       ; letter → identifier or keyword
+00035Er 2  20 rr rr             jsr     is_letter
+000361r 2  B0 0C                bcs     @ident
+000363r 2               
+000363r 2                       ; digit → integer literal
+000363r 2  20 rr rr             jsr     is_digit
+000366r 2  B0 2F                bcs     @number
+000368r 2               
+000368r 2                       ; string → string literal
+000368r 2  C9 27                cmp     #$27            ; single quote
+00036Ar 2  F0 48                beq     @string
+00036Cr 2               
+00036Cr 2                       ; operators and punctuation
+00036Cr 2  4C rr rr             jmp     @punct
+00036Fr 2               
+00036Fr 2               ; --- Identifier ---
+00036Fr 2  A0 00        @ident: ldy     #0
+000371r 2               @id_loop:
+000371r 2  A5 rr                lda     lex_char
+000373r 2  20 rr rr             jsr     to_upper
+000376r 2  99 rr rr             sta     ident_buf+1,y
+000379r 2  C8                   iny
+00037Ar 2  C0 3F                cpy     #63
+00037Cr 2  F0 0F                beq     @id_done
+00037Er 2  20 rr rr             jsr     lexer_getc
+000381r 2  A5 rr                lda     lex_char
+000383r 2  20 rr rr             jsr     is_letter
+000386r 2  B0 E9                bcs     @id_loop
+000388r 2  20 rr rr             jsr     is_digit
+00038Br 2  B0 E4                bcs     @id_loop
+00038Dr 2               @id_done:
+00038Dr 2  98                   tya
+00038Er 2  8D rr rr             sta     ident_buf       ; length
+000391r 2                       ; check against keyword table
+000391r 2  20 rr rr             jsr     lookup_keyword
+000394r 2  85 rr                sta     tok_type
+000396r 2  60                   rts
+000397r 2               
+000397r 2               ; --- Integer literal ---
+000397r 2               @number:
+000397r 2  A9 00                lda     #0
+000399r 2  85 rr                sta     tok_ival_lo
+00039Br 2  85 rr                sta     tok_ival_hi
+00039Dr 2               @num_loop:
+00039Dr 2  A5 rr                lda     lex_char
+00039Fr 2  38                   sec
+0003A0r 2  E9 30                sbc     #'0'
+0003A2r 2  20 rr rr             jsr     mul10_tokval    ; tokval = tokval*10 + digit
+0003A5r 2  20 rr rr             jsr     lexer_getc
+0003A8r 2  A5 rr                lda     lex_char
+0003AAr 2  20 rr rr             jsr     is_digit
+0003ADr 2  B0 EE                bcs     @num_loop
+0003AFr 2  A9 02                lda     #TOK_INT
+0003B1r 2  85 rr                sta     tok_type
+0003B3r 2  60                   rts
+0003B4r 2               
+0003B4r 2               ; --- String literal ---
+0003B4r 2               @string:
+0003B4r 2  20 rr rr             jsr     lexer_getc      ; skip opening quote
+0003B7r 2  A0 00                ldy     #0
+0003B9r 2               @str_loop:
+0003B9r 2  A5 rr                lda     lex_char
+0003BBr 2  F0 21                beq     @str_done       ; EOF
+0003BDr 2  C9 27                cmp     #$27
+0003BFr 2  F0 09                beq     @str_close
+0003C1r 2  99 rr rr             sta     ident_buf+1,y
+0003C4r 2  C8                   iny
+0003C5r 2  20 rr rr             jsr     lexer_getc
+0003C8r 2  80 EF                bra     @str_loop
+0003CAr 2               @str_close:
+0003CAr 2  20 rr rr             jsr     lexer_getc      ; skip closing quote
+0003CDr 2                       ; check for '' (escaped quote)
+0003CDr 2  A5 rr                lda     lex_char
+0003CFr 2  C9 27                cmp     #$27
+0003D1r 2  D0 0B                bne     @str_done
+0003D3r 2  A9 27                lda     #$27
+0003D5r 2  99 rr rr             sta     ident_buf+1,y
+0003D8r 2  C8                   iny
+0003D9r 2  20 rr rr             jsr     lexer_getc
+0003DCr 2  80 DB                bra     @str_loop
+0003DEr 2               @str_done:
+0003DEr 2  98                   tya
+0003DFr 2  8D rr rr             sta     ident_buf
+0003E2r 2  A9 03                lda     #TOK_STRING
+0003E4r 2  85 rr                sta     tok_type
+0003E6r 2  60                   rts
+0003E7r 2               
+0003E7r 2               ; --- Punctuation / operators ---
+0003E7r 2               @punct:
+0003E7r 2  A2 00                ldx     #0
+0003E9r 2  A5 rr                lda     lex_char
+0003EBr 2  C9 2B                cmp     #'+'
+0003EDr 2  D0 02                bne     :+
+0003EFr 2  A2 10                ldx     #TOK_PLUS
+0003F1r 2  C9 2D        :       cmp     #'-'
+0003F3r 2  D0 02                bne     :+
+0003F5r 2  A2 11                ldx     #TOK_MINUS
+0003F7r 2  C9 2A        :       cmp     #'*'
+0003F9r 2  D0 02                bne     :+
+0003FBr 2  A2 12                ldx     #TOK_STAR
+0003FDr 2  C9 2F        :       cmp     #'/'
+0003FFr 2  D0 02                bne     :+
+000401r 2  A2 13                ldx     #TOK_SLASH
+000403r 2  C9 3D        :       cmp     #'='
+000405r 2  D0 02                bne     :+
+000407r 2  A2 14                ldx     #TOK_EQ
+000409r 2  C9 28        :       cmp     #'('
+00040Br 2  D0 02                bne     :+
+00040Dr 2  A2 1B                ldx     #TOK_LPAREN
+00040Fr 2  C9 29        :       cmp     #')'
+000411r 2  D0 02                bne     :+
+000413r 2  A2 1C                ldx     #TOK_RPAREN
+000415r 2  C9 5B        :       cmp     #'['
+000417r 2  D0 02                bne     :+
+000419r 2  A2 1D                ldx     #TOK_LBRACK
+00041Br 2  C9 5D        :       cmp     #']'
+00041Dr 2  D0 02                bne     :+
+00041Fr 2  A2 1E                ldx     #TOK_RBRACK
+000421r 2  C9 2C        :       cmp     #','
+000423r 2  D0 02                bne     :+
+000425r 2  A2 1F                ldx     #TOK_COMMA
+000427r 2  C9 3B        :       cmp     #';'
+000429r 2  D0 02                bne     :+
+00042Br 2  A2 20                ldx     #TOK_SEMICOLON
+00042Dr 2  C9 5E        :       cmp     #'^'
+00042Fr 2  D0 02                bne     :+
+000431r 2  A2 24                ldx     #TOK_CARET
+000433r 2  C9 3C        :       cmp     #'<'
+000435r 2  D0 22                bne     @not_lt
+000437r 2  20 rr rr             jsr     lexer_getc
+00043Ar 2  A5 rr                lda     lex_char
+00043Cr 2  C9 3D                cmp     #'='
+00043Er 2  F0 09                beq     @leq
+000440r 2  C9 3E                cmp     #'>'
+000442r 2  F0 0D                beq     @neq
+000444r 2  A9 16                lda     #TOK_LT
+000446r 2  85 rr                sta     tok_type
+000448r 2  60                   rts
+000449r 2  20 rr rr     @leq:   jsr     lexer_getc
+00044Cr 2  A9 18                lda     #TOK_LEQ
+00044Er 2  85 rr                sta     tok_type
+000450r 2  60                   rts
+000451r 2  20 rr rr     @neq:   jsr     lexer_getc
+000454r 2  A9 15                lda     #TOK_NEQ
+000456r 2  85 rr                sta     tok_type
+000458r 2  60                   rts
+000459r 2               @not_lt:
+000459r 2  C9 3E                cmp     #'>'
+00045Br 2  D0 16                bne     @not_gt
+00045Dr 2  20 rr rr             jsr     lexer_getc
+000460r 2  A5 rr                lda     lex_char
+000462r 2  C9 3D                cmp     #'='
+000464r 2  F0 05                beq     @geq
+000466r 2  A9 17                lda     #TOK_GT
+000468r 2  85 rr                sta     tok_type
+00046Ar 2  60                   rts
+00046Br 2  20 rr rr     @geq:   jsr     lexer_getc
+00046Er 2  A9 19                lda     #TOK_GEQ
+000470r 2  85 rr                sta     tok_type
+000472r 2  60                   rts
+000473r 2               @not_gt:
+000473r 2  C9 3A                cmp     #':'
+000475r 2  D0 16                bne     @not_colon
+000477r 2  20 rr rr             jsr     lexer_getc
+00047Ar 2  A5 rr                lda     lex_char
+00047Cr 2  C9 3D                cmp     #'='
+00047Er 2  F0 05                beq     @assign
+000480r 2  A9 21                lda     #TOK_COLON
+000482r 2  85 rr                sta     tok_type
+000484r 2  60                   rts
+000485r 2               @assign:
+000485r 2  20 rr rr             jsr     lexer_getc
+000488r 2  A9 1A                lda     #TOK_ASSIGN
+00048Ar 2  85 rr                sta     tok_type
+00048Cr 2  60                   rts
+00048Dr 2               @not_colon:
+00048Dr 2  C9 2E                cmp     #'.'
+00048Fr 2  D0 16                bne     @not_dot
+000491r 2  20 rr rr             jsr     lexer_getc
+000494r 2  A5 rr                lda     lex_char
+000496r 2  C9 2E                cmp     #'.'
+000498r 2  F0 05                beq     @dotdot
+00049Ar 2  A9 22                lda     #TOK_DOT
+00049Cr 2  85 rr                sta     tok_type
+00049Er 2  60                   rts
+00049Fr 2               @dotdot:
+00049Fr 2  20 rr rr             jsr     lexer_getc
+0004A2r 2  A9 23                lda     #TOK_DOTDOT
+0004A4r 2  85 rr                sta     tok_type
+0004A6r 2  60                   rts
+0004A7r 2               @not_dot:
+0004A7r 2                       ; If a single-byte operator matched above, X holds its TOK_* code.
+0004A7r 2                       ; Otherwise X=0 and the character is unknown — skip and retry.
+0004A7r 2  E0 00                cpx     #0
+0004A9r 2  F0 07                beq     @unknown
+0004ABr 2  8A                   txa
+0004ACr 2  85 rr                sta     tok_type
+0004AEr 2  20 rr rr             jsr     lexer_getc
+0004B1r 2  60                   rts
+0004B2r 2               @unknown:
+0004B2r 2  20 rr rr             jsr     lexer_getc
+0004B5r 2  4C rr rr             jmp     next_token
+0004B8r 2               
+0004B8r 2               ; ---------------------------------------------------------------------------
+0004B8r 2               ; lexer_getc — fetch next character into lex_char
+0004B8r 2               ; Refills sector buffer via file_read_sector when empty
+0004B8r 2               ; ---------------------------------------------------------------------------
+0004B8r 2               lexer_getc:
+0004B8r 2  5A                   phy                     ; preserve caller's Y across refill + read
+0004B9r 2  A5 rr                lda     src_buf_pos
+0004BBr 2  C5 rr                cmp     src_buf_end
+0004BDr 2  90 17                bcc     @from_buf       ; still have data
+0004BFr 2                       ; refill buffer — set tmp1 to source FCB first
+0004BFr 2                       ; (other code paths leave tmp1 pointing at output FCB)
+0004BFr 2  A5 rr                lda     src_fcb
+0004C1r 2  85 rr                sta     tmp1
+0004C3r 2  A5 rr                lda     src_fcb+1
+0004C5r 2  85 rr                sta     tmp1+1
+0004C7r 2  20 rr rr             jsr     file_read_sector
+0004CAr 2  C9 00                cmp     #0
+0004CCr 2  D0 15                bne     @eof_char
+0004CEr 2  A9 80                lda     #128
+0004D0r 2  85 rr                sta     src_buf_end
+0004D2r 2  A9 00                lda     #0
+0004D4r 2  85 rr                sta     src_buf_pos
+0004D6r 2               @from_buf:
+0004D6r 2  A4 rr                ldy     src_buf_pos
+0004D8r 2  B9 28 01             lda     DMA_BUF,y
+0004DBr 2  E6 rr                inc     src_buf_pos
+0004DDr 2  85 rr                sta     lex_char
+0004DFr 2  E6 rr                inc     lex_col
+0004E1r 2  7A                   ply
+0004E2r 2  60                   rts
+0004E3r 2               @eof_char:
+0004E3r 2  A9 00                lda     #0
+0004E5r 2  85 rr                sta     lex_char
+0004E7r 2  7A                   ply
+0004E8r 2  60                   rts
+0004E9r 2               
+0004E9r 2               ; ---------------------------------------------------------------------------
+0004E9r 2               ; lookup_keyword — check ident_buf against keyword_table
+0004E9r 2               ; Returns: A = keyword token code, or TOK_IDENT if not found
+0004E9r 2               ; ---------------------------------------------------------------------------
+0004E9r 2               lookup_keyword:
+0004E9r 2  A9 rr                lda     #<keyword_table
+0004EBr 2  85 rr                sta     tmp2
+0004EDr 2  A9 rr                lda     #>keyword_table
+0004EFr 2  85 rr                sta     tmp2+1
+0004F1r 2               @next_kw:
+0004F1r 2  A0 00                ldy     #0
+0004F3r 2  B1 rr                lda     (tmp2),y        ; keyword length (0 = sentinel)
+0004F5r 2  F0 2C                beq     @not_found
+0004F7r 2  CD rr rr             cmp     ident_buf       ; compare lengths first
+0004FAr 2  D0 15                bne     @advance
+0004FCr 2  AA                   tax                     ; X = length
+0004FDr 2  A0 01                ldy     #1
+0004FFr 2               @cmp_loop:
+0004FFr 2  B1 rr                lda     (tmp2),y
+000501r 2  D9 rr rr             cmp     ident_buf,y
+000504r 2  D0 0B                bne     @advance
+000506r 2  C8                   iny
+000507r 2  CA                   dex
+000508r 2  D0 F5                bne     @cmp_loop
+00050Ar 2                       ; match: token code is at offset length+1
+00050Ar 2  AC rr rr             ldy     ident_buf
+00050Dr 2  C8                   iny
+00050Er 2  B1 rr                lda     (tmp2),y
+000510r 2  60                   rts
+000511r 2               @advance:
+000511r 2                       ; skip to next entry: advance tmp2 by (length+2)
+000511r 2                       ; (Y may be >0 if we got here from @cmp_loop — reset to 0 first)
+000511r 2  A0 00                ldy     #0
+000513r 2  B1 rr                lda     (tmp2),y        ; length byte
+000515r 2  18                   clc
+000516r 2  69 02                adc     #2              ; +1 for length byte, +1 for token byte
+000518r 2  18                   clc
+000519r 2  65 rr                adc     tmp2
+00051Br 2  85 rr                sta     tmp2
+00051Dr 2  90 02                bcc     :+
+00051Fr 2  E6 rr                inc     tmp2+1
+000521r 2  80 CE        :       bra     @next_kw
+000523r 2               @not_found:
+000523r 2  A9 01                lda     #TOK_IDENT
+000525r 2  60                   rts
+000526r 2               
+000526r 2               ; ---------------------------------------------------------------------------
+000526r 2               ; is_letter — test lex_char; carry set if A-Z or a-z
+000526r 2               ; ---------------------------------------------------------------------------
+000526r 2               is_letter:
+000526r 2  A5 rr                lda     lex_char
+000528r 2  C9 41                cmp     #'A'
+00052Ar 2  90 10                bcc     @no
+00052Cr 2  C9 5B                cmp     #'Z'+1
+00052Er 2  90 0E                bcc     @yes
+000530r 2  C9 61                cmp     #'a'
+000532r 2  90 08                bcc     @no
+000534r 2  C9 7B                cmp     #'z'+1
+000536r 2  90 06                bcc     @yes
+000538r 2  C9 5F                cmp     #'_'
+00053Ar 2  F0 02                beq     @yes
+00053Cr 2  18           @no:    clc
+00053Dr 2  60                   rts
+00053Er 2  38           @yes:   sec
+00053Fr 2  60                   rts
+000540r 2               
+000540r 2               ; ---------------------------------------------------------------------------
+000540r 2               ; is_digit — test lex_char; carry set if 0-9
+000540r 2               ; ---------------------------------------------------------------------------
+000540r 2               is_digit:
+000540r 2  A5 rr                lda     lex_char
+000542r 2  C9 30                cmp     #'0'
+000544r 2  90 06                bcc     @no
+000546r 2  C9 3A                cmp     #'9'+1
+000548r 2  B0 02                bcs     @no
+00054Ar 2  38                   sec
+00054Br 2  60                   rts
+00054Cr 2  18           @no:    clc
+00054Dr 2  60                   rts
+00054Er 2               
+00054Er 2               ; ---------------------------------------------------------------------------
+00054Er 2               ; to_upper — convert A to uppercase (A-Z,a-z only, others pass through)
+00054Er 2               ; ---------------------------------------------------------------------------
+00054Er 2               to_upper:
+00054Er 2  C9 61                cmp     #'a'
+000550r 2  90 06                bcc     @done
+000552r 2  C9 7B                cmp     #'z'+1
+000554r 2  B0 02                bcs     @done
+000556r 2  29 DF                and     #$DF
+000558r 2  60           @done:  rts
+000559r 2               
+000559r 2               ; ---------------------------------------------------------------------------
+000559r 2               ; mul10_tokval — tokval = tokval*10 + A  (A = digit 0-9)
+000559r 2               ; ---------------------------------------------------------------------------
+000559r 2               mul10_tokval:
+000559r 2  48                   pha
+00055Ar 2                       ; multiply tok_ival by 10: x10 = x*8 + x*2
+00055Ar 2  A5 rr                lda     tok_ival_lo
+00055Cr 2  0A                   asl                     ; *2
+00055Dr 2  85 rr                sta     tmp2
+00055Fr 2  A5 rr                lda     tok_ival_hi
+000561r 2  2A                   rol
+000562r 2  85 rr                sta     tmp2+1
+000564r 2  A5 rr                lda     tmp2            ; *4
+000566r 2  0A                   asl
+000567r 2  85 rr                sta     tmp3
+000569r 2  A5 rr                lda     tmp2+1
+00056Br 2  2A                   rol
+00056Cr 2  85 rr                sta     tmp3+1
+00056Er 2  A5 rr                lda     tmp3            ; *8
+000570r 2  0A                   asl
+000571r 2  85 rr                sta     tmp3
+000573r 2  A5 rr                lda     tmp3+1
+000575r 2  2A                   rol
+000576r 2  85 rr                sta     tmp3+1
+000578r 2                       ; *10 = *8 + *2
+000578r 2  A5 rr                lda     tmp3
+00057Ar 2  18                   clc
+00057Br 2  65 rr                adc     tmp2
+00057Dr 2  85 rr                sta     tok_ival_lo
+00057Fr 2  A5 rr                lda     tmp3+1
+000581r 2  65 rr                adc     tmp2+1
+000583r 2  85 rr                sta     tok_ival_hi
+000585r 2                       ; add digit
+000585r 2  68                   pla
+000586r 2  18                   clc
+000587r 2  65 rr                adc     tok_ival_lo
+000589r 2  85 rr                sta     tok_ival_lo
+00058Br 2  90 02                bcc     :+
+00058Dr 2  E6 rr                inc     tok_ival_hi
+00058Fr 2  60           :       rts
+000590r 2               
+000590r 1               .include "parser.asm"
+000590r 2               ; parser.asm — recursive-descent Pascal parser + single-pass code generator
+000590r 2               ;
+000590r 2               ; Entry point: compile_program (called from pascal_main)
+000590r 2               ;
+000590r 2               ; This is a skeleton. Each parse routine calls next_token and emits p-code
+000590r 2               ; directly (no AST nodes). Phase 3 fleshes out the full grammar.
+000590r 2               
+000590r 2               .segment "CODE"
+000590r 2               
+000590r 2               ; ---------------------------------------------------------------------------
+000590r 2               ; expect — verify current token is `expected_tok`, advance, error if not
+000590r 2               ; expected_tok passed in X; error string pointer in tmp3 (lo) and A (hi)
+000590r 2               ; ---------------------------------------------------------------------------
+000590r 2               expect:
+000590r 2  A5 rr                lda     tok_type
+000592r 2  E4 rr                cpx     tok_type
+000594r 2  F0 18                beq     @ok
+000596r 2                       ; mismatch — report error using tmp3 as message pointer
+000596r 2  A5 rr                lda     tmp3
+000598r 2  85 rr                sta     tmp0
+00059Ar 2  A5 rr                lda     tmp3+1
+00059Cr 2  85 rr                sta     tmp0+1
+00059Er 2  20 rr rr             jsr     compile_error
+0005A1r 2                       ; attempt recovery: skip tokens until we see the expected one or EOF
+0005A1r 2               @recover:
+0005A1r 2  A5 rr                lda     tok_type
+0005A3r 2  F0 09                beq     @ok             ; EOF — stop recovery
+0005A5r 2  E4 rr                cpx     tok_type
+0005A7r 2  F0 05                beq     @ok
+0005A9r 2  20 rr rr             jsr     next_token
+0005ACr 2  80 F3                bra     @recover
+0005AEr 2  20 rr rr     @ok:    jsr     next_token
+0005B1r 2  60                   rts
+0005B2r 2               
+0005B2r 2               ; Helper macros — not ca65 .macros since they'd be complex; use inline calls.
+0005B2r 2               
+0005B2r 2               ; ---------------------------------------------------------------------------
+0005B2r 2               ; compile_program — top-level: PROGRAM name ; block .
+0005B2r 2               ; ---------------------------------------------------------------------------
+0005B2r 2               compile_program:
+0005B2r 2  20 rr rr             jsr     symtab_init
+0005B5r 2                       ; expect PROGRAM keyword
+0005B5r 2  A5 rr                lda     tok_type
+0005B7r 2  C9 53                cmp     #TOK_PROGRAM
+0005B9r 2  D0 0F                bne     @no_hdr         ; allow missing PROGRAM header (lenient)
+0005BBr 2  20 rr rr             jsr     next_token
+0005BEr 2                       ; program name (identifier)
+0005BEr 2  20 rr rr             jsr     next_token
+0005C1r 2                       ; semicolon
+0005C1r 2  A5 rr                lda     tok_type
+0005C3r 2  C9 20                cmp     #TOK_SEMICOLON
+0005C5r 2  D0 03                bne     :+
+0005C7r 2  20 rr rr             jsr     next_token
+0005CAr 2               :
+0005CAr 2               @no_hdr:
+0005CAr 2                       ; Emit MRKSTK 0 as prologue placeholder (patched later with actual local count)
+0005CAr 2                       ; For global scope we skip this; globals live at pm_base.
+0005CAr 2  20 rr rr             jsr     parse_block
+0005CDr 2                       ; Emit HALT at end of main program
+0005CDr 2  20 rr rr             jsr     emit_HALT
+0005D0r 2  60                   rts
+0005D1r 2               
+0005D1r 2               ; ---------------------------------------------------------------------------
+0005D1r 2               ; parse_block — { const_part } { type_part } { var_part } { proc_part } statement_part
+0005D1r 2               ; ---------------------------------------------------------------------------
+0005D1r 2               parse_block:
+0005D1r 2               @again:
+0005D1r 2  A5 rr                lda     tok_type
+0005D3r 2  C9 44                cmp     #TOK_CONST
+0005D5r 2  F0 15                beq     @const
+0005D7r 2  C9 58                cmp     #TOK_TYPE
+0005D9r 2  F0 19                beq     @type
+0005DBr 2  C9 5A                cmp     #TOK_VAR
+0005DDr 2  F0 1D                beq     @var
+0005DFr 2  C9 52                cmp     #TOK_PROCEDURE
+0005E1r 2  F0 21                beq     @proc
+0005E3r 2  C9 4B                cmp     #TOK_FUNCTION
+0005E5r 2  F0 25                beq     @func
+0005E7r 2  C9 42                cmp     #TOK_BEGIN
+0005E9r 2  F0 29                beq     @body
+0005EBr 2  60                   rts                     ; nothing recognisable
+0005ECr 2               
+0005ECr 2  20 rr rr     @const: jsr     next_token
+0005EFr 2  20 rr rr             jsr     parse_const_decls
+0005F2r 2  80 DD                bra     @again
+0005F4r 2  20 rr rr     @type:  jsr     next_token
+0005F7r 2  20 rr rr             jsr     parse_type_decls
+0005FAr 2  80 D5                bra     @again
+0005FCr 2  20 rr rr     @var:   jsr     next_token
+0005FFr 2  20 rr rr             jsr     parse_var_decls
+000602r 2  80 CD                bra     @again
+000604r 2  20 rr rr     @proc:  jsr     next_token
+000607r 2  20 rr rr             jsr     parse_proc_decl
+00060Ar 2  80 C5                bra     @again
+00060Cr 2  20 rr rr     @func:  jsr     next_token
+00060Fr 2  20 rr rr             jsr     parse_func_decl
+000612r 2  80 BD                bra     @again
+000614r 2  20 rr rr     @body:  jsr     parse_compound_stmt
+000617r 2  60                   rts
+000618r 2               
+000618r 2               ; ---------------------------------------------------------------------------
+000618r 2               ; parse_const_decls — name = value ; { name = value ; }
+000618r 2               ; Phase 1 stub: just skip to semicolons
+000618r 2               ; ---------------------------------------------------------------------------
+000618r 2               parse_const_decls:
+000618r 2  A5 rr        @loop:  lda     tok_type
+00061Ar 2  C9 01                cmp     #TOK_IDENT
+00061Cr 2  D0 0E                bne     @done
+00061Er 2                       ; save const name
+00061Er 2                       ; TODO: add to symbol table as SYM_CONST
+00061Er 2  20 rr rr             jsr     next_token      ; skip name
+000621r 2  20 rr rr             jsr     next_token      ; skip '='
+000624r 2  20 rr rr             jsr     next_token      ; skip value (simple literal assumed)
+000627r 2  20 rr rr             jsr     next_token      ; skip ';'
+00062Ar 2  80 EC                bra     @loop
+00062Cr 2  60           @done:  rts
+00062Dr 2               
+00062Dr 2               ; ---------------------------------------------------------------------------
+00062Dr 2               ; parse_type_decls — stub
+00062Dr 2               ; ---------------------------------------------------------------------------
+00062Dr 2               parse_type_decls:
+00062Dr 2  A5 rr        @loop:  lda     tok_type
+00062Fr 2  C9 01                cmp     #TOK_IDENT
+000631r 2  D0 0E                bne     @done
+000633r 2  20 rr rr             jsr     next_token      ; skip name
+000636r 2  20 rr rr             jsr     next_token      ; skip '='
+000639r 2                       ; TODO: parse type definition
+000639r 2  20 rr rr             jsr     next_token      ; skip for now
+00063Cr 2  20 rr rr             jsr     next_token      ; skip ';'
+00063Fr 2  80 EC                bra     @loop
+000641r 2  60           @done:  rts
+000642r 2               
+000642r 2               ; ---------------------------------------------------------------------------
+000642r 2               ; parse_var_decls — name { , name } : type ; { ... }
+000642r 2               ; Allocates global storage for each declared variable
+000642r 2               ; ---------------------------------------------------------------------------
+000642r 2               parse_var_decls:
+000642r 2  A5 rr        @decl:  lda     tok_type
+000644r 2  C9 01                cmp     #TOK_IDENT
+000646r 2  D0 36                bne     @done
+000648r 2                       ; save the variable name (ident_buf will be clobbered by parse_type_spec)
+000648r 2  A0 0F                ldy     #15
+00064Ar 2               @savename:
+00064Ar 2  B9 rr rr             lda     ident_buf,y
+00064Dr 2  99 rr rr             sta     save_name_buf,y
+000650r 2  88                   dey
+000651r 2  10 F7                bpl     @savename
+000653r 2                       ; consume the name
+000653r 2  20 rr rr             jsr     next_token
+000656r 2                       ; TODO: handle comma-separated names
+000656r 2                       ; expect ':'
+000656r 2  A5 rr                lda     tok_type
+000658r 2  C9 21                cmp     #TOK_COLON
+00065Ar 2  D0 03                bne     :+
+00065Cr 2  20 rr rr             jsr     next_token
+00065Fr 2               :       ; parse type
+00065Fr 2  20 rr rr             jsr     parse_type_spec ; returns type code in A
+000662r 2  48                   pha
+000663r 2                       ; expect ';'
+000663r 2  A5 rr                lda     tok_type
+000665r 2  C9 20                cmp     #TOK_SEMICOLON
+000667r 2  D0 03                bne     :+
+000669r 2  20 rr rr             jsr     next_token
+00066Cr 2               :       ; swap ident_buf ↔ save_name_buf so symtab_add sees the saved name,
+00066Cr 2                       ; while preserving the lexer's most recent ident_buf in save_name_buf
+00066Cr 2  20 rr rr             jsr     swap_ident_save
+00066Fr 2  68                   pla                     ; type code
+000670r 2  AA                   tax                     ; TY_*
+000671r 2  20 rr rr             jsr     codegen_alloc_global  ; sets tmp2 = offset
+000674r 2  A9 01                lda     #SYM_VAR
+000676r 2  20 rr rr             jsr     symtab_add
+000679r 2                       ; swap back so ident_buf holds whatever the lexer just read
+000679r 2  20 rr rr             jsr     swap_ident_save
+00067Cr 2  80 C4                bra     @decl
+00067Er 2  60           @done:  rts
+00067Fr 2               
+00067Fr 2               ; swap 16 bytes between ident_buf and save_name_buf
+00067Fr 2               swap_ident_save:
+00067Fr 2  A0 0F                ldy     #15
+000681r 2  B9 rr rr     @sw:    lda     ident_buf,y
+000684r 2  BE rr rr             ldx     save_name_buf,y
+000687r 2  99 rr rr             sta     save_name_buf,y
+00068Ar 2  8A                   txa
+00068Br 2  99 rr rr             sta     ident_buf,y
+00068Er 2  88                   dey
+00068Fr 2  10 F0                bpl     @sw
+000691r 2  60                   rts
+000692r 2               
+000692r 2               ; ---------------------------------------------------------------------------
+000692r 2               ; parse_type_spec — consume type token(s), return TY_* code in A
+000692r 2               ; ---------------------------------------------------------------------------
+000692r 2               parse_type_spec:
+000692r 2  A5 rr                lda     tok_type
+000694r 2  C9 01                cmp     #TOK_IDENT
+000696r 2  D0 4E                bne     @not_ident
+000698r 2                       ; check for built-in type names
+000698r 2  AD rr rr             lda     ident_buf       ; length
+00069Br 2  C9 07                cmp     #7
+00069Dr 2  D0 20                bne     @chk3
+00069Fr 2                       ; "INTEGER" (7 chars)
+00069Fr 2  AD rr rr             lda     ident_buf+1
+0006A2r 2  C9 49                cmp     #'I'
+0006A4r 2  D0 06                bne     @chk_bool
+0006A6r 2  20 rr rr             jsr     next_token
+0006A9r 2  A9 01                lda     #TY_INT
+0006ABr 2  60                   rts
+0006ACr 2               @chk_bool:
+0006ACr 2  AD rr rr             lda     ident_buf+1
+0006AFr 2  C9 42                cmp     #'B'
+0006B1r 2  D0 06                bne     @chk_str
+0006B3r 2  20 rr rr             jsr     next_token
+0006B6r 2  A9 03                lda     #TY_BOOL
+0006B8r 2  60                   rts
+0006B9r 2               @chk_str:
+0006B9r 2  20 rr rr             jsr     next_token
+0006BCr 2  A9 01                lda     #TY_INT         ; default
+0006BEr 2  60                   rts
+0006BFr 2  C9 04        @chk3:  cmp     #4
+0006C1r 2  D0 13                bne     @chk6
+0006C3r 2                       ; "CHAR" (4)
+0006C3r 2  AD rr rr             lda     ident_buf+1
+0006C6r 2  C9 43                cmp     #'C'
+0006C8r 2  D0 06                bne     @chk3b
+0006CAr 2  20 rr rr             jsr     next_token
+0006CDr 2  A9 02                lda     #TY_CHAR
+0006CFr 2  60                   rts
+0006D0r 2  20 rr rr     @chk3b: jsr     next_token
+0006D3r 2  A9 01                lda     #TY_INT
+0006D5r 2  60                   rts
+0006D6r 2  C9 06        @chk6:  cmp     #6
+0006D8r 2  D0 06                bne     @default_type
+0006DAr 2                       ; "STRING" (6)
+0006DAr 2  20 rr rr             jsr     next_token
+0006DDr 2  A9 04                lda     #TY_STRING
+0006DFr 2  60                   rts
+0006E0r 2               @default_type:
+0006E0r 2  20 rr rr             jsr     next_token
+0006E3r 2  A9 01                lda     #TY_INT
+0006E5r 2  60                   rts
+0006E6r 2               @not_ident:
+0006E6r 2                       ; ARRAY or RECORD — skip for Phase 1
+0006E6r 2  A5 rr                lda     tok_type
+0006E8r 2  C9 41                cmp     #TOK_ARRAY
+0006EAr 2  D0 0C                bne     :+
+0006ECr 2  20 rr rr             jsr     next_token      ; 'OF'
+0006EFr 2  20 rr rr             jsr     next_token      ; base type
+0006F2r 2  20 rr rr             jsr     next_token
+0006F5r 2  A9 05                lda     #TY_ARRAY
+0006F7r 2  60                   rts
+0006F8r 2  20 rr rr     :       jsr     next_token
+0006FBr 2  A9 01                lda     #TY_INT
+0006FDr 2  60                   rts
+0006FEr 2               
+0006FEr 2               ; ---------------------------------------------------------------------------
+0006FEr 2               ; parse_proc_decl / parse_func_decl — stubs for Phase 3
+0006FEr 2               ; ---------------------------------------------------------------------------
+0006FEr 2               parse_proc_decl:
+0006FEr 2                       ; skip to END or next top-level keyword
+0006FEr 2  20 rr rr             jsr     next_token      ; proc name
+000701r 2  A5 rr        @skip:  lda     tok_type
+000703r 2  F0 18                beq     @done
+000705r 2  C9 20                cmp     #TOK_SEMICOLON
+000707r 2  F0 05                beq     @found_semi
+000709r 2  20 rr rr             jsr     next_token
+00070Cr 2  80 F3                bra     @skip
+00070Er 2               @found_semi:
+00070Er 2  20 rr rr             jsr     next_token
+000711r 2                       ; parse the block for this proc
+000711r 2  20 rr rr             jsr     parse_block
+000714r 2                       ; expect END ;
+000714r 2  A5 rr                lda     tok_type
+000716r 2  C9 20                cmp     #TOK_SEMICOLON
+000718r 2  D0 03                bne     :+
+00071Ar 2  20 rr rr             jsr     next_token
+00071Dr 2               :
+00071Dr 2  60           @done:  rts
+00071Er 2               
+00071Er 2               parse_func_decl:
+00071Er 2  4C rr rr             jmp     parse_proc_decl ; same structure for now
+000721r 2               
+000721r 2               ; ---------------------------------------------------------------------------
+000721r 2               ; parse_compound_stmt — BEGIN { statement ; } END
+000721r 2               ; ---------------------------------------------------------------------------
+000721r 2               parse_compound_stmt:
+000721r 2                       ; consume BEGIN
+000721r 2  A5 rr                lda     tok_type
+000723r 2  C9 42                cmp     #TOK_BEGIN
+000725r 2  D0 31                bne     @done
+000727r 2  20 rr rr             jsr     next_token
+00072Ar 2  A5 rr        @loop:  lda     tok_type
+00072Cr 2  C9 49                cmp     #TOK_END
+00072Er 2  F0 25                beq     @end
+000730r 2  C9 00                cmp     #TOK_EOF
+000732r 2  F0 24                beq     @done
+000734r 2                       ; remember tok before parse_statement to detect no-progress
+000734r 2  85 rr                sta     tmp3
+000736r 2  20 rr rr             jsr     parse_statement
+000739r 2  A5 rr                lda     tok_type
+00073Br 2  C9 20                cmp     #TOK_SEMICOLON
+00073Dr 2  F0 11                beq     @consume_semi
+00073Fr 2  C9 49                cmp     #TOK_END
+000741r 2  F0 12                beq     @end
+000743r 2  C9 00                cmp     #TOK_EOF
+000745r 2  F0 11                beq     @done
+000747r 2                       ; if parse_statement didn't consume anything, force-advance to avoid
+000747r 2                       ; an infinite loop on an unrecognised token
+000747r 2  C5 rr                cmp     tmp3
+000749r 2  D0 DF                bne     @loop
+00074Br 2  20 rr rr             jsr     next_token
+00074Er 2  80 DA                bra     @loop
+000750r 2               @consume_semi:
+000750r 2  20 rr rr             jsr     next_token
+000753r 2  80 D5                bra     @loop
+000755r 2  20 rr rr     @end:   jsr     next_token      ; consume END
+000758r 2  60           @done:  rts
+000759r 2               
+000759r 2               ; ---------------------------------------------------------------------------
+000759r 2               ; parse_statement — dispatch based on current token
+000759r 2               ; ---------------------------------------------------------------------------
+000759r 2               parse_statement:
+000759r 2  A5 rr                lda     tok_type
+00075Br 2  C9 42                cmp     #TOK_BEGIN
+00075Dr 2  F0 15                beq     @compound
+00075Fr 2  C9 4C                cmp     #TOK_IF
+000761r 2  F0 18                beq     @if
+000763r 2  C9 5B                cmp     #TOK_WHILE
+000765r 2  F0 18                beq     @while
+000767r 2  C9 4A                cmp     #TOK_FOR
+000769r 2  F0 18                beq     @for
+00076Br 2  C9 55                cmp     #TOK_REPEAT
+00076Dr 2  F0 18                beq     @repeat
+00076Fr 2  C9 01                cmp     #TOK_IDENT
+000771r 2  F0 04                beq     @assign_or_call
+000773r 2  60                   rts                     ; empty statement
+000774r 2               
+000774r 2               @compound:
+000774r 2  4C rr rr             jmp     parse_compound_stmt
+000777r 2               
+000777r 2               @assign_or_call:
+000777r 2  20 rr rr             jsr     parse_assign_or_call
+00077Ar 2  60                   rts
+00077Br 2               
+00077Br 2  20 rr rr     @if:    jsr     parse_if
+00077Er 2  60                   rts
+00077Fr 2               
+00077Fr 2  20 rr rr     @while: jsr     parse_while
+000782r 2  60                   rts
+000783r 2               
+000783r 2  20 rr rr     @for:   jsr     parse_for
+000786r 2  60                   rts
+000787r 2               
+000787r 2               @repeat:
+000787r 2  20 rr rr             jsr     parse_repeat
+00078Ar 2  60                   rts
+00078Br 2               
+00078Br 2               ; ---------------------------------------------------------------------------
+00078Br 2               ; parse_assign_or_call — identifier already consumed by caller (in ident_buf)
+00078Br 2               ; If next is ':=' → assignment
+00078Br 2               ; If next is '(' → procedure call
+00078Br 2               ; If identifier is WRITE/WRITELN → built-in I/O
+00078Br 2               ; ---------------------------------------------------------------------------
+00078Br 2               parse_assign_or_call:
+00078Br 2                       ; check for WRITE / WRITELN built-ins
+00078Br 2  AD rr rr             lda     ident_buf       ; length
+00078Er 2  C9 05                cmp     #5
+000790r 2  D0 0E                bne     @chk_writeln
+000792r 2                       ; "WRITE" (5)
+000792r 2  AD rr rr             lda     ident_buf+1
+000795r 2  C9 57                cmp     #'W'
+000797r 2  D0 22                bne     @lookup_sym
+000799r 2  20 rr rr             jsr     next_token
+00079Cr 2  20 rr rr             jsr     parse_write_args
+00079Fr 2  60                   rts
+0007A0r 2               @chk_writeln:
+0007A0r 2  C9 07                cmp     #7
+0007A2r 2  D0 17                bne     @lookup_sym
+0007A4r 2                       ; "WRITELN" (7)
+0007A4r 2  AD rr rr             lda     ident_buf+1
+0007A7r 2  C9 57                cmp     #'W'
+0007A9r 2  D0 10                bne     @lookup_sym
+0007ABr 2  20 rr rr             jsr     next_token
+0007AEr 2  A5 rr                lda     tok_type
+0007B0r 2  C9 1B                cmp     #TOK_LPAREN
+0007B2r 2  D0 03                bne     @just_nl
+0007B4r 2  20 rr rr             jsr     parse_write_args
+0007B7r 2               @just_nl:
+0007B7r 2  20 rr rr             jsr     emit_WRITLN
+0007BAr 2  60                   rts
+0007BBr 2               
+0007BBr 2               @lookup_sym:
+0007BBr 2                       ; look up identifier in symbol table
+0007BBr 2  20 rr rr             jsr     symtab_find
+0007BEr 2  B0 0F                bcs     @found_sym
+0007C0r 2                       ; undefined — error
+0007C0r 2  A9 rr                lda     #<err_undef
+0007C2r 2  85 rr                sta     tmp0
+0007C4r 2  A9 rr                lda     #>err_undef
+0007C6r 2  85 rr                sta     tmp0+1
+0007C8r 2  20 rr rr             jsr     compile_error
+0007CBr 2                       ; skip to semicolon / end
+0007CBr 2  20 rr rr             jsr     next_token
+0007CEr 2  60                   rts
+0007CFr 2               
+0007CFr 2               @found_sym:
+0007CFr 2                       ; tmp3 = symbol entry pointer. Snapshot the fields we need
+0007CFr 2                       ; before any next_token / parse_expression call clobbers tmp3.
+0007CFr 2  A0 10                ldy     #16
+0007D1r 2  B1 rr                lda     (tmp3),y
+0007D3r 2  8D rr rr             sta     sym_save_kind
+0007D6r 2  A0 14                ldy     #20
+0007D8r 2  B1 rr                lda     (tmp3),y
+0007DAr 2  8D rr rr             sta     sym_save_scope
+0007DDr 2  A0 12                ldy     #18
+0007DFr 2  B1 rr                lda     (tmp3),y
+0007E1r 2  8D rr rr             sta     sym_save_off
+0007E4r 2  A0 13                ldy     #19
+0007E6r 2  B1 rr                lda     (tmp3),y
+0007E8r 2  8D rr rr             sta     sym_save_off+1
+0007EBr 2  AD rr rr             lda     sym_save_kind
+0007EEr 2  C9 01                cmp     #SYM_VAR
+0007F0r 2  F0 05                beq     @do_assign
+0007F2r 2  C9 03                cmp     #SYM_PROC
+0007F4r 2  F0 28                beq     @do_call
+0007F6r 2  60                   rts
+0007F7r 2               
+0007F7r 2               @do_assign:
+0007F7r 2                       ; expect ':='
+0007F7r 2  20 rr rr             jsr     next_token
+0007FAr 2  A5 rr                lda     tok_type
+0007FCr 2  C9 1A                cmp     #TOK_ASSIGN
+0007FEr 2  D0 03                bne     :+
+000800r 2  20 rr rr             jsr     next_token
+000803r 2               :       ; parse expression
+000803r 2  20 rr rr             jsr     parse_expression
+000806r 2                       ; emit STG or STL based on saved scope
+000806r 2  AD rr rr             lda     sym_save_scope
+000809r 2  D0 0C                bne     @local_store
+00080Br 2                       ; global store
+00080Br 2  AD rr rr             lda     sym_save_off+1
+00080Er 2  85 rr                sta     scratch
+000810r 2  AD rr rr             lda     sym_save_off
+000813r 2  20 rr rr             jsr     emit_STG
+000816r 2  60                   rts
+000817r 2               @local_store:
+000817r 2  AD rr rr             lda     sym_save_off
+00081Ar 2  20 rr rr             jsr     emit_STL
+00081Dr 2  60                   rts
+00081Er 2               
+00081Er 2               @do_call:
+00081Er 2                       ; TODO: push arguments, CALL
+00081Er 2  20 rr rr             jsr     next_token      ; consume '('
+000821r 2                       ; skip args for now
+000821r 2               @skip_args:
+000821r 2  A5 rr                lda     tok_type
+000823r 2  C9 1C                cmp     #TOK_RPAREN
+000825r 2  F0 09                beq     @call_done
+000827r 2  C9 00                cmp     #TOK_EOF
+000829r 2  F0 05                beq     @call_done
+00082Br 2  20 rr rr             jsr     next_token
+00082Er 2  80 F1                bra     @skip_args
+000830r 2               @call_done:
+000830r 2  20 rr rr             jsr     next_token      ; consume ')'
+000833r 2  60                   rts
+000834r 2               
+000834r 2               ; ---------------------------------------------------------------------------
+000834r 2               ; parse_write_args — WRITE/WRITELN argument list
+000834r 2               ; ---------------------------------------------------------------------------
+000834r 2               parse_write_args:
+000834r 2  A5 rr                lda     tok_type
+000836r 2  C9 1B                cmp     #TOK_LPAREN
+000838r 2  D0 21                bne     @done
+00083Ar 2  20 rr rr             jsr     next_token
+00083Dr 2  A5 rr        @arg:   lda     tok_type
+00083Fr 2  C9 1C                cmp     #TOK_RPAREN
+000841r 2  F0 15                beq     @close
+000843r 2  C9 00                cmp     #TOK_EOF
+000845r 2  F0 14                beq     @done
+000847r 2  20 rr rr             jsr     parse_expression
+00084Ar 2                       ; emit appropriate WRIT* opcode based on last inferred type
+00084Ar 2                       ; (Phase 1: emit WRITI as default; Phase 3 tracks types)
+00084Ar 2  20 rr rr             jsr     emit_WRITI
+00084Dr 2  A5 rr                lda     tok_type
+00084Fr 2  C9 1F                cmp     #TOK_COMMA
+000851r 2  D0 05                bne     @close
+000853r 2  20 rr rr             jsr     next_token
+000856r 2  80 E5                bra     @arg
+000858r 2  20 rr rr     @close: jsr     next_token      ; consume ')'
+00085Br 2  60           @done:  rts
+00085Cr 2               
+00085Cr 2               ; ---------------------------------------------------------------------------
+00085Cr 2               ; parse_if — IF expr THEN stmt [ ELSE stmt ]
+00085Cr 2               ; ---------------------------------------------------------------------------
+00085Cr 2               parse_if:
+00085Cr 2  20 rr rr             jsr     next_token      ; consume IF
+00085Fr 2  20 rr rr             jsr     parse_expression
+000862r 2                       ; emit FJP with placeholder; save patch addr on 6502 stack
+000862r 2                       ; (parse_statement will clobber tmp2 / scratch)
+000862r 2  20 rr rr             jsr     emit_FJP        ; A=patch_lo, scratch=patch_hi
+000865r 2  48                   pha                     ; save FJP patch lo
+000866r 2  A5 rr                lda     scratch
+000868r 2  48                   pha                     ; save FJP patch hi
+000869r 2                       ; THEN
+000869r 2  A5 rr                lda     tok_type
+00086Br 2  C9 56                cmp     #TOK_THEN
+00086Dr 2  D0 03                bne     :+
+00086Fr 2  20 rr rr             jsr     next_token
+000872r 2  20 rr rr     :       jsr     parse_statement
+000875r 2                       ; check for ELSE
+000875r 2  A5 rr                lda     tok_type
+000877r 2  C9 48                cmp     #TOK_ELSE
+000879r 2  D0 30                bne     @patch_then
+00087Br 2                       ; emit UJP over else branch
+00087Br 2  20 rr rr             jsr     emit_UJP        ; A=patch_lo, scratch=patch_hi
+00087Er 2  48                   pha                     ; save UJP patch lo
+00087Fr 2  A5 rr                lda     scratch
+000881r 2  48                   pha                     ; save UJP patch hi
+000882r 2                       ; restore FJP patch addr into tmp2 and patch it to here
+000882r 2                       ; (need to dig under the UJP entries on the stack)
+000882r 2                       ; stack top → bottom: UJP_hi, UJP_lo, FJP_hi, FJP_lo
+000882r 2  68                   pla                     ; UJP hi
+000883r 2  8D rr rr             sta     sym_save_off    ; reuse sym_save_off as temp byte
+000886r 2  68                   pla                     ; UJP lo
+000887r 2  8D rr rr             sta     sym_save_off+1
+00088Ar 2  68                   pla                     ; FJP hi
+00088Br 2  85 rr                sta     tmp2+1
+00088Dr 2  68                   pla                     ; FJP lo
+00088Er 2  85 rr                sta     tmp2
+000890r 2  20 rr rr             jsr     patch_jump      ; patch FJP → start of else branch
+000893r 2                       ; push UJP patch addr back for after-else patching
+000893r 2  AD rr rr             lda     sym_save_off+1  ; UJP lo
+000896r 2  48                   pha
+000897r 2  AD rr rr             lda     sym_save_off    ; UJP hi
+00089Ar 2  48                   pha
+00089Br 2  20 rr rr             jsr     next_token      ; consume ELSE
+00089Er 2  20 rr rr             jsr     parse_statement
+0008A1r 2                       ; patch UJP to here
+0008A1r 2  68                   pla                     ; UJP hi
+0008A2r 2  85 rr                sta     tmp2+1
+0008A4r 2  68                   pla                     ; UJP lo
+0008A5r 2  85 rr                sta     tmp2
+0008A7r 2  20 rr rr             jsr     patch_jump
+0008AAr 2  60                   rts
+0008ABr 2               @patch_then:
+0008ABr 2                       ; no ELSE — restore FJP patch addr and patch to here
+0008ABr 2  68                   pla                     ; FJP hi
+0008ACr 2  85 rr                sta     tmp2+1
+0008AEr 2  68                   pla                     ; FJP lo
+0008AFr 2  85 rr                sta     tmp2
+0008B1r 2  20 rr rr             jsr     patch_jump
+0008B4r 2  60                   rts
+0008B5r 2               
+0008B5r 2               ; ---------------------------------------------------------------------------
+0008B5r 2               ; parse_while — WHILE expr DO stmt
+0008B5r 2               ; ---------------------------------------------------------------------------
+0008B5r 2               parse_while:
+0008B5r 2  20 rr rr             jsr     next_token      ; consume WHILE
+0008B8r 2                       ; save loop top
+0008B8r 2  A5 rr                lda     cg_pc
+0008BAr 2  85 rr                sta     tmp2
+0008BCr 2  A5 rr                lda     cg_pc+1
+0008BEr 2  85 rr                sta     tmp2+1
+0008C0r 2                       ; we'll need loop_top later; save on 6502 stack
+0008C0r 2  A5 rr                lda     tmp2+1
+0008C2r 2  48                   pha
+0008C3r 2  A5 rr                lda     tmp2
+0008C5r 2  48                   pha
+0008C6r 2  20 rr rr             jsr     parse_expression
+0008C9r 2  20 rr rr             jsr     emit_FJP        ; exit if false
+0008CCr 2  48                   pha
+0008CDr 2  A5 rr                lda     scratch
+0008CFr 2  48                   pha
+0008D0r 2                       ; DO
+0008D0r 2  A5 rr                lda     tok_type
+0008D2r 2  C9 46                cmp     #TOK_DO
+0008D4r 2  D0 03                bne     :+
+0008D6r 2  20 rr rr             jsr     next_token
+0008D9r 2  20 rr rr     :       jsr     parse_statement
+0008DCr 2                       ; emit UJP back to loop top
+0008DCr 2  A9 50                lda     #OP_UJP
+0008DEr 2  20 rr rr             jsr     emit_byte
+0008E1r 2                       ; offset = loop_top - (cg_pc + 2)
+0008E1r 2  68                   pla
+0008E2r 2  85 rr                sta     tmp3            ; FJP patch hi
+0008E4r 2  68                   pla
+0008E5r 2  85 rr                sta     tmp3+1          ; FJP patch lo — note: reversed from earlier push
+0008E7r 2                       ; compute back-edge offset
+0008E7r 2  68                   pla                     ; loop_top lo
+0008E8r 2  85 rr                sta     tmp2
+0008EAr 2  68                   pla                     ; loop_top hi
+0008EBr 2  85 rr                sta     tmp2+1
+0008EDr 2                       ; delta = loop_top - (cg_pc + 2)
+0008EDr 2  38                   sec
+0008EEr 2  A5 rr                lda     tmp2
+0008F0r 2  E5 rr                sbc     cg_pc
+0008F2r 2  85 rr                sta     scratch
+0008F4r 2  A5 rr                lda     tmp2+1
+0008F6r 2  E5 rr                sbc     cg_pc+1
+0008F8r 2  85 rr                sta     scratch+1
+0008FAr 2  A5 rr                lda     scratch
+0008FCr 2  38                   sec
+0008FDr 2  E9 02                sbc     #2
+0008FFr 2  85 rr                sta     scratch
+000901r 2  B0 02                bcs     :+
+000903r 2  C6 rr                dec     scratch+1
+000905r 2  A5 rr        :       lda     scratch
+000907r 2  20 rr rr             jsr     emit_byte
+00090Ar 2  A5 rr                lda     scratch+1
+00090Cr 2  20 rr rr             jsr     emit_byte
+00090Fr 2                       ; patch FJP exit
+00090Fr 2                       ; tmp3+1:tmp3 holds FJP patch addr (note push order was lo,hi → pla gets hi first)
+00090Fr 2                       ; Rebuild properly:
+00090Fr 2  A5 rr                lda     tmp3+1
+000911r 2  85 rr                sta     tmp2
+000913r 2  A5 rr                lda     tmp3
+000915r 2  85 rr                sta     tmp2+1
+000917r 2  20 rr rr             jsr     patch_jump
+00091Ar 2  60                   rts
+00091Br 2               
+00091Br 2               ; ---------------------------------------------------------------------------
+00091Br 2               ; parse_for — FOR id := expr TO|DOWNTO expr DO stmt
+00091Br 2               ;
+00091Br 2               ; Codegen layout:
+00091Br 2               ;   <init>:   parse expr1; STG/STL var
+00091Br 2               ;             parse expr2; STG hidden_global   (limit, evaluated once)
+00091Br 2               ;   loop_top: LDG/LDL var; LDG hidden_global
+00091Br 2               ;             LEQI (TO) | GEQI (DOWNTO)
+00091Br 2               ;             FJP exit
+00091Br 2               ;             <body>
+00091Br 2               ;             LDG/LDL var; LDCI 1; ADI|SBI; STG/STL var
+00091Br 2               ;             UJP loop_top
+00091Br 2               ;   exit:
+00091Br 2               ;
+00091Br 2               ; State on 6502 stack across body:
+00091Br 2               ;   var_off_lo, var_off_hi, var_scope, dir, lim_off_hi, lim_off_lo
+00091Br 2               ; for_loop_top / for_patch live in zp (FOR is not nestable in this build).
+00091Br 2               ; ---------------------------------------------------------------------------
+00091Br 2               parse_for:
+00091Br 2  20 rr rr             jsr     next_token              ; consume FOR
+00091Er 2               
+00091Er 2  A5 rr                lda     tok_type
+000920r 2  C9 01                cmp     #TOK_IDENT
+000922r 2  F0 01                beq     :+
+000924r 2  60                   rts                              ; not an ident — silently bail
+000925r 2  20 rr rr     :       jsr     symtab_find
+000928r 2  B0 04                bcs     :+
+00092Ar 2  20 rr rr             jsr     next_token               ; consume the bad ident
+00092Dr 2  60                   rts
+00092Er 2               :
+00092Er 2                       ; snapshot var info into sym_save_*
+00092Er 2  A0 14                ldy     #20
+000930r 2  B1 rr                lda     (tmp3),y
+000932r 2  8D rr rr             sta     sym_save_scope
+000935r 2  A0 12                ldy     #18
+000937r 2  B1 rr                lda     (tmp3),y
+000939r 2  8D rr rr             sta     sym_save_off
+00093Cr 2  A0 13                ldy     #19
+00093Er 2  B1 rr                lda     (tmp3),y
+000940r 2  8D rr rr             sta     sym_save_off+1
+000943r 2  20 rr rr             jsr     next_token               ; consume identifier
+000946r 2               
+000946r 2                       ; push var info: scope, off_hi, off_lo (top)
+000946r 2  AD rr rr             lda     sym_save_scope
+000949r 2  48                   pha
+00094Ar 2  AD rr rr             lda     sym_save_off+1
+00094Dr 2  48                   pha
+00094Er 2  AD rr rr             lda     sym_save_off
+000951r 2  48                   pha
+000952r 2               
+000952r 2                       ; ':='
+000952r 2  A5 rr                lda     tok_type
+000954r 2  C9 1A                cmp     #TOK_ASSIGN
+000956r 2  D0 03                bne     :+
+000958r 2  20 rr rr             jsr     next_token
+00095Br 2  20 rr rr     :       jsr     parse_expression         ; initial value on TOS
+00095Er 2               
+00095Er 2                       ; restore sym_save_* (parse_expression may have clobbered them)
+00095Er 2  68                   pla
+00095Fr 2  8D rr rr             sta     sym_save_off
+000962r 2  68                   pla
+000963r 2  8D rr rr             sta     sym_save_off+1
+000966r 2  68                   pla
+000967r 2  8D rr rr             sta     sym_save_scope
+00096Ar 2  20 rr rr             jsr     for_emit_store_var
+00096Dr 2               
+00096Dr 2                       ; re-push var info for use after loop
+00096Dr 2  AD rr rr             lda     sym_save_scope
+000970r 2  48                   pha
+000971r 2  AD rr rr             lda     sym_save_off+1
+000974r 2  48                   pha
+000975r 2  AD rr rr             lda     sym_save_off
+000978r 2  48                   pha
+000979r 2               
+000979r 2                       ; direction byte: 0 = TO, 1 = DOWNTO
+000979r 2  A9 00                lda     #0
+00097Br 2  A6 rr                ldx     tok_type
+00097Dr 2  E0 47                cpx     #TOK_DOWNTO
+00097Fr 2  D0 02                bne     :+
+000981r 2  A9 01                lda     #1
+000983r 2  48           :       pha                              ; push dir
+000984r 2  20 rr rr             jsr     next_token               ; consume TO / DOWNTO
+000987r 2               
+000987r 2                       ; parse limit expression and store to a hidden global
+000987r 2  20 rr rr             jsr     parse_expression
+00098Ar 2  20 rr rr             jsr     codegen_alloc_global     ; tmp2 = hidden offset
+00098Dr 2  A5 rr                lda     tmp2+1
+00098Fr 2  85 rr                sta     scratch
+000991r 2  A5 rr                lda     tmp2
+000993r 2  20 rr rr             jsr     emit_STG                 ; consume limit value
+000996r 2                       ; push limit offset: hi, lo (top)
+000996r 2  A5 rr                lda     tmp2+1
+000998r 2  48                   pha
+000999r 2  A5 rr                lda     tmp2
+00099Br 2  48                   pha
+00099Cr 2               
+00099Cr 2                       ; consume DO
+00099Cr 2  A5 rr                lda     tok_type
+00099Er 2  C9 46                cmp     #TOK_DO
+0009A0r 2  D0 03                bne     :+
+0009A2r 2  20 rr rr             jsr     next_token
+0009A5r 2               :
+0009A5r 2                       ; --- loop top ---
+0009A5r 2  A5 rr                lda     cg_pc
+0009A7r 2  85 rr                sta     for_loop_top
+0009A9r 2  A5 rr                lda     cg_pc+1
+0009ABr 2  85 rr                sta     for_loop_top+1
+0009ADr 2               
+0009ADr 2                       ; emit LDG/LDL var — restore sym_save_* via TSX peek
+0009ADr 2                       ; stack from top: lim_lo, lim_hi, dir, var_lo, var_hi, var_scope
+0009ADr 2  BA                   tsx
+0009AEr 2  BD 04 01             lda     $0104,x                  ; var_lo
+0009B1r 2  8D rr rr             sta     sym_save_off
+0009B4r 2  BD 05 01             lda     $0105,x                  ; var_hi
+0009B7r 2  8D rr rr             sta     sym_save_off+1
+0009BAr 2  BD 06 01             lda     $0106,x                  ; var_scope
+0009BDr 2  8D rr rr             sta     sym_save_scope
+0009C0r 2  20 rr rr             jsr     for_emit_load_var
+0009C3r 2               
+0009C3r 2                       ; emit LDG limit — limit hi at $0102,x, lo at $0101,x
+0009C3r 2  BA                   tsx
+0009C4r 2  BD 02 01             lda     $0102,x
+0009C7r 2  85 rr                sta     scratch
+0009C9r 2  BD 01 01             lda     $0101,x
+0009CCr 2  20 rr rr             jsr     emit_LDG
+0009CFr 2               
+0009CFr 2                       ; comparison: TO → LEQI (var <= limit), DOWNTO → GEQI
+0009CFr 2  BA                   tsx
+0009D0r 2  BD 03 01             lda     $0103,x                  ; dir
+0009D3r 2  F0 05                beq     @cmp_to
+0009D5r 2  20 rr rr             jsr     emit_GEQI
+0009D8r 2  80 03                bra     @cmp_done
+0009DAr 2               @cmp_to:
+0009DAr 2  20 rr rr             jsr     emit_LEQI
+0009DDr 2               @cmp_done:
+0009DDr 2               
+0009DDr 2                       ; FJP exit placeholder
+0009DDr 2  20 rr rr             jsr     emit_FJP                 ; A=patch_lo, scratch=patch_hi
+0009E0r 2  85 rr                sta     for_patch
+0009E2r 2  A5 rr                lda     scratch
+0009E4r 2  85 rr                sta     for_patch+1
+0009E6r 2               
+0009E6r 2                       ; --- body ---
+0009E6r 2  20 rr rr             jsr     parse_statement
+0009E9r 2               
+0009E9r 2                       ; --- pop state in reverse push order ---
+0009E9r 2  68                   pla                              ; lim_lo (discard)
+0009EAr 2  68                   pla                              ; lim_hi (discard)
+0009EBr 2  68                   pla                              ; direction
+0009ECr 2  8D rr rr             sta     sym_save_kind            ; reuse for direction storage
+0009EFr 2  68                   pla                              ; var_lo
+0009F0r 2  8D rr rr             sta     sym_save_off
+0009F3r 2  68                   pla                              ; var_hi
+0009F4r 2  8D rr rr             sta     sym_save_off+1
+0009F7r 2  68                   pla                              ; var_scope
+0009F8r 2  8D rr rr             sta     sym_save_scope
+0009FBr 2               
+0009FBr 2                       ; emit increment / decrement: LDG var, LDCI 1, ADI|SBI, STG var
+0009FBr 2  20 rr rr             jsr     for_emit_load_var
+0009FEr 2  A9 01                lda     #1
+000A00r 2  20 rr rr             jsr     emit_LDCI
+000A03r 2  AD rr rr             lda     sym_save_kind            ; direction
+000A06r 2  F0 05                beq     @inc
+000A08r 2  20 rr rr             jsr     emit_SBI
+000A0Br 2  80 03                bra     @inc_done
+000A0Dr 2  20 rr rr     @inc:   jsr     emit_ADI
+000A10r 2               @inc_done:
+000A10r 2  20 rr rr             jsr     for_emit_store_var
+000A13r 2               
+000A13r 2                       ; emit UJP back to loop_top
+000A13r 2                       ; offset = for_loop_top - (cg_pc_after_opcode + 2)
+000A13r 2  A9 50                lda     #OP_UJP
+000A15r 2  20 rr rr             jsr     emit_byte
+000A18r 2  38                   sec
+000A19r 2  A5 rr                lda     for_loop_top
+000A1Br 2  E5 rr                sbc     cg_pc
+000A1Dr 2  85 rr                sta     scratch
+000A1Fr 2  A5 rr                lda     for_loop_top+1
+000A21r 2  E5 rr                sbc     cg_pc+1
+000A23r 2  85 rr                sta     scratch+1
+000A25r 2  38                   sec
+000A26r 2  A5 rr                lda     scratch
+000A28r 2  E9 02                sbc     #2
+000A2Ar 2  85 rr                sta     scratch
+000A2Cr 2  B0 02                bcs     :+
+000A2Er 2  C6 rr                dec     scratch+1
+000A30r 2  A5 rr        :       lda     scratch
+000A32r 2  20 rr rr             jsr     emit_byte
+000A35r 2  A5 rr                lda     scratch+1
+000A37r 2  20 rr rr             jsr     emit_byte
+000A3Ar 2               
+000A3Ar 2                       ; patch FJP exit
+000A3Ar 2  A5 rr                lda     for_patch
+000A3Cr 2  85 rr                sta     tmp2
+000A3Er 2  A5 rr                lda     for_patch+1
+000A40r 2  85 rr                sta     tmp2+1
+000A42r 2  20 rr rr             jsr     patch_jump
+000A45r 2  60                   rts
+000A46r 2               
+000A46r 2               ; ---------------------------------------------------------------------------
+000A46r 2               ; for_emit_load_var / for_emit_store_var — emit LDG/LDL or STG/STL based on
+000A46r 2               ; sym_save_scope (0 = global) and sym_save_off (offset).
+000A46r 2               ; ---------------------------------------------------------------------------
+000A46r 2               for_emit_load_var:
+000A46r 2  AD rr rr             lda     sym_save_scope
+000A49r 2  D0 0B                bne     @local
+000A4Br 2  AD rr rr             lda     sym_save_off+1
+000A4Er 2  85 rr                sta     scratch
+000A50r 2  AD rr rr             lda     sym_save_off
+000A53r 2  4C rr rr             jmp     emit_LDG
+000A56r 2  AD rr rr     @local: lda     sym_save_off
+000A59r 2  4C rr rr             jmp     emit_LDL
+000A5Cr 2               
+000A5Cr 2               for_emit_store_var:
+000A5Cr 2  AD rr rr             lda     sym_save_scope
+000A5Fr 2  D0 0B                bne     @local
+000A61r 2  AD rr rr             lda     sym_save_off+1
+000A64r 2  85 rr                sta     scratch
+000A66r 2  AD rr rr             lda     sym_save_off
+000A69r 2  4C rr rr             jmp     emit_STG
+000A6Cr 2  AD rr rr     @local: lda     sym_save_off
+000A6Fr 2  4C rr rr             jmp     emit_STL
+000A72r 2               
+000A72r 2               ; ---------------------------------------------------------------------------
+000A72r 2               ; parse_repeat — REPEAT stmt { ; stmt } UNTIL expr
+000A72r 2               ; ---------------------------------------------------------------------------
+000A72r 2               parse_repeat:
+000A72r 2  20 rr rr             jsr     next_token      ; consume REPEAT
+000A75r 2                       ; save top
+000A75r 2  A5 rr                lda     cg_pc
+000A77r 2  48                   pha
+000A78r 2  A5 rr                lda     cg_pc+1
+000A7Ar 2  48                   pha
+000A7Br 2  A5 rr        @loop:  lda     tok_type
+000A7Dr 2  C9 59                cmp     #TOK_UNTIL
+000A7Fr 2  F0 12                beq     @until
+000A81r 2  C9 00                cmp     #TOK_EOF
+000A83r 2  F0 41                beq     @done
+000A85r 2  20 rr rr             jsr     parse_statement
+000A88r 2  A5 rr                lda     tok_type
+000A8Ar 2  C9 20                cmp     #TOK_SEMICOLON
+000A8Cr 2  D0 ED                bne     @loop
+000A8Er 2  20 rr rr             jsr     next_token
+000A91r 2  80 E8                bra     @loop
+000A93r 2  20 rr rr     @until: jsr     next_token      ; consume UNTIL
+000A96r 2  20 rr rr             jsr     parse_expression
+000A99r 2                       ; FJP back to top
+000A99r 2  A9 51                lda     #OP_FJP
+000A9Br 2  20 rr rr             jsr     emit_byte
+000A9Er 2  68                   pla
+000A9Fr 2  85 rr                sta     tmp2+1
+000AA1r 2  68                   pla
+000AA2r 2  85 rr                sta     tmp2
+000AA4r 2  38                   sec
+000AA5r 2  A5 rr                lda     tmp2
+000AA7r 2  E5 rr                sbc     cg_pc
+000AA9r 2  85 rr                sta     scratch
+000AABr 2  A5 rr                lda     tmp2+1
+000AADr 2  E5 rr                sbc     cg_pc+1
+000AAFr 2  85 rr                sta     scratch+1
+000AB1r 2  A5 rr                lda     scratch
+000AB3r 2  38                   sec
+000AB4r 2  E9 02                sbc     #2
+000AB6r 2  85 rr                sta     scratch
+000AB8r 2  B0 02                bcs     :+
+000ABAr 2  C6 rr                dec     scratch+1
+000ABCr 2  A5 rr        :       lda     scratch
+000ABEr 2  20 rr rr             jsr     emit_byte
+000AC1r 2  A5 rr                lda     scratch+1
+000AC3r 2  20 rr rr             jsr     emit_byte
+000AC6r 2  60           @done:  rts
+000AC7r 2               
+000AC7r 2               ; ---------------------------------------------------------------------------
+000AC7r 2               ; parse_expression — full expression with operator precedence
+000AC7r 2               ; Phase 1: simple additive + comparison; no precedence climbing yet
+000AC7r 2               ; ---------------------------------------------------------------------------
+000AC7r 2               parse_expression:
+000AC7r 2  20 rr rr             jsr     parse_simple_expr
+000ACAr 2                       ; check for relational operator
+000ACAr 2  A5 rr                lda     tok_type
+000ACCr 2  C9 14                cmp     #TOK_EQ
+000ACEr 2  F0 15                beq     @rel_eq
+000AD0r 2  C9 15                cmp     #TOK_NEQ
+000AD2r 2  F0 1B                beq     @rel_neq
+000AD4r 2  C9 16                cmp     #TOK_LT
+000AD6r 2  F0 21                beq     @rel_lt
+000AD8r 2  C9 17                cmp     #TOK_GT
+000ADAr 2  F0 27                beq     @rel_gt
+000ADCr 2  C9 18                cmp     #TOK_LEQ
+000ADEr 2  F0 2D                beq     @rel_leq
+000AE0r 2  C9 19                cmp     #TOK_GEQ
+000AE2r 2  F0 33                beq     @rel_geq
+000AE4r 2  60                   rts
+000AE5r 2  20 rr rr     @rel_eq:  jsr     next_token
+000AE8r 2  20 rr rr               jsr     parse_simple_expr
+000AEBr 2  20 rr rr               jsr     emit_EQUI
+000AEEr 2  60                     rts
+000AEFr 2  20 rr rr     @rel_neq: jsr     next_token
+000AF2r 2  20 rr rr               jsr     parse_simple_expr
+000AF5r 2  20 rr rr               jsr     emit_NEQI
+000AF8r 2  60                     rts
+000AF9r 2  20 rr rr     @rel_lt:  jsr     next_token
+000AFCr 2  20 rr rr               jsr     parse_simple_expr
+000AFFr 2  20 rr rr               jsr     emit_LESI
+000B02r 2  60                     rts
+000B03r 2  20 rr rr     @rel_gt:  jsr     next_token
+000B06r 2  20 rr rr               jsr     parse_simple_expr
+000B09r 2  20 rr rr               jsr     emit_GTRI
+000B0Cr 2  60                     rts
+000B0Dr 2  20 rr rr     @rel_leq: jsr     next_token
+000B10r 2  20 rr rr               jsr     parse_simple_expr
+000B13r 2  20 rr rr               jsr     emit_LEQI
+000B16r 2  60                     rts
+000B17r 2  20 rr rr     @rel_geq: jsr     next_token
+000B1Ar 2  20 rr rr               jsr     parse_simple_expr
+000B1Dr 2  20 rr rr               jsr     emit_GEQI
+000B20r 2  60                     rts
+000B21r 2               
+000B21r 2               ; ---------------------------------------------------------------------------
+000B21r 2               ; parse_simple_expr — term { (+|-|OR) term }
+000B21r 2               ; ---------------------------------------------------------------------------
+000B21r 2               parse_simple_expr:
+000B21r 2                       ; check for unary minus
+000B21r 2  A5 rr                lda     tok_type
+000B23r 2  C9 11                cmp     #TOK_MINUS
+000B25r 2  D0 0A                bne     :+
+000B27r 2  20 rr rr             jsr     next_token
+000B2Ar 2  20 rr rr             jsr     parse_term
+000B2Dr 2  20 rr rr             jsr     emit_NGI
+000B30r 2  60                   rts
+000B31r 2  20 rr rr     :       jsr     parse_term
+000B34r 2  A5 rr        @addop: lda     tok_type
+000B36r 2  C9 10                cmp     #TOK_PLUS
+000B38r 2  F0 09                beq     @add
+000B3Ar 2  C9 11                cmp     #TOK_MINUS
+000B3Cr 2  F0 10                beq     @sub
+000B3Er 2  C9 51                cmp     #TOK_OR
+000B40r 2  F0 17                beq     @or
+000B42r 2  60                   rts
+000B43r 2  20 rr rr     @add:   jsr     next_token
+000B46r 2  20 rr rr             jsr     parse_term
+000B49r 2  20 rr rr             jsr     emit_ADI
+000B4Cr 2  80 E6                bra     @addop
+000B4Er 2  20 rr rr     @sub:   jsr     next_token
+000B51r 2  20 rr rr             jsr     parse_term
+000B54r 2  20 rr rr             jsr     emit_SBI
+000B57r 2  80 DB                bra     @addop
+000B59r 2  20 rr rr     @or:    jsr     next_token
+000B5Cr 2  20 rr rr             jsr     parse_term
+000B5Fr 2  20 rr rr             jsr     emit_LOR
+000B62r 2  80 D0                bra     @addop
+000B64r 2               
+000B64r 2               ; ---------------------------------------------------------------------------
+000B64r 2               ; parse_term — factor { (*|DIV|MOD|AND) factor }
+000B64r 2               ; ---------------------------------------------------------------------------
+000B64r 2               parse_term:
+000B64r 2  20 rr rr             jsr     parse_factor
+000B67r 2  A5 rr        @mulop: lda     tok_type
+000B69r 2  C9 12                cmp     #TOK_STAR
+000B6Br 2  F0 11                beq     @mul
+000B6Dr 2  C9 45                cmp     #TOK_DIV
+000B6Fr 2  F0 18                beq     @div
+000B71r 2  C9 45                cmp     #TOK_DIV_KW
+000B73r 2  F0 14                beq     @div
+000B75r 2  C9 4D                cmp     #TOK_MOD_KW
+000B77r 2  F0 1B                beq     @mod
+000B79r 2  C9 40                cmp     #TOK_AND
+000B7Br 2  F0 22                beq     @and
+000B7Dr 2  60                   rts
+000B7Er 2  20 rr rr     @mul:   jsr     next_token
+000B81r 2  20 rr rr             jsr     parse_factor
+000B84r 2  20 rr rr             jsr     emit_MPI
+000B87r 2  80 DE                bra     @mulop
+000B89r 2  20 rr rr     @div:   jsr     next_token
+000B8Cr 2  20 rr rr             jsr     parse_factor
+000B8Fr 2  20 rr rr             jsr     emit_DVI
+000B92r 2  80 D3                bra     @mulop
+000B94r 2  20 rr rr     @mod:   jsr     next_token
+000B97r 2  20 rr rr             jsr     parse_factor
+000B9Ar 2  20 rr rr             jsr     emit_MOD
+000B9Dr 2  80 C8                bra     @mulop
+000B9Fr 2  20 rr rr     @and:   jsr     next_token
+000BA2r 2  20 rr rr             jsr     parse_factor
+000BA5r 2  20 rr rr             jsr     emit_LAND
+000BA8r 2  80 BD                bra     @mulop
+000BAAr 2               
+000BAAr 2               TOK_DIV_KW = TOK_DIV            ; alias
+000BAAr 2               
+000BAAr 2               ; ---------------------------------------------------------------------------
+000BAAr 2               ; parse_factor — literal | variable | ( expr ) | NOT factor
+000BAAr 2               ; ---------------------------------------------------------------------------
+000BAAr 2               parse_factor:
+000BAAr 2  A5 rr                lda     tok_type
+000BACr 2  C9 02                cmp     #TOK_INT
+000BAEr 2  F0 1F                beq     @int_lit
+000BB0r 2  C9 04                cmp     #TOK_CHAR
+000BB2r 2  F0 34                beq     @char_lit
+000BB4r 2  C9 03                cmp     #TOK_STRING
+000BB6r 2  F0 39                beq     @str_lit
+000BB8r 2  C9 01                cmp     #TOK_IDENT
+000BBAr 2  F0 40                beq     @ident_or_call
+000BBCr 2  C9 1B                cmp     #TOK_LPAREN
+000BBEr 2  F0 7C                beq     @paren
+000BC0r 2  C9 4F                cmp     #TOK_NOT
+000BC2r 2  D0 03                bne     :+
+000BC4r 2  4C rr rr             jmp     @not_expr
+000BC7r 2  C9 4E        :       cmp     #TOK_NIL
+000BC9r 2  D0 03                bne     :+
+000BCBr 2  4C rr rr             jmp     @nil
+000BCEr 2  60           :       rts
+000BCFr 2               
+000BCFr 2               @int_lit:
+000BCFr 2  A5 rr                lda     tok_ival_lo
+000BD1r 2  48                   pha
+000BD2r 2  A5 rr                lda     tok_ival_hi
+000BD4r 2  D0 08                bne     @big_int
+000BD6r 2  68                   pla
+000BD7r 2  20 rr rr             jsr     emit_LDCI       ; fits in signed byte? check later; use LDCI for now
+000BDAr 2  20 rr rr             jsr     next_token
+000BDDr 2  60                   rts
+000BDEr 2               @big_int:
+000BDEr 2  85 rr                sta     scratch
+000BE0r 2  68                   pla
+000BE1r 2  20 rr rr             jsr     emit_LDCW
+000BE4r 2  20 rr rr             jsr     next_token
+000BE7r 2  60                   rts
+000BE8r 2               
+000BE8r 2               @char_lit:
+000BE8r 2  A5 rr                lda     tok_ival_lo
+000BEAr 2  20 rr rr             jsr     emit_LDCC
+000BEDr 2  20 rr rr             jsr     next_token
+000BF0r 2  60                   rts
+000BF1r 2               
+000BF1r 2               @str_lit:
+000BF1r 2                       ; TODO: add string to string pool, emit LDCS with pool address
+000BF1r 2                       ; For now: emit address as LDCW placeholder
+000BF1r 2  A9 00                lda     #0
+000BF3r 2  85 rr                sta     scratch
+000BF5r 2  20 rr rr             jsr     emit_LDCW
+000BF8r 2  20 rr rr             jsr     next_token
+000BFBr 2  60                   rts
+000BFCr 2               
+000BFCr 2               @ident_or_call:
+000BFCr 2                       ; Look up BEFORE next_token — next_token may overwrite ident_buf
+000BFCr 2                       ; if the following token is an identifier or keyword (e.g. J THEN).
+000BFCr 2  20 rr rr             jsr     symtab_find
+000BFFr 2  B0 0B                bcs     @sym_ok
+000C01r 2  20 rr rr             jsr     next_token      ; consume ident
+000C04r 2  A9 00                lda     #0
+000C06r 2  85 rr                sta     scratch
+000C08r 2  20 rr rr             jsr     emit_LDCW       ; undefined: emit 0
+000C0Br 2  60                   rts
+000C0Cr 2               @sym_ok:
+000C0Cr 2                       ; snapshot scope and offset before next_token clobbers tmp3
+000C0Cr 2  A0 14                ldy     #20
+000C0Er 2  B1 rr                lda     (tmp3),y
+000C10r 2  8D rr rr             sta     sym_save_scope
+000C13r 2  A0 12                ldy     #18
+000C15r 2  B1 rr                lda     (tmp3),y
+000C17r 2  8D rr rr             sta     sym_save_off
+000C1Ar 2  A0 13                ldy     #19
+000C1Cr 2  B1 rr                lda     (tmp3),y
+000C1Er 2  8D rr rr             sta     sym_save_off+1
+000C21r 2  20 rr rr             jsr     next_token      ; consume ident
+000C24r 2  AD rr rr             lda     sym_save_scope
+000C27r 2  D0 0C                bne     @local_load
+000C29r 2  AD rr rr             lda     sym_save_off+1
+000C2Cr 2  85 rr                sta     scratch
+000C2Er 2  AD rr rr             lda     sym_save_off
+000C31r 2  20 rr rr             jsr     emit_LDG
+000C34r 2  60                   rts
+000C35r 2               @local_load:
+000C35r 2  AD rr rr             lda     sym_save_off
+000C38r 2  20 rr rr             jsr     emit_LDL
+000C3Br 2  60                   rts
+000C3Cr 2               
+000C3Cr 2  20 rr rr     @paren: jsr     next_token      ; consume '('
+000C3Fr 2  20 rr rr             jsr     parse_expression
+000C42r 2  A5 rr                lda     tok_type
+000C44r 2  C9 1C                cmp     #TOK_RPAREN
+000C46r 2  D0 03                bne     :+
+000C48r 2  20 rr rr             jsr     next_token
+000C4Br 2  60           :       rts
+000C4Cr 2               
+000C4Cr 2               @not_expr:
+000C4Cr 2  20 rr rr             jsr     next_token
+000C4Fr 2  20 rr rr             jsr     parse_factor
+000C52r 2  20 rr rr             jsr     emit_LNOT
+000C55r 2  60                   rts
+000C56r 2               
+000C56r 2  20 rr rr     @nil:   jsr     emit_LDCN
+000C59r 2  20 rr rr             jsr     next_token
+000C5Cr 2  60                   rts
+000C5Dr 2               
+000C5Dr 1               .include "symtab.asm"
+000C5Dr 2               .PC02
+000C5Dr 2               ; symtab.asm — symbol table for Pascal/65 compiler
+000C5Dr 2               ;
+000C5Dr 2               ; Each entry occupies 16 bytes in the SYMTAB_BASE area:
+000C5Dr 2               ;   [0]    name length (1-15)
+000C5Dr 2               ;   [1-15] name chars (uppercase, padded with spaces)
+000C5Dr 2               ;   [16]   symbol kind: SYM_VAR, SYM_CONST, SYM_PROC, SYM_FUNC, SYM_TYPE, SYM_PARAM
+000C5Dr 2               ;   [17]   data type:   TY_INT, TY_CHAR, TY_BOOL, TY_STRING, TY_ARRAY, TY_RECORD, TY_PTR
+000C5Dr 2               ;   [18-19] value/offset (word): variable offset from BASE/MP; const value; proc address
+000C5Dr 2               ;   [20]   scope depth (0=global)
+000C5Dr 2               ;   [21]   parameter count (for SYM_PROC/SYM_FUNC)
+000C5Dr 2               ;   [22-23] type info pointer (for array/record types)
+000C5Dr 2               ;   [24-31] reserved
+000C5Dr 2               
+000C5Dr 2               SYM_ENTRY_SZ    = 32
+000C5Dr 2               
+000C5Dr 2               ; Symbol kinds
+000C5Dr 2               SYM_VAR         = 1
+000C5Dr 2               SYM_CONST       = 2
+000C5Dr 2               SYM_PROC        = 3
+000C5Dr 2               SYM_FUNC        = 4
+000C5Dr 2               SYM_TYPE        = 5
+000C5Dr 2               SYM_PARAM       = 6
+000C5Dr 2               
+000C5Dr 2               ; Data type codes
+000C5Dr 2               TY_INT          = 1
+000C5Dr 2               TY_CHAR         = 2
+000C5Dr 2               TY_BOOL         = 3
+000C5Dr 2               TY_STRING       = 4
+000C5Dr 2               TY_ARRAY        = 5
+000C5Dr 2               TY_RECORD       = 6
+000C5Dr 2               TY_PTR          = 7
+000C5Dr 2               TY_NONE         = 0             ; for procedures
+000C5Dr 2               
+000C5Dr 2               .segment "CODE"
+000C5Dr 2               
+000C5Dr 2               ; Number of entries currently in symbol table
+000C5Dr 2  00 00        symtab_count:   .word 0
+000C5Fr 2               
+000C5Fr 2               ; ---------------------------------------------------------------------------
+000C5Fr 2               ; symtab_init — clear symbol table
+000C5Fr 2               ; ---------------------------------------------------------------------------
+000C5Fr 2               symtab_init:
+000C5Fr 2  A9 00                lda     #0
+000C61r 2  8D rr rr             sta     symtab_count
+000C64r 2  8D rr rr             sta     symtab_count+1
+000C67r 2  60                   rts
+000C68r 2               
+000C68r 2               ; ---------------------------------------------------------------------------
+000C68r 2               ; symtab_find — look up ident_buf in symbol table
+000C68r 2               ; Returns: carry set = found (tmp3 = pointer to entry)
+000C68r 2               ;          carry clear = not found
+000C68r 2               ; Searches from newest (highest index) to oldest for proper scoping
+000C68r 2               ; ---------------------------------------------------------------------------
+000C68r 2               symtab_find:
+000C68r 2  AD rr rr             lda     symtab_count
+000C6Br 2  0D rr rr             ora     symtab_count+1
+000C6Er 2  D0 02                bne     :+
+000C70r 2  18                   clc
+000C71r 2  60                   rts                     ; empty table
+000C72r 2               :
+000C72r 2                       ; start from last entry
+000C72r 2  AD rr rr             lda     symtab_count
+000C75r 2  85 rr                sta     tmp2
+000C77r 2  AD rr rr             lda     symtab_count+1
+000C7Ar 2  85 rr                sta     tmp2+1
+000C7Cr 2               @loop:
+000C7Cr 2  A5 rr                lda     tmp2
+000C7Er 2  05 rr                ora     tmp2+1
+000C80r 2  F0 34                beq     @not_found
+000C82r 2                       ; decrement tmp2
+000C82r 2  A5 rr                lda     tmp2
+000C84r 2  D0 02                bne     :+
+000C86r 2  C6 rr                dec     tmp2+1
+000C88r 2  C6 rr        :       dec     tmp2
+000C8Ar 2                       ; compute entry address: SYMTAB_BASE + tmp2 * SYM_ENTRY_SZ
+000C8Ar 2                       ; tmp2 * 32 = tmp2 << 5
+000C8Ar 2  A5 rr                lda     tmp2
+000C8Cr 2  0A                   asl
+000C8Dr 2  0A                   asl
+000C8Er 2  0A                   asl
+000C8Fr 2  0A                   asl
+000C90r 2  0A                   asl                     ; *32
+000C91r 2  18                   clc
+000C92r 2  69 00                adc     #<SYMTAB_BASE
+000C94r 2  85 rr                sta     tmp3
+000C96r 2  A5 rr                lda     tmp2+1
+000C98r 2  2A                   rol
+000C99r 2  69 80                adc     #>SYMTAB_BASE
+000C9Br 2  85 rr                sta     tmp3+1
+000C9Dr 2                       ; compare name length
+000C9Dr 2  A0 00                ldy     #0
+000C9Fr 2  B1 rr                lda     (tmp3),y
+000CA1r 2  CD rr rr             cmp     ident_buf
+000CA4r 2  D0 D6                bne     @loop
+000CA6r 2                       ; compare name chars
+000CA6r 2  AA                   tax                     ; X = length
+000CA7r 2  A0 00                ldy     #0
+000CA9r 2  C8           @cmp:   iny
+000CAAr 2  B1 rr                lda     (tmp3),y
+000CACr 2  D9 rr rr             cmp     ident_buf,y
+000CAFr 2  D0 CB                bne     @loop
+000CB1r 2  CA                   dex
+000CB2r 2  D0 F5                bne     @cmp
+000CB4r 2  38                   sec
+000CB5r 2  60                   rts
+000CB6r 2               @not_found:
+000CB6r 2  18                   clc
+000CB7r 2  60                   rts
+000CB8r 2               
+000CB8r 2               ; ---------------------------------------------------------------------------
+000CB8r 2               ; symtab_add — add entry to symbol table
+000CB8r 2               ; Inputs:
+000CB8r 2               ;   ident_buf = name
+000CB8r 2               ;   A = kind (SYM_*)
+000CB8r 2               ;   X = data type (TY_*)
+000CB8r 2               ;   tmp2 = value/offset word (lo in tmp2, hi in tmp2+1)
+000CB8r 2               ; Returns: tmp3 = pointer to new entry; carry set = table full
+000CB8r 2               ; ---------------------------------------------------------------------------
+000CB8r 2               symtab_add:
+000CB8r 2  48                   pha                     ; save kind (A) — the rest of this routine clobbers A
+000CB9r 2  8A                   txa
+000CBAr 2  48                   pha                     ; save data type (X)
+000CBBr 2                       ; check capacity
+000CBBr 2  AD rr rr             lda     symtab_count+1
+000CBEr 2  C9 00                cmp     #(SYMTAB_MAXSZ / SYM_ENTRY_SZ) >> 8
+000CC0r 2  90 0B                bcc     :+
+000CC2r 2  AD rr rr             lda     symtab_count
+000CC5r 2  C9 C0                cmp     #(SYMTAB_MAXSZ / SYM_ENTRY_SZ) & $FF
+000CC7r 2  90 04                bcc     :+
+000CC9r 2  68                   pla                     ; discard saved type
+000CCAr 2  68                   pla                     ; discard saved kind
+000CCBr 2  38                   sec
+000CCCr 2  60                   rts                     ; table full
+000CCDr 2               
+000CCDr 2               :       ; compute address of new entry
+000CCDr 2  AD rr rr             lda     symtab_count
+000CD0r 2  0A                   asl
+000CD1r 2  0A                   asl
+000CD2r 2  0A                   asl
+000CD3r 2  0A                   asl
+000CD4r 2  0A                   asl                     ; *32
+000CD5r 2  18                   clc
+000CD6r 2  69 00                adc     #<SYMTAB_BASE
+000CD8r 2  85 rr                sta     tmp3
+000CDAr 2  AD rr rr             lda     symtab_count+1
+000CDDr 2  2A                   rol
+000CDEr 2  69 80                adc     #>SYMTAB_BASE
+000CE0r 2  85 rr                sta     tmp3+1
+000CE2r 2               
+000CE2r 2                       ; copy name
+000CE2r 2  A0 00                ldy     #0
+000CE4r 2  AD rr rr             lda     ident_buf       ; length
+000CE7r 2  91 rr                sta     (tmp3),y
+000CE9r 2  AA                   tax
+000CEAr 2               @name_copy:
+000CEAr 2  C8                   iny
+000CEBr 2  B9 rr rr             lda     ident_buf,y
+000CEEr 2  91 rr                sta     (tmp3),y
+000CF0r 2  CA                   dex
+000CF1r 2  D0 F7                bne     @name_copy
+000CF3r 2               
+000CF3r 2                       ; fill unused name bytes with space
+000CF3r 2  C8                   iny
+000CF4r 2  C0 10        @pad:   cpy     #16
+000CF6r 2  B0 07                bcs     @done_pad
+000CF8r 2  A9 20                lda     #' '
+000CFAr 2  91 rr                sta     (tmp3),y
+000CFCr 2  C8                   iny
+000CFDr 2  80 F5                bra     @pad
+000CFFr 2               @done_pad:
+000CFFr 2               
+000CFFr 2                       ; data type (was saved on stack first)
+000CFFr 2  68                   pla
+000D00r 2  A0 11                ldy     #17
+000D02r 2  91 rr                sta     (tmp3),y
+000D04r 2               
+000D04r 2                       ; kind (was saved on stack second-to-last → on top first)
+000D04r 2  68                   pla
+000D05r 2  A0 10                ldy     #16
+000D07r 2  91 rr                sta     (tmp3),y
+000D09r 2               
+000D09r 2                       ; value/offset
+000D09r 2  A5 rr                lda     tmp2
+000D0Br 2  A0 12                ldy     #18
+000D0Dr 2  91 rr                sta     (tmp3),y
+000D0Fr 2  A5 rr                lda     tmp2+1
+000D11r 2  A0 13                ldy     #19
+000D13r 2  91 rr                sta     (tmp3),y
+000D15r 2               
+000D15r 2                       ; scope depth
+000D15r 2  A5 rr                lda     scope_depth
+000D17r 2  A0 14                ldy     #20
+000D19r 2  91 rr                sta     (tmp3),y
+000D1Br 2               
+000D1Br 2                       ; zero rest
+000D1Br 2  A9 00                lda     #0
+000D1Dr 2  A0 15                ldy     #21
+000D1Fr 2  91 rr        @zero:  sta     (tmp3),y
+000D21r 2  C8                   iny
+000D22r 2  C0 20                cpy     #SYM_ENTRY_SZ
+000D24r 2  90 F9                bcc     @zero
+000D26r 2               
+000D26r 2                       ; increment count
+000D26r 2  EE rr rr             inc     symtab_count
+000D29r 2  D0 03                bne     :+
+000D2Br 2  EE rr rr             inc     symtab_count+1
+000D2Er 2  18           :       clc
+000D2Fr 2  60                   rts
+000D30r 2               
+000D30r 2               ; ---------------------------------------------------------------------------
+000D30r 2               ; symtab_enter_scope — increment scope depth
+000D30r 2               ; ---------------------------------------------------------------------------
+000D30r 2               symtab_enter_scope:
+000D30r 2  E6 rr                inc     scope_depth
+000D32r 2  60                   rts
+000D33r 2               
+000D33r 2               ; ---------------------------------------------------------------------------
+000D33r 2               ; symtab_leave_scope — remove all entries at current scope, decrement depth
+000D33r 2               ; ---------------------------------------------------------------------------
+000D33r 2               symtab_leave_scope:
+000D33r 2                       ; Remove all entries added at current scope depth, then decrement depth.
+000D33r 2                       ; Entries are appended in order, so trim from the end.
+000D33r 2  AD rr rr     @trim:  lda     symtab_count
+000D36r 2  0D rr rr             ora     symtab_count+1
+000D39r 2  F0 34                beq     @done           ; table empty
+000D3Br 2                       ; compute address of last entry: SYMTAB_BASE + (count-1)*32
+000D3Br 2  AD rr rr             lda     symtab_count
+000D3Er 2  38                   sec
+000D3Fr 2  E9 01                sbc     #1
+000D41r 2  85 rr                sta     tmp2
+000D43r 2  AD rr rr             lda     symtab_count+1
+000D46r 2  E9 00                sbc     #0
+000D48r 2  85 rr                sta     tmp2+1
+000D4Ar 2                       ; tmp2 * 32 (shift left 5) → entry address
+000D4Ar 2  A5 rr                lda     tmp2
+000D4Cr 2  0A                   asl
+000D4Dr 2  0A                   asl
+000D4Er 2  0A                   asl
+000D4Fr 2  0A                   asl
+000D50r 2  0A                   asl
+000D51r 2  18                   clc
+000D52r 2  69 00                adc     #<SYMTAB_BASE
+000D54r 2  85 rr                sta     tmp3
+000D56r 2  A5 rr                lda     tmp2+1
+000D58r 2  2A                   rol
+000D59r 2  69 80                adc     #>SYMTAB_BASE
+000D5Br 2  85 rr                sta     tmp3+1
+000D5Dr 2                       ; check scope depth field (offset 20 in entry)
+000D5Dr 2  A0 14                ldy     #20
+000D5Fr 2  B1 rr                lda     (tmp3),y
+000D61r 2  C5 rr                cmp     scope_depth
+000D63r 2  D0 0A                bne     @done           ; entry belongs to an outer scope — stop
+000D65r 2                       ; remove this entry
+000D65r 2  CE rr rr             dec     symtab_count
+000D68r 2  D0 C9                bne     @trim
+000D6Ar 2  CE rr rr             dec     symtab_count+1
+000D6Dr 2  80 C4                bra     @trim
+000D6Fr 2               @done:
+000D6Fr 2  C6 rr                dec     scope_depth
+000D71r 2  60                   rts
+000D72r 2               
+000D72r 1               .include "codegen.asm"
+000D72r 2               ; codegen.asm — p-code emitter for Pascal/65 compiler
+000D72r 2               ;
+000D72r 2               ; All generated p-code accumulates in CODEBUF_BASE.
+000D72r 2               ; cg_pc (zero page) tracks the next write offset.
+000D72r 2               
+000D72r 2               .segment "CODE"
+000D72r 2               
+000D72r 2               ; ---------------------------------------------------------------------------
+000D72r 2               ; emit_byte — append byte A to code buffer
+000D72r 2               ; ---------------------------------------------------------------------------
+000D72r 2               emit_byte:
+000D72r 2  48                   pha                     ; save byte to emit
+000D73r 2                       ; check buffer full
+000D73r 2  A5 rr                lda     cg_pc+1
+000D75r 2  C9 80                cmp     #>CODEBUF_MAXSZ
+000D77r 2  90 13                bcc     :+
+000D79r 2  A5 rr                lda     cg_pc
+000D7Br 2  C9 00                cmp     #<CODEBUF_MAXSZ
+000D7Dr 2  90 0D                bcc     :+
+000D7Fr 2                       ; error: p-code buffer full
+000D7Fr 2  68                   pla
+000D80r 2  A9 rr                lda     #<err_pcd_full
+000D82r 2  85 rr                sta     tmp0
+000D84r 2  A9 rr                lda     #>err_pcd_full
+000D86r 2  85 rr                sta     tmp0+1
+000D88r 2  20 rr rr             jsr     compile_error
+000D8Br 2  60                   rts
+000D8Cr 2               :
+000D8Cr 2                       ; store at CODEBUF_BASE + cg_pc
+000D8Cr 2  A5 rr                lda     cg_pc
+000D8Er 2  18                   clc
+000D8Fr 2  69 00                adc     #<CODEBUF_BASE
+000D91r 2  85 rr                sta     tmp2
+000D93r 2  A5 rr                lda     cg_pc+1
+000D95r 2  69 30                adc     #>CODEBUF_BASE
+000D97r 2  85 rr                sta     tmp2+1
+000D99r 2  68                   pla
+000D9Ar 2  A0 00                ldy     #0
+000D9Cr 2  91 rr                sta     (tmp2),y
+000D9Er 2                       ; advance cg_pc
+000D9Er 2  E6 rr                inc     cg_pc
+000DA0r 2  D0 02                bne     :+
+000DA2r 2  E6 rr                inc     cg_pc+1
+000DA4r 2  60           :       rts
+000DA5r 2               
+000DA5r 2               ; ---------------------------------------------------------------------------
+000DA5r 2               ; emit_word — append word (lo then hi) from tmp2 to code buffer
+000DA5r 2               ; ---------------------------------------------------------------------------
+000DA5r 2               emit_word:
+000DA5r 2  A5 rr                lda     tmp2
+000DA7r 2  20 rr rr             jsr     emit_byte
+000DAAr 2  A5 rr                lda     tmp2+1
+000DACr 2  20 rr rr             jsr     emit_byte
+000DAFr 2  60                   rts
+000DB0r 2               
+000DB0r 2               ; ---------------------------------------------------------------------------
+000DB0r 2               ; emit_opcode — emit single opcode byte in A
+000DB0r 2               ; ---------------------------------------------------------------------------
+000DB0r 2               emit_opcode:
+000DB0r 2  20 rr rr             jsr     emit_byte
+000DB3r 2  60                   rts
+000DB4r 2               
+000DB4r 2               ; --- Constant emitters ---
+000DB4r 2               
+000DB4r 2               emit_LDCI:                      ; push sign-extended byte in A
+000DB4r 2  48                   pha
+000DB5r 2  A9 00                lda     #OP_LDCI
+000DB7r 2  20 rr rr             jsr     emit_byte
+000DBAr 2  68                   pla
+000DBBr 2  20 rr rr             jsr     emit_byte
+000DBEr 2  60                   rts
+000DBFr 2               
+000DBFr 2               emit_LDCW:                      ; push word: lo in A, hi in scratch
+000DBFr 2  48                   pha
+000DC0r 2  A9 01                lda     #OP_LDCW
+000DC2r 2  20 rr rr             jsr     emit_byte
+000DC5r 2  68                   pla
+000DC6r 2  20 rr rr             jsr     emit_byte
+000DC9r 2  A5 rr                lda     scratch
+000DCBr 2  20 rr rr             jsr     emit_byte
+000DCEr 2  60                   rts
+000DCFr 2               
+000DCFr 2               emit_LDCC:                      ; push char in A
+000DCFr 2  48                   pha
+000DD0r 2  A9 02                lda     #OP_LDCC
+000DD2r 2  20 rr rr             jsr     emit_byte
+000DD5r 2  68                   pla
+000DD6r 2  20 rr rr             jsr     emit_byte
+000DD9r 2  60                   rts
+000DDAr 2               
+000DDAr 2               emit_LDCB:                      ; push boolean in A (0=false, 1=true)
+000DDAr 2  48                   pha
+000DDBr 2  A9 03                lda     #OP_LDCB
+000DDDr 2  20 rr rr             jsr     emit_byte
+000DE0r 2  68                   pla
+000DE1r 2  20 rr rr             jsr     emit_byte
+000DE4r 2  60                   rts
+000DE5r 2               
+000DE5r 2               emit_LDCN:
+000DE5r 2  A9 05                lda     #OP_LDCN
+000DE7r 2  20 rr rr             jsr     emit_byte
+000DEAr 2  60                   rts
+000DEBr 2               
+000DEBr 2               ; --- Local variable emitters ---
+000DEBr 2               
+000DEBr 2               emit_LDL:                       ; byte offset in A
+000DEBr 2  48                   pha
+000DECr 2  A9 10                lda     #OP_LDL
+000DEEr 2  20 rr rr             jsr     emit_byte
+000DF1r 2  68                   pla
+000DF2r 2  20 rr rr             jsr     emit_byte
+000DF5r 2  60                   rts
+000DF6r 2               
+000DF6r 2               emit_STL:
+000DF6r 2  48                   pha
+000DF7r 2  A9 11                lda     #OP_STL
+000DF9r 2  20 rr rr             jsr     emit_byte
+000DFCr 2  68                   pla
+000DFDr 2  20 rr rr             jsr     emit_byte
+000E00r 2  60                   rts
+000E01r 2               
+000E01r 2               emit_LDA_L:
+000E01r 2  48                   pha
+000E02r 2  A9 12                lda     #OP_LDA_L
+000E04r 2  20 rr rr             jsr     emit_byte
+000E07r 2  68                   pla
+000E08r 2  20 rr rr             jsr     emit_byte
+000E0Br 2  60                   rts
+000E0Cr 2               
+000E0Cr 2               ; --- Global variable emitters ---
+000E0Cr 2               
+000E0Cr 2               emit_LDG:                       ; word offset: lo in A, hi in scratch
+000E0Cr 2  48                   pha
+000E0Dr 2  A9 18                lda     #OP_LDG
+000E0Fr 2  20 rr rr             jsr     emit_byte
+000E12r 2  68                   pla
+000E13r 2  20 rr rr             jsr     emit_byte
+000E16r 2  A5 rr                lda     scratch
+000E18r 2  20 rr rr             jsr     emit_byte
+000E1Br 2  60                   rts
+000E1Cr 2               
+000E1Cr 2               emit_STG:
+000E1Cr 2  48                   pha
+000E1Dr 2  A9 19                lda     #OP_STG
+000E1Fr 2  20 rr rr             jsr     emit_byte
+000E22r 2  68                   pla
+000E23r 2  20 rr rr             jsr     emit_byte
+000E26r 2  A5 rr                lda     scratch
+000E28r 2  20 rr rr             jsr     emit_byte
+000E2Br 2  60                   rts
+000E2Cr 2               
+000E2Cr 2               ; --- Arithmetic emitters ---
+000E2Cr 2               
+000E2Cr 2               emit_ADI:
+000E2Cr 2  A9 30                lda     #OP_ADI
+000E2Er 2  4C rr rr             jmp     emit_byte
+000E31r 2               
+000E31r 2               emit_SBI:
+000E31r 2  A9 31                lda     #OP_SBI
+000E33r 2  4C rr rr             jmp     emit_byte
+000E36r 2               
+000E36r 2               emit_MPI:
+000E36r 2  A9 32                lda     #OP_MPI
+000E38r 2  4C rr rr             jmp     emit_byte
+000E3Br 2               
+000E3Br 2               emit_DVI:
+000E3Br 2  A9 33                lda     #OP_DVI
+000E3Dr 2  4C rr rr             jmp     emit_byte
+000E40r 2               
+000E40r 2               emit_MOD:
+000E40r 2  A9 34                lda     #OP_MOD
+000E42r 2  4C rr rr             jmp     emit_byte
+000E45r 2               
+000E45r 2               emit_NGI:
+000E45r 2  A9 35                lda     #OP_NGI
+000E47r 2  4C rr rr             jmp     emit_byte
+000E4Ar 2               
+000E4Ar 2               ; --- Comparison emitters ---
+000E4Ar 2               
+000E4Ar 2               emit_EQUI:
+000E4Ar 2  A9 40                lda     #OP_EQUI
+000E4Cr 2  4C rr rr             jmp     emit_byte
+000E4Fr 2               
+000E4Fr 2               emit_NEQI:
+000E4Fr 2  A9 41                lda     #OP_NEQI
+000E51r 2  4C rr rr             jmp     emit_byte
+000E54r 2               
+000E54r 2               emit_LESI:
+000E54r 2  A9 42                lda     #OP_LESI
+000E56r 2  4C rr rr             jmp     emit_byte
+000E59r 2               
+000E59r 2               emit_LEQI:
+000E59r 2  A9 43                lda     #OP_LEQI
+000E5Br 2  4C rr rr             jmp     emit_byte
+000E5Er 2               
+000E5Er 2               emit_GTRI:
+000E5Er 2  A9 44                lda     #OP_GTRI
+000E60r 2  4C rr rr             jmp     emit_byte
+000E63r 2               
+000E63r 2               emit_GEQI:
+000E63r 2  A9 45                lda     #OP_GEQI
+000E65r 2  4C rr rr             jmp     emit_byte
+000E68r 2               
+000E68r 2               ; --- Logical ---
+000E68r 2               
+000E68r 2               emit_LAND:
+000E68r 2  A9 38                lda     #OP_LAND
+000E6Ar 2  4C rr rr             jmp     emit_byte
+000E6Dr 2               
+000E6Dr 2               emit_LOR:
+000E6Dr 2  A9 39                lda     #OP_LOR
+000E6Fr 2  4C rr rr             jmp     emit_byte
+000E72r 2               
+000E72r 2               emit_LNOT:
+000E72r 2  A9 3A                lda     #OP_LNOT
+000E74r 2  4C rr rr             jmp     emit_byte
+000E77r 2               
+000E77r 2               ; --- Jump emitters ---
+000E77r 2               ; Returns: A/scratch = offset of the word operand in code buffer
+000E77r 2               ; (needed for backpatching)
+000E77r 2               
+000E77r 2               emit_UJP:                       ; emit UJP with placeholder offset
+000E77r 2  A9 50                lda     #OP_UJP
+000E79r 2  20 rr rr             jsr     emit_byte
+000E7Cr 2  A5 rr                lda     cg_pc           ; save patch address
+000E7Er 2  48                   pha
+000E7Fr 2  A5 rr                lda     cg_pc+1
+000E81r 2  48                   pha
+000E82r 2  A9 00                lda     #$00
+000E84r 2  20 rr rr             jsr     emit_byte       ; placeholder lo
+000E87r 2  A9 00                lda     #$00
+000E89r 2  20 rr rr             jsr     emit_byte       ; placeholder hi
+000E8Cr 2  68                   pla
+000E8Dr 2  85 rr                sta     scratch
+000E8Fr 2  68                   pla                     ; lo of patch address
+000E90r 2  60                   rts                     ; caller: save A/scratch as patch point
+000E91r 2               
+000E91r 2               emit_FJP:
+000E91r 2  A9 51                lda     #OP_FJP
+000E93r 2  20 rr rr             jsr     emit_byte
+000E96r 2  A5 rr                lda     cg_pc
+000E98r 2  48                   pha
+000E99r 2  A5 rr                lda     cg_pc+1
+000E9Br 2  48                   pha
+000E9Cr 2  A9 00                lda     #$00
+000E9Er 2  20 rr rr             jsr     emit_byte
+000EA1r 2  A9 00                lda     #$00
+000EA3r 2  20 rr rr             jsr     emit_byte
+000EA6r 2  68                   pla
+000EA7r 2  85 rr                sta     scratch
+000EA9r 2  68                   pla
+000EAAr 2  60                   rts
+000EABr 2               
+000EABr 2               emit_TJP:
+000EABr 2  A9 52                lda     #OP_TJP
+000EADr 2  20 rr rr             jsr     emit_byte
+000EB0r 2  A5 rr                lda     cg_pc
+000EB2r 2  48                   pha
+000EB3r 2  A5 rr                lda     cg_pc+1
+000EB5r 2  48                   pha
+000EB6r 2  A9 00                lda     #$00
+000EB8r 2  20 rr rr             jsr     emit_byte
+000EBBr 2  A9 00                lda     #$00
+000EBDr 2  20 rr rr             jsr     emit_byte
+000EC0r 2  68                   pla
+000EC1r 2  85 rr                sta     scratch
+000EC3r 2  68                   pla
+000EC4r 2  60                   rts
+000EC5r 2               
+000EC5r 2               ; ---------------------------------------------------------------------------
+000EC5r 2               ; patch_jump — fill in jump offset at patch address stored in tmp2 (word)
+000EC5r 2               ; The offset is computed as: (current cg_pc) - (patch_addr + 2)
+000EC5r 2               ; i.e. relative to instruction after the operand word
+000EC5r 2               ; ---------------------------------------------------------------------------
+000EC5r 2               patch_jump:
+000EC5r 2                       ; delta = cg_pc - (patch_addr + 2)
+000EC5r 2                       ;   compute (cg_pc - 2) first, then subtract patch_addr
+000EC5r 2  A5 rr                lda     cg_pc
+000EC7r 2  38                   sec
+000EC8r 2  E9 02                sbc     #2
+000ECAr 2  85 rr                sta     scratch         ; lo of (cg_pc - 2)
+000ECCr 2  A5 rr                lda     cg_pc+1
+000ECEr 2  E9 00                sbc     #0
+000ED0r 2  85 rr                sta     scratch+1       ; hi of (cg_pc - 2)
+000ED2r 2  38                   sec
+000ED3r 2  A5 rr                lda     scratch
+000ED5r 2  E5 rr                sbc     tmp2
+000ED7r 2  48                   pha
+000ED8r 2  A5 rr                lda     scratch+1
+000EDAr 2  E5 rr                sbc     tmp2+1
+000EDCr 2  85 rr                sta     scratch+1       ; high byte of delta
+000EDEr 2  68                   pla
+000EDFr 2  85 rr                sta     scratch         ; low byte of delta
+000EE1r 2                       ; write delta at patch address (CODEBUF_BASE + tmp2)
+000EE1r 2  A5 rr                lda     tmp2
+000EE3r 2  18                   clc
+000EE4r 2  69 00                adc     #<CODEBUF_BASE
+000EE6r 2  85 rr                sta     tmp3
+000EE8r 2  A5 rr                lda     tmp2+1
+000EEAr 2  69 30                adc     #>CODEBUF_BASE
+000EECr 2  85 rr                sta     tmp3+1
+000EEEr 2  A0 00                ldy     #0
+000EF0r 2  A5 rr                lda     scratch
+000EF2r 2  91 rr                sta     (tmp3),y
+000EF4r 2  C8                   iny
+000EF5r 2  A5 rr                lda     scratch+1
+000EF7r 2  91 rr                sta     (tmp3),y
+000EF9r 2  60                   rts
+000EFAr 2               
+000EFAr 2               ; --- I/O emitters ---
+000EFAr 2               
+000EFAr 2               emit_WRITI:
+000EFAr 2  A9 80                lda     #OP_WRITI
+000EFCr 2  4C rr rr             jmp     emit_byte
+000EFFr 2               
+000EFFr 2               emit_WRITC:
+000EFFr 2  A9 81                lda     #OP_WRITC
+000F01r 2  4C rr rr             jmp     emit_byte
+000F04r 2               
+000F04r 2               emit_WRITB:
+000F04r 2  A9 82                lda     #OP_WRITB
+000F06r 2  4C rr rr             jmp     emit_byte
+000F09r 2               
+000F09r 2               emit_WRITS:
+000F09r 2  A9 83                lda     #OP_WRITS
+000F0Br 2  4C rr rr             jmp     emit_byte
+000F0Er 2               
+000F0Er 2               emit_WRITLN:
+000F0Er 2  A9 84                lda     #OP_WRITLN
+000F10r 2  4C rr rr             jmp     emit_byte
+000F13r 2               
+000F13r 2               emit_READI:
+000F13r 2  A9 85                lda     #OP_READI
+000F15r 2  4C rr rr             jmp     emit_byte
+000F18r 2               
+000F18r 2               emit_READC:
+000F18r 2  A9 86                lda     #OP_READC
+000F1Ar 2  4C rr rr             jmp     emit_byte
+000F1Dr 2               
+000F1Dr 2               ; --- Stack ---
+000F1Dr 2               
+000F1Dr 2               emit_DUP:
+000F1Dr 2  A9 90                lda     #OP_DUP
+000F1Fr 2  4C rr rr             jmp     emit_byte
+000F22r 2               
+000F22r 2               emit_POP:
+000F22r 2  A9 91                lda     #OP_POP
+000F24r 2  4C rr rr             jmp     emit_byte
+000F27r 2               
+000F27r 2               ; --- Calls ---
+000F27r 2               
+000F27r 2               emit_MRKSTK:                    ; local size in A
+000F27r 2  48                   pha
+000F28r 2  A9 64                lda     #OP_MRKSTK
+000F2Ar 2  20 rr rr             jsr     emit_byte
+000F2Dr 2  68                   pla
+000F2Er 2  4C rr rr             jmp     emit_byte
+000F31r 2               
+000F31r 2               emit_RET:
+000F31r 2  A9 62                lda     #OP_RET
+000F33r 2  4C rr rr             jmp     emit_byte
+000F36r 2               
+000F36r 2               emit_RETF:
+000F36r 2  A9 63                lda     #OP_RETF
+000F38r 2  4C rr rr             jmp     emit_byte
+000F3Br 2               
+000F3Br 2               emit_HALT:
+000F3Br 2  A9 FF                lda     #OP_HALT
+000F3Dr 2  4C rr rr             jmp     emit_byte
+000F40r 2               
+000F40r 2               ; ---------------------------------------------------------------------------
+000F40r 2               ; codegen_alloc_global — reserve N bytes in global area; return offset in tmp2
+000F40r 2               ; N in A
+000F40r 2               ; ---------------------------------------------------------------------------
+000F40r 2               codegen_alloc_global:
+000F40r 2  A5 rr                lda     cg_globals
+000F42r 2  85 rr                sta     tmp2
+000F44r 2  A5 rr                lda     cg_globals+1
+000F46r 2  85 rr                sta     tmp2+1
+000F48r 2                       ; advance by N (passed in A — caller puts size here)
+000F48r 2                       ; For now allocate 2 bytes (word) per variable
+000F48r 2  A5 rr                lda     cg_globals
+000F4Ar 2  18                   clc
+000F4Br 2  69 02                adc     #2
+000F4Dr 2  85 rr                sta     cg_globals
+000F4Fr 2  90 02                bcc     :+
+000F51r 2  E6 rr                inc     cg_globals+1
+000F53r 2  60           :       rts
+000F54r 2               
+000F54r 1               .include "iolib.asm"
+000F54r 2               .pc02
+000F54r 2               ; iolib.asm — console and file I/O wrappers for DOS/65
+000F54r 2               ;
+000F54r 2               ; Uses PEM function 2 (CONOUT) for character output.
+000F54r 2               ; This routes through DFT_CONSOLE and works on all platforms
+000F54r 2               ; (serial, ESP video, memory-mapped video) regardless of which
+000F54r 2               ; console driver is active.
+000F54r 2               
+000F54r 2               .segment "CODE"
+000F54r 2               
+000F54r 2               ; ---------------------------------------------------------------------------
+000F54r 2               ; console_putc — output character in A to console via PEM #2
+000F54r 2               ; ---------------------------------------------------------------------------
+000F54r 2               console_putc:
+000F54r 2  48                   pha
+000F55r 2  A2 02                ldx     #PEM_CONOUT
+000F57r 2  20 03 01             jsr     PEM_ENTRY
+000F5Ar 2  68                   pla
+000F5Br 2  60                   rts
+000F5Cr 2               
+000F5Cr 2               ; ---------------------------------------------------------------------------
+000F5Cr 2               ; console_newline — emit CR+LF
+000F5Cr 2               ; ---------------------------------------------------------------------------
+000F5Cr 2               console_newline:
+000F5Cr 2  A9 0D                lda     #$0D
+000F5Er 2  A2 02                ldx     #PEM_CONOUT
+000F60r 2  20 03 01             jsr     PEM_ENTRY
+000F63r 2  A9 0A                lda     #$0A
+000F65r 2  A2 02                ldx     #PEM_CONOUT
+000F67r 2  20 03 01             jsr     PEM_ENTRY
+000F6Ar 2  60                   rts
+000F6Br 2               
+000F6Br 2               ; ---------------------------------------------------------------------------
+000F6Br 2               ; console_print_sz — print null-terminated string at tmp0
+000F6Br 2               ; ---------------------------------------------------------------------------
+000F6Br 2               console_print_sz:
+000F6Br 2  A0 00                ldy     #0
+000F6Dr 2  B1 rr        @loop:  lda     (tmp0),y
+000F6Fr 2  F0 08                beq     @done
+000F71r 2  A2 02                ldx     #PEM_CONOUT
+000F73r 2  20 03 01             jsr     PEM_ENTRY
+000F76r 2  C8                   iny
+000F77r 2  D0 F4                bne     @loop
+000F79r 2  60           @done:  rts
+000F7Ar 2               
+000F7Ar 2               ; ---------------------------------------------------------------------------
+000F7Ar 2               ; console_print_pstr — print length-prefixed Pascal string at tmp0
+000F7Ar 2               ; ---------------------------------------------------------------------------
+000F7Ar 2               console_print_pstr:
+000F7Ar 2  A0 00                ldy     #0
+000F7Cr 2  B1 rr                lda     (tmp0),y        ; length byte
+000F7Er 2  F0 10                beq     @done
+000F80r 2  AA                   tax                     ; X = remaining chars — but X used by PEM!
+000F81r 2                       ; save length, use tmp1 as counter
+000F81r 2  85 rr                sta     tmp1
+000F83r 2  C8                   iny
+000F84r 2  B1 rr        @loop:  lda     (tmp0),y
+000F86r 2  A2 02                ldx     #PEM_CONOUT
+000F88r 2  20 03 01             jsr     PEM_ENTRY
+000F8Br 2  C8                   iny
+000F8Cr 2  C6 rr                dec     tmp1
+000F8Er 2  D0 F4                bne     @loop
+000F90r 2  60           @done:  rts
+000F91r 2               
+000F91r 2               ; ---------------------------------------------------------------------------
+000F91r 2               ; console_print_dec — print signed 16-bit integer in tmp0:tmp0+1
+000F91r 2               ; ---------------------------------------------------------------------------
+000F91r 2               console_print_dec:
+000F91r 2  A5 rr                lda     tmp0+1
+000F93r 2  10 14                bpl     @positive
+000F95r 2  A9 2D                lda     #'-'
+000F97r 2  A2 02                ldx     #PEM_CONOUT
+000F99r 2  20 03 01             jsr     PEM_ENTRY
+000F9Cr 2  A9 00                lda     #0
+000F9Er 2  38                   sec
+000F9Fr 2  E5 rr                sbc     tmp0
+000FA1r 2  85 rr                sta     tmp0
+000FA3r 2  A9 00                lda     #0
+000FA5r 2  E5 rr                sbc     tmp0+1
+000FA7r 2  85 rr                sta     tmp0+1
+000FA9r 2               @positive:
+000FA9r 2  A9 00                lda     #0
+000FABr 2  48                   pha                     ; sentinel
+000FACr 2               @div_loop:
+000FACr 2  20 rr rr             jsr     div16_by10      ; quotient→tmp0, remainder→scratch
+000FAFr 2  A5 rr                lda     scratch
+000FB1r 2  18                   clc
+000FB2r 2  69 30                adc     #'0'
+000FB4r 2  48                   pha
+000FB5r 2  A5 rr                lda     tmp0
+000FB7r 2  05 rr                ora     tmp0+1
+000FB9r 2  D0 F1                bne     @div_loop
+000FBBr 2               @print_loop:
+000FBBr 2  68                   pla
+000FBCr 2  F0 07                beq     @done2          ; sentinel
+000FBEr 2  A2 02                ldx     #PEM_CONOUT
+000FC0r 2  20 03 01             jsr     PEM_ENTRY
+000FC3r 2  80 F6                bra     @print_loop
+000FC5r 2  60           @done2: rts
+000FC6r 2               
+000FC6r 2               ; ---------------------------------------------------------------------------
+000FC6r 2               ; div16_by10 — divide tmp0:tmp0+1 by 10
+000FC6r 2               ; Result: quotient in tmp0:tmp0+1, remainder in scratch
+000FC6r 2               ; ---------------------------------------------------------------------------
+000FC6r 2               div16_by10:
+000FC6r 2  A9 00                lda     #0
+000FC8r 2  85 rr                sta     scratch
+000FCAr 2  A2 10                ldx     #16
+000FCCr 2  06 rr        @bit:   asl     tmp0
+000FCEr 2  26 rr                rol     tmp0+1
+000FD0r 2  26 rr                rol     scratch
+000FD2r 2  A5 rr                lda     scratch
+000FD4r 2  C9 0A                cmp     #10
+000FD6r 2  90 06                bcc     @no_sub
+000FD8r 2  E9 0A                sbc     #10
+000FDAr 2  85 rr                sta     scratch
+000FDCr 2  E6 rr                inc     tmp0
+000FDEr 2               @no_sub:
+000FDEr 2  CA                   dex
+000FDFr 2  D0 EB                bne     @bit
+000FE1r 2  60                   rts
+000FE2r 2               
+000FE2r 2               ; ---------------------------------------------------------------------------
+000FE2r 2               ; console_read_line — read a line into buffer at tmp0, max len in x_save
+000FE2r 2               ; Returns: Y = length (not including CR)
+000FE2r 2               ; ---------------------------------------------------------------------------
+000FE2r 2               console_read_line:
+000FE2r 2  8E rr rr             stx     x_save
+000FE5r 2  A0 00                ldy     #0
+000FE7r 2  A2 01        @loop:  ldx     #PEM_CONIN
+000FE9r 2  20 03 01             jsr     PEM_ENTRY
+000FECr 2  C9 0D                cmp     #$0D
+000FEEr 2  F0 28                beq     @done
+000FF0r 2  C9 08                cmp     #$08            ; backspace
+000FF2r 2  D0 1C                bne     @store
+000FF4r 2  C0 00                cpy     #0
+000FF6r 2  F0 EF                beq     @loop
+000FF8r 2  88                   dey
+000FF9r 2  A9 08                lda     #$08
+000FFBr 2  A2 02                ldx     #PEM_CONOUT
+000FFDr 2  20 03 01             jsr     PEM_ENTRY
+001000r 2  A9 20                lda     #' '
+001002r 2  A2 02                ldx     #PEM_CONOUT
+001004r 2  20 03 01             jsr     PEM_ENTRY
+001007r 2  A9 08                lda     #$08
+001009r 2  A2 02                ldx     #PEM_CONOUT
+00100Br 2  20 03 01             jsr     PEM_ENTRY
+00100Er 2  80 D7                bra     @loop
+001010r 2  91 rr        @store: sta     (tmp0),y
+001012r 2  C8                   iny
+001013r 2  CC rr rr             cpy     x_save
+001016r 2  90 CF                bcc     @loop
+001018r 2  60           @done:  rts
+001019r 2  00           x_save: .byte   0
+00101Ar 2               
+00101Ar 2               ; ---------------------------------------------------------------------------
+00101Ar 2               ; file_open — open file via FCB at tmp1; returns A=0 success, $FF=not found
+00101Ar 2               ; PEM calling convention: X=function, A=FCB addr lo, Y=FCB addr hi
+00101Ar 2               ; ---------------------------------------------------------------------------
+00101Ar 2               file_open:
+00101Ar 2  A5 rr                lda     tmp1
+00101Cr 2  A4 rr                ldy     tmp1+1
+00101Er 2  A2 0F                ldx     #PEM_OPEN
+001020r 2  20 03 01             jsr     PEM_ENTRY
+001023r 2  60                   rts
+001024r 2               
+001024r 2               ; ---------------------------------------------------------------------------
+001024r 2               ; file_make — create/truncate file via FCB at tmp1
+001024r 2               ; ---------------------------------------------------------------------------
+001024r 2               file_make:
+001024r 2  A5 rr                lda     tmp1
+001026r 2  A4 rr                ldy     tmp1+1
+001028r 2  A2 16                ldx     #PEM_MAKE
+00102Ar 2  20 03 01             jsr     PEM_ENTRY
+00102Dr 2  60                   rts
+00102Er 2               
+00102Er 2               ; ---------------------------------------------------------------------------
+00102Er 2               ; file_read_sector — read 128 bytes into DMA_BUF; returns A=0 ok, A=1 EOF
+00102Er 2               ; ---------------------------------------------------------------------------
+00102Er 2               file_read_sector:
+00102Er 2  A5 rr                lda     tmp1
+001030r 2  A4 rr                ldy     tmp1+1
+001032r 2  A2 14                ldx     #PEM_READ
+001034r 2  20 03 01             jsr     PEM_ENTRY
+001037r 2  60                   rts
+001038r 2               
+001038r 2               ; ---------------------------------------------------------------------------
+001038r 2               ; file_write_sector — write 128 bytes from DMA_BUF
+001038r 2               ; ---------------------------------------------------------------------------
+001038r 2               file_write_sector:
+001038r 2  A5 rr                lda     tmp1
+00103Ar 2  A4 rr                ldy     tmp1+1
+00103Cr 2  A2 15                ldx     #PEM_WRITE
+00103Er 2  20 03 01             jsr     PEM_ENTRY
+001041r 2  60                   rts
+001042r 2               
+001042r 2               ; ---------------------------------------------------------------------------
+001042r 2               ; file_close — close FCB at tmp1
+001042r 2               ; ---------------------------------------------------------------------------
+001042r 2               file_close:
+001042r 2  A5 rr                lda     tmp1
+001044r 2  A4 rr                ldy     tmp1+1
+001046r 2  A2 10                ldx     #PEM_CLOSE
+001048r 2  20 03 01             jsr     PEM_ENTRY
+00104Br 2  60                   rts
+00104Cr 2               
+00104Cr 1               .include "messages.asm"
+00104Cr 2               ; messages.asm — compiler error and status strings (null-terminated)
+00104Cr 2               
+00104Cr 2               .segment "CODE"
+00104Cr 2               
+00104Cr 2  50 61 73 63  msg_banner:     .byte "Pascal/65 Compiler v0.1 for DOS/65",13,10,0
+001050r 2  61 6C 2F 36  
+001054r 2  35 20 43 6F  
+001071r 2  43 6F 6D 70  msg_compiling:  .byte "Compiling: ",0
+001075r 2  69 6C 69 6E  
+001079r 2  67 3A 20 00  
+00107Dr 2  4F 4B 0D 0A  msg_ok:         .byte "OK",13,10,0
+001081r 2  00           
+001082r 2  20 65 72 72  msg_errors:     .byte " error(s)",13,10,0
+001086r 2  6F 72 28 73  
+00108Ar 2  29 0D 0A 00  
+00108Er 2  20 4C 69 6E  msg_line:       .byte " Line ",0
+001092r 2  65 20 00     
+001095r 2  20 43 6F 6C  msg_col:        .byte " Col ",0
+001099r 2  20 00        
+00109Br 2               
+00109Br 2               ; Compiler errors
+00109Br 2  55 6E 65 78  err_unexpected: .byte "Unexpected token",0
+00109Fr 2  70 65 63 74  
+0010A3r 2  65 64 20 74  
+0010ACr 2  49 64 65 6E  err_expected_id:.byte "Identifier expected",0
+0010B0r 2  74 69 66 69  
+0010B4r 2  65 72 20 65  
+0010C0r 2  27 3D 27 20  err_expected_eq:.byte "'=' expected",0
+0010C4r 2  65 78 70 65  
+0010C8r 2  63 74 65 64  
+0010CDr 2  27 3B 27 20  err_expected_sm:.byte "';' expected",0
+0010D1r 2  65 78 70 65  
+0010D5r 2  63 74 65 64  
+0010DAr 2  27 42 45 47  err_expected_be:.byte "'BEGIN' expected",0
+0010DEr 2  49 4E 27 20  
+0010E2r 2  65 78 70 65  
+0010EBr 2  27 45 4E 44  err_expected_en:.byte "'END' expected",0
+0010EFr 2  27 20 65 78  
+0010F3r 2  70 65 63 74  
+0010FAr 2  27 44 4F 27  err_expected_do:.byte "'DO' expected",0
+0010FEr 2  20 65 78 70  
+001102r 2  65 63 74 65  
+001108r 2  27 4F 46 27  err_expected_of:.byte "'OF' expected",0
+00110Cr 2  20 65 78 70  
+001110r 2  65 63 74 65  
+001116r 2  27 54 48 45  err_expected_th:.byte "'THEN' expected",0
+00111Ar 2  4E 27 20 65  
+00111Er 2  78 70 65 63  
+001126r 2  27 54 4F 27  err_expected_to:.byte "'TO' or 'DOWNTO' expected",0
+00112Ar 2  20 6F 72 20  
+00112Er 2  27 44 4F 57  
+001140r 2  27 55 4E 54  err_expected_un:.byte "'UNTIL' expected",0
+001144r 2  49 4C 27 20  
+001148r 2  65 78 70 65  
+001151r 2  27 28 27 20  err_expected_lp:.byte "'(' expected",0
+001155r 2  65 78 70 65  
+001159r 2  63 74 65 64  
+00115Er 2  27 29 27 20  err_expected_rp:.byte "')' expected",0
+001162r 2  65 78 70 65  
+001166r 2  63 74 65 64  
+00116Br 2  27 5D 27 20  err_expected_rb:.byte "']' expected",0
+00116Fr 2  65 78 70 65  
+001173r 2  63 74 65 64  
+001178r 2  27 3A 27 20  err_expected_co:.byte "':' expected",0
+00117Cr 2  65 78 70 65  
+001180r 2  63 74 65 64  
+001185r 2  27 3A 3D 27  err_expected_as:.byte "':=' expected",0
+001189r 2  20 65 78 70  
+00118Dr 2  65 63 74 65  
+001193r 2  55 6E 64 65  err_undef:      .byte "Undefined identifier",0
+001197r 2  66 69 6E 65  
+00119Br 2  64 20 69 64  
+0011A8r 2  49 64 65 6E  err_redef:      .byte "Identifier redefined",0
+0011ACr 2  74 69 66 69  
+0011B0r 2  65 72 20 72  
+0011BDr 2  54 79 70 65  err_type:       .byte "Type mismatch",0
+0011C1r 2  20 6D 69 73  
+0011C5r 2  6D 61 74 63  
+0011CBr 2  56 61 72 69  err_not_var:    .byte "Variable expected",0
+0011CFr 2  61 62 6C 65  
+0011D3r 2  20 65 78 70  
+0011DDr 2  50 72 6F 63  err_not_proc:   .byte "Procedure/function expected",0
+0011E1r 2  65 64 75 72  
+0011E5r 2  65 2F 66 75  
+0011F9r 2  54 6F 6F 20  err_too_many:   .byte "Too many locals",0
+0011FDr 2  6D 61 6E 79  
+001201r 2  20 6C 6F 63  
+001209r 2  49 6E 74 65  err_overflow:   .byte "Integer overflow",0
+00120Dr 2  67 65 72 20  
+001211r 2  6F 76 65 72  
+00121Ar 2  53 74 72 69  err_string_long:.byte "String too long",0
+00121Er 2  6E 67 20 74  
+001222r 2  6F 6F 20 6C  
+00122Ar 2  43 61 6E 6E  err_nofile:     .byte "Cannot open source file",0
+00122Er 2  6F 74 20 6F  
+001232r 2  70 65 6E 20  
+001242r 2  43 61 6E 6E  err_outfile:    .byte "Cannot create output file",0
+001246r 2  6F 74 20 63  
+00124Ar 2  72 65 61 74  
+00125Cr 2  50 2D 63 6F  err_pcd_full:   .byte "P-code buffer full",0
+001260r 2  64 65 20 62  
+001264r 2  75 66 66 65  
+00126Fr 2               
+00126Fr 2               ; Runtime errors (for PRUN.COM)
+00126Fr 2  4E 6F 74 20  err_rt_magic:   .byte "Not a .PCD file",13,10,0
+001273r 2  61 20 2E 50  
+001277r 2  43 44 20 66  
+001281r 2  53 74 61 63  err_rt_stack:   .byte "Stack overflow",13,10,0
+001285r 2  6B 20 6F 76  
+001289r 2  65 72 66 6C  
+001292r 2  44 69 76 69  err_rt_div0:    .byte "Division by zero",13,10,0
+001296r 2  73 69 6F 6E  
+00129Ar 2  20 62 79 20  
+0012A5r 2  41 72 72 61  err_rt_bounds:  .byte "Array out of bounds",13,10,0
+0012A9r 2  79 20 6F 75  
+0012ADr 2  74 20 6F 66  
+0012BBr 2  4E 69 6C 20  err_rt_nil:     .byte "Nil pointer dereference",13,10,0
+0012BFr 2  70 6F 69 6E  
+0012C3r 2  74 65 72 20  
+0012D5r 2  55 6E 6B 6E  err_rt_opcode:  .byte "Unknown opcode",13,10,0
+0012D9r 2  6F 77 6E 20  
+0012DDr 2  6F 70 63 6F  
+0012E6r 2  0D 0A 5B 50  msg_rt_done:    .byte 13,10,"[Program exited]",13,10,0
+0012EAr 2  72 6F 67 72  
+0012EEr 2  61 6D 20 65  
+0012FBr 2               
+0012FBr 1               

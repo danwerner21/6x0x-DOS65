@@ -1072,7 +1072,7 @@ LINEVERTLOOP:
                                 ; NOW MOVE LINE1 CLOSER TO LINE2
         DEC     LINEY1          ; BY STEPPING ALONG Y AXIS
 
-                                ; BRESENHAM: err -= DELTAX
+; BRESENHAM: err -= DELTAX
         SEC
         LDA     LINEERR
         SBC     DELTAX
@@ -1103,7 +1103,8 @@ LINEVERT_DECX:
         LDA     LINEX1
         BNE     :+
         DEC     LINEX1+1
-:       DEC     LINEX1
+:
+        DEC     LINEX1
 LINEVERT_NOSTEP:
 
         LDA     LINEY1

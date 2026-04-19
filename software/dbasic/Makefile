@@ -1,15 +1,15 @@
 
 all:  	dbasic.com dbasic816.com dbasicmap.com
 
-dbasic.out: dbasic.asm zeropage.asm tokens.asm definitions.asm messages.asm numconst.asm iovect.asm diskcmds.asm screencmds.asm sid.asm rtc.asm
+dbasic.out: dbasic.asm zeropage.asm tokens.asm definitions.asm messages.asm numconst.asm iovect.asm diskcmds.asm screencmds.asm ay38910.asm rtc.asm
 	ca65 --cpu 6502 dbasic.asm -l dbasic.lst
 	ld65 dbasic.o  -m dbasic.map -C dos65.cfg -o dbasic.out
 
-dbasicmap.out: dbasic.asm zeropage.asm tokens.asm definitions.asm messages.asm numconst.asm iovect.asm diskcmds.asm screencmds.asm sid.asm rtc.asm
+dbasicmap.out: dbasic.asm zeropage.asm tokens.asm definitions.asm messages.asm numconst.asm iovect.asm diskcmds.asm screencmds.asm ay38910.asm rtc.asm
 	ca65 --cpu 6502 -D MEMORYMAPPEDSCREEN dbasic.asm -l dbasicmap.lst -o dbasicmap.o
 	ld65 dbasicmap.o  -m dbasicmap.map -C dos65.cfg -o dbasicmap.out
 
-dbasic816.out: dbasic.asm macro816.asm zeropage.asm tokens.asm definitions.asm messages.asm numconst.asm iovect.asm diskcmds.asm screencmds.asm sid.asm rtc.asm
+dbasic816.out: dbasic.asm macro816.asm zeropage.asm tokens.asm definitions.asm messages.asm numconst.asm iovect.asm diskcmds.asm screencmds.asm ay38910.asm rtc.asm
 	ca65 --cpu 65816 -D DUODYNE dbasic.asm -l dbasic816.lst -o dbasic816.o
 	ld65 dbasic816.o  -m dbasic816.map -C dos65.cfg -o dbasic816.out
 
@@ -67,8 +67,8 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/iovect.asm iovect.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/diskcmds.asm diskcmds.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/screencmds.asm screencmds.asm
-	pretty6502 -p1 -a0 -du -mu -l ./backup/sid.asm sid.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/rtc.asm rtc.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/ay38910.asm ay38910.asm
 
 
 clean:

@@ -439,5 +439,5 @@ WRSER1a:
 
         .INCLUDE "diskcmds.asm"
         .INCLUDE "screencmds.asm"
-        .INCLUDE "sid.asm"
+        .INCLUDE "ay38910.asm"
         .INCLUDE "rtc.asm"

@@ -51,8 +51,11 @@ TK_SCREEN       = TK_KILL+1     ; SCREEN token
 TK_SCRCLR       = TK_SCREEN+1   ; SCRCLR token
 TK_COLOR        = TK_SCRCLR+1   ; COLOR token
 TK_SOUND        = TK_COLOR+1    ; SOUND token
-TK_FILTER       = TK_SOUND+1    ; FILTER token
-TK_LOCATE       = TK_FILTER+1   ; LOCATE token
+TK_NOISE        = TK_SOUND+1    ; NOISE token
+TK_TONE         = TK_NOISE+1    ; TONE token
+TK_VOLUME       = TK_TONE+1     ; VOLUME token
+TK_VOICE        = TK_VOLUME+1   ; VOICE token
+TK_LOCATE       = TK_VOICE+1    ; LOCATE token
 TK_OPEN         = TK_LOCATE+1   ; OPEN token
 TK_CLOSE        = TK_OPEN+1     ; CLOSE token
 TK_FILEREAD     = TK_CLOSE+1    ; FILEREAD token
@@ -65,7 +68,7 @@ TK_RENAME       = TK_DELETE+1   ; RENAME token
 
 ; secondary command tokens, can't start a statement
 
-TK_TAB          = TK_RENAME+1    ; TAB token
+TK_TAB          = TK_RENAME+1   ; TAB token
 TK_ELSE         = TK_TAB+1      ; ELSE token
 TK_TO           = TK_ELSE+1     ; TO token
 TK_FN           = TK_TO+1       ; FN token
@@ -136,6 +139,7 @@ TK_VPTR         = TK_YEAR+1     ; VARPTR token
 TK_LEFTS        = TK_VPTR+1     ; LEFT$ token
 TK_RIGHTS       = TK_LEFTS+1    ; RIGHT$ token
 TK_MIDS         = TK_RIGHTS+1   ; MID$ token
+TK_CON          = TK_MIDS+1     ; CON token
 
 LAB_CTBL:
         .WORD   LAB_END-1       ; END
@@ -186,8 +190,11 @@ LAB_CTBL:
         .WORD   LAB_SCREEN-1    ; SCREEN		new command
         .WORD   LAB_SCRCLR-1    ; SCRCLR		new command
         .WORD   LAB_COLOR-1     ; COLOR 		new command
-        .WORD   LAB_SOUND-1     ; SOUND 		new command
-        .WORD   LAB_FILTER-1    ; FILTER 		new command
+        .WORD   LAB_SOUND-1     ; SOUND		        new command
+        .WORD   LAB_NOISE-1     ; NOISE		        new command
+        .WORD   LAB_TONE-1      ; TONE		        new command
+        .WORD   LAB_VOLUME-1    ; VOLUME		new command
+        .WORD   LAB_VOICE-1     ; VOICE		        new command
         .WORD   LAB_LOCATE-1    ; LOCATE		new command
         .WORD   V_OPEN-1        ; OPEN  		new command
         .WORD   V_CLOSE-1       ; CLOSE 		new command
@@ -289,6 +296,7 @@ LAB_FTBM        = LAB_FTBL+$01
         .WORD   LAB_LEFT-1      ; LEFT$()
         .WORD   LAB_RIGHT-1     ; RIGHT$()
         .WORD   LAB_MIDS-1      ; MID$()
+        .WORD   LAB_CON-1       ; CON()
 
 ; hierarchy and action addresses for operator
 
@@ -453,6 +461,8 @@ LBB_CLOSE:
         .BYTE   "LOSE",TK_CLOSE ; CLOSE
 LBB_COLOR:
         .BYTE   "OLOR",TK_COLOR ; COLOR
+LBB_CON:
+        .BYTE   "ON(",TK_CON    ;CON
 LBB_CONT:
         .BYTE   "ONT",TK_CONT   ; CONT
 LBB_COS:
@@ -470,7 +480,7 @@ LBB_DEEK:
 LBB_DEF:
         .BYTE   "EF",TK_DEF     ; DEF
 LBB_DELETE:
-        .BYTE   "ELETE",TK_DELETE   ; DELETE
+        .BYTE   "ELETE",TK_DELETE; DELETE
 LBB_DIM:
         .BYTE   "IM",TK_DIM     ; DIM
 LBB_DIR:
@@ -495,8 +505,6 @@ LBB_FILEREAD:
         .BYTE   "ILEREAD",TK_FILEREAD; FILEREAD
 LBB_FILEWRITE:
         .BYTE   "ILEWRITE",TK_FILEWRITE; FILEWRITE
-LBB_FILTER:
-        .BYTE   "ILTER",TK_FILTER; FILTER
 LBB_FN:
         .BYTE   "N",TK_FN       ; FN
 LBB_FOR:
@@ -575,6 +583,8 @@ LBB_NEW:
         .BYTE   "EW",TK_NEW     ; NEW
 LBB_NEXT:
         .BYTE   "EXT",TK_NEXT   ; NEXT
+LBB_NOISE:
+        .BYTE   "OISE",TK_NOISE ; NOISE
 LBB_NOT:
         .BYTE   "OT",TK_NOT     ; NOT
 LBB_NULL:
@@ -612,7 +622,7 @@ LBB_READ:
 LBB_REM:
         .BYTE   "EM",TK_REM     ; REM
 LBB_RENAME:
-        .BYTE   "ENAME",TK_RENAME  ; RENAME
+        .BYTE   "ENAME",TK_RENAME; RENAME
 LBB_RESTORE:
         .BYTE   "ESTORE",TK_RESTORE
 ; RESTORE
@@ -669,6 +679,8 @@ LBB_THEN:
         .BYTE   "HEN",TK_THEN   ; THEN
 LBB_TO:
         .BYTE   "O",TK_TO       ; TO
+LBB_TONE:
+        .BYTE   "ONE",TK_TONE   ; TONE
         .BYTE   $00
 TAB_ASCU:
 LBB_UCASES:
@@ -684,6 +696,10 @@ LBB_VAL:
         .BYTE   "AL(",TK_VAL    ; VAL(
 LBB_VPTR:
         .BYTE   "ARPTR(",TK_VPTR; VARPTR(
+LBB_VOLUME:
+        .BYTE   "OLUME",TK_VOLUME; VOLUME
+LBB_VOICE:
+        .BYTE   "OICE",TK_VOICE ; VOICE
         .BYTE   $00
 TAB_ASCW:
 LBB_WAIT:
@@ -805,9 +821,15 @@ LAB_KEYT:
         .BYTE   5,'C'
         .WORD   LBB_COLOR       ; COLOR
         .BYTE   5,'S'
-        .WORD   LBB_SOUND       ; SOUND
-        .BYTE   6,'F'
-        .WORD   LBB_FILTER      ; FILTER
+        .WORD   LAB_SOUND-1     ; SOUND
+        .BYTE   5,'N'
+        .WORD   LAB_NOISE-1     ; NOISE
+        .BYTE   4,'T'
+        .WORD   LAB_TONE-1      ; TONE
+        .BYTE   6,'V'
+        .WORD   LAB_VOLUME-1    ; VOLUME
+        .BYTE   5,'V'
+        .WORD   LAB_VOICE-1     ; VOICE
         .BYTE   6,'L'
         .WORD   LBB_LOCATE      ; LOCATE
         .BYTE   4,'O'
@@ -966,3 +988,5 @@ LAB_KEYT:
         .WORD   LBB_RIGHTS      ; RIGHT$
         .BYTE   5,'M'           ;
         .WORD   LBB_MIDS        ; MID$
+        .BYTE   4,'C'           ;
+        .WORD   LBB_CON         ; CON
