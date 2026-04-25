@@ -213,3 +213,20 @@ file_close:
         LDX     #PEM_CLOSE
         JSR     PEM_ENTRY
         RTS
+
+; ---------------------------------------------------------------------------
+; file_setdma — point PEM at the 128-byte buffer at (A:Y)
+; A = lo, Y = hi.  Trashes X.
+; ---------------------------------------------------------------------------
+file_setdma:
+        LDX     #PEM_SETDMA
+        JMP     PEM_ENTRY
+
+; ---------------------------------------------------------------------------
+; file_setdma_default — restore PEM DMA pointer to system DMA_BUF
+; ---------------------------------------------------------------------------
+file_setdma_default:
+        LDA     #<DMA_BUF
+        LDY     #>DMA_BUF
+        LDX     #PEM_SETDMA
+        JMP     PEM_ENTRY

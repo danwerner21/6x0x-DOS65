@@ -397,8 +397,16 @@ Tests: `T22`, `T22A` (comma-separated fields), `T22B` (two record vars).
   - New opcodes `OP_LEN/POS/COPY/CONCAT` ($A0–$A3) handled in `prun.asm`
   - `COPY`/`CONCAT` results land in 3 round-robin work buffers at `$AD00/$AE00/$AF00`; deeply nested expressions can recycle a buffer before it's consumed
   - Test: `tests/t23.pas`
+- ✅ `TEXT` file I/O: `ASSIGN`, `RESET`, `REWRITE`, `CLOSE`, `EOF`; file-mode `WRITE`/`WRITELN`/`READ`/`READLN`
+  - New type `TY_TEXT` ($08); each `TEXT` variable is a 168-byte struct (FCB 36 + buf 128 + mode/pos/eof/spare 4) allocated in the global area via `codegen_alloc_text_global`
+  - New opcodes `OP_FASSGN/FRESET/FREWRT/FCLOSE/FWRC/FWRS/FWRI/FWLN/FRDC/FRDI/FRDLN/FEOF` ($B0–$BB)
+  - Each file's struct embeds its own 128-byte sector buffer; runtime calls PEM `SETDMA` (fn 26) before each sector I/O so multiple files don't trample each other
+  - `EOF(F)` uses 1-char lookahead — `RESET` and every `READ` peek the next byte, setting `F_EOF` on either CTRL-Z or PEM read-EOF, so `WHILE NOT EOF DO READ` consumes only real data
+  - `WRITE`/`WRITELN` detect a `TEXT` first arg and switch to file mode (DUP file ptr, dispatch to `FWRC/FWRS/FWRI`, terminate with `FWLN` or `POP`); `READ`/`READLN` peek the symtab to spot a `TEXT` first arg and route subsequent variables through `FRDC/FRDI`
+  - Filenames passed to `ASSIGN` are uppercased and split into 8.3 FCB form on the fly; closing a write-mode file pads the final partial sector with CTRL-Z
+  - Test: `tests/t24.pas`
 - `REAL` type (future — 16.16 fixed-point or software float)
-- File I/O (`RESET`, `REWRITE`, typed file reads/writes)
+- Random-access typed files (`FILE OF X`) — not planned
 
 ---
 

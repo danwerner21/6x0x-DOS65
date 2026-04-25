@@ -18,10 +18,11 @@
 ; Runtime memory layout constants
 ; ---------------------------------------------------------------------------
 ; PCODE_BASE must lie above the end of the CODE segment so that loading
-; a .PCD file does not overwrite iolib/messages. CODE has grown past $1400
-; (now reaches ~$14CD), so $1800 keeps a comfortable safety margin.
-PCODE_BASE      = $1800         ; where p-code is loaded
-STACK_BASE      = $2000         ; bottom of p-machine value stack
+; a .PCD file does not overwrite iolib/messages or the dispatch table.
+; CODE has grown to ~$1DDE with file I/O ops, so push PCODE_BASE to $2000
+; for headroom; STACK_BASE bumps to $4000 leaves 8 KB for p-code.
+PCODE_BASE      = $2000         ; where p-code is loaded
+STACK_BASE      = $4000         ; bottom of p-machine value stack
 STACK_TOP       = $8000         ; top of stack (grows up)
 HEAP_TOP        = $B000         ; heap grows down from here
 GLOBALS_BASE    = $B000         ; global variable area (below heap top)
@@ -409,6 +410,7 @@ op_LDCC:
 ; OP_LDCB ($03) — push boolean constant
 op_LDCB:
         JSR     pm_fetch_byte
+        CMP     #0              ; pm_fetch_byte's Z reflects pm_ipc INC, not A
         BEQ     :+
         LDA     #$FF            ; TRUE = $FFFF
         STA     scratch
@@ -690,6 +692,66 @@ op_NGI:
         PHA
         LDA     #0
         SBC     tmp2+1          ; negate hi
+        STA     scratch
+        PLA
+        JSR     pm_push
+        JMP     prun_loop
+
+; OP_LAND ($38) — pop two, push bitwise AND
+op_LAND:
+        JSR     pm_pop
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+        JSR     pm_pop
+        AND     tmp2
+        PHA
+        LDA     scratch
+        AND     tmp2+1
+        STA     scratch
+        PLA
+        JSR     pm_push
+        JMP     prun_loop
+
+; OP_LOR ($39) — pop two, push bitwise OR
+op_LOR:
+        JSR     pm_pop
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+        JSR     pm_pop
+        ORA     tmp2
+        PHA
+        LDA     scratch
+        ORA     tmp2+1
+        STA     scratch
+        PLA
+        JSR     pm_push
+        JMP     prun_loop
+
+; OP_LNOT ($3A) — logical NOT: $0000 → $FFFF, anything else → $0000
+op_LNOT:
+        JSR     pm_pop
+        ORA     scratch
+        BEQ     @lnot_true
+        LDA     #0
+        STA     scratch
+        JSR     pm_push
+        JMP     prun_loop
+@lnot_true:
+        LDA     #$FF
+        STA     scratch
+        LDA     #$FF
+        JSR     pm_push
+        JMP     prun_loop
+
+; OP_BNOT ($3B) — bitwise complement
+op_BNOT:
+        JSR     pm_pop
+        EOR     #$FF
+        PHA
+        LDA     scratch
+        EOR     #$FF
         STA     scratch
         PLA
         JSR     pm_push
@@ -1731,15 +1793,808 @@ cat_dstoff:    .RES 1
 cat_save:      .RES 1
 
 ; ---------------------------------------------------------------------------
+; TEXT file I/O handlers
+;
+; A TEXT variable is a 168-byte struct in globals:
+;   F_FCB   (0..35)   FCB used by PEM
+;   F_BUF   (36..163) 128-byte sector buffer
+;   F_MODE  (164)     0=closed, 1=read, 2=write
+;   F_POS   (165)     next byte index in F_BUF (0..128)
+;   F_EOF   (166)     non-zero once EOF / CTRL-Z encountered
+;
+; The file ptr passed on the p-machine stack is the struct base address.
+; The PEM DMA pointer is set to (struct + F_BUF) before each sector I/O,
+; so multiple open files don't trample each other's buffers.
+; ---------------------------------------------------------------------------
+
+; Helper: write one char (in A) to file whose struct ptr is in tmp1.
+; Trashes tmp2, X, Y. Preserves tmp1, tmp3, scratch.
+file_write_char_helper:
+        STA     fwrc_char
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        STA     tmp2
+        LDA     tmp1+1
+        ADC     #0
+        STA     tmp2+1
+        LDY     #F_POS
+        LDA     (tmp1),y
+        TAY
+        LDA     fwrc_char
+        STA     (tmp2),y
+        INY
+        TYA
+        LDY     #F_POS
+        STA     (tmp1),y
+        CMP     #128
+        BNE     @fwch_done
+        LDA     tmp2
+        LDY     tmp2+1
+        JSR     file_setdma
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_WRITE
+        JSR     PEM_ENTRY
+        LDA     #0
+        LDY     #F_POS
+        STA     (tmp1),y
+@fwch_done:
+        RTS
+
+; Helper: read one char from file in tmp1, returns it in A (0 if F_EOF set).
+; Then peeks the next char (loading next sector if needed) and sets F_EOF
+; when no more data is available — so EOF(F) reflects the correct state
+; *before* the next READ.  Trashes tmp2, X, Y.  Preserves tmp1, tmp3.
+file_read_char_helper:
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BEQ     :+
+        LDA     #0
+        RTS
+:
+; Read current char at buf[F_POS] (RESET pre-loaded sector 0; this routine
+; is responsible for the post-read peek that triggers any future refill).
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        STA     tmp2
+        LDA     tmp1+1
+        ADC     #0
+        STA     tmp2+1
+        LDY     #F_POS
+        LDA     (tmp1),y
+        TAY
+        LDA     (tmp2),y
+        STA     frch_char
+        INY
+        TYA
+        LDY     #F_POS
+        STA     (tmp1),y
+        JSR     file_check_eof_helper
+        LDA     frch_char
+        RTS
+
+; Helper: peek buf[F_POS], refilling the sector first if F_POS == 128.
+; Sets F_EOF if no more data is available or peeked byte is CTRL-Z.
+; Does not advance F_POS.  Trashes tmp2, X, Y.  Preserves tmp1, tmp3.
+file_check_eof_helper:
+        LDY     #F_POS
+        LDA     (tmp1),y
+        CMP     #128
+        BCC     @fce_peek
+; sector exhausted — try to load next one
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        PHA
+        LDA     tmp1+1
+        ADC     #0
+        TAY
+        PLA
+        JSR     file_setdma
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_READ
+        JSR     PEM_ENTRY
+        CMP     #0
+        BEQ     @fce_pos0
+        LDA     #1
+        LDY     #F_EOF
+        STA     (tmp1),y
+        RTS
+@fce_pos0:
+        LDA     #0
+        LDY     #F_POS
+        STA     (tmp1),y
+@fce_peek:
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        STA     tmp2
+        LDA     tmp1+1
+        ADC     #0
+        STA     tmp2+1
+        LDY     #F_POS
+        LDA     (tmp1),y
+        TAY
+        LDA     (tmp2),y
+        CMP     #CTRL_Z
+        BNE     @fce_done
+        LDA     #1
+        LDY     #F_EOF
+        STA     (tmp1),y
+@fce_done:
+        RTS
+
+; OP_FASSGN ($B0) — NOS=fileptr, TOS=strptr → set FCB
+op_FASSGN:
+        JSR     pm_pop                  ; filename strptr → tmp3
+        STA     tmp3
+        LDA     scratch
+        STA     tmp3+1
+        JSR     pm_pop                  ; file ptr → tmp1
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+; clear FCB[0..35]
+        LDY     #0
+        TYA
+@fas_clr:
+        STA     (tmp1),y
+        INY
+        CPY     #36
+        BCC     @fas_clr
+; pad name+ext (FCB[1..11]) with spaces
+        LDA     #' '
+        LDY     #1
+@fas_pad:
+        STA     (tmp1),y
+        INY
+        CPY     #12
+        BCC     @fas_pad
+; walk source string
+        LDY     #0
+        LDA     (tmp3),y                ; length
+        STA     fas_remain
+        LDA     #1
+        STA     fas_si
+        LDA     #1
+        STA     fas_di
+@fas_name_loop:
+        LDA     fas_remain
+        BEQ     @fas_zero
+        LDY     fas_si
+        LDA     (tmp3),y
+        INC     fas_si
+        DEC     fas_remain
+        CMP     #'.'
+        BEQ     @fas_to_ext
+        CMP     #'a'
+        BCC     @fas_store_n
+        CMP     #'{'
+        BCS     @fas_store_n
+        AND     #$DF
+@fas_store_n:
+        LDX     fas_di
+        CPX     #9
+        BCS     @fas_name_loop
+        LDY     fas_di
+        STA     (tmp1),y
+        INC     fas_di
+        BRA     @fas_name_loop
+@fas_to_ext:
+        LDA     #9
+        STA     fas_di
+@fas_ext_loop:
+        LDA     fas_remain
+        BEQ     @fas_zero
+        LDY     fas_si
+        LDA     (tmp3),y
+        INC     fas_si
+        DEC     fas_remain
+        CMP     #'a'
+        BCC     @fas_store_e
+        CMP     #'{'
+        BCS     @fas_store_e
+        AND     #$DF
+@fas_store_e:
+        LDX     fas_di
+        CPX     #12
+        BCS     @fas_ext_loop
+        LDY     fas_di
+        STA     (tmp1),y
+        INC     fas_di
+        BRA     @fas_ext_loop
+@fas_zero:
+        LDA     #0
+        LDY     #F_MODE
+        STA     (tmp1),y
+        LDY     #F_POS
+        STA     (tmp1),y
+        LDY     #F_EOF
+        STA     (tmp1),y
+        JMP     prun_loop
+
+; OP_FRESET ($B1) — TOS=fileptr → open existing for reading, prefill buffer
+op_FRESET:
+        JSR     pm_pop
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_OPEN
+        JSR     PEM_ENTRY
+        CMP     #$FF
+        BNE     @fre_open_ok
+; open failed — leave file in EOF/closed state
+        LDA     #F_MODE_CLOSED
+        LDY     #F_MODE
+        STA     (tmp1),y
+        LDA     #1
+        LDY     #F_EOF
+        STA     (tmp1),y
+        LDA     #128
+        LDY     #F_POS
+        STA     (tmp1),y
+        JMP     prun_loop
+@fre_open_ok:
+; set DMA to file's internal buffer
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        PHA
+        LDA     tmp1+1
+        ADC     #0
+        TAY
+        PLA
+        JSR     file_setdma
+; pre-read first sector to detect immediate EOF
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_READ
+        JSR     PEM_ENTRY
+        CMP     #0
+        BEQ     @fre_have
+        LDA     #1
+        LDY     #F_EOF
+        STA     (tmp1),y
+        LDA     #128
+        LDY     #F_POS
+        STA     (tmp1),y
+        BRA     @fre_set_mode
+@fre_have:
+        LDA     #0
+        LDY     #F_EOF
+        STA     (tmp1),y
+        LDY     #F_POS
+        STA     (tmp1),y
+; lookahead: set F_EOF immediately if buf[0] is CTRL-Z
+        JSR     file_check_eof_helper
+@fre_set_mode:
+        LDA     #F_MODE_READ
+        LDY     #F_MODE
+        STA     (tmp1),y
+        JMP     prun_loop
+
+; OP_FREWRT ($B2) — TOS=fileptr → create/truncate for writing
+op_FREWRT:
+        JSR     pm_pop
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_MAKE
+        JSR     PEM_ENTRY
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        PHA
+        LDA     tmp1+1
+        ADC     #0
+        TAY
+        PLA
+        JSR     file_setdma
+        LDA     #F_MODE_WRITE
+        LDY     #F_MODE
+        STA     (tmp1),y
+        LDA     #0
+        LDY     #F_POS
+        STA     (tmp1),y
+        LDY     #F_EOF
+        STA     (tmp1),y
+        JMP     prun_loop
+
+; OP_FCLOSE ($B3) — TOS=fileptr → flush (write mode) and close
+op_FCLOSE:
+        JSR     pm_pop
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDY     #F_MODE
+        LDA     (tmp1),y
+        CMP     #F_MODE_WRITE
+        BNE     @fclo_just_close
+        LDY     #F_POS
+        LDA     (tmp1),y
+        BEQ     @fclo_just_close        ; nothing pending in buffer
+; pad buf[F_POS..127] with CTRL-Z, then write final sector
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        STA     tmp2
+        LDA     tmp1+1
+        ADC     #0
+        STA     tmp2+1
+        LDY     #F_POS
+        LDA     (tmp1),y
+        TAY
+@fclo_pad:
+        CPY     #128
+        BCS     @fclo_write
+        LDA     #CTRL_Z
+        STA     (tmp2),y
+        INY
+        BRA     @fclo_pad
+@fclo_write:
+        LDA     tmp2
+        LDY     tmp2+1
+        JSR     file_setdma
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_WRITE
+        JSR     PEM_ENTRY
+@fclo_just_close:
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_CLOSE
+        JSR     PEM_ENTRY
+        LDA     #F_MODE_CLOSED
+        LDY     #F_MODE
+        STA     (tmp1),y
+        JSR     file_setdma_default
+        JMP     prun_loop
+
+; OP_FWRC ($B4) — NOS=fileptr, TOS=char → append char
+op_FWRC:
+        JSR     pm_pop                  ; char val (lo byte)
+        PHA
+        JSR     pm_pop                  ; file ptr
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        PLA
+        JSR     file_write_char_helper
+        JMP     prun_loop
+
+; OP_FWRS ($B5) — NOS=fileptr, TOS=strptr → append string
+op_FWRS:
+        JSR     pm_pop                  ; string ptr → tmp3
+        STA     tmp3
+        LDA     scratch
+        STA     tmp3+1
+        JSR     pm_pop                  ; file ptr → tmp1
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDY     #0
+        LDA     (tmp3),y                ; length
+        STA     fws_remain
+        LDA     #1
+        STA     fws_idx
+@fws_loop:
+        LDA     fws_remain
+        BEQ     @fws_done
+        LDY     fws_idx
+        LDA     (tmp3),y
+        PHA
+        INC     fws_idx
+        DEC     fws_remain
+        PLA
+        JSR     file_write_char_helper
+        BRA     @fws_loop
+@fws_done:
+        JMP     prun_loop
+
+; OP_FWRI ($B6) — NOS=fileptr, TOS=int → append decimal
+op_FWRI:
+        JSR     pm_pop                  ; int
+        STA     fwi_val
+        LDA     scratch
+        STA     fwi_val+1
+        JSR     pm_pop                  ; file ptr
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     fwi_val+1
+        BPL     @fwi_pos
+        LDA     #'-'
+        JSR     file_write_char_helper
+        SEC
+        LDA     #0
+        SBC     fwi_val
+        STA     fwi_val
+        LDA     #0
+        SBC     fwi_val+1
+        STA     fwi_val+1
+@fwi_pos:
+        LDX     #0
+@fwi_div_loop:
+        LDA     fwi_val
+        STA     tmp0
+        LDA     fwi_val+1
+        STA     tmp0+1
+        PHX                             ; div16_by10 trashes X
+        JSR     div16_by10              ; tmp0 = quot, scratch = rem
+        PLX
+        LDA     scratch
+        CLC
+        ADC     #'0'
+        STA     fwi_buf,x
+        INX
+        LDA     tmp0
+        STA     fwi_val
+        LDA     tmp0+1
+        STA     fwi_val+1
+        ORA     fwi_val
+        BNE     @fwi_div_loop
+@fwi_emit:
+        DEX
+        LDA     fwi_buf,x
+        PHX
+        JSR     file_write_char_helper
+        PLX
+        CPX     #0
+        BNE     @fwi_emit
+        JMP     prun_loop
+
+; OP_FWLN ($B7) — TOS=fileptr → CR + LF
+op_FWLN:
+        JSR     pm_pop
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     #$0D
+        JSR     file_write_char_helper
+        LDA     #$0A
+        JSR     file_write_char_helper
+        JMP     prun_loop
+
+; OP_FRDC ($B8) — NOS=fileptr, TOS=charvar addr → read 1 char
+op_FRDC:
+        JSR     pm_pop                  ; charvar addr → tmp3
+        STA     tmp3
+        LDA     scratch
+        STA     tmp3+1
+        JSR     pm_pop                  ; file ptr → tmp1
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        JSR     file_read_char_helper
+        LDY     #0
+        STA     (tmp3),y
+        JMP     prun_loop
+
+; OP_FRDI ($B9) — NOS=fileptr, TOS=intvar addr → read decimal
+op_FRDI:
+        JSR     pm_pop                  ; intvar addr → tmp3
+        STA     tmp3
+        LDA     scratch
+        STA     tmp3+1
+        JSR     pm_pop                  ; file ptr → tmp1
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     #0
+        STA     fri_val
+        STA     fri_val+1
+        STA     fri_neg
+@fri_skipws:
+        JSR     file_read_char_helper
+        STA     fri_cur
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BEQ     @fri_chk_ws
+        JMP     @fri_apply
+@fri_chk_ws:
+        LDA     fri_cur
+        CMP     #' '
+        BEQ     @fri_skipws
+        CMP     #$09
+        BEQ     @fri_skipws
+        CMP     #$0D
+        BEQ     @fri_skipws
+        CMP     #$0A
+        BEQ     @fri_skipws
+        CMP     #'-'
+        BNE     @fri_chk_plus
+        LDA     #1
+        STA     fri_neg
+        JSR     file_read_char_helper
+        STA     fri_cur
+        BRA     @fri_dig_check
+@fri_chk_plus:
+        CMP     #'+'
+        BNE     @fri_dig_check
+        JSR     file_read_char_helper
+        STA     fri_cur
+@fri_dig_check:
+        LDA     fri_cur
+        CMP     #'0'
+        BCC     @fri_apply
+        CMP     #'9'+1
+        BCS     @fri_apply
+@fri_dig_loop:
+; fri_val = fri_val*10 + (digit-'0')
+        ASL     fri_val
+        ROL     fri_val+1
+        LDA     fri_val
+        STA     tmp0
+        LDA     fri_val+1
+        STA     tmp0+1
+        ASL     fri_val
+        ROL     fri_val+1
+        ASL     fri_val
+        ROL     fri_val+1
+        CLC
+        LDA     fri_val
+        ADC     tmp0
+        STA     fri_val
+        LDA     fri_val+1
+        ADC     tmp0+1
+        STA     fri_val+1
+        LDA     fri_cur
+        SEC
+        SBC     #'0'
+        CLC
+        ADC     fri_val
+        STA     fri_val
+        LDA     #0
+        ADC     fri_val+1
+        STA     fri_val+1
+        JSR     file_read_char_helper
+        STA     fri_cur
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BNE     @fri_apply
+        LDA     fri_cur
+        CMP     #'0'
+        BCC     @fri_apply
+        CMP     #'9'+1
+        BCS     @fri_apply
+        BRA     @fri_dig_loop
+@fri_apply:
+        LDA     fri_neg
+        BEQ     @fri_store
+        SEC
+        LDA     #0
+        SBC     fri_val
+        STA     fri_val
+        LDA     #0
+        SBC     fri_val+1
+        STA     fri_val+1
+@fri_store:
+        LDY     #0
+        LDA     fri_val
+        STA     (tmp3),y
+        INY
+        LDA     fri_val+1
+        STA     (tmp3),y
+        JMP     prun_loop
+
+; OP_FRDLN ($BA) — TOS=fileptr → skip remaining chars to end-of-line (LF)
+op_FRDLN:
+        JSR     pm_pop
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+@frln_loop:
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BEQ     :+
+        JMP     prun_loop
+:
+        JSR     file_read_char_helper
+        CMP     #$0A
+        BEQ     @frln_done
+        BRA     @frln_loop
+@frln_done:
+        JMP     prun_loop
+
+; OP_FEOF ($BB) — TOS=fileptr → push BOOL ($FFFF=true, $0000=false)
+op_FEOF:
+        JSR     pm_pop
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BEQ     @feof_false
+        LDA     #$FF
+        STA     scratch
+        LDA     #$FF
+        JSR     pm_push
+        JMP     prun_loop
+@feof_false:
+        LDA     #0
+        STA     scratch
+        JSR     pm_push
+        JMP     prun_loop
+
+; OP_FRDS ($BD) — NOS=fileptr, TOS=strvar addr → read line into a work buffer;
+; store the buffer pointer at strvar.  Skips CR, stops on LF/EOF.
+; STRING vars hold a 16-bit pointer (matching LDCS / CONCAT semantics).
+FRDS_BUF        = $AC00                  ; dedicated 256-byte buffer below STR_WORK_BASE
+op_FRDS:
+        JSR     pm_pop                  ; strvar addr → tmp3
+        STA     tmp3
+        LDA     scratch
+        STA     tmp3+1
+        JSR     pm_pop                  ; file ptr → tmp1
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     #0
+        STA     frs_idx
+@frs_loop:
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BNE     @frs_done
+; peek char at buf[F_POS] without consuming
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        STA     tmp2
+        LDA     tmp1+1
+        ADC     #0
+        STA     tmp2+1
+        LDY     #F_POS
+        LDA     (tmp1),y
+        TAY
+        LDA     (tmp2),y
+        CMP     #$0D
+        BEQ     @frs_done               ; leave CR for READLN
+        CMP     #$0A
+        BEQ     @frs_done               ; leave LF for READLN
+; not at EOL — consume and append
+        JSR     file_read_char_helper
+        STA     frs_char
+        LDA     frs_idx
+        CMP     #255
+        BCS     @frs_loop               ; clamp (drop char)
+        INC     frs_idx
+        LDY     frs_idx
+        LDA     frs_char
+        STA     FRDS_BUF,y
+        BRA     @frs_loop
+@frs_done:
+        LDA     frs_idx
+        STA     FRDS_BUF                ; length byte at offset 0
+; store buffer ptr ($AC00) into strvar at tmp3
+        LDA     #<FRDS_BUF
+        LDY     #0
+        STA     (tmp3),y
+        INY
+        LDA     #>FRDS_BUF
+        STA     (tmp3),y
+        JMP     prun_loop
+
+; OP_FWRB ($BE) — NOS=fileptr, TOS=bool → append "TRUE"/"FALSE"
+op_FWRB:
+        JSR     pm_pop                  ; bool value
+        STA     tmp2
+        LDA     scratch
+        ORA     tmp2
+        STA     tmp2                    ; tmp2 = nonzero if true
+        JSR     pm_pop                  ; file ptr
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     tmp2
+        BEQ     @fwb_false
+; "TRUE"
+        LDA     #'T'
+        JSR     file_write_char_helper
+        LDA     #'R'
+        JSR     file_write_char_helper
+        LDA     #'U'
+        JSR     file_write_char_helper
+        LDA     #'E'
+        JSR     file_write_char_helper
+        JMP     prun_loop
+@fwb_false:
+        LDA     #'F'
+        JSR     file_write_char_helper
+        LDA     #'A'
+        JSR     file_write_char_helper
+        LDA     #'L'
+        JSR     file_write_char_helper
+        LDA     #'S'
+        JSR     file_write_char_helper
+        LDA     #'E'
+        JSR     file_write_char_helper
+        JMP     prun_loop
+
+; OP_FEOLN ($BF) — TOS=fileptr → push BOOL: true if EOF, CR, or LF is next
+op_FEOLN:
+        JSR     pm_pop
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BNE     @feol_true
+; peek current char without consuming
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        STA     tmp2
+        LDA     tmp1+1
+        ADC     #0
+        STA     tmp2+1
+        LDY     #F_POS
+        LDA     (tmp1),y
+        TAY
+        LDA     (tmp2),y
+        CMP     #$0D
+        BEQ     @feol_true
+        CMP     #$0A
+        BEQ     @feol_true
+        LDA     #0
+        STA     scratch
+        JSR     pm_push
+        JMP     prun_loop
+@feol_true:
+        LDA     #$FF
+        STA     scratch
+        LDA     #$FF
+        JSR     pm_push
+        JMP     prun_loop
+
+; --- File I/O scratch storage ---
+fas_remain:    .RES 1
+fas_si:        .RES 1
+fas_di:        .RES 1
+fwrc_char:     .RES 1
+fws_remain:    .RES 1
+fws_idx:       .RES 1
+fwi_val:       .RES 2
+fwi_buf:       .RES 6
+frch_char:     .RES 1
+fri_val:       .RES 2
+fri_neg:       .RES 1
+fri_cur:       .RES 1
+frs_idx:       .RES 1
+frs_char:      .RES 1
+
+; ---------------------------------------------------------------------------
 ; Unimplemented opcode handler
 ; ---------------------------------------------------------------------------
 op_UNIMP:
+; X still holds the offending opcode at dispatch time
+        STX     tmp0
+        LDA     #0
+        STA     tmp0+1
+        PHX                     ; preserve for after banner
         LDA     #<err_rt_opcode
         STA     tmp0
         LDA     #>err_rt_opcode
         STA     tmp0+1
-        JSR     rt_error
-; rt_error does not return (jumps to warm boot)
+        JSR     console_print_sz
+        PLX
+        STX     tmp0
+        LDA     #0
+        STA     tmp0+1
+        JSR     console_print_dec
+        LDA     #13
+        LDX     #PEM_CONOUT
+        JSR     PEM_ENTRY
+        LDA     #10
+        LDX     #PEM_CONOUT
+        JSR     PEM_ENTRY
+        JMP     WARM_BOOT
 
 ; ---------------------------------------------------------------------------
 ; String literals for boolean output
@@ -1778,8 +2633,9 @@ dispatch_lo:
         .ENDREPEAT
 ; $30-$3F
         .BYTE   <op_ADI,   <op_SBI,   <op_MPI,   <op_DVI
-        .BYTE   <op_MOD,   <op_NGI,   <op_UNIMP, <op_UNIMP
-        .REPEAT 8
+        .BYTE   <op_MOD,   <op_NGI,   <op_UNIMP, <op_UNIMP   ; $36 ABI, $37 SQI
+        .BYTE   <op_LAND,  <op_LOR,   <op_LNOT,  <op_BNOT    ; $38-$3B
+        .REPEAT 4
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $40-$4F
@@ -1816,8 +2672,17 @@ dispatch_lo:
         .ENDREPEAT
 ; $A0-$A3 string built-ins
         .BYTE   <op_LEN,   <op_POS,   <op_COPY,  <op_CONCAT
-; $A4-$FE
-        .REPEAT 91
+; $A4-$AF
+        .REPEAT 12
+                .BYTE   <op_UNIMP
+        .ENDREPEAT
+; $B0-$BF TEXT file I/O
+        .BYTE   <op_FASSGN,<op_FRESET,<op_FREWRT,<op_FCLOSE
+        .BYTE   <op_FWRC,  <op_FWRS,  <op_FWRI,  <op_FWLN
+        .BYTE   <op_FRDC,  <op_FRDI,  <op_FRDLN, <op_FEOF
+        .BYTE   <op_UNIMP, <op_FRDS,  <op_FWRB,  <op_FEOLN  ; $BC reserved
+; $C0-$FE
+        .REPEAT 63
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $FF
@@ -1846,8 +2711,9 @@ dispatch_hi:
         .ENDREPEAT
 ; $30-$3F
         .BYTE   >op_ADI,   >op_SBI,   >op_MPI,   >op_DVI
-        .BYTE   >op_MOD,   >op_NGI,   >op_UNIMP, >op_UNIMP
-        .REPEAT 8
+        .BYTE   >op_MOD,   >op_NGI,   >op_UNIMP, >op_UNIMP   ; $36 ABI, $37 SQI
+        .BYTE   >op_LAND,  >op_LOR,   >op_LNOT,  >op_BNOT    ; $38-$3B
+        .REPEAT 4
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $40-$4F
@@ -1884,8 +2750,17 @@ dispatch_hi:
         .ENDREPEAT
 ; $A0-$A3 string built-ins
         .BYTE   >op_LEN,   >op_POS,   >op_COPY,  >op_CONCAT
-; $A4-$FE
-        .REPEAT 91
+; $A4-$AF
+        .REPEAT 12
+                .BYTE   >op_UNIMP
+        .ENDREPEAT
+; $B0-$BF TEXT file I/O
+        .BYTE   >op_FASSGN,>op_FRESET,>op_FREWRT,>op_FCLOSE
+        .BYTE   >op_FWRC,  >op_FWRS,  >op_FWRI,  >op_FWLN
+        .BYTE   >op_FRDC,  >op_FRDI,  >op_FRDLN, >op_FEOF
+        .BYTE   >op_UNIMP, >op_FRDS,  >op_FWRB,  >op_FEOLN  ; $BC reserved
+; $C0-$FE
+        .REPEAT 63
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $FF

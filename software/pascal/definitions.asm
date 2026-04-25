@@ -20,6 +20,7 @@ PEM_DELETE      = 19
 PEM_READ        = 20
 PEM_WRITE       = 21
 PEM_MAKE        = 22
+PEM_SETDMA      = 26            ; set DMA buffer address (A=lo, Y=hi)
 
 ; ---------------------------------------------------------------------------
 ; P-code opcodes
@@ -135,6 +136,9 @@ OP_FRDC         = $B8           ; NOS=fileptr, TOS=charvar addr -> read char
 OP_FRDI         = $B9           ; NOS=fileptr, TOS=intvar  addr -> read decimal int
 OP_FRDLN        = $BA           ; TOS=fileptr -> skip remaining chars to end-of-line
 OP_FEOF         = $BB           ; TOS=fileptr -> push EOF flag (0=false, $FFFF=true)
+OP_FRDS         = $BD           ; NOS=fileptr, TOS=strvar addr -> read string to EOL
+OP_FWRB         = $BE           ; NOS=fileptr, TOS=bool -> append "TRUE"/"FALSE"
+OP_FEOLN        = $BF           ; TOS=fileptr -> push EOLN flag (true if at CR/LF/EOF)
 
 ; TEXT-file struct layout (168 bytes per variable)
 F_FCB           = 0             ; 36 bytes

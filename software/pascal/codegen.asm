@@ -603,6 +603,15 @@ emit_FRDLN:
 emit_FEOF:
         LDA     #OP_FEOF
         JMP     emit_byte
+emit_FRDS:
+        LDA     #OP_FRDS
+        JMP     emit_byte
+emit_FWRB:
+        LDA     #OP_FWRB
+        JMP     emit_byte
+emit_FEOLN:
+        LDA     #OP_FEOLN
+        JMP     emit_byte
 
 ; ---------------------------------------------------------------------------
 ; codegen_alloc_global — reserve N bytes in global area; return offset in tmp2

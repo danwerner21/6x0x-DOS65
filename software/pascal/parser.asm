@@ -324,7 +324,9 @@ parse_var_decls:
         LDX     #0
 @add_loop:
         CPX     var_name_count
-        BCS     @post_add
+        BCC     :+
+        JMP     @post_add       ; out-of-range branch — use jmp
+:
         PHX                     ; preserve loop counter across symtab_add
 ; tmp2 = var_name_buf + X*16
         TXA
@@ -1709,48 +1711,96 @@ parse_assign_or_call:
         RTS
 
 ; ---------------------------------------------------------------------------
-; parse_write_args — WRITE/WRITELN argument list
+; parse_write_args — WRITE/WRITELN argument list.
+;   Returns X=0 if console mode (caller emits WRITLN normally),
+;           X=1 if file mode (file ptr left on stack — caller emits FWLN
+;               or POP to consume it).
 ; ---------------------------------------------------------------------------
 parse_write_args:
         LDA     tok_type
         CMP     #TOK_LPAREN
-        BNE     @done
-        JSR     next_token
-@arg:
+        BNE     @done_console
+        JSR     next_token              ; consume '('
         LDA     tok_type
         CMP     #TOK_RPAREN
-        BEQ     @close
-        CMP     #TOK_EOF
-        BEQ     @done
+        BEQ     @close_console
+        JSR     parse_expression        ; parse first arg
+; If first arg is TY_TEXT, switch to file mode (leave file ptr on stack).
+        LDA     expr_type
+        CMP     #TY_TEXT
+        BEQ     @file_mode
+; Console mode — emit appropriate WRIT* for first arg, then loop.
+        JSR     pw_emit_console
+@cons_loop:
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BNE     @close_console
+        JSR     next_token              ; consume ','
         JSR     parse_expression
-; Dispatch WRIT* based on expr_type set by parse_expression.
+        JSR     pw_emit_console
+        BRA     @cons_loop
+@close_console:
+        LDA     tok_type
+        CMP     #TOK_RPAREN
+        BNE     :+
+        JSR     next_token              ; consume ')'
+:
+@done_console:
+        LDX     #0
+        RTS
+
+@file_mode:
+@file_loop:
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BNE     @close_file
+        JSR     next_token              ; consume ','
+        JSR     emit_DUP                ; dup file ptr (consumed by FWRX)
+        JSR     parse_expression        ; arg on top of stack
+        JSR     pw_emit_file
+        BRA     @file_loop
+@close_file:
+        LDA     tok_type
+        CMP     #TOK_RPAREN
+        BNE     :+
+        JSR     next_token              ; consume ')'
+:
+        LDX     #1
+        RTS
+
+; pw_emit_console — emit WRITS/WRITC/WRITB/WRITI based on expr_type
+pw_emit_console:
         LDA     expr_type
         CMP     #TY_STRING
         BNE     :+
-        JSR     emit_WRITS
-        BRA     @next
+        JMP     emit_WRITS
 :
         CMP     #TY_CHAR
         BNE     :+
-        JSR     emit_WRITC
-        BRA     @next
+        JMP     emit_WRITC
 :
         CMP     #TY_BOOL
         BNE     :+
-        JSR     emit_WRITB
-        BRA     @next
+        JMP     emit_WRITB
 :
-        JSR     emit_WRITI      ; default: integer
-@next:
-        LDA     tok_type
-        CMP     #TOK_COMMA
-        BNE     @close
-        JSR     next_token
-        BRA     @arg
-@close:
-        JSR     next_token      ; consume ')'
-@done:
-        RTS
+        JMP     emit_WRITI
+
+; pw_emit_file — emit FWRS/FWRC/FWRB/FWRI based on expr_type
+pw_emit_file:
+        LDA     expr_type
+        CMP     #TY_STRING
+        BNE     :+
+        JMP     emit_FWRS
+:
+        CMP     #TY_CHAR
+        BNE     :+
+        JMP     emit_FWRC
+:
+        CMP     #TY_BOOL
+        BNE     :+
+        JMP     emit_FWRB
+:
+        JMP     emit_FWRI
 
 ; ---------------------------------------------------------------------------
 ; parse_read_args — READ/READLN argument list.  Each argument must be a
@@ -1762,29 +1812,86 @@ parse_write_args:
 parse_read_args:
         LDA     tok_type
         CMP     #TOK_LPAREN
-        BNE     @rdone
-        JSR     next_token      ; consume '('
-@rarg:
+        BNE     @rdone_console
+        JSR     next_token              ; consume '('
         LDA     tok_type
         CMP     #TOK_RPAREN
-        BEQ     @rclose
-        CMP     #TOK_EOF
-        BEQ     @rdone
+        BEQ     @rclose_console
         CMP     #TOK_IDENT
-        BNE     @rclose         ; not an ident — bail
-        JSR     parse_arg_lvalue; push address of var
-        JSR     emit_READI      ; pop addr, read int, store word
+        BNE     @rclose_console
+; Peek: is the first ident a TY_TEXT variable?
+        JSR     symtab_find
+        BCC     @cons_first
+        LDY     #17
+        LDA     (tmp3),y
+        CMP     #TY_TEXT
+        BEQ     @file_first
+@cons_first:
+        JSR     parse_arg_lvalue        ; push address of var
+        JSR     emit_READI              ; pop addr, read int, store word
+@cons_loop:
         LDA     tok_type
         CMP     #TOK_COMMA
-        BNE     @rclose
+        BNE     @rclose_console
         JSR     next_token
-        BRA     @rarg
-@rclose:
+        LDA     tok_type
+        CMP     #TOK_IDENT
+        BNE     @rclose_console
+        JSR     parse_arg_lvalue
+        JSR     emit_READI
+        BRA     @cons_loop
+@rclose_console:
         LDA     tok_type
         CMP     #TOK_RPAREN
-        BNE     @rdone
-        JSR     next_token      ; consume ')'
-@rdone:
+        BNE     :+
+        JSR     next_token              ; consume ')'
+:
+@rdone_console:
+        LDX     #0
+        RTS
+
+@file_first:
+; Push the file ptr (struct address) by parsing the ident as an expression —
+; for TY_TEXT this emits LDA_G/LDA_L which pushes the struct's address.
+        JSR     parse_expression
+@file_loop:
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BNE     @close_file
+        JSR     next_token              ; consume ','
+        LDA     tok_type
+        CMP     #TOK_IDENT
+        BNE     @close_file
+; Peek var type so we know whether to emit FRDC, FRDS, or FRDI.
+        JSR     symtab_find
+        BCC     @file_int_default
+        LDY     #17
+        LDA     (tmp3),y
+        CMP     #TY_CHAR
+        BNE     @file_chk_str
+        JSR     emit_DUP                ; dup file ptr
+        JSR     parse_arg_lvalue
+        JSR     emit_FRDC
+        BRA     @file_loop
+@file_chk_str:
+        CMP     #TY_STRING
+        BNE     @file_int_default
+        JSR     emit_DUP                ; dup file ptr
+        JSR     parse_arg_lvalue
+        JSR     emit_FRDS
+        BRA     @file_loop
+@file_int_default:
+        JSR     emit_DUP                ; dup file ptr
+        JSR     parse_arg_lvalue
+        JSR     emit_FRDI
+        BRA     @file_loop
+@close_file:
+        LDA     tok_type
+        CMP     #TOK_RPAREN
+        BNE     :+
+        JSR     next_token              ; consume ')'
+:
+        LDX     #1
         RTS
 
 ; ---------------------------------------------------------------------------
@@ -2432,21 +2539,102 @@ parse_factor:
         RTS
 
 @ident_or_call:
-; First check for string built-ins (LENGTH/POS/COPY/CONCAT) by length+initial.
-; These take precedence over user identifiers (matching WRITE/READ handling
-; in parse_assign_or_call).
+; First check for built-ins (LENGTH/POS/COPY/CONCAT/EOF/EOLN/TRUE/FALSE)
+; by length+initial.  These take precedence over user identifiers
+; (matching WRITE/READ handling in parse_assign_or_call).  All dispatch
+; branches use JMPs because the target blocks are scattered too far for
+; ±127 byte BEQ range.
         LDA     ident_buf
         CMP     #3
-        BEQ     @bi_chk_pos
+        BNE     @bi_dn3
+        JMP     @bi_chk3
+@bi_dn3:
         CMP     #4
-        BEQ     @bi_chk_copy
+        BNE     @bi_dn4
+        JMP     @bi_chk4
+@bi_dn4:
+        CMP     #5
+        BNE     @bi_dn5
+        JMP     @bi_chk5
+@bi_dn5:
         CMP     #6
-        BEQ     @bi_chk_len_or_cat
-        BRA     @do_lookup
-@bi_chk_pos:
+        BNE     @bi_dn6
+        JMP     @bi_chk_len_or_cat
+@bi_dn6:
+        JMP     @do_lookup
+@bi_chk4:
+; 4-letter built-ins: COPY, EOLN, TRUE
+        LDA     ident_buf+1
+        CMP     #'C'
+        BNE     :+
+        JMP     @bi_chk_copy
+:
+        CMP     #'E'
+        BEQ     @bi_try_eoln
+        CMP     #'T'
+        BEQ     @bi_try_true
+        JMP     @do_lookup
+@bi_try_eoln:
+        LDA     ident_buf+2
+        CMP     #'O'
+        BNE     @bi4_no
+        LDA     ident_buf+3
+        CMP     #'L'
+        BNE     @bi4_no
+        LDA     ident_buf+4
+        CMP     #'N'
+        BNE     @bi4_no
+        JMP     parse_builtin_eoln
+@bi_try_true:
+        LDA     ident_buf+2
+        CMP     #'R'
+        BNE     @bi4_no
+        LDA     ident_buf+3
+        CMP     #'U'
+        BNE     @bi4_no
+        LDA     ident_buf+4
+        CMP     #'E'
+        BNE     @bi4_no
+        JMP     parse_builtin_true
+@bi4_no:
+        JMP     @do_lookup
+@bi_chk5:
+; 5-letter built-ins: FALSE
+        LDA     ident_buf+1
+        CMP     #'F'
+        BNE     @bi5_no
+        LDA     ident_buf+2
+        CMP     #'A'
+        BNE     @bi5_no
+        LDA     ident_buf+3
+        CMP     #'L'
+        BNE     @bi5_no
+        LDA     ident_buf+4
+        CMP     #'S'
+        BNE     @bi5_no
+        LDA     ident_buf+5
+        CMP     #'E'
+        BNE     @bi5_no
+        JMP     parse_builtin_false
+@bi5_no:
+        JMP     @do_lookup
+@bi_chk3:
+; 3-letter built-ins: POS, EOF
         LDA     ident_buf+1
         CMP     #'P'
+        BEQ     @bi_chk_pos
+        CMP     #'E'
+        BEQ     @bi_chk_eof
+        BRA     @do_lookup
+@bi_chk_eof:
+        LDA     ident_buf+2
+        CMP     #'O'
         BNE     @do_lookup
+        LDA     ident_buf+3
+        CMP     #'F'
+        BNE     @do_lookup
+        JMP     parse_builtin_eof
+@bi_chk_pos:
         LDA     ident_buf+2
         CMP     #'O'
         BNE     @do_lookup
@@ -2860,5 +3048,92 @@ parse_builtin_concat:
         LDA     #TOK_RPAREN
         JSR     parse_eat_token
         LDA     #TY_STRING
+        STA     expr_type
+        RTS
+
+; ---------------------------------------------------------------------------
+; File built-in helpers — entered from parse_assign_or_call (statement form)
+; or parse_factor's @ident_or_call (EOF as expression).
+; ---------------------------------------------------------------------------
+
+; ASSIGN(filevar, namestring)
+parse_builtin_assign:
+        JSR     next_token              ; consume ASSIGN
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression        ; file ptr (TY_TEXT)
+        LDA     #TOK_COMMA
+        JSR     parse_eat_token
+        JSR     parse_expression        ; filename string
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JMP     emit_FASSGN
+
+parse_builtin_reset:
+        JSR     next_token              ; consume RESET
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JMP     emit_FRESET
+
+parse_builtin_rewrite:
+        JSR     next_token              ; consume REWRITE
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JMP     emit_FREWRT
+
+parse_builtin_close:
+        JSR     next_token              ; consume CLOSE
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JMP     emit_FCLOSE
+
+parse_builtin_eof:
+        JSR     next_token              ; consume EOF
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression        ; file ptr (TY_TEXT)
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JSR     emit_FEOF
+        LDA     #TY_BOOL
+        STA     expr_type
+        RTS
+
+parse_builtin_eoln:
+        JSR     next_token              ; consume EOLN
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression        ; file ptr (TY_TEXT)
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JSR     emit_FEOLN
+        LDA     #TY_BOOL
+        STA     expr_type
+        RTS
+
+; TRUE / FALSE — predefined boolean constants.  Push 1/0 as TY_BOOL so
+; pw_emit_file routes to FWRB ("TRUE"/"FALSE") and pw_emit_console to WRITB.
+parse_builtin_true:
+        JSR     next_token              ; consume TRUE
+        LDA     #1
+        JSR     emit_LDCB
+        LDA     #TY_BOOL
+        STA     expr_type
+        RTS
+
+parse_builtin_false:
+        JSR     next_token              ; consume FALSE
+        LDA     #0
+        JSR     emit_LDCB
+        LDA     #TY_BOOL
         STA     expr_type
         RTS

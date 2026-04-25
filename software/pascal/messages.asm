@@ -83,6 +83,6 @@ err_rt_bounds:
 err_rt_nil:
         .BYTE   "Nil pointer dereference",13,10,0
 err_rt_opcode:
-        .BYTE   "Unknown opcode",13,10,0
+        .BYTE   "Unknown opcode ",0
 msg_rt_done:
         .BYTE   13,10,"[Program exited]",13,10,0
