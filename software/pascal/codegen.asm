@@ -193,6 +193,106 @@ emit_STIND:
         LDA     #OP_STIND
         JMP     emit_byte
 
+; emit_INDEX — OP_INDEX + 2-byte element size word (lo in A, hi in scratch)
+emit_INDEX:
+        PHA
+        LDA     #OP_INDEX
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        LDA     scratch
+        JSR     emit_byte
+        RTS
+
+; ---------------------------------------------------------------------------
+; codegen_alloc_array_global — allocate ARRAY [array_lo..array_hi] in globals
+; Element size fixed at 2 (all scalars are word-sized).
+; Returns: tmp2 = adjusted_offset = raw_base - lo*2
+;          cg_globals advanced by (hi - lo + 1) * 2
+; Clobbers: tmp2, tmp3
+; ---------------------------------------------------------------------------
+codegen_alloc_array_global:
+; count = hi - lo + 1  (16-bit)
+        LDA     array_hi
+        SEC
+        SBC     array_lo
+        STA     tmp2
+        LDA     array_hi+1
+        SBC     array_lo+1
+        STA     tmp2+1
+        INC     tmp2
+        BNE     :+
+        INC     tmp2+1
+:
+; alloc_size = count * 2
+        ASL     tmp2
+        ROL     tmp2+1
+; save raw_base = cg_globals before advancing
+        LDA     cg_globals
+        STA     tmp3
+        LDA     cg_globals+1
+        STA     tmp3+1
+; advance cg_globals by alloc_size (tmp2)
+        LDA     cg_globals
+        CLC
+        ADC     tmp2
+        STA     cg_globals
+        LDA     cg_globals+1
+        ADC     tmp2+1
+        STA     cg_globals+1
+; adjusted_offset = raw_base (tmp3) - lo*2 (tmp2 reused)
+        LDA     array_lo
+        ASL
+        STA     tmp2
+        LDA     array_lo+1
+        ROL
+        STA     tmp2+1
+        LDA     tmp3
+        SEC
+        SBC     tmp2
+        STA     tmp2
+        LDA     tmp3+1
+        SBC     tmp2+1
+        STA     tmp2+1
+        RTS
+
+; ---------------------------------------------------------------------------
+; codegen_alloc_record_global — reserve record_size bytes in globals
+; Returns: tmp2 = offset of record's first byte
+;          cg_globals advanced by record_size
+; ---------------------------------------------------------------------------
+codegen_alloc_record_global:
+        LDA     cg_globals
+        STA     tmp2
+        LDA     cg_globals+1
+        STA     tmp2+1
+        CLC
+        LDA     cg_globals
+        ADC     record_size
+        STA     cg_globals
+        LDA     cg_globals+1
+        ADC     record_size+1
+        STA     cg_globals+1
+        RTS
+
+; ---------------------------------------------------------------------------
+; codegen_alloc_text_global — reserve FILE_STRUCT_SZ (168) bytes for a TEXT
+; variable.  Returns tmp2 = offset of struct's first byte; cg_globals bumped.
+; ---------------------------------------------------------------------------
+codegen_alloc_text_global:
+        LDA     cg_globals
+        STA     tmp2
+        LDA     cg_globals+1
+        STA     tmp2+1
+        CLC
+        LDA     cg_globals
+        ADC     #FILE_STRUCT_SZ
+        STA     cg_globals
+        LDA     cg_globals+1
+        ADC     #0
+        STA     cg_globals+1
+        RTS
+
 ; --- Arithmetic emitters ---
 
 emit_ADI:
@@ -445,6 +545,63 @@ emit_CALL:
 
 emit_HALT:
         LDA     #OP_HALT
+        JMP     emit_byte
+
+; --- String built-ins ---
+
+emit_LEN:
+        LDA     #OP_LEN
+        JMP     emit_byte
+
+emit_POS:
+        LDA     #OP_POS
+        JMP     emit_byte
+
+emit_COPY:
+        LDA     #OP_COPY
+        JMP     emit_byte
+
+emit_CONCAT:
+        LDA     #OP_CONCAT
+        JMP     emit_byte
+
+; --- TEXT file I/O ---
+
+emit_FASSGN:
+        LDA     #OP_FASSGN
+        JMP     emit_byte
+emit_FRESET:
+        LDA     #OP_FRESET
+        JMP     emit_byte
+emit_FREWRT:
+        LDA     #OP_FREWRT
+        JMP     emit_byte
+emit_FCLOSE:
+        LDA     #OP_FCLOSE
+        JMP     emit_byte
+emit_FWRC:
+        LDA     #OP_FWRC
+        JMP     emit_byte
+emit_FWRS:
+        LDA     #OP_FWRS
+        JMP     emit_byte
+emit_FWRI:
+        LDA     #OP_FWRI
+        JMP     emit_byte
+emit_FWLN:
+        LDA     #OP_FWLN
+        JMP     emit_byte
+emit_FRDC:
+        LDA     #OP_FRDC
+        JMP     emit_byte
+emit_FRDI:
+        LDA     #OP_FRDI
+        JMP     emit_byte
+emit_FRDLN:
+        LDA     #OP_FRDLN
+        JMP     emit_byte
+emit_FEOF:
+        LDA     #OP_FEOF
         JMP     emit_byte
 
 ; ---------------------------------------------------------------------------

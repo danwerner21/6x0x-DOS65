@@ -207,13 +207,6 @@ parse_const_decls:
 ; base type via symtab_find.
 ; ---------------------------------------------------------------------------
 parse_type_decls:
-        ; DEBUG: '<T>' on entry
-        LDA     #'<'
-        JSR     dbg_putc
-        LDA     #'T'
-        JSR     dbg_putc
-        LDA     #'>'
-        JSR     dbg_putc
 @loop:
         LDA     tok_type
         CMP     #TOK_IDENT
@@ -237,22 +230,33 @@ parse_type_decls:
         STA     scratch         ; save base type code
 ; bring the saved name back into ident_buf for symtab_add
         JSR     swap_ident_save
-; SYM_TYPE has no storage; offset bytes are unused
+; SYM_TYPE has no storage; offset bytes are unused (overwritten below
+; for record types, which need to remember size + field-table location).
         LDA     #0
         STA     tmp2
         STA     tmp2+1
         LDA     #SYM_TYPE
         LDX     scratch
         JSR     symtab_add
-        ; DEBUG: 't' + first letter of name + count digit
-        LDA     #'t'
-        JSR     dbg_putc
-        LDA     ident_buf+1
-        JSR     dbg_putc
-        LDA     symtab_count
-        CLC
-        ADC     #'0'
-        JSR     dbg_putc
+; If this is a RECORD alias, stash record_size in bytes 18-19 and
+; first_field/field_count in bytes 22-23 so later var-decls and field
+; lookups can recover it.
+        LDA     scratch
+        CMP     #TY_RECORD
+        BNE     @td_no_rec
+        LDA     record_size
+        LDY     #18
+        STA     (tmp3),y
+        LDA     record_size+1
+        LDY     #19
+        STA     (tmp3),y
+        LDA     record_first_field
+        LDY     #22
+        STA     (tmp3),y
+        LDA     record_field_count
+        LDY     #23
+        STA     (tmp3),y
+@td_no_rec:
 ; expect ';'
         LDA     tok_type
         CMP     #TOK_SEMICOLON
@@ -313,17 +317,14 @@ parse_var_decls:
         JSR     next_token
 :       ; parse type — A = TY_*
         JSR     parse_type_spec
-        STA     scratch         ; stash type (no next_token in the loop below)
-; expect ';'
-        LDA     tok_type
-        CMP     #TOK_SEMICOLON
-        BNE     :+
-        JSR     next_token
-:       ; --- add each collected name to symbol table ---
+        STA     scratch         ; stash type
+; --- add each collected name to symbol table ---
+; NOTE: consume ';' AFTER the add loop so next_token doesn't clobber
+; ident_buf before @cp_out restores the saved name.
         LDX     #0
 @add_loop:
         CPX     var_name_count
-        BCS     @decl_loop
+        BCS     @post_add
         PHX                     ; preserve loop counter across symtab_add
 ; tmp2 = var_name_buf + X*16
         TXA
@@ -347,7 +348,7 @@ parse_var_decls:
 ; allocate storage — global if at top level, else from proc local AR
         LDA     scope_depth
         BEQ     @gv_alloc
-; local: tmp2 = local_alloc_off (word, 0 hi); bump by 2
+; local scalar: tmp2 = local_alloc_off; bump by 2
         LDA     local_alloc_off
         STA     tmp2
         LDA     #0
@@ -358,24 +359,60 @@ parse_var_decls:
         STA     local_alloc_off
         BRA     @do_va_add
 @gv_alloc:
-        JSR     codegen_alloc_global
+        LDA     scratch
+        CMP     #TY_ARRAY
+        BEQ     @gv_array
+        CMP     #TY_RECORD
+        BEQ     @gv_record
+        CMP     #TY_TEXT
+        BEQ     @gv_text
+        JSR     codegen_alloc_global    ; scalar: 2 bytes, offset in tmp2
+        BRA     @do_va_add
+@gv_array:
+        JSR     codegen_alloc_array_global  ; array: right size, adj offset in tmp2
+        BRA     @do_va_add
+@gv_record:
+        JSR     codegen_alloc_record_global ; record: record_size bytes, offset in tmp2
+        BRA     @do_va_add
+@gv_text:
+        JSR     codegen_alloc_text_global   ; TEXT file: 168 bytes, offset in tmp2
 @do_va_add:
         LDA     scratch         ; type code
         TAX
         LDA     #SYM_VAR
-        JSR     symtab_add
-        ; DEBUG: 'v' + first letter of name + count digit
-        LDA     #'v'
-        JSR     dbg_putc
-        LDA     ident_buf+1
-        JSR     dbg_putc
-        LDA     symtab_count
-        CLC
-        ADC     #'0'
-        JSR     dbg_putc
+        JSR     symtab_add      ; tmp3 = pointer to new entry
+; type-specific metadata in entry bytes 22-23
+        LDA     scratch
+        CMP     #TY_ARRAY
+        BNE     @va_chk_rec
+        LDA     array_elem_ty
+        LDY     #22
+        STA     (tmp3),y
+        LDA     #2              ; elemsize = 2 (word)
+        LDY     #23
+        STA     (tmp3),y
+        BRA     @va_done
+@va_chk_rec:
+        CMP     #TY_RECORD
+        BNE     @va_done
+        LDA     record_first_field
+        LDY     #22
+        STA     (tmp3),y
+        LDA     record_field_count
+        LDY     #23
+        STA     (tmp3),y
+@va_done:
         PLX
         INX
         JMP     @add_loop       ; jmp — body grew past bra range
+@post_add:
+; now safe to consume ';' — ident_buf already used
+        LDA     tok_type
+        CMP     #TOK_SEMICOLON
+        BNE     @pva_next
+        JSR     next_token
+@pva_next:
+        JMP     @decl_loop
 
 ; swap 16 bytes between ident_buf and save_name_buf
 swap_ident_save:
@@ -396,7 +433,9 @@ swap_ident_save:
 parse_type_spec:
         LDA     tok_type
         CMP     #TOK_IDENT
-        BNE     @not_ident
+        BEQ     :+
+        JMP     @not_ident
+:
 ; First check for a user-defined SYM_TYPE alias — built-ins like
 ; INTEGER/CHAR/BOOLEAN aren't in the symtab so this lookup falls
 ; through harmlessly when there's no user binding.
@@ -409,6 +448,23 @@ parse_type_spec:
         LDY     #17
         LDA     (tmp3),y
         STA     scratch         ; preserve across next_token
+; If alias resolves to a RECORD, copy the record metadata back into the
+; record_* globals so the caller (parse_var_decls) sees it.
+        CMP     #TY_RECORD
+        BNE     @sty_no_rec
+        LDY     #18
+        LDA     (tmp3),y
+        STA     record_size
+        LDY     #19
+        LDA     (tmp3),y
+        STA     record_size+1
+        LDY     #22
+        LDA     (tmp3),y
+        STA     record_first_field
+        LDY     #23
+        LDA     (tmp3),y
+        STA     record_field_count
+@sty_no_rec:
         JSR     next_token
         LDA     scratch
         RTS
@@ -438,12 +494,18 @@ parse_type_spec:
 @chk3:
         CMP     #4
         BNE     @chk6
-; "CHAR" (4)
+; 4-char built-in types: "CHAR" or "TEXT"
         LDA     ident_buf+1
         CMP     #'C'
-        BNE     @chk3b
+        BNE     @chk_text
         JSR     next_token
         LDA     #TY_CHAR
+        RTS
+@chk_text:
+        CMP     #'T'
+        BNE     @chk3b
+        JSR     next_token
+        LDA     #TY_TEXT
         RTS
 @chk3b:
         JSR     next_token
@@ -461,16 +523,185 @@ parse_type_spec:
         LDA     #TY_INT
         RTS
 @not_ident:
-; ARRAY or RECORD — skip for Phase 1
         LDA     tok_type
         CMP     #TOK_ARRAY
+        BNE     @not_array
+; --- ARRAY [lo..hi] OF basetype ---
+        JSR     next_token      ; consume ARRAY → expect '['
+        LDA     tok_type
+        CMP     #TOK_LBRACK
         BNE     :+
-        JSR     next_token      ; 'OF'
-        JSR     next_token      ; base type
-        JSR     next_token
+        JSR     next_token      ; consume '['
+:
+; parse lo bound (integer literal)
+        LDA     tok_ival_lo
+        STA     array_lo
+        LDA     tok_ival_hi
+        STA     array_lo+1
+        LDA     tok_type
+        CMP     #TOK_INT
+        BNE     :+
+        JSR     next_token      ; consume lo
+:
+; expect '..'
+        LDA     tok_type
+        CMP     #TOK_DOTDOT
+        BNE     :+
+        JSR     next_token      ; consume '..'
+:
+; parse hi bound
+        LDA     tok_ival_lo
+        STA     array_hi
+        LDA     tok_ival_hi
+        STA     array_hi+1
+        LDA     tok_type
+        CMP     #TOK_INT
+        BNE     :+
+        JSR     next_token      ; consume hi
+:
+; expect ']'
+        LDA     tok_type
+        CMP     #TOK_RBRACK
+        BNE     :+
+        JSR     next_token      ; consume ']'
+:
+; expect 'OF'
+        LDA     tok_type
+        CMP     #TOK_OF
+        BNE     :+
+        JSR     next_token      ; consume 'OF'
+:
+; parse element type (recursive — handles named types, built-ins)
+        JSR     parse_type_spec
+        STA     array_elem_ty
         LDA     #TY_ARRAY
         RTS
+@not_array:
+        LDA     tok_type
+        CMP     #TOK_RECORD
+        BEQ     :+
+        JMP     @not_record
 :
+; --- RECORD field { ; field } END ---
+; Each field group: name { , name } : type
+; All fields are stored as 2-byte slots; offsets are 0, 2, 4, ...
+        JSR     next_token              ; consume RECORD
+        LDA     #0
+        STA     record_size
+        STA     record_size+1
+        STA     record_field_count
+        LDA     field_table_count
+        STA     record_first_field
+@rec_loop:
+        LDA     tok_type
+        CMP     #TOK_END
+        BNE     :+
+        JMP     @rec_end
+:
+        CMP     #TOK_IDENT
+        BEQ     :+
+        JMP     @rec_end                ; safety — bail on unexpected token
+:
+; --- collect comma-separated field names into var_name_buf ---
+        LDA     #0
+        STA     var_name_count
+@rec_collect:
+        LDA     tok_type
+        CMP     #TOK_IDENT
+        BNE     @rec_endcol
+        LDA     var_name_count
+        CMP     #8
+        BCS     @rec_skip_save
+        ASL
+        ASL
+        ASL
+        ASL                             ; *16
+        CLC
+        ADC     #<var_name_buf
+        STA     tmp2
+        LDA     #0
+        ADC     #>var_name_buf
+        STA     tmp2+1
+        LDY     #15
+@rec_cpin:
+        LDA     ident_buf,y
+        STA     (tmp2),y
+        DEY
+        BPL     @rec_cpin
+        INC     var_name_count
+@rec_skip_save:
+        JSR     next_token              ; consume name
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BNE     @rec_endcol
+        JSR     next_token              ; consume ','
+        BRA     @rec_collect
+@rec_endcol:
+; expect ':'
+        LDA     tok_type
+        CMP     #TOK_COLON
+        BNE     :+
+        JSR     next_token
+:       ; parse field type — recurse; result in A
+        JSR     parse_type_spec
+        STA     scratch                 ; field type code
+; --- add each collected name to field_table at current record_size ---
+        LDX     #0
+@rec_addf:
+        CPX     var_name_count
+        BCS     @rec_endf
+        PHX
+        TXA
+        ASL
+        ASL
+        ASL
+        ASL                             ; *16
+        CLC
+        ADC     #<var_name_buf
+        STA     tmp2
+        LDA     #0
+        ADC     #>var_name_buf
+        STA     tmp2+1
+        LDY     #15
+@rec_cpout:
+        LDA     (tmp2),y
+        STA     ident_buf,y
+        DEY
+        BPL     @rec_cpout
+; field_table_add: A=offset (record_size lo), X=type
+        LDA     record_size
+        LDX     scratch
+        JSR     field_table_add
+        INC     record_field_count
+; advance record_size by 2
+        CLC
+        LDA     record_size
+        ADC     #2
+        STA     record_size
+        BCC     :+
+        INC     record_size+1
+:
+        PLX
+        INX
+        JMP     @rec_addf
+@rec_endf:
+; expect ';' between groups, or END
+        LDA     tok_type
+        CMP     #TOK_SEMICOLON
+        BNE     @rec_check_end
+        JSR     next_token              ; consume ';'
+        JMP     @rec_loop
+@rec_check_end:
+        LDA     tok_type
+        CMP     #TOK_END
+        BEQ     :+
+        JMP     @rec_loop               ; recover — try again
+:
+@rec_end:
+        JSR     next_token              ; consume END
+        LDA     #TY_RECORD
+        RTS
+@not_record:
         JSR     next_token
         LDA     #TY_INT
         RTS
@@ -1074,84 +1305,115 @@ parse_statement:
 ; If identifier is WRITE/WRITELN → built-in I/O
 ; ---------------------------------------------------------------------------
 parse_assign_or_call:
-; check for built-in I/O names (WRITE/WRITELN/READ/READLN) by
-; length + first letter.  RECORD/REPEAT are reserved keywords so
-; they never reach this dispatch as identifiers.
+; Dispatch built-in I/O procedures by length+initial letter.  RECORD/REPEAT
+; are reserved keywords so they never reach this dispatch as identifiers.
+;   len 4 : READ
+;   len 5 : WRITE  | RESET  | CLOSE
+;   len 6 : READLN | ASSIGN
+;   len 7 : WRITELN| REWRITE
         LDA     ident_buf       ; length
         CMP     #4
         BEQ     @chk_read
         CMP     #5
-        BEQ     @chk_write
+        BEQ     @chk_len5
         CMP     #6
-        BEQ     @chk_readln
+        BEQ     @chk_len6
         CMP     #7
+        BEQ     @chk_len7
+        JMP     @lookup_sym
+
+@chk_len5:
+        LDA     ident_buf+1
+        CMP     #'W'
+        BEQ     @chk_write
+        CMP     #'R'
+        BEQ     @chk_reset
+        CMP     #'C'
+        BEQ     @chk_close
+        JMP     @lookup_sym
+
+@chk_len6:
+        LDA     ident_buf+1
+        CMP     #'R'
+        BEQ     @chk_readln
+        CMP     #'A'
+        BEQ     @chk_assign
+        JMP     @lookup_sym
+
+@chk_len7:
+        LDA     ident_buf+1
+        CMP     #'W'
         BEQ     @chk_writeln
-        BRA     @lookup_sym
+        CMP     #'R'
+        BEQ     @chk_rewrite
+        JMP     @lookup_sym
 
 @chk_write:
 ; "WRITE" (5)
-        LDA     ident_buf+1
-        CMP     #'W'
-        BNE     @lookup_sym
         JSR     next_token
-        JSR     parse_write_args
+        JSR     parse_write_args        ; X=0 console, X=1 file (file ptr left)
+        CPX     #0
+        BEQ     @w_done
+        JSR     emit_POP                ; discard leftover file ptr
+@w_done:
         RTS
+
 @chk_writeln:
-; "WRITELN" (7)
-        LDA     ident_buf+1
-        CMP     #'W'
-        BNE     @lookup_sym
+; "WRITELN" (7) — first ident_buf char already known 'W'
         JSR     next_token
         LDA     tok_type
         CMP     #TOK_LPAREN
         BNE     @just_nl
         JSR     parse_write_args
+        CPX     #0
+        BEQ     @just_nl
+        JMP     emit_FWLN               ; file newline; consumes file ptr
 @just_nl:
-        JSR     emit_WRITLN
-        RTS
+        JMP     emit_WRITLN
+
 @chk_read:
 ; "READ" (4)
         LDA     ident_buf+1
         CMP     #'R'
-        BNE     @lookup_sym
+        BNE     @lookup_sym_jmp
         JSR     next_token
         JSR     parse_read_args
+        CPX     #0
+        BEQ     @r_done
+        JSR     emit_POP                ; discard leftover file ptr
+@r_done:
         RTS
+
 @chk_readln:
-; "READLN" (6).  With args: read each var.  Without args: no-op
-; (TODO: read+discard a line so the program pauses for input).
-        LDA     ident_buf+1
-        CMP     #'R'
-        BNE     @lookup_sym
+; "READLN" (6).  Console: read each var.  File: read each var, then skip EOL.
         JSR     next_token
         LDA     tok_type
         CMP     #TOK_LPAREN
         BNE     @rd_done
         JSR     parse_read_args
+        CPX     #0
+        BEQ     @rd_done
+        JSR     emit_FRDLN              ; consumes file ptr, skips to EOL
 @rd_done:
         RTS
 
+@chk_assign:
+; "ASSIGN" (6)
+        JMP     parse_builtin_assign
+@chk_reset:
+; "RESET" (5)
+        JMP     parse_builtin_reset
+@chk_rewrite:
+; "REWRITE" (7)
+        JMP     parse_builtin_rewrite
+@chk_close:
+; "CLOSE" (5)
+        JMP     parse_builtin_close
+
+@lookup_sym_jmp:
+        JMP     @lookup_sym
+
 @lookup_sym:
-; DEBUG: print '#' + len(ident_buf) as digit + ident_buf+1 + '#'
-; + '@' + symtab_count low + '@' BEFORE lookup
-        LDA     #'#'
-        JSR     dbg_putc
-        LDA     ident_buf
-        CLC
-        ADC     #'0'
-        JSR     dbg_putc
-        LDA     ident_buf+1
-        JSR     dbg_putc
-        LDA     #'#'
-        JSR     dbg_putc
-        LDA     #'@'
-        JSR     dbg_putc
-        LDA     symtab_count
-        CLC
-        ADC     #'0'
-        JSR     dbg_putc
-        LDA     #'@'
-        JSR     dbg_putc
 ; look up identifier in symbol table
         JSR     symtab_find
         BCS     @found_sym
@@ -1161,13 +1423,6 @@ parse_assign_or_call:
         LDA     #>err_undef
         STA     tmp0+1
         JSR     compile_error
-        ; DEBUG: print '[' + first letter of undef ident + ']'
-        LDA     #'['
-        JSR     dbg_putc
-        LDA     ident_buf+1
-        JSR     dbg_putc
-        LDA     #']'
-        JSR     dbg_putc
 ; skip to semicolon / end
         JSR     next_token
         RTS
@@ -1178,6 +1433,9 @@ parse_assign_or_call:
         LDY     #16
         LDA     (tmp3),y
         STA     sym_save_kind
+        LDY     #17
+        LDA     (tmp3),y
+        STA     sym_save_type
         LDY     #20
         LDA     (tmp3),y
         STA     sym_save_scope
@@ -1200,7 +1458,9 @@ parse_assign_or_call:
         CMP     #SYM_VAR
         BEQ     @do_assign
         CMP     #SYM_PROC
-        BEQ     @do_call
+        BNE     :+
+        JMP     @do_call
+:
         CMP     #SYM_RETVAL
         BEQ     @do_retval_assign
         CMP     #SYM_VARREF
@@ -1239,18 +1499,23 @@ parse_assign_or_call:
         RTS
 
 @do_assign:
-; expect ':='
-        JSR     next_token
+        JSR     next_token      ; consume variable name identifier
+; check for compound-type access (array subscript or record field)
+        LDA     sym_save_type
+        CMP     #TY_ARRAY
+        BEQ     @array_assign
+        CMP     #TY_RECORD
+        BNE     :+
+        JMP     @record_assign
+:
+; scalar assignment — expect ':='
         LDA     tok_type
         CMP     #TOK_ASSIGN
         BNE     :+
         JSR     next_token
-:       ; parse expression
-        JSR     parse_expression
-        ; emit STG or STL based on saved scope
+:       JSR     parse_expression
         LDA     sym_save_scope
         BNE     @local_store
-        ; global store
         LDA     sym_save_off+1
         STA     scratch
         LDA     sym_save_off
@@ -1259,6 +1524,98 @@ parse_assign_or_call:
 @local_store:
         LDA     sym_save_off
         JSR     emit_STL
+        RTS
+
+@array_assign:
+; a[i] := expr
+; emit base-address push
+        LDA     sym_save_scope
+        BNE     @aarr_local
+        LDA     sym_save_off+1
+        STA     scratch
+        LDA     sym_save_off
+        JSR     emit_LDA_G
+        BRA     @aarr_idx
+@aarr_local:
+        LDA     sym_save_off
+        JSR     emit_LDA_L
+@aarr_idx:
+; consume '[', parse index expr, consume ']'
+        LDA     tok_type
+        CMP     #TOK_LBRACK
+        BNE     :+
+        JSR     next_token
+:       JSR     parse_expression
+        LDA     tok_type
+        CMP     #TOK_RBRACK
+        BNE     :+
+        JSR     next_token
+:
+; emit INDEX 2 0  (elemsize = 2 words)
+        LDA     #0
+        STA     scratch
+        LDA     #2
+        JSR     emit_INDEX
+; consume ':='
+        LDA     tok_type
+        CMP     #TOK_ASSIGN
+        BNE     :+
+        JSR     next_token
+:
+; parse and emit RHS expression
+        JSR     parse_expression
+; store: NOS=element_addr TOS=value → STIND
+        JSR     emit_STIND
+        RTS
+
+@record_assign:
+; v.field := expr
+; emit base-address push
+        LDA     sym_save_scope
+        BNE     @rec_la_local
+        LDA     sym_save_off+1
+        STA     scratch
+        LDA     sym_save_off
+        JSR     emit_LDA_G
+        BRA     @rec_la_dot
+@rec_la_local:
+        LDA     sym_save_off
+        JSR     emit_LDA_L
+@rec_la_dot:
+; consume '.'
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BNE     :+
+        JSR     next_token
+:
+; field name now in ident_buf — look up
+        LDA     sym_save_vmask  ; first_field_idx
+        LDX     sym_save_lsize  ; field_count
+        JSR     field_lookup_in_record
+        BCS     :+
+        JMP     @rec_la_undef
+:
+; A=field offset (0..); X=field type (unused on LHS)
+        BEQ     @rec_la_no_off
+        JSR     emit_LDCI
+        JSR     emit_ADI
+@rec_la_no_off:
+        JSR     next_token      ; consume field name
+; expect ':='
+        LDA     tok_type
+        CMP     #TOK_ASSIGN
+        BNE     :+
+        JSR     next_token
+:
+        JSR     parse_expression
+        JSR     emit_STIND
+        RTS
+@rec_la_undef:
+        LDA     #<err_undef
+        STA     tmp0
+        LDA     #>err_undef
+        STA     tmp0+1
+        JSR     compile_error
         RTS
 
 @do_call:
@@ -2039,11 +2396,15 @@ parse_factor:
         LDA     tok_ival_hi
         BNE     @big_int
         PLA
-        JSR     emit_LDCI       ; fits in signed byte? check later; use LDCI for now
+        BMI     @big_int_lo     ; lo's bit 7 set — LDCI would sign-extend wrongly
+        JSR     emit_LDCI
         JSR     next_token
         LDA     #TY_INT
         STA     expr_type
         RTS
+@big_int_lo:
+        PHA
+        LDA     #0
 @big_int:
         STA     scratch
         PLA
@@ -2071,6 +2432,65 @@ parse_factor:
         RTS
 
 @ident_or_call:
+; First check for string built-ins (LENGTH/POS/COPY/CONCAT) by length+initial.
+; These take precedence over user identifiers (matching WRITE/READ handling
+; in parse_assign_or_call).
+        LDA     ident_buf
+        CMP     #3
+        BEQ     @bi_chk_pos
+        CMP     #4
+        BEQ     @bi_chk_copy
+        CMP     #6
+        BEQ     @bi_chk_len_or_cat
+        BRA     @do_lookup
+@bi_chk_pos:
+        LDA     ident_buf+1
+        CMP     #'P'
+        BNE     @do_lookup
+        LDA     ident_buf+2
+        CMP     #'O'
+        BNE     @do_lookup
+        LDA     ident_buf+3
+        CMP     #'S'
+        BNE     @do_lookup
+        JMP     parse_builtin_pos
+@bi_chk_copy:
+        LDA     ident_buf+1
+        CMP     #'C'
+        BNE     @do_lookup
+        LDA     ident_buf+2
+        CMP     #'O'
+        BNE     @do_lookup
+        LDA     ident_buf+3
+        CMP     #'P'
+        BNE     @do_lookup
+        LDA     ident_buf+4
+        CMP     #'Y'
+        BNE     @do_lookup
+        JMP     parse_builtin_copy
+@bi_chk_len_or_cat:
+        LDA     ident_buf+1
+        CMP     #'L'
+        BEQ     @bi_try_length
+        CMP     #'C'
+        BNE     @do_lookup
+; CONCAT? check 'O','N','C','A','T'
+        LDA     ident_buf+2
+        CMP     #'O'
+        BNE     @do_lookup
+        LDA     ident_buf+3
+        CMP     #'N'
+        BNE     @do_lookup
+        JMP     parse_builtin_concat
+@bi_try_length:
+        LDA     ident_buf+2
+        CMP     #'E'
+        BNE     @do_lookup
+        LDA     ident_buf+3
+        CMP     #'N'
+        BNE     @do_lookup
+        JMP     parse_builtin_length
+@do_lookup:
 ; Look up BEFORE next_token — next_token may overwrite ident_buf
 ; if the following token is an identifier or keyword (e.g. J THEN).
         JSR     symtab_find
@@ -2119,21 +2539,117 @@ parse_factor:
         TAY                     ; Y = scope (preserved across kind test)
         PLA                     ; kind
         CMP     #SYM_FUNC
-        BEQ     @sym_func_call
+        BNE     :+
+        JMP     @sym_func_call
+:
         CMP     #SYM_CONST
-        BEQ     @const_emit
+        BNE     :+
+        JMP     @const_emit
+:
         CMP     #SYM_VARREF
-        BEQ     @varref_load
+        BNE     :+
+        JMP     @varref_load
+:
 ; SYM_VAR (default; PROC also falls through here for now)
         PLA                     ; discard pcount
         CPY     #0
         BNE     @local_load
+; global SYM_VAR — check for array subscript, record field, or TEXT file
+        LDA     expr_type
+        CMP     #TY_ARRAY
+        BEQ     @arr_rhs_global
+        CMP     #TY_RECORD
+        BEQ     @rec_rhs_global
+        CMP     #TY_TEXT
+        BEQ     @text_rhs_global
         TXA
         JSR     emit_LDG
         RTS
+@text_rhs_global:
+        TXA                     ; push struct address, leave expr_type=TY_TEXT
+        JMP     emit_LDA_G
+@arr_rhs_global:
+        TXA                     ; A=off_lo, scratch=off_hi still valid
+        JSR     emit_LDA_G
+        BRA     @arr_rhs_index
+@rec_rhs_global:
+        TXA                     ; A=off_lo, scratch=off_hi
+        JSR     emit_LDA_G
+        BRA     @rec_rhs_field
 @local_load:
+        LDA     expr_type
+        CMP     #TY_ARRAY
+        BEQ     @arr_rhs_local
+        CMP     #TY_RECORD
+        BEQ     @rec_rhs_local
+        CMP     #TY_TEXT
+        BEQ     @text_rhs_local
         TXA
         JSR     emit_LDL
+        RTS
+@text_rhs_local:
+        TXA
+        JMP     emit_LDA_L
+@arr_rhs_local:
+        TXA
+        JSR     emit_LDA_L
+@arr_rhs_index:
+; parse [index], emit INDEX, LDIND
+        LDA     tok_type
+        CMP     #TOK_LBRACK
+        BNE     :+
+        JSR     next_token
+:       JSR     parse_expression    ; clobbers expr_type, scratch, tmp*
+        LDA     tok_type
+        CMP     #TOK_RBRACK
+        BNE     :+
+        JSR     next_token
+:       LDA     #0
+        STA     scratch
+        LDA     #2
+        JSR     emit_INDEX
+        JSR     emit_LDIND
+        LDA     #TY_INT
+        STA     expr_type
+        RTS
+@rec_rhs_local:
+        TXA
+        JSR     emit_LDA_L
+@rec_rhs_field:
+; consume '.'
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BNE     :+
+        JSR     next_token
+:
+; field name now in ident_buf — look up
+        LDA     fcall_vmask     ; first_field_idx (saved from byte 22)
+        LDX     fcall_lsize     ; field_count (saved from byte 23)
+        JSR     field_lookup_in_record
+        BCC     @rec_rhs_nf
+        PHA                     ; save offset
+        TXA
+        STA     scratch         ; save field type (preserved across emits)
+        PLA                     ; offset back; PLA sets Z for the BEQ below
+        BEQ     @rec_rhs_no_off
+        JSR     emit_LDCI
+        JSR     emit_ADI
+@rec_rhs_no_off:
+        JSR     next_token      ; consume field name
+        JSR     emit_LDIND
+        LDA     scratch
+        STA     expr_type       ; field's type drives WRITE dispatch
+        RTS
+@rec_rhs_nf:
+        LDA     #<err_undef
+        STA     tmp0
+        LDA     #>err_undef
+        STA     tmp0+1
+        JSR     compile_error
+        JSR     next_token      ; consume bad field name
+        JSR     emit_LDIND      ; keep stack balanced
+        LDA     #TY_INT
+        STA     expr_type
         RTS
 @varref_load:
 ; SYM_VARREF: local slot holds an address. Emit LDL then LDIND.
@@ -2255,5 +2771,94 @@ parse_factor:
         JSR     emit_LDCN
         JSR     next_token
         LDA     #TY_PTR
+        STA     expr_type
+        RTS
+
+; ---------------------------------------------------------------------------
+; String built-in helpers — entered from parse_factor's @ident_or_call.
+; The identifier is still the current token on entry.
+; ---------------------------------------------------------------------------
+
+; Skip current token if it matches A; otherwise just fall through.
+; Used to consume optional punctuation like '(' / ')' / ',' without aborting
+; on a missing token (compile_error elsewhere will catch malformed code).
+parse_eat_token:
+        CMP     tok_type
+        BNE     :+
+        JMP     next_token
+:       RTS
+
+parse_builtin_length:
+        JSR     next_token              ; consume LENGTH
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression        ; pushes string ptr
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JSR     emit_LEN
+        LDA     #TY_INT
+        STA     expr_type
+        RTS
+
+parse_builtin_pos:
+        JSR     next_token              ; consume POS
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression        ; substr
+        LDA     #TOK_COMMA
+        JSR     parse_eat_token
+        JSR     parse_expression        ; mainstr
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JSR     emit_POS
+        LDA     #TY_INT
+        STA     expr_type
+        RTS
+
+parse_builtin_copy:
+        JSR     next_token              ; consume COPY
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression        ; src string
+        LDA     #TOK_COMMA
+        JSR     parse_eat_token
+        JSR     parse_expression        ; index
+        LDA     #TOK_COMMA
+        JSR     parse_eat_token
+        JSR     parse_expression        ; count
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JSR     emit_COPY
+        LDA     #TY_STRING
+        STA     expr_type
+        RTS
+
+; CONCAT(s1, s2 [, s3, ...]) — emit chained CONCAT2.  Each pair-merge writes
+; into the next round-robin work buffer, so 3+ args work as long as the
+; intermediate buffer isn't recycled before being consumed.
+parse_builtin_concat:
+        JSR     next_token              ; consume CONCAT
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression        ; first arg on stack
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BEQ     @cat_more
+; Single-arg CONCAT — just leave the string on the stack (rare/edge case).
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        LDA     #TY_STRING
+        STA     expr_type
+        RTS
+@cat_more:
+        JSR     next_token              ; consume ','
+        JSR     parse_expression        ; next arg
+        JSR     emit_CONCAT             ; merge previous + next
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BEQ     @cat_more
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        LDA     #TY_STRING
         STA     expr_type
         RTS

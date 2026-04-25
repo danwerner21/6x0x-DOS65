@@ -36,6 +36,17 @@ var_name_count:
 var_name_buf:
         .RES    128
 
+; Field table for RECORD types.  32 entries × 16 bytes each:
+;   [0]    field name length (1-12)
+;   [1-12] field name chars (uppercase, padded with spaces)
+;   [13]   byte offset within the record
+;   [14]   field data type (TY_INT/TY_CHAR/TY_BOOL)
+;   [15]   reserved
+field_table_count:
+        .RES    1
+field_table:
+        .RES    512             ; 32 entries × 16 bytes
+
 ; Code generation buffer — p-code accumulates here until file write
 ; Overlaps the CPMDATA area above $2400 after FCBs.
 ; This holds up to ~32KB of generated p-code.
@@ -93,8 +104,6 @@ pascal_main:
         BNE     :+
         JMP     @no_file
 :
-        LDA     #'1'            ; DBG: source file opened
-        JSR     dbg_putc
 
 ; create output .PCD file
         JSR     build_out_fcb
@@ -107,33 +116,15 @@ pascal_main:
         BNE     :+
         JMP     @out_err
 :
-        LDA     #'2'            ; DBG: output file made
-        JSR     dbg_putc
 
 ; initialise compiler state
         JSR     compiler_init
-        LDA     #'3'            ; DBG: compiler_init done
-        JSR     dbg_putc
 
 ; run compilation
         JSR     compile_program
-        LDA     #'4'            ; DBG: compile_program done
-        JSR     dbg_putc
-; DBG: print cg_pc (bytes emitted)
-        LDA     #'='
-        JSR     dbg_putc
-        LDA     cg_pc
-        STA     tmp0
-        LDA     cg_pc+1
-        STA     tmp0+1
-        JSR     console_print_dec
-        LDA     #' '
-        JSR     dbg_putc
 
 ; write .PCD file
         JSR     write_pcd
-        LDA     #'5'            ; DBG: write_pcd done
-        JSR     dbg_putc
 
 ; close files
         LDA     #<comp_src_fcb
@@ -442,14 +433,6 @@ write_pcd:
         JSR     file_write_sector
         BRA     @next_sec
 @done:
-        RTS
-
-; ---------------------------------------------------------------------------
-; dbg_putc — print A as a single character via PEM #2
-; ---------------------------------------------------------------------------
-dbg_putc:
-        LDX     #PEM_CONOUT
-        JSR     PEM_ENTRY
         RTS
 
 ; ---------------------------------------------------------------------------

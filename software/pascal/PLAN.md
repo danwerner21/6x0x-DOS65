@@ -306,61 +306,99 @@ software/pascal/
 
 ## Implementation Phases
 
-### Phase 1 — P-Code Runtime (PRUN.COM)  ← Start Here
-Build and test the interpreter first, hand-coding simple `.PCD` files to verify each
-opcode group works correctly before writing the compiler.
+### ✅ Phase 1 — P-Code Runtime (PRUN.COM)
+- DOS/65 entry, `.PCD` load + magic validation
+- Zero-page register layout (`prun.asm` + `zeropage.asm`)
+- Main fetch-decode-execute loop with dispatch table
+- Opcodes: LDCI/LDCW/LDCC/LDCB/LDCS/LDCN
+- Opcodes: LDL/STL/LDA_L/LDB_L/STB_L (locals)
+- Opcodes: LDG/STG/LDA_G/LDB_G/STB_G (globals)
+- Opcodes: LDIND/STIND, LDB_IND/STB_IND, INDEX
+- Opcodes: ADI/SBI/MPI/DVI/MOD/NGI (integer arithmetic)
+- Opcodes: LAND/LOR/LNOT (boolean)
+- Opcodes: EQUI/NEQI/LESI/LEQI/GTRI/GEQI/EQUB/EQUS (comparison)
+- Opcodes: UJP/FJP/TJP (branches), CALL/RET/RETF/MRKSTK/DEPSTK/STR (procedures)
+- Opcodes: WRITI/WRITC/WRITB/WRITS/WRITLN/READI/READC (I/O)
+- Opcodes: DUP/POP/SWAP/MOVS (stack), HALT
+- Opcodes: NEW/DISP (heap)
 
-**Tasks:**
-1. `prun.asm` skeleton: DOS/65 entry, load `.PCD` from FCB arg, validate magic
-2. Zero-page register layout, stack arrays in `zeropage.asm`
-3. Main fetch-decode-execute loop with 256-entry dispatch table
-4. Opcodes: LDCI/LDCW/LDCC/LDCB, LDL/STL, ADI/SBI/MPI/DVI/MOD
-5. Opcodes: comparisons, FJP/TJP/UJP, CALL/RET, MRKSTK/DEPSTK
-6. Opcodes: WRITI/WRITC/WRITS/WRITLN/READI/READC/HALT
-7. LDIND/STIND, INDEX, NEW/DISP
-8. Hand-assembled test programs for each group
+### ✅ Phase 2 — Compiler Lexer
+- FCB-based sequential file reader with 128-byte sector buffer
+- Token types, keyword table (linear scan)
+- Number and string literal parsing
+- Line/column tracking for error messages
 
-### Phase 2 — Compiler Lexer (pascal.asm + lexer.asm)
-Tokenize Pascal source from a DOS/65 file using sequential FCB reads.
+### ✅ Phase 3 — Parser + Symbol Table (core)
+- Recursive-descent parser, single-pass to p-code (no AST)
+- Symbol table: linear array, scoped (global + procedure-local)
+  - Symbol kinds: SYM_VAR, SYM_CONST, SYM_PROC, SYM_FUNC, SYM_TYPE, SYM_PARAM, SYM_RETVAL, SYM_VARREF
+- `PROGRAM`, `VAR`, `CONST` declarations (global)
+- `BEGIN … END` compound statements
+- Assignment `:=`, expression parser with full precedence
+- `WRITE`, `WRITELN`, `READ`, `READLN` built-ins
+- `IF … THEN … ELSE`, `WHILE … DO`, `FOR … TO/DOWNTO … DO`
+- `REPEAT … UNTIL`, `CASE … OF … END`
+- `PROCEDURE` and `FUNCTION` declarations with local vars
+- Value parameters and `VAR` (by-reference) parameters
+- `TYPE` declarations (named type aliases)
 
-**Tasks:**
-1. FCB-based sequential file reader with 128-byte sector buffer
-2. Character classifier tables (letter, digit, whitespace, operator)
-3. Token types enum, keyword recognition (hash table)
-4. Number literal parser, string literal parser
-5. Token stream output with line-number tracking for error messages
+### ✅ Phase 4 — Code Generator
+- In-memory emit buffer (`CODEBUF_BASE = $3000`)
+- Emit routines for all opcodes
+- Forward-jump backpatching (FJP/TJP/UJP patch slots)
+- `.PCD` file header + sequential sector write
+- Global variable allocation (`cg_globals`)
 
-### Phase 3 — Parser + Symbol Table (parser.asm + symtab.asm)
-Recursive-descent parser building an implicit AST directly driving code generation
-(no explicit tree nodes — single-pass compilation to p-code).
+### ✅ Phase 5 — Integration (completed phases)
+End-to-end compilation and execution verified for:
+- `T01`–`T04`: basic integer, boolean, char I/O
+- `T05`: string output
+- `T06`–`T09`: arithmetic, comparisons
+- `T10`–`T11`: IF/ELSE
+- `T12`: WHILE loop
+- `T13`: FOR loop
+- `T14`: REPEAT/UNTIL
+- `T15`: procedures with local vars
+- `T16`–`T17`: functions and return values
+- `T18`: VAR (by-reference) parameters
+- `T19`: READ/READLN integer input
+- `T20`/`T20A`: TYPE declarations (named type aliases) ← just fixed
 
-**Tasks:**
-1. Symbol table: nested scopes, variable offset calculation
-2. `parseProgram` → `parseBlock` → `parseStatement`
-3. Expression parser with operator precedence (Pratt-style)
-4. Type checking at parse time
-5. Procedure/function declaration and call resolution
+---
 
-### Phase 4 — Code Generator (codegen.asm)
-Emit p-code into an output buffer, then write as `.PCD` to disk.
+### ✅ Phase 10b — ARRAY Types
+`ARRAY [lo..hi] OF basetype` for global vars; element size = 2 bytes.
+Adjusted-offset trick: SYM_VAR offset stored as `raw_base - lo*2` so
+`base + offset + i*2` lands on element `i`.
+Tests: `T21`, `T21A`, `T21B`, `T21C`.
 
-**Tasks:**
-1. Emit buffer (in-memory, flush to FCB output)
-2. Emit routines for each opcode
-3. Forward-jump patching (backpatch list)
-4. `.PCD` file header assembly
-5. String pool management
+---
 
-### Phase 5 — Integration & Testing
-- End-to-end: compile a `.PAS` file with PASCAL.COM, run with PRUN.COM
-- Test suite: `HELLO.PAS`, `FIBONACCI.PAS`, `SIEVE.PAS`, `SORT.PAS`
-- Measure code size; optimize hot paths in interpreter dispatch
+### ✅ Phase 11 — RECORD Types
+Named record types via `TYPE T = RECORD …field-list… END;`.
+All fields are 2 bytes; offsets are 0, 2, 4, …
+Field-table at `field_table` (64 entries × 16 bytes); SYM_TYPE/SYM_VAR
+entries store `first_field_idx` (byte 22) and `field_count` (byte 23).
+Field access compiles to `LDA_G/LDA_L base; LDCI <off>; ADI; LDIND/STIND`
+(LDCI/ADI omitted when field offset is 0).
+Tests: `T22`, `T22A` (comma-separated fields), `T22B` (two record vars).
 
-### Phase 6 — Quality of Life (optional)
-- Meaningful compiler error messages with line numbers
-- `REAL` data type (16.16 fixed-point or BCD)
-- File I/O (`RESET`, `REWRITE`, `READ`/`WRITE` on typed files)
-- `STRING` built-ins: `LENGTH`, `COPY`, `DELETE`, `INSERT`, `POS`
+**Known limitations:**
+- Inline records (`VAR P : RECORD …`) clobber `var_name_buf` — only
+  named records via `TYPE` are safe in this build
+- No nested records; field type must be a scalar (INTEGER/CHAR/BOOL)
+- Local record variables not implemented (globals only)
+
+---
+
+### 🔲 Phase 12 — Quality of Life / Cleanup
+- ✅ Removed debug `dbg_putc` scaffolding from `pascal.asm`; banner now reads `Compiling...` on its own line followed by `OK`
+- ✅ `STRING` built-ins: `LENGTH`, `POS`, `COPY`, `CONCAT`
+  - New opcodes `OP_LEN/POS/COPY/CONCAT` ($A0–$A3) handled in `prun.asm`
+  - `COPY`/`CONCAT` results land in 3 round-robin work buffers at `$AD00/$AE00/$AF00`; deeply nested expressions can recycle a buffer before it's consumed
+  - Test: `tests/t23.pas`
+- `REAL` type (future — 16.16 fixed-point or software float)
+- File I/O (`RESET`, `REWRITE`, typed file reads/writes)
 
 ---
 
@@ -372,12 +410,12 @@ PASCAL HELLO          ; compiles HELLO.PAS → HELLO.PCD
 PRUN   HELLO          ; runs HELLO.PCD
 ```
 
-The `.COM` convention: FCB at $005C contains the first argument (8.3 filename, no
-extension needed — compiler assumes `.PAS`, runtime assumes `.PCD`).
+The DOS/65 convention: the parsed argument FCB is at `DEFAULT_FCB = $0107` (not $005C
+as in CP/M). The compiler forces extension to `.PAS`; the runtime forces `.PCD`.
 
 ### Console I/O
-- Output: FARCALL #02 (chrout, cursor-aware, auto-scroll)
-- Input:  PEM fn 11 (status check) + PEM fn 1 (blocking read with echo)
+- Output: PEM fn 2 (CONOUT, character in A) — routes through DFT_CONSOLE driver
+- Input:  PEM fn 1 (blocking read with echo)
 - The `WRITELN` opcode emits CR ($0D) + LF ($0A)
 
 ### File I/O

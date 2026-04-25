@@ -56,6 +56,8 @@ save_name_buf:
 ; entry fields across next_token + parse_expression, which clobber tmp3.
 sym_save_kind:
         .RES    1
+sym_save_type:
+        .RES    1               ; SYM entry offset 17 (data type: TY_*)
 sym_save_scope:
         .RES    1
 sym_save_off:
@@ -66,6 +68,25 @@ sym_save_vmask:
         .RES    1               ; SYM_PROC/SYM_FUNC VAR-param bitmap (entry offset 22)
 sym_save_lsize:
         .RES    1               ; SYM_PROC/SYM_FUNC total local-area size (entry offset 23)
+
+; ARRAY type scratch — set by parse_type_spec when it parses an ARRAY type;
+; read by parse_var_decls to compute storage size and adjusted offset.
+array_lo:
+        .RES    2               ; lower bound (signed word)
+array_hi:
+        .RES    2               ; upper bound (signed word)
+array_elem_ty:
+        .RES    1               ; element base type (TY_INT, TY_CHAR, TY_BOOL …)
+
+; RECORD type scratch — set by parse_type_spec when it parses a RECORD type
+; (or resolves a TYPE alias of a RECORD).  Read by parse_var_decls and by
+; parse_type_decls to copy into the new SYM_VAR/SYM_TYPE entry.
+record_size:
+        .RES    2               ; total record size in bytes
+record_first_field:
+        .RES    1               ; index of first field in field_table
+record_field_count:
+        .RES    1               ; number of fields in this record
 
 ; Procedure-declaration scratch (parse_proc_decl; not nestable in this build).
 proc_param_count:
@@ -156,6 +177,7 @@ next_token:
 ; skip { ... }
 @cloop:
         JSR     lexer_getc
+        LDA     lex_char        ; PLY inside lexer_getc clobbers Z; reload to test EOF
         BEQ     @eof
         CMP     #'}'
         BNE     @cloop

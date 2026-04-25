@@ -1,0 +1,14 @@
+PROGRAM T22;
+TYPE
+  TPOINT = RECORD
+    X : INTEGER;
+    Y : INTEGER
+  END;
+VAR
+  P : TPOINT;
+BEGIN
+  P.X := 10;
+  P.Y := 20;
+  WRITELN(P.X);
+  WRITELN(P.Y)
+END.

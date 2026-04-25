@@ -115,6 +115,42 @@ OP_POP          = $91
 OP_SWAP         = $92
 OP_MOVS         = $93           ; copy n bytes (byte count follows)
 
+; --- String built-ins ---
+OP_LEN          = $A0           ; TOS=strptr -> TOS=length (int)
+OP_POS          = $A1           ; NOS=substr, TOS=str -> TOS=1-based pos (0=not found)
+OP_COPY         = $A2           ; NNOS=str, NOS=index, TOS=count -> TOS=result strptr
+OP_CONCAT       = $A3           ; NOS=s1, TOS=s2 -> TOS=result strptr
+
+; --- TEXT file I/O ---
+; All file ops take a file-struct pointer (NOS / TOS).
+OP_FASSGN       = $B0           ; NOS=fileptr, TOS=strptr (filename) -> set FCB
+OP_FRESET       = $B1           ; TOS=fileptr -> open existing for reading
+OP_FREWRT       = $B2           ; TOS=fileptr -> create/truncate for writing
+OP_FCLOSE       = $B3           ; TOS=fileptr -> flush and close
+OP_FWRC         = $B4           ; NOS=fileptr, TOS=char -> append char
+OP_FWRS         = $B5           ; NOS=fileptr, TOS=strptr -> append string
+OP_FWRI         = $B6           ; NOS=fileptr, TOS=int   -> append decimal
+OP_FWLN         = $B7           ; TOS=fileptr -> append CR+LF
+OP_FRDC         = $B8           ; NOS=fileptr, TOS=charvar addr -> read char
+OP_FRDI         = $B9           ; NOS=fileptr, TOS=intvar  addr -> read decimal int
+OP_FRDLN        = $BA           ; TOS=fileptr -> skip remaining chars to end-of-line
+OP_FEOF         = $BB           ; TOS=fileptr -> push EOF flag (0=false, $FFFF=true)
+
+; TEXT-file struct layout (168 bytes per variable)
+F_FCB           = 0             ; 36 bytes
+F_BUF           = 36            ; 128 bytes
+F_MODE          = 164           ; 0=closed, 1=read, 2=write
+F_POS           = 165           ; 0..127 buffer position
+F_EOF           = 166           ; 0=more data, 1=EOF reached
+F_SPARE         = 167
+FILE_STRUCT_SZ  = 168
+
+F_MODE_CLOSED   = 0
+F_MODE_READ     = 1
+F_MODE_WRITE    = 2
+
+CTRL_Z          = $1A           ; CP/M text-file end-of-data marker
+
 ; --- Halt ---
 OP_HALT         = $FF
 

@@ -9,6 +9,8 @@
 ;   $8000-$AFFF  heap (grows down from $B000)
 ;   $B000-$B7DF  globals + string pool
 
+.PC02                                   ; enable 65C02 (BRA/PHX/PHY) for string built-ins
+
         .include        "DEFINITIONS.ASM"
         .include        "ZEROPAGE.ASM"
 
@@ -257,6 +259,9 @@ prun_execute:
         STA     pm_np
         LDA     #>HEAP_TOP
         STA     pm_np+1
+
+        LDA     #0                      ; reset string work-buffer cursor
+        STA     str_work_idx
 
 ; ---------------------------------------------------------------------------
 ; Fetch-decode-execute inner loop
@@ -586,6 +591,57 @@ op_STIND:
         INY
         LDA     tmp2+1
         STA     (tmp1),y
+        JMP     prun_loop
+
+; OP_INDEX ($24) — array element address
+; Reads 2 operand bytes: element size (word, lo then hi)
+; Stack: NOS=base_addr, TOS=index → pushes base_addr + index*elemsize
+op_INDEX:
+        JSR     pm_fetch_byte   ; elemsize lo
+        STA     tmp2
+        JSR     pm_fetch_byte   ; elemsize hi (ignored — always 0 in practice)
+        JSR     pm_pop          ; TOS = index: A=lo, scratch=hi
+        STA     tmp3
+        LDA     scratch
+        STA     tmp3+1
+        JSR     pm_pop          ; NOS = base addr: A=lo, scratch=hi
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+; offset = index * elemsize  (16-bit × 8-bit shift-and-add, low 16 bits)
+; accumulate in tmp0:tmp0+1
+        LDA     #0
+        STA     tmp0
+        STA     tmp0+1
+        LDA     tmp2            ; 8-bit elemsize (multiplier)
+@idx_mul:
+        LSR                     ; shift multiplier right; bit 0 → carry
+        BCC     @idx_skip       ; bit was 0 — no add this round
+        PHA                     ; save shifted multiplier
+        CLC
+        LDA     tmp0
+        ADC     tmp3
+        STA     tmp0
+        LDA     tmp0+1
+        ADC     tmp3+1
+        STA     tmp0+1
+        PLA                     ; restore shifted multiplier
+@idx_skip:
+        ASL     tmp3            ; shift multiplicand (index) left for next bit
+        ROL     tmp3+1
+        BNE     @idx_mul        ; loop while remaining multiplier bits ≠ 0
+        CMP     #0              ; also check A=0 (BNE doesn't re-check A after PLA)
+        BNE     @idx_mul
+; result = base + offset
+        LDA     tmp1
+        CLC
+        ADC     tmp0
+        STA     tmp0
+        LDA     tmp1+1
+        ADC     tmp0+1
+        STA     scratch
+        LDA     tmp0
+        JSR     pm_push
         JMP     prun_loop
 
 ; OP_ADI ($30) — integer add
@@ -1376,6 +1432,305 @@ op_POP:
         JMP     prun_loop
 
 ; ---------------------------------------------------------------------------
+; String built-in support
+;
+; Pascal-style strings: length byte at offset 0, characters at offsets 1..N.
+; COPY/CONCAT results live in one of three rotating 256-byte work buffers
+; placed in unused heap-area memory.  Round-robin allocation lets simple
+; nested expressions like CONCAT(COPY(s,1,3), 'x') work; deeper nesting
+; eventually recycles a buffer and corrupts an earlier result.
+; ---------------------------------------------------------------------------
+STR_WORK_BASE   = $AD00
+STR_WORK_COUNT  = 3
+
+str_work_idx:
+        .RES    1
+
+; next_work_buf — return current work-buffer addr in tmp1, advance idx
+next_work_buf:
+        LDA     str_work_idx
+        CLC
+        ADC     #>STR_WORK_BASE
+        STA     tmp1+1
+        LDA     #0
+        STA     tmp1
+        INC     str_work_idx
+        LDA     str_work_idx
+        CMP     #STR_WORK_COUNT
+        BCC     :+
+        LDA     #0
+        STA     str_work_idx
+:       RTS
+
+; OP_LEN ($A0) — TOS = string ptr → TOS = length (int)
+op_LEN:
+        JSR     pm_pop          ; A=lo, scratch=hi
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDY     #0
+        LDA     (tmp1),y        ; length byte
+        PHA
+        LDA     #0
+        STA     scratch
+        PLA
+        JSR     pm_push
+        JMP     prun_loop
+
+; OP_POS ($A1) — NOS=substr ptr, TOS=mainstr ptr → TOS=1-based position
+op_POS:
+        JSR     pm_pop          ; mainstr → tmp2
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+        JSR     pm_pop          ; substr → tmp1
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+; If substr length is 0, return 0
+        LDY     #0
+        LDA     (tmp1),y
+        BNE     :+
+        JMP     @pos_zero
+:
+; sublen in pos_sublen, mainlen in pos_mainlen
+        STA     pos_sublen
+        LDY     #0
+        LDA     (tmp2),y
+        STA     pos_mainlen
+; If sublen > mainlen, return 0
+        LDA     pos_sublen
+        CMP     pos_mainlen
+        BEQ     :+
+        BCS     @pos_zero
+:
+; pos_start = 1; loop while (pos_start + sublen - 1) <= mainlen
+        LDA     #1
+        STA     pos_start
+@pos_outer:
+; max_start = mainlen - sublen + 1
+        LDA     pos_mainlen
+        SEC
+        SBC     pos_sublen
+        CLC
+        ADC     #1              ; A = max valid start
+        CMP     pos_start
+        BCC     @pos_zero       ; pos_start > max_start → not found
+; compare sublen bytes at main[pos_start..] vs sub[1..]
+        LDX     #0              ; substr offset (0..sublen-1, +1 to skip len byte)
+@pos_cmp:
+        CPX     pos_sublen
+        BEQ     @pos_found
+        TXA
+        CLC
+        ADC     pos_start       ; main index = pos_start + X
+        TAY
+        LDA     (tmp2),y        ; main[pos_start+X]
+        STA     pos_save
+        TXA
+        CLC
+        ADC     #1              ; sub index = X + 1
+        TAY
+        LDA     (tmp1),y        ; sub[X+1]
+        CMP     pos_save
+        BNE     @pos_next
+        INX
+        BRA     @pos_cmp
+@pos_next:
+        INC     pos_start
+        BRA     @pos_outer
+@pos_found:
+        LDA     pos_start
+        STA     pos_save
+        LDA     #0
+        STA     scratch
+        LDA     pos_save
+        JSR     pm_push
+        JMP     prun_loop
+@pos_zero:
+        LDA     #0
+        STA     scratch
+        JSR     pm_push
+        JMP     prun_loop
+
+pos_sublen:    .RES 1
+pos_mainlen:   .RES 1
+pos_start:     .RES 1
+pos_save:      .RES 1
+
+; OP_COPY ($A2) — NNOS=str, NOS=index (1-based), TOS=count → TOS=result strptr
+op_COPY:
+        JSR     pm_pop          ; count
+        STA     copy_count
+        JSR     pm_pop          ; index
+        STA     copy_index
+        JSR     pm_pop          ; source ptr
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+        JSR     next_work_buf   ; tmp1 = dest buffer
+; clamp index: if index < 1 or index > srclen, result is empty
+        LDY     #0
+        LDA     (tmp2),y
+        STA     copy_srclen
+        LDA     copy_index
+        BEQ     @copy_empty
+        CMP     copy_srclen
+        BEQ     :+
+        BCS     @copy_empty
+:
+; available = srclen - index + 1
+        LDA     copy_srclen
+        SEC
+        SBC     copy_index
+        CLC
+        ADC     #1
+        STA     copy_avail
+; actual = min(count, available)
+        LDA     copy_count
+        CMP     copy_avail
+        BCC     :+
+        LDA     copy_avail
+:       STA     copy_actual
+; copy actual bytes from src[index..] into dest[1..]
+        LDX     #0
+@copy_loop:
+        CPX     copy_actual
+        BEQ     @copy_done
+        TXA
+        CLC
+        ADC     copy_index      ; src offset = X + index
+        TAY
+        LDA     (tmp2),y
+        STA     copy_save
+        TXA
+        CLC
+        ADC     #1              ; dest offset = X + 1
+        TAY
+        LDA     copy_save
+        STA     (tmp1),y
+        INX
+        BRA     @copy_loop
+@copy_done:
+        LDA     copy_actual
+        LDY     #0
+        STA     (tmp1),y        ; write length byte
+        BRA     @copy_push
+@copy_empty:
+        LDA     #0
+        LDY     #0
+        STA     (tmp1),y
+@copy_push:
+        LDA     tmp1+1
+        STA     scratch
+        LDA     tmp1
+        JSR     pm_push
+        JMP     prun_loop
+
+copy_count:    .RES 1
+copy_index:    .RES 1
+copy_srclen:   .RES 1
+copy_avail:    .RES 1
+copy_actual:   .RES 1
+copy_save:     .RES 1
+
+; OP_CONCAT ($A3) — NOS=s1, TOS=s2 → TOS=result strptr (s1 then s2)
+op_CONCAT:
+        JSR     pm_pop          ; s2 → tmp2
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+; stash s2 ptr in cat_s2 because next_work_buf and pm_pop touch tmp1
+        LDA     tmp2
+        STA     cat_s2
+        LDA     tmp2+1
+        STA     cat_s2+1
+        JSR     pm_pop          ; s1 → tmp2
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+        LDA     tmp2
+        STA     cat_s1
+        LDA     tmp2+1
+        STA     cat_s1+1
+        JSR     next_work_buf   ; tmp1 = dest
+; copy s1 chars
+        LDA     cat_s1
+        STA     tmp2
+        LDA     cat_s1+1
+        STA     tmp2+1
+        LDY     #0
+        LDA     (tmp2),y
+        STA     cat_s1len
+        TAX                     ; X = remaining
+        LDY     #1              ; src offset
+        LDA     #1
+        STA     cat_dstoff
+@cat_s1_loop:
+        CPX     #0
+        BEQ     @cat_s2_start
+        LDA     (tmp2),y
+        STA     cat_save
+        PHX
+        PHY
+        LDY     cat_dstoff
+        LDA     cat_save
+        STA     (tmp1),y
+        INC     cat_dstoff
+        PLY
+        PLX
+        INY
+        DEX
+        BRA     @cat_s1_loop
+@cat_s2_start:
+        LDA     cat_s2
+        STA     tmp2
+        LDA     cat_s2+1
+        STA     tmp2+1
+        LDY     #0
+        LDA     (tmp2),y
+        STA     cat_s2len
+        TAX
+        LDY     #1
+@cat_s2_loop:
+        CPX     #0
+        BEQ     @cat_done
+        LDA     (tmp2),y
+        STA     cat_save
+        PHX
+        PHY
+        LDY     cat_dstoff
+        LDA     cat_save
+        STA     (tmp1),y
+        INC     cat_dstoff
+        PLY
+        PLX
+        INY
+        DEX
+        BRA     @cat_s2_loop
+@cat_done:
+; total length = s1len + s2len (capped at 255)
+        CLC
+        LDA     cat_s1len
+        ADC     cat_s2len
+        BCC     :+
+        LDA     #255
+:       LDY     #0
+        STA     (tmp1),y
+        LDA     tmp1+1
+        STA     scratch
+        LDA     tmp1
+        JSR     pm_push
+        JMP     prun_loop
+
+cat_s1:        .RES 2
+cat_s2:        .RES 2
+cat_s1len:     .RES 1
+cat_s2len:     .RES 1
+cat_dstoff:    .RES 1
+cat_save:      .RES 1
+
+; ---------------------------------------------------------------------------
 ; Unimplemented opcode handler
 ; ---------------------------------------------------------------------------
 op_UNIMP:
@@ -1414,10 +1769,11 @@ dispatch_lo:
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $18-$2F
-        .BYTE   <op_LDG,   <op_STG,   <op_LDA_G, <op_UNIMP
-        .BYTE   <op_UNIMP, <op_UNIMP, <op_UNIMP, <op_UNIMP
-        .BYTE   <op_LDIND, <op_STIND
-        .REPEAT 14
+        .BYTE   <op_LDG,   <op_STG,   <op_LDA_G, <op_UNIMP   ; $18-$1B
+        .BYTE   <op_UNIMP, <op_UNIMP, <op_UNIMP, <op_UNIMP   ; $1C-$1F
+        .BYTE   <op_LDIND, <op_STIND, <op_UNIMP, <op_UNIMP   ; $20-$23
+        .BYTE   <op_INDEX                                      ; $24
+        .REPEAT 11
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $30-$3F
@@ -1453,9 +1809,15 @@ dispatch_lo:
         .REPEAT 8
                 .BYTE   <op_UNIMP
         .ENDREPEAT
-; $90-$FE
+; $90-$9F
         .BYTE   <op_DUP,   <op_POP,   <op_UNIMP, <op_UNIMP
-        .REPEAT 107
+        .REPEAT 12
+                .BYTE   <op_UNIMP
+        .ENDREPEAT
+; $A0-$A3 string built-ins
+        .BYTE   <op_LEN,   <op_POS,   <op_COPY,  <op_CONCAT
+; $A4-$FE
+        .REPEAT 91
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $FF
@@ -1475,11 +1837,12 @@ dispatch_hi:
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $18-$2F
-        .BYTE   >op_LDG,   >op_STG,   >op_LDA_G, >op_UNIMP
-        .BYTE   >op_UNIMP, >op_UNIMP, >op_UNIMP, >op_UNIMP
-        .BYTE   >op_LDIND, >op_STIND
-        .REPEAT 14
-           .BYTE   >op_UNIMP
+        .BYTE   >op_LDG,   >op_STG,   >op_LDA_G, >op_UNIMP   ; $18-$1B
+        .BYTE   >op_UNIMP, >op_UNIMP, >op_UNIMP, >op_UNIMP   ; $1C-$1F
+        .BYTE   >op_LDIND, >op_STIND, >op_UNIMP, >op_UNIMP   ; $20-$23
+        .BYTE   >op_INDEX                                      ; $24
+        .REPEAT 11
+                .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $30-$3F
         .BYTE   >op_ADI,   >op_SBI,   >op_MPI,   >op_DVI
@@ -1514,9 +1877,15 @@ dispatch_hi:
         .REPEAT 8
                 .BYTE   >op_UNIMP
         .ENDREPEAT
-; $90-$FE
+; $90-$9F
         .BYTE   >op_DUP,   >op_POP,   >op_UNIMP, >op_UNIMP
-        .REPEAT 107
+        .REPEAT 12
+                .BYTE   >op_UNIMP
+        .ENDREPEAT
+; $A0-$A3 string built-ins
+        .BYTE   >op_LEN,   >op_POS,   >op_COPY,  >op_CONCAT
+; $A4-$FE
+        .REPEAT 91
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $FF

@@ -32,6 +32,7 @@ TY_STRING       = 4
 TY_ARRAY        = 5
 TY_RECORD       = 6
 TY_PTR          = 7
+TY_TEXT         = 8             ; TEXT file variable (168-byte struct)
 TY_NONE         = 0             ; for procedures
 
         .segment        "CODE"
@@ -47,6 +48,157 @@ symtab_init:
         LDA     #0
         STA     symtab_count
         STA     symtab_count+1
+        STA     field_table_count
+        RTS
+
+; ---------------------------------------------------------------------------
+; field_table_add — append a record-field entry
+; Inputs:
+;   ident_buf = field name (length at [0], chars at [1..])
+;   A         = byte offset within the record
+;   X         = field data type (TY_*)
+; Returns: A = newly-assigned field index (current count - 1)
+;          carry set if field table is full (entry not added)
+; Clobbers: tmp2, tmp3, Y
+; ---------------------------------------------------------------------------
+field_table_add:
+        PHA                     ; save offset
+        TXA
+        PHA                     ; save type
+; capacity check (max 32 entries)
+        LDA     field_table_count
+        CMP     #32
+        BCC     :+
+        PLA                     ; discard type
+        PLA                     ; discard offset
+        SEC
+        RTS
+:
+; compute entry address: field_table + count*16
+        LDA     field_table_count
+        ASL
+        ASL
+        ASL
+        ASL                     ; *16 (count<64 fits in 10 bits, but we land in low byte; high carry becomes part of address)
+        STA     tmp2
+        LDA     #0
+        ROL                     ; capture carry into hi
+        CLC
+        ADC     #>field_table
+        STA     tmp2+1
+        LDA     tmp2
+        CLC
+        ADC     #<field_table
+        STA     tmp2
+        BCC     :+
+        INC     tmp2+1
+:
+; copy name length + chars
+        LDY     #0
+        LDA     ident_buf
+        STA     (tmp2),y
+        TAX                     ; X = length
+        LDY     #1
+@nm:
+        CPY     #13
+        BCS     @padn
+        CPX     #0
+        BEQ     @padn
+        LDA     ident_buf,y
+        STA     (tmp2),y
+        DEX
+        INY
+        BRA     @nm
+@padn:
+        CPY     #13
+        BCS     @done_nm
+        LDA     #' '
+        STA     (tmp2),y
+        INY
+        BRA     @padn
+@done_nm:
+; offset (was on stack first → second pull)
+; type   (was on stack last  → first pull)
+        PLA                     ; type
+        LDY     #14
+        STA     (tmp2),y
+        PLA                     ; offset
+        LDY     #13
+        STA     (tmp2),y
+        LDA     #0
+        LDY     #15
+        STA     (tmp2),y
+; bump count, return new index
+        LDA     field_table_count
+        INC     field_table_count
+        CLC
+        RTS
+
+; ---------------------------------------------------------------------------
+; field_lookup_in_record — find ident_buf among a contiguous range of fields
+; Inputs:
+;   ident_buf = field name to find
+;   A         = first field index in field_table
+;   X         = number of fields to scan
+; Returns: carry set = found
+;            A = byte offset within record
+;            X = field data type
+;          carry clear = not found
+; Clobbers: tmp2, tmp3, Y
+; ---------------------------------------------------------------------------
+field_lookup_in_record:
+        STA     tmp3            ; tmp3 = current field index
+        STX     tmp3+1          ; tmp3+1 = remaining count
+@scan:
+        LDA     tmp3+1
+        BEQ     @nf
+; compute entry addr: field_table + tmp3*16
+        LDA     tmp3
+        ASL
+        ASL
+        ASL
+        ASL                     ; *16 (low byte; carry → hi)
+        STA     tmp2
+        LDA     #0
+        ROL
+        CLC
+        ADC     #>field_table
+        STA     tmp2+1
+        LDA     tmp2
+        CLC
+        ADC     #<field_table
+        STA     tmp2
+        BCC     :+
+        INC     tmp2+1
+:
+; compare name length
+        LDY     #0
+        LDA     (tmp2),y
+        CMP     ident_buf
+        BNE     @next
+        TAX                     ; X = length
+        LDY     #1
+@cmpn:
+        LDA     (tmp2),y
+        CMP     ident_buf,y
+        BNE     @next
+        INY
+        DEX
+        BNE     @cmpn
+; match — return offset and type
+        LDY     #14
+        LDA     (tmp2),y        ; type
+        TAX
+        LDY     #13
+        LDA     (tmp2),y        ; offset
+        SEC
+        RTS
+@next:
+        INC     tmp3
+        DEC     tmp3+1
+        BRA     @scan
+@nf:
+        CLC
         RTS
 
 ; ---------------------------------------------------------------------------

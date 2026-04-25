@@ -5,7 +5,7 @@
 msg_banner:
         .BYTE   "Pascal/65 Compiler v0.1 for DOS/65",13,10,0
 msg_compiling:
-        .BYTE   "Compiling: ",0
+        .BYTE   "Compiling...",13,10,0
 msg_ok:
         .BYTE   "OK",13,10,0
 msg_errors:
