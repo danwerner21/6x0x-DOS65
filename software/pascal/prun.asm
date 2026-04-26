@@ -1493,6 +1493,31 @@ op_POP:
         JSR     pm_pop
         JMP     prun_loop
 
+; OP_NEW ($70) — allocate inline-size bytes from heap, push pointer
+; Bump allocator: pm_np grows down from HEAP_TOP. DISPOSE is a no-op.
+op_NEW:
+        JSR     pm_fetch_word   ; A=size lo, scratch=size hi
+        STA     tmp0
+        LDA     scratch
+        STA     tmp0+1
+        SEC
+        LDA     pm_np
+        SBC     tmp0
+        STA     pm_np
+        LDA     pm_np+1
+        SBC     tmp0+1
+        STA     pm_np+1
+        LDA     pm_np+1
+        STA     scratch
+        LDA     pm_np
+        JSR     pm_push
+        JMP     prun_loop
+
+; OP_DISP ($71) — discard pointer (bump allocator cannot free)
+op_DISP:
+        JSR     pm_pop
+        JMP     prun_loop
+
 ; ---------------------------------------------------------------------------
 ; String built-in support
 ;
@@ -2656,7 +2681,8 @@ dispatch_lo:
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $70-$7F
-        .REPEAT 16
+        .BYTE   <op_NEW,   <op_DISP,  <op_UNIMP, <op_UNIMP
+        .REPEAT 12
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $80-$8F
@@ -2734,7 +2760,8 @@ dispatch_hi:
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $70-$7F
-        .REPEAT 16
+        .BYTE   >op_NEW,   >op_DISP,  >op_UNIMP, >op_UNIMP
+        .REPEAT 12
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $80-$8F

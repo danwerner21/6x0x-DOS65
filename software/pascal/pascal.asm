@@ -47,6 +47,34 @@ field_table_count:
 field_table:
         .RES    512             ; 32 entries × 16 bytes
 
+; Per-field "nested" metadata, parallel to field_table.  Only meaningful
+; when the field's type is TY_RECORD: holds the nested record's
+; first_field index and field count so chained access (`a.outer.inner`)
+; can traverse into the inner record.  Anonymous and named nested
+; records are both supported here.
+field_nested_first:
+        .RES    32
+field_nested_count:
+        .RES    32
+
+; Separate buffer for collecting field names inside a RECORD declaration.
+; Distinct from var_name_buf so inline `VAR x: RECORD ... END` doesn't
+; lose the outer "x" while the field group is being parsed.
+field_name_count:
+        .RES    1
+field_name_buf:
+        .RES    128
+
+; Scratch slots used by @rec_addf to remember the most recently-parsed
+; field's nested-record metadata.  Populated by the wrapper around the
+; recursive parse_type_spec call when the field type is TY_RECORD.
+nest_save_first:
+        .RES    1
+nest_save_count:
+        .RES    1
+nest_save_size:
+        .RES    2
+
 ; Code generation buffer — p-code accumulates here until file write
 ; Overlaps the CPMDATA area above $2400 after FCBs.
 ; This holds up to ~32KB of generated p-code.

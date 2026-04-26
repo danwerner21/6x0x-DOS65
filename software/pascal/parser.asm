@@ -350,15 +350,31 @@ parse_var_decls:
 ; allocate storage — global if at top level, else from proc local AR
         LDA     scope_depth
         BEQ     @gv_alloc
-; local scalar: tmp2 = local_alloc_off; bump by 2
+; local: tmp2 = local_alloc_off; bump by per-type size
         LDA     local_alloc_off
         STA     tmp2
         LDA     #0
         STA     tmp2+1
+        LDA     scratch                 ; type code
+        CMP     #TY_RECORD
+        BEQ     @lv_rec
+; default scalar / pointer / etc — 2 bytes
         CLC
         LDA     local_alloc_off
         ADC     #2
         STA     local_alloc_off
+        BRA     @do_va_add
+@lv_rec:
+        CLC
+        LDA     local_alloc_off
+        ADC     record_size
+        STA     local_alloc_off
+        ; record_size+1 is normally 0 (records < 256 bytes) but
+        ; propagate the carry to be safe.
+        LDA     #0
+        ADC     record_size+1
+        BEQ     @do_va_add              ; no high-byte growth
+        ; would overflow byte counter; not handled — abort cleanly
         BRA     @do_va_add
 @gv_alloc:
         LDA     scratch
@@ -604,14 +620,16 @@ parse_type_spec:
         BEQ     :+
         JMP     @rec_end                ; safety — bail on unexpected token
 :
-; --- collect comma-separated field names into var_name_buf ---
+; --- collect comma-separated field names into field_name_buf ---
+;     (separate from var_name_buf so an inline RECORD inside a VAR
+;      decl doesn't clobber the outer variable names being collected)
         LDA     #0
-        STA     var_name_count
+        STA     field_name_count
 @rec_collect:
         LDA     tok_type
         CMP     #TOK_IDENT
         BNE     @rec_endcol
-        LDA     var_name_count
+        LDA     field_name_count
         CMP     #8
         BCS     @rec_skip_save
         ASL
@@ -619,10 +637,10 @@ parse_type_spec:
         ASL
         ASL                             ; *16
         CLC
-        ADC     #<var_name_buf
+        ADC     #<field_name_buf
         STA     tmp2
         LDA     #0
-        ADC     #>var_name_buf
+        ADC     #>field_name_buf
         STA     tmp2+1
         LDY     #15
 @rec_cpin:
@@ -630,7 +648,7 @@ parse_type_spec:
         STA     (tmp2),y
         DEY
         BPL     @rec_cpin
-        INC     var_name_count
+        INC     field_name_count
 @rec_skip_save:
         JSR     next_token              ; consume name
         LDA     tok_type
@@ -644,13 +662,42 @@ parse_type_spec:
         CMP     #TOK_COLON
         BNE     :+
         JSR     next_token
-:       ; parse field type — recurse; result in A
-        JSR     parse_type_spec
+:       ; parse field type — recurse; result in A.  Save outer record
+; bookkeeping (size + first_field + field_count) so a nested RECORD
+; can use the same globals without losing our state.  After the inner
+; parse, capture the inner's metadata into nest_save_* and restore.
+        LDA     record_size
+        PHA
+        LDA     record_size+1
+        PHA
+        LDA     record_first_field
+        PHA
+        LDA     record_field_count
+        PHA
+        JSR     parse_type_spec         ; may recurse into RECORD
         STA     scratch                 ; field type code
+; capture inner's metadata for @rec_addf (only meaningful for TY_RECORD)
+        LDA     record_size
+        STA     nest_save_size
+        LDA     record_size+1
+        STA     nest_save_size+1
+        LDA     record_first_field
+        STA     nest_save_first
+        LDA     record_field_count
+        STA     nest_save_count
+; restore outer record bookkeeping
+        PLA
+        STA     record_field_count
+        PLA
+        STA     record_first_field
+        PLA
+        STA     record_size+1
+        PLA
+        STA     record_size
 ; --- add each collected name to field_table at current record_size ---
         LDX     #0
 @rec_addf:
-        CPX     var_name_count
+        CPX     field_name_count
         BCS     @rec_endf
         PHX
         TXA
@@ -659,10 +706,10 @@ parse_type_spec:
         ASL
         ASL                             ; *16
         CLC
-        ADC     #<var_name_buf
+        ADC     #<field_name_buf
         STA     tmp2
         LDA     #0
-        ADC     #>var_name_buf
+        ADC     #>field_name_buf
         STA     tmp2+1
         LDY     #15
 @rec_cpout:
@@ -671,18 +718,47 @@ parse_type_spec:
         DEY
         BPL     @rec_cpout
 ; field_table_add: A=offset (record_size lo), X=type
+;   Returns: A = newly-assigned field index
         LDA     record_size
         LDX     scratch
         JSR     field_table_add
+; If this field's type is TY_RECORD, fold the inner record's
+; first_field/count (saved in nest_save_*) into the parallel
+; nested arrays so chained access can traverse it.
+        PHA                             ; save field index
+        LDX     scratch                 ; field type
+        CPX     #TY_RECORD
+        BNE     @rec_no_nest
+        TAX                             ; X = field index (A still holds it)
+        LDA     nest_save_first
+        STA     field_nested_first,x
+        LDA     nest_save_count
+        STA     field_nested_count,x
+@rec_no_nest:
+        PLA                             ; restore (no longer needed)
         INC     record_field_count
-; advance record_size by 2
+; advance record_size by this field's size:
+;   record fields → nest_save_size (set by inner parse)
+;   anything else → 2 (all scalars are word-sized)
+        LDX     scratch
+        CPX     #TY_RECORD
+        BEQ     @rec_adv_rec
         CLC
         LDA     record_size
         ADC     #2
         STA     record_size
         BCC     :+
         INC     record_size+1
-:
+:       BRA     @rec_advanced
+@rec_adv_rec:
+        CLC
+        LDA     record_size
+        ADC     nest_save_size
+        STA     record_size
+        LDA     record_size+1
+        ADC     nest_save_size+1
+        STA     record_size+1
+@rec_advanced:
         PLX
         INX
         JMP     @rec_addf
@@ -704,6 +780,18 @@ parse_type_spec:
         LDA     #TY_RECORD
         RTS
 @not_record:
+        LDA     tok_type
+        CMP     #TOK_CARET
+        BNE     @not_caret
+; --- ^BASETYPE — pointer type. Element type recorded but not yet
+; type-checked; v1 only supports pointer-to-INTEGER (2-byte cell).
+        JSR     next_token              ; consume '^'
+        JSR     parse_type_spec         ; consume base type, result in A
+        ; (base type code intentionally discarded — bump allocator
+        ;  always grants 2 bytes per NEW; revisit when records land)
+        LDA     #TY_PTR
+        RTS
+@not_caret:
         JSR     next_token
         LDA     #TY_INT
         RTS
@@ -1309,13 +1397,18 @@ parse_statement:
 parse_assign_or_call:
 ; Dispatch built-in I/O procedures by length+initial letter.  RECORD/REPEAT
 ; are reserved keywords so they never reach this dispatch as identifiers.
+;   len 3 : NEW
 ;   len 4 : READ
 ;   len 5 : WRITE  | RESET  | CLOSE
 ;   len 6 : READLN | ASSIGN
-;   len 7 : WRITELN| REWRITE
+;   len 7 : WRITELN| REWRITE | DISPOSE
         LDA     ident_buf       ; length
+        CMP     #3
+        BEQ     @chk_new
         CMP     #4
-        BEQ     @chk_read
+        bne     :+
+        jmp     @chk_read
+:
         CMP     #5
         BEQ     @chk_len5
         CMP     #6
@@ -1324,14 +1417,37 @@ parse_assign_or_call:
         BEQ     @chk_len7
         JMP     @lookup_sym
 
+@chk_new:
+; "NEW" (3)
+        LDA     ident_buf+1
+        CMP     #'N'
+        beq     :+
+        JMP     @lookup_sym
+:
+        LDA     ident_buf+2
+        CMP     #'E'
+        beq     :+
+        JMP     @lookup_sym
+:
+        LDA     ident_buf+3
+        CMP     #'W'
+        BEQ     :+
+        JMP     @lookup_sym
+:
+        JMP     parse_builtin_new
+
 @chk_len5:
         LDA     ident_buf+1
         CMP     #'W'
         BEQ     @chk_write
         CMP     #'R'
-        BEQ     @chk_reset
+        BNE     :+
+        JMP     @chk_reset
+:
         CMP     #'C'
-        BEQ     @chk_close
+        BNE     :+
+        JMP     @chk_close
+:
         JMP     @lookup_sym
 
 @chk_len6:
@@ -1348,7 +1464,22 @@ parse_assign_or_call:
         BEQ     @chk_writeln
         CMP     #'R'
         BEQ     @chk_rewrite
+        CMP     #'D'
+        BEQ     @chk_dispose
         JMP     @lookup_sym
+
+@chk_dispose:
+; "DISPOSE" (7) — verify I,S,P,O,S,E
+        LDA     ident_buf+2
+        CMP     #'I'
+        BNE     @lookup_sym_jmp
+        LDA     ident_buf+3
+        CMP     #'S'
+        BNE     @lookup_sym_jmp
+        LDA     ident_buf+4
+        CMP     #'P'
+        BNE     @lookup_sym_jmp
+        JMP     parse_builtin_dispose
 
 @chk_write:
 ; "WRITE" (5)
@@ -1510,6 +1641,14 @@ parse_assign_or_call:
         BNE     :+
         JMP     @record_assign
 :
+; ptr^ := expr — pointer dereference assignment
+        CMP     #TY_PTR
+        BNE     :+
+        LDA     tok_type
+        CMP     #TOK_CARET
+        BNE     :+
+        JMP     @ptr_deref_assign
+:
 ; scalar assignment — expect ':='
         LDA     tok_type
         CMP     #TOK_ASSIGN
@@ -1584,26 +1723,54 @@ parse_assign_or_call:
         LDA     sym_save_off
         JSR     emit_LDA_L
 @rec_la_dot:
+; Chained LHS: TOS = &cur_record_base. Walk into nested records as long
+; as the field is RECORD-typed and another '.' follows; the final scalar
+; field becomes the STIND target.
+        LDA     sym_save_vmask
+        STA     fcall_vmask     ; cur first_field
+        LDA     sym_save_lsize
+        STA     fcall_lsize     ; cur field count
+@rla_chain:
 ; consume '.'
         LDA     tok_type
         CMP     #TOK_DOT
         BNE     :+
         JSR     next_token
 :
-; field name now in ident_buf — look up
-        LDA     sym_save_vmask  ; first_field_idx
-        LDX     sym_save_lsize  ; field_count
+; look up field name in current record
+        LDA     fcall_vmask
+        LDX     fcall_lsize
         JSR     field_lookup_in_record
         BCS     :+
         JMP     @rec_la_undef
 :
-; A=field offset (0..); X=field type (unused on LHS)
-        BEQ     @rec_la_no_off
+; A=offset, X=type, tmp3=matched index
+        PHA
+        TXA
+        STA     scratch         ; field type
+        LDA     tmp3
+        STA     fcall_lo        ; matched field index
+        PLA
+        BEQ     @rla_no_off
         JSR     emit_LDCI
         JSR     emit_ADI
-@rec_la_no_off:
+@rla_no_off:
         JSR     next_token      ; consume field name
-; expect ':='
+; If field is RECORD and next is '.', chain another level
+        LDA     scratch
+        CMP     #TY_RECORD
+        BNE     @rla_leaf
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BNE     @rla_leaf
+        LDX     fcall_lo
+        LDA     field_nested_first,x
+        STA     fcall_vmask
+        LDA     field_nested_count,x
+        STA     fcall_lsize
+        BRA     @rla_chain
+@rla_leaf:
+; expect ':='; TOS holds &leaf_field
         LDA     tok_type
         CMP     #TOK_ASSIGN
         BNE     :+
@@ -1618,6 +1785,29 @@ parse_assign_or_call:
         LDA     #>err_undef
         STA     tmp0+1
         JSR     compile_error
+        RTS
+
+@ptr_deref_assign:
+; p^ := expr  — push p's value (the heap address), parse RHS, then STIND.
+; sym_save_scope/off identify the pointer variable.
+        LDA     sym_save_scope
+        BNE     @pda_local
+        LDA     sym_save_off+1
+        STA     scratch
+        LDA     sym_save_off
+        JSR     emit_LDG                ; push pointer value (addr)
+        BRA     @pda_after_load
+@pda_local:
+        LDA     sym_save_off
+        JSR     emit_LDL                ; push pointer value (addr)
+@pda_after_load:
+        JSR     next_token              ; consume '^'
+        LDA     tok_type
+        CMP     #TOK_ASSIGN
+        BNE     :+
+        JSR     next_token              ; consume ':='
+:       JSR     parse_expression        ; push RHS value
+        JSR     emit_STIND              ; *(addr) := value
         RTS
 
 @do_call:
@@ -2752,7 +2942,7 @@ parse_factor:
         BEQ     @text_rhs_global
         TXA
         JSR     emit_LDG
-        RTS
+        JMP     @maybe_deref_ptr
 @text_rhs_global:
         TXA                     ; push struct address, leave expr_type=TY_TEXT
         JMP     emit_LDA_G
@@ -2774,6 +2964,22 @@ parse_factor:
         BEQ     @text_rhs_local
         TXA
         JSR     emit_LDL
+        ; fall through to @maybe_deref_ptr
+@maybe_deref_ptr:
+; If this load was a TY_PTR and the next token is '^', emit LDIND to
+; dereference. v1 only supports pointer-to-INTEGER, so the result type
+; is always TY_INT.
+        LDA     expr_type
+        CMP     #TY_PTR
+        BNE     @mdp_done
+        LDA     tok_type
+        CMP     #TOK_CARET
+        BNE     @mdp_done
+        JSR     next_token              ; consume '^'
+        JSR     emit_LDIND
+        LDA     #TY_INT
+        STA     expr_type
+@mdp_done:
         RTS
 @text_rhs_local:
         TXA
@@ -2804,29 +3010,58 @@ parse_factor:
         TXA
         JSR     emit_LDA_L
 @rec_rhs_field:
+; Chained field access loop: TOS holds &cur_record_base.
+; fcall_vmask = current record's first_field, fcall_lsize = its count.
+; Each iteration consumes ".name" and walks one level deeper.  When the
+; resolved field is itself a RECORD and another '.' follows, repeat;
+; otherwise emit LDIND on the final scalar address.
+@rrf_chain:
 ; consume '.'
         LDA     tok_type
         CMP     #TOK_DOT
         BNE     :+
         JSR     next_token
 :
-; field name now in ident_buf — look up
-        LDA     fcall_vmask     ; first_field_idx (saved from byte 22)
-        LDX     fcall_lsize     ; field_count (saved from byte 23)
+; field name now in ident_buf — look up in current record
+        LDA     fcall_vmask     ; first_field_idx
+        LDX     fcall_lsize     ; field_count
         JSR     field_lookup_in_record
         BCC     @rec_rhs_nf
+; A=offset, X=type, tmp3=matched index. Stash all three across emits.
         PHA                     ; save offset
         TXA
-        STA     scratch         ; save field type (preserved across emits)
-        PLA                     ; offset back; PLA sets Z for the BEQ below
-        BEQ     @rec_rhs_no_off
+        STA     scratch         ; save field type
+        LDA     tmp3
+        STA     fcall_lo        ; save matched field index
+        PLA                     ; offset back; PLA sets Z
+        BEQ     @rrf_no_off
         JSR     emit_LDCI
         JSR     emit_ADI
-@rec_rhs_no_off:
-        JSR     next_token      ; consume field name
-        JSR     emit_LDIND
+@rrf_no_off:
+        JSR     next_token              ; consume field name
+; If field type is RECORD AND next token is '.', chain into it.
         LDA     scratch
-        STA     expr_type       ; field's type drives WRITE dispatch
+        CMP     #TY_RECORD
+        BNE     @rrf_done_chain
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BNE     @rrf_done_chain
+        LDX     fcall_lo
+        LDA     field_nested_first,x
+        STA     fcall_vmask
+        LDA     field_nested_count,x
+        STA     fcall_lsize
+        BRA     @rrf_chain
+@rrf_done_chain:
+; Final step: scalar fields → LDIND value; record fields stay as
+; addresses (so calling code sees them as TY_RECORD pointers).
+        LDA     scratch
+        CMP     #TY_RECORD
+        BEQ     @rrf_no_load
+        JSR     emit_LDIND
+@rrf_no_load:
+        LDA     scratch
+        STA     expr_type
         RTS
 @rec_rhs_nf:
         LDA     #<err_undef
@@ -3119,6 +3354,33 @@ parse_builtin_eoln:
         LDA     #TY_BOOL
         STA     expr_type
         RTS
+
+; NEW(p) — bump-allocate 2 bytes (pointer-to-INTEGER, v1) and store the
+; new heap address into pointer variable p.
+;   parse_arg_lvalue pushes &p; emit_NEW pushes the fresh pointer; STIND
+;   takes (NOS=addr, TOS=val) and writes val to addr.
+parse_builtin_new:
+        JSR     next_token              ; consume NEW
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_arg_lvalue        ; push &p
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        LDA     #0
+        STA     scratch                 ; size hi = 0
+        LDA     #2                      ; v1: always allocate 2 bytes
+        JSR     emit_NEW
+        JMP     emit_STIND
+
+; DISPOSE(p) — bump allocator can't free, so just discard the pointer.
+parse_builtin_dispose:
+        JSR     next_token              ; consume DISPOSE
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression        ; push p (value)
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JMP     emit_DISP
 
 ; TRUE / FALSE — predefined boolean constants.  Push 1/0 as TY_BOOL so
 ; pw_emit_file routes to FWRB ("TRUE"/"FALSE") and pw_emit_console to WRITB.

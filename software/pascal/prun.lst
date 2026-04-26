@@ -1840,1130 +1840,1155 @@ Current file: prun.asm
 0008C0r 1  20 rr rr             JSR     pm_pop
 0008C3r 1  4C rr rr             JMP     prun_loop
 0008C6r 1               
-0008C6r 1               ; ---------------------------------------------------------------------------
-0008C6r 1               ; String built-in support
-0008C6r 1               ;
-0008C6r 1               ; Pascal-style strings: length byte at offset 0, characters at offsets 1..N.
-0008C6r 1               ; COPY/CONCAT results live in one of three rotating 256-byte work buffers
-0008C6r 1               ; placed in unused heap-area memory.  Round-robin allocation lets simple
-0008C6r 1               ; nested expressions like CONCAT(COPY(s,1,3), 'x') work; deeper nesting
-0008C6r 1               ; eventually recycles a buffer and corrupts an earlier result.
-0008C6r 1               ; ---------------------------------------------------------------------------
-0008C6r 1               STR_WORK_BASE   = $AD00
-0008C6r 1               STR_WORK_COUNT  = 3
-0008C6r 1               
-0008C6r 1               str_work_idx:
-0008C6r 1  xx                   .RES    1
-0008C7r 1               
-0008C7r 1               ; next_work_buf — return current work-buffer addr in tmp1, advance idx
-0008C7r 1               next_work_buf:
-0008C7r 1  AD rr rr             LDA     str_work_idx
-0008CAr 1  18                   CLC
-0008CBr 1  69 AD                ADC     #>STR_WORK_BASE
-0008CDr 1  85 rr                STA     tmp1+1
-0008CFr 1  A9 00                LDA     #0
-0008D1r 1  85 rr                STA     tmp1
-0008D3r 1  EE rr rr             INC     str_work_idx
-0008D6r 1  AD rr rr             LDA     str_work_idx
-0008D9r 1  C9 03                CMP     #STR_WORK_COUNT
-0008DBr 1  90 05                BCC     :+
-0008DDr 1  A9 00                LDA     #0
-0008DFr 1  8D rr rr             STA     str_work_idx
-0008E2r 1  60           :       RTS
-0008E3r 1               
-0008E3r 1               ; OP_LEN ($A0) — TOS = string ptr → TOS = length (int)
-0008E3r 1               op_LEN:
-0008E3r 1  20 rr rr             JSR     pm_pop          ; A=lo, scratch=hi
-0008E6r 1  85 rr                STA     tmp1
-0008E8r 1  A5 rr                LDA     scratch
-0008EAr 1  85 rr                STA     tmp1+1
-0008ECr 1  A0 00                LDY     #0
-0008EEr 1  B1 rr                LDA     (tmp1),y        ; length byte
-0008F0r 1  48                   PHA
-0008F1r 1  A9 00                LDA     #0
-0008F3r 1  85 rr                STA     scratch
-0008F5r 1  68                   PLA
-0008F6r 1  20 rr rr             JSR     pm_push
-0008F9r 1  4C rr rr             JMP     prun_loop
-0008FCr 1               
-0008FCr 1               ; OP_POS ($A1) — NOS=substr ptr, TOS=mainstr ptr → TOS=1-based position
-0008FCr 1               op_POS:
-0008FCr 1  20 rr rr             JSR     pm_pop          ; mainstr → tmp2
-0008FFr 1  85 rr                STA     tmp2
-000901r 1  A5 rr                LDA     scratch
-000903r 1  85 rr                STA     tmp2+1
-000905r 1  20 rr rr             JSR     pm_pop          ; substr → tmp1
-000908r 1  85 rr                STA     tmp1
-00090Ar 1  A5 rr                LDA     scratch
-00090Cr 1  85 rr                STA     tmp1+1
-00090Er 1               ; If substr length is 0, return 0
-00090Er 1  A0 00                LDY     #0
-000910r 1  B1 rr                LDA     (tmp1),y
-000912r 1  D0 03                BNE     :+
-000914r 1  4C rr rr             JMP     @pos_zero
-000917r 1               :
-000917r 1               ; sublen in pos_sublen, mainlen in pos_mainlen
-000917r 1  8D rr rr             STA     pos_sublen
-00091Ar 1  A0 00                LDY     #0
-00091Cr 1  B1 rr                LDA     (tmp2),y
-00091Er 1  8D rr rr             STA     pos_mainlen
-000921r 1               ; If sublen > mainlen, return 0
-000921r 1  AD rr rr             LDA     pos_sublen
-000924r 1  CD rr rr             CMP     pos_mainlen
-000927r 1  F0 02                BEQ     :+
-000929r 1  B0 4D                BCS     @pos_zero
-00092Br 1               :
-00092Br 1               ; pos_start = 1; loop while (pos_start + sublen - 1) <= mainlen
-00092Br 1  A9 01                LDA     #1
-00092Dr 1  8D rr rr             STA     pos_start
-000930r 1               @pos_outer:
-000930r 1               ; max_start = mainlen - sublen + 1
-000930r 1  AD rr rr             LDA     pos_mainlen
-000933r 1  38                   SEC
-000934r 1  ED rr rr             SBC     pos_sublen
-000937r 1  18                   CLC
-000938r 1  69 01                ADC     #1              ; A = max valid start
-00093Ar 1  CD rr rr             CMP     pos_start
-00093Dr 1  90 39                BCC     @pos_zero       ; pos_start > max_start → not found
-00093Fr 1               ; compare sublen bytes at main[pos_start..] vs sub[1..]
-00093Fr 1  A2 00                LDX     #0              ; substr offset (0..sublen-1, +1 to skip len byte)
-000941r 1               @pos_cmp:
-000941r 1  EC rr rr             CPX     pos_sublen
-000944r 1  F0 1F                BEQ     @pos_found
-000946r 1  8A                   TXA
-000947r 1  18                   CLC
-000948r 1  6D rr rr             ADC     pos_start       ; main index = pos_start + X
-00094Br 1  A8                   TAY
-00094Cr 1  B1 rr                LDA     (tmp2),y        ; main[pos_start+X]
-00094Er 1  8D rr rr             STA     pos_save
-000951r 1  8A                   TXA
-000952r 1  18                   CLC
-000953r 1  69 01                ADC     #1              ; sub index = X + 1
-000955r 1  A8                   TAY
-000956r 1  B1 rr                LDA     (tmp1),y        ; sub[X+1]
-000958r 1  CD rr rr             CMP     pos_save
-00095Br 1  D0 03                BNE     @pos_next
-00095Dr 1  E8                   INX
-00095Er 1  80 E1                BRA     @pos_cmp
-000960r 1               @pos_next:
-000960r 1  EE rr rr             INC     pos_start
-000963r 1  80 CB                BRA     @pos_outer
-000965r 1               @pos_found:
-000965r 1  AD rr rr             LDA     pos_start
-000968r 1  8D rr rr             STA     pos_save
-00096Br 1  A9 00                LDA     #0
-00096Dr 1  85 rr                STA     scratch
-00096Fr 1  AD rr rr             LDA     pos_save
-000972r 1  20 rr rr             JSR     pm_push
-000975r 1  4C rr rr             JMP     prun_loop
-000978r 1               @pos_zero:
-000978r 1  A9 00                LDA     #0
-00097Ar 1  85 rr                STA     scratch
-00097Cr 1  20 rr rr             JSR     pm_push
-00097Fr 1  4C rr rr             JMP     prun_loop
-000982r 1               
-000982r 1  xx           pos_sublen:    .RES 1
-000983r 1  xx           pos_mainlen:   .RES 1
-000984r 1  xx           pos_start:     .RES 1
-000985r 1  xx           pos_save:      .RES 1
-000986r 1               
-000986r 1               ; OP_COPY ($A2) — NNOS=str, NOS=index (1-based), TOS=count → TOS=result strptr
-000986r 1               op_COPY:
-000986r 1  20 rr rr             JSR     pm_pop          ; count
-000989r 1  8D rr rr             STA     copy_count
-00098Cr 1  20 rr rr             JSR     pm_pop          ; index
-00098Fr 1  8D rr rr             STA     copy_index
-000992r 1  20 rr rr             JSR     pm_pop          ; source ptr
-000995r 1  85 rr                STA     tmp2
-000997r 1  A5 rr                LDA     scratch
-000999r 1  85 rr                STA     tmp2+1
-00099Br 1  20 rr rr             JSR     next_work_buf   ; tmp1 = dest buffer
-00099Er 1               ; clamp index: if index < 1 or index > srclen, result is empty
-00099Er 1  A0 00                LDY     #0
-0009A0r 1  B1 rr                LDA     (tmp2),y
-0009A2r 1  8D rr rr             STA     copy_srclen
-0009A5r 1  AD rr rr             LDA     copy_index
-0009A8r 1  F0 4A                BEQ     @copy_empty
-0009AAr 1  CD rr rr             CMP     copy_srclen
-0009ADr 1  F0 02                BEQ     :+
-0009AFr 1  B0 43                BCS     @copy_empty
-0009B1r 1               :
-0009B1r 1               ; available = srclen - index + 1
-0009B1r 1  AD rr rr             LDA     copy_srclen
-0009B4r 1  38                   SEC
-0009B5r 1  ED rr rr             SBC     copy_index
-0009B8r 1  18                   CLC
-0009B9r 1  69 01                ADC     #1
-0009BBr 1  8D rr rr             STA     copy_avail
-0009BEr 1               ; actual = min(count, available)
-0009BEr 1  AD rr rr             LDA     copy_count
-0009C1r 1  CD rr rr             CMP     copy_avail
-0009C4r 1  90 03                BCC     :+
-0009C6r 1  AD rr rr             LDA     copy_avail
-0009C9r 1  8D rr rr     :       STA     copy_actual
-0009CCr 1               ; copy actual bytes from src[index..] into dest[1..]
-0009CCr 1  A2 00                LDX     #0
-0009CEr 1               @copy_loop:
-0009CEr 1  EC rr rr             CPX     copy_actual
-0009D1r 1  F0 18                BEQ     @copy_done
-0009D3r 1  8A                   TXA
-0009D4r 1  18                   CLC
-0009D5r 1  6D rr rr             ADC     copy_index      ; src offset = X + index
-0009D8r 1  A8                   TAY
-0009D9r 1  B1 rr                LDA     (tmp2),y
-0009DBr 1  8D rr rr             STA     copy_save
-0009DEr 1  8A                   TXA
-0009DFr 1  18                   CLC
-0009E0r 1  69 01                ADC     #1              ; dest offset = X + 1
-0009E2r 1  A8                   TAY
-0009E3r 1  AD rr rr             LDA     copy_save
-0009E6r 1  91 rr                STA     (tmp1),y
-0009E8r 1  E8                   INX
-0009E9r 1  80 E3                BRA     @copy_loop
-0009EBr 1               @copy_done:
-0009EBr 1  AD rr rr             LDA     copy_actual
-0009EEr 1  A0 00                LDY     #0
-0009F0r 1  91 rr                STA     (tmp1),y        ; write length byte
-0009F2r 1  80 06                BRA     @copy_push
-0009F4r 1               @copy_empty:
-0009F4r 1  A9 00                LDA     #0
-0009F6r 1  A0 00                LDY     #0
-0009F8r 1  91 rr                STA     (tmp1),y
-0009FAr 1               @copy_push:
-0009FAr 1  A5 rr                LDA     tmp1+1
-0009FCr 1  85 rr                STA     scratch
-0009FEr 1  A5 rr                LDA     tmp1
-000A00r 1  20 rr rr             JSR     pm_push
-000A03r 1  4C rr rr             JMP     prun_loop
-000A06r 1               
-000A06r 1  xx           copy_count:    .RES 1
-000A07r 1  xx           copy_index:    .RES 1
-000A08r 1  xx           copy_srclen:   .RES 1
-000A09r 1  xx           copy_avail:    .RES 1
-000A0Ar 1  xx           copy_actual:   .RES 1
-000A0Br 1  xx           copy_save:     .RES 1
-000A0Cr 1               
-000A0Cr 1               ; OP_CONCAT ($A3) — NOS=s1, TOS=s2 → TOS=result strptr (s1 then s2)
-000A0Cr 1               op_CONCAT:
-000A0Cr 1  20 rr rr             JSR     pm_pop          ; s2 → tmp2
-000A0Fr 1  85 rr                STA     tmp2
-000A11r 1  A5 rr                LDA     scratch
-000A13r 1  85 rr                STA     tmp2+1
-000A15r 1               ; stash s2 ptr in cat_s2 because next_work_buf and pm_pop touch tmp1
-000A15r 1  A5 rr                LDA     tmp2
-000A17r 1  8D rr rr             STA     cat_s2
-000A1Ar 1  A5 rr                LDA     tmp2+1
-000A1Cr 1  8D rr rr             STA     cat_s2+1
-000A1Fr 1  20 rr rr             JSR     pm_pop          ; s1 → tmp2
-000A22r 1  85 rr                STA     tmp2
-000A24r 1  A5 rr                LDA     scratch
-000A26r 1  85 rr                STA     tmp2+1
-000A28r 1  A5 rr                LDA     tmp2
-000A2Ar 1  8D rr rr             STA     cat_s1
-000A2Dr 1  A5 rr                LDA     tmp2+1
-000A2Fr 1  8D rr rr             STA     cat_s1+1
-000A32r 1  20 rr rr             JSR     next_work_buf   ; tmp1 = dest
-000A35r 1               ; copy s1 chars
-000A35r 1  AD rr rr             LDA     cat_s1
-000A38r 1  85 rr                STA     tmp2
-000A3Ar 1  AD rr rr             LDA     cat_s1+1
-000A3Dr 1  85 rr                STA     tmp2+1
-000A3Fr 1  A0 00                LDY     #0
-000A41r 1  B1 rr                LDA     (tmp2),y
-000A43r 1  8D rr rr             STA     cat_s1len
-000A46r 1  AA                   TAX                     ; X = remaining
-000A47r 1  A0 01                LDY     #1              ; src offset
-000A49r 1  A9 01                LDA     #1
-000A4Br 1  8D rr rr             STA     cat_dstoff
-000A4Er 1               @cat_s1_loop:
-000A4Er 1  E0 00                CPX     #0
-000A50r 1  F0 18                BEQ     @cat_s2_start
-000A52r 1  B1 rr                LDA     (tmp2),y
-000A54r 1  8D rr rr             STA     cat_save
-000A57r 1  DA                   PHX
-000A58r 1  5A                   PHY
-000A59r 1  AC rr rr             LDY     cat_dstoff
-000A5Cr 1  AD rr rr             LDA     cat_save
-000A5Fr 1  91 rr                STA     (tmp1),y
-000A61r 1  EE rr rr             INC     cat_dstoff
-000A64r 1  7A                   PLY
-000A65r 1  FA                   PLX
-000A66r 1  C8                   INY
-000A67r 1  CA                   DEX
-000A68r 1  80 E4                BRA     @cat_s1_loop
-000A6Ar 1               @cat_s2_start:
-000A6Ar 1  AD rr rr             LDA     cat_s2
-000A6Dr 1  85 rr                STA     tmp2
-000A6Fr 1  AD rr rr             LDA     cat_s2+1
-000A72r 1  85 rr                STA     tmp2+1
-000A74r 1  A0 00                LDY     #0
-000A76r 1  B1 rr                LDA     (tmp2),y
-000A78r 1  8D rr rr             STA     cat_s2len
-000A7Br 1  AA                   TAX
-000A7Cr 1  A0 01                LDY     #1
-000A7Er 1               @cat_s2_loop:
-000A7Er 1  E0 00                CPX     #0
-000A80r 1  F0 18                BEQ     @cat_done
-000A82r 1  B1 rr                LDA     (tmp2),y
-000A84r 1  8D rr rr             STA     cat_save
-000A87r 1  DA                   PHX
-000A88r 1  5A                   PHY
-000A89r 1  AC rr rr             LDY     cat_dstoff
-000A8Cr 1  AD rr rr             LDA     cat_save
-000A8Fr 1  91 rr                STA     (tmp1),y
-000A91r 1  EE rr rr             INC     cat_dstoff
-000A94r 1  7A                   PLY
-000A95r 1  FA                   PLX
-000A96r 1  C8                   INY
-000A97r 1  CA                   DEX
-000A98r 1  80 E4                BRA     @cat_s2_loop
-000A9Ar 1               @cat_done:
-000A9Ar 1               ; total length = s1len + s2len (capped at 255)
-000A9Ar 1  18                   CLC
-000A9Br 1  AD rr rr             LDA     cat_s1len
-000A9Er 1  6D rr rr             ADC     cat_s2len
-000AA1r 1  90 02                BCC     :+
-000AA3r 1  A9 FF                LDA     #255
-000AA5r 1  A0 00        :       LDY     #0
-000AA7r 1  91 rr                STA     (tmp1),y
-000AA9r 1  A5 rr                LDA     tmp1+1
-000AABr 1  85 rr                STA     scratch
-000AADr 1  A5 rr                LDA     tmp1
-000AAFr 1  20 rr rr             JSR     pm_push
-000AB2r 1  4C rr rr             JMP     prun_loop
-000AB5r 1               
-000AB5r 1  xx xx        cat_s1:        .RES 2
-000AB7r 1  xx xx        cat_s2:        .RES 2
-000AB9r 1  xx           cat_s1len:     .RES 1
-000ABAr 1  xx           cat_s2len:     .RES 1
-000ABBr 1  xx           cat_dstoff:    .RES 1
-000ABCr 1  xx           cat_save:      .RES 1
-000ABDr 1               
-000ABDr 1               ; ---------------------------------------------------------------------------
-000ABDr 1               ; TEXT file I/O handlers
-000ABDr 1               ;
-000ABDr 1               ; A TEXT variable is a 168-byte struct in globals:
-000ABDr 1               ;   F_FCB   (0..35)   FCB used by PEM
-000ABDr 1               ;   F_BUF   (36..163) 128-byte sector buffer
-000ABDr 1               ;   F_MODE  (164)     0=closed, 1=read, 2=write
-000ABDr 1               ;   F_POS   (165)     next byte index in F_BUF (0..128)
-000ABDr 1               ;   F_EOF   (166)     non-zero once EOF / CTRL-Z encountered
-000ABDr 1               ;
-000ABDr 1               ; The file ptr passed on the p-machine stack is the struct base address.
-000ABDr 1               ; The PEM DMA pointer is set to (struct + F_BUF) before each sector I/O,
-000ABDr 1               ; so multiple open files don't trample each other's buffers.
-000ABDr 1               ; ---------------------------------------------------------------------------
-000ABDr 1               
-000ABDr 1               ; Helper: write one char (in A) to file whose struct ptr is in tmp1.
-000ABDr 1               ; Trashes tmp2, X, Y. Preserves tmp1, tmp3, scratch.
-000ABDr 1               file_write_char_helper:
-000ABDr 1  8D rr rr             STA     fwrc_char
-000AC0r 1  18                   CLC
-000AC1r 1  A5 rr                LDA     tmp1
-000AC3r 1  69 24                ADC     #F_BUF
-000AC5r 1  85 rr                STA     tmp2
-000AC7r 1  A5 rr                LDA     tmp1+1
-000AC9r 1  69 00                ADC     #0
-000ACBr 1  85 rr                STA     tmp2+1
-000ACDr 1  A0 A5                LDY     #F_POS
-000ACFr 1  B1 rr                LDA     (tmp1),y
-000AD1r 1  A8                   TAY
-000AD2r 1  AD rr rr             LDA     fwrc_char
-000AD5r 1  91 rr                STA     (tmp2),y
-000AD7r 1  C8                   INY
-000AD8r 1  98                   TYA
-000AD9r 1  A0 A5                LDY     #F_POS
-000ADBr 1  91 rr                STA     (tmp1),y
-000ADDr 1  C9 80                CMP     #128
-000ADFr 1  D0 16                BNE     @fwch_done
-000AE1r 1  A5 rr                LDA     tmp2
-000AE3r 1  A4 rr                LDY     tmp2+1
-000AE5r 1  20 rr rr             JSR     file_setdma
-000AE8r 1  A5 rr                LDA     tmp1
-000AEAr 1  A4 rr                LDY     tmp1+1
-000AECr 1  A2 15                LDX     #PEM_WRITE
-000AEEr 1  20 03 01             JSR     PEM_ENTRY
-000AF1r 1  A9 00                LDA     #0
-000AF3r 1  A0 A5                LDY     #F_POS
-000AF5r 1  91 rr                STA     (tmp1),y
-000AF7r 1               @fwch_done:
-000AF7r 1  60                   RTS
-000AF8r 1               
-000AF8r 1               ; Helper: read one char from file in tmp1, returns it in A (0 if F_EOF set).
-000AF8r 1               ; Then peeks the next char (loading next sector if needed) and sets F_EOF
-000AF8r 1               ; when no more data is available — so EOF(F) reflects the correct state
-000AF8r 1               ; *before* the next READ.  Trashes tmp2, X, Y.  Preserves tmp1, tmp3.
-000AF8r 1               file_read_char_helper:
-000AF8r 1  A0 A6                LDY     #F_EOF
-000AFAr 1  B1 rr                LDA     (tmp1),y
-000AFCr 1  F0 03                BEQ     :+
-000AFEr 1  A9 00                LDA     #0
-000B00r 1  60                   RTS
-000B01r 1               :
-000B01r 1               ; Read current char at buf[F_POS] (RESET pre-loaded sector 0; this routine
-000B01r 1               ; is responsible for the post-read peek that triggers any future refill).
-000B01r 1  18                   CLC
-000B02r 1  A5 rr                LDA     tmp1
-000B04r 1  69 24                ADC     #F_BUF
-000B06r 1  85 rr                STA     tmp2
-000B08r 1  A5 rr                LDA     tmp1+1
-000B0Ar 1  69 00                ADC     #0
-000B0Cr 1  85 rr                STA     tmp2+1
-000B0Er 1  A0 A5                LDY     #F_POS
-000B10r 1  B1 rr                LDA     (tmp1),y
-000B12r 1  A8                   TAY
-000B13r 1  B1 rr                LDA     (tmp2),y
-000B15r 1  8D rr rr             STA     frch_char
-000B18r 1  C8                   INY
-000B19r 1  98                   TYA
-000B1Ar 1  A0 A5                LDY     #F_POS
-000B1Cr 1  91 rr                STA     (tmp1),y
-000B1Er 1  20 rr rr             JSR     file_check_eof_helper
-000B21r 1  AD rr rr             LDA     frch_char
-000B24r 1  60                   RTS
-000B25r 1               
-000B25r 1               ; Helper: peek buf[F_POS], refilling the sector first if F_POS == 128.
-000B25r 1               ; Sets F_EOF if no more data is available or peeked byte is CTRL-Z.
-000B25r 1               ; Does not advance F_POS.  Trashes tmp2, X, Y.  Preserves tmp1, tmp3.
-000B25r 1               file_check_eof_helper:
-000B25r 1  A0 A5                LDY     #F_POS
-000B27r 1  B1 rr                LDA     (tmp1),y
-000B29r 1  C9 80                CMP     #128
-000B2Br 1  90 29                BCC     @fce_peek
-000B2Dr 1               ; sector exhausted — try to load next one
-000B2Dr 1  18                   CLC
-000B2Er 1  A5 rr                LDA     tmp1
-000B30r 1  69 24                ADC     #F_BUF
-000B32r 1  48                   PHA
-000B33r 1  A5 rr                LDA     tmp1+1
-000B35r 1  69 00                ADC     #0
-000B37r 1  A8                   TAY
-000B38r 1  68                   PLA
-000B39r 1  20 rr rr             JSR     file_setdma
-000B3Cr 1  A5 rr                LDA     tmp1
-000B3Er 1  A4 rr                LDY     tmp1+1
-000B40r 1  A2 14                LDX     #PEM_READ
-000B42r 1  20 03 01             JSR     PEM_ENTRY
-000B45r 1  C9 00                CMP     #0
-000B47r 1  F0 07                BEQ     @fce_pos0
-000B49r 1  A9 01                LDA     #1
-000B4Br 1  A0 A6                LDY     #F_EOF
-000B4Dr 1  91 rr                STA     (tmp1),y
-000B4Fr 1  60                   RTS
-000B50r 1               @fce_pos0:
-000B50r 1  A9 00                LDA     #0
-000B52r 1  A0 A5                LDY     #F_POS
-000B54r 1  91 rr                STA     (tmp1),y
-000B56r 1               @fce_peek:
-000B56r 1  18                   CLC
-000B57r 1  A5 rr                LDA     tmp1
-000B59r 1  69 24                ADC     #F_BUF
-000B5Br 1  85 rr                STA     tmp2
-000B5Dr 1  A5 rr                LDA     tmp1+1
-000B5Fr 1  69 00                ADC     #0
-000B61r 1  85 rr                STA     tmp2+1
-000B63r 1  A0 A5                LDY     #F_POS
-000B65r 1  B1 rr                LDA     (tmp1),y
-000B67r 1  A8                   TAY
-000B68r 1  B1 rr                LDA     (tmp2),y
-000B6Ar 1  C9 1A                CMP     #CTRL_Z
-000B6Cr 1  D0 06                BNE     @fce_done
-000B6Er 1  A9 01                LDA     #1
-000B70r 1  A0 A6                LDY     #F_EOF
-000B72r 1  91 rr                STA     (tmp1),y
-000B74r 1               @fce_done:
-000B74r 1  60                   RTS
-000B75r 1               
-000B75r 1               ; OP_FASSGN ($B0) — NOS=fileptr, TOS=strptr → set FCB
-000B75r 1               op_FASSGN:
-000B75r 1  20 rr rr             JSR     pm_pop                  ; filename strptr → tmp3
-000B78r 1  85 rr                STA     tmp3
-000B7Ar 1  A5 rr                LDA     scratch
-000B7Cr 1  85 rr                STA     tmp3+1
-000B7Er 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
-000B81r 1  85 rr                STA     tmp1
-000B83r 1  A5 rr                LDA     scratch
-000B85r 1  85 rr                STA     tmp1+1
-000B87r 1               ; clear FCB[0..35]
-000B87r 1  A0 00                LDY     #0
-000B89r 1  98                   TYA
-000B8Ar 1               @fas_clr:
-000B8Ar 1  91 rr                STA     (tmp1),y
-000B8Cr 1  C8                   INY
-000B8Dr 1  C0 24                CPY     #36
-000B8Fr 1  90 F9                BCC     @fas_clr
-000B91r 1               ; pad name+ext (FCB[1..11]) with spaces
-000B91r 1  A9 20                LDA     #' '
-000B93r 1  A0 01                LDY     #1
-000B95r 1               @fas_pad:
-000B95r 1  91 rr                STA     (tmp1),y
-000B97r 1  C8                   INY
-000B98r 1  C0 0C                CPY     #12
-000B9Ar 1  90 F9                BCC     @fas_pad
-000B9Cr 1               ; walk source string
-000B9Cr 1  A0 00                LDY     #0
-000B9Er 1  B1 rr                LDA     (tmp3),y                ; length
-000BA0r 1  8D rr rr             STA     fas_remain
-000BA3r 1  A9 01                LDA     #1
-000BA5r 1  8D rr rr             STA     fas_si
-000BA8r 1  A9 01                LDA     #1
-000BAAr 1  8D rr rr             STA     fas_di
-000BADr 1               @fas_name_loop:
-000BADr 1  AD rr rr             LDA     fas_remain
-000BB0r 1  F0 5A                BEQ     @fas_zero
-000BB2r 1  AC rr rr             LDY     fas_si
-000BB5r 1  B1 rr                LDA     (tmp3),y
-000BB7r 1  EE rr rr             INC     fas_si
-000BBAr 1  CE rr rr             DEC     fas_remain
-000BBDr 1  C9 2E                CMP     #'.'
-000BBFr 1  F0 1B                BEQ     @fas_to_ext
-000BC1r 1  C9 61                CMP     #'a'
-000BC3r 1  90 06                BCC     @fas_store_n
-000BC5r 1  C9 7B                CMP     #'{'
-000BC7r 1  B0 02                BCS     @fas_store_n
-000BC9r 1  29 DF                AND     #$DF
-000BCBr 1               @fas_store_n:
-000BCBr 1  AE rr rr             LDX     fas_di
-000BCEr 1  E0 09                CPX     #9
-000BD0r 1  B0 DB                BCS     @fas_name_loop
-000BD2r 1  AC rr rr             LDY     fas_di
-000BD5r 1  91 rr                STA     (tmp1),y
-000BD7r 1  EE rr rr             INC     fas_di
-000BDAr 1  80 D1                BRA     @fas_name_loop
-000BDCr 1               @fas_to_ext:
-000BDCr 1  A9 09                LDA     #9
-000BDEr 1  8D rr rr             STA     fas_di
-000BE1r 1               @fas_ext_loop:
-000BE1r 1  AD rr rr             LDA     fas_remain
-000BE4r 1  F0 26                BEQ     @fas_zero
-000BE6r 1  AC rr rr             LDY     fas_si
-000BE9r 1  B1 rr                LDA     (tmp3),y
-000BEBr 1  EE rr rr             INC     fas_si
-000BEEr 1  CE rr rr             DEC     fas_remain
-000BF1r 1  C9 61                CMP     #'a'
-000BF3r 1  90 06                BCC     @fas_store_e
-000BF5r 1  C9 7B                CMP     #'{'
-000BF7r 1  B0 02                BCS     @fas_store_e
-000BF9r 1  29 DF                AND     #$DF
-000BFBr 1               @fas_store_e:
-000BFBr 1  AE rr rr             LDX     fas_di
-000BFEr 1  E0 0C                CPX     #12
-000C00r 1  B0 DF                BCS     @fas_ext_loop
-000C02r 1  AC rr rr             LDY     fas_di
-000C05r 1  91 rr                STA     (tmp1),y
-000C07r 1  EE rr rr             INC     fas_di
-000C0Ar 1  80 D5                BRA     @fas_ext_loop
-000C0Cr 1               @fas_zero:
-000C0Cr 1  A9 00                LDA     #0
-000C0Er 1  A0 A4                LDY     #F_MODE
-000C10r 1  91 rr                STA     (tmp1),y
-000C12r 1  A0 A5                LDY     #F_POS
-000C14r 1  91 rr                STA     (tmp1),y
-000C16r 1  A0 A6                LDY     #F_EOF
-000C18r 1  91 rr                STA     (tmp1),y
-000C1Ar 1  4C rr rr             JMP     prun_loop
-000C1Dr 1               
-000C1Dr 1               ; OP_FRESET ($B1) — TOS=fileptr → open existing for reading, prefill buffer
-000C1Dr 1               op_FRESET:
-000C1Dr 1  20 rr rr             JSR     pm_pop
-000C20r 1  85 rr                STA     tmp1
-000C22r 1  A5 rr                LDA     scratch
-000C24r 1  85 rr                STA     tmp1+1
-000C26r 1  A5 rr                LDA     tmp1
-000C28r 1  A4 rr                LDY     tmp1+1
-000C2Ar 1  A2 0F                LDX     #PEM_OPEN
-000C2Cr 1  20 03 01             JSR     PEM_ENTRY
-000C2Fr 1  C9 FF                CMP     #$FF
-000C31r 1  D0 15                BNE     @fre_open_ok
-000C33r 1               ; open failed — leave file in EOF/closed state
-000C33r 1  A9 00                LDA     #F_MODE_CLOSED
-000C35r 1  A0 A4                LDY     #F_MODE
-000C37r 1  91 rr                STA     (tmp1),y
-000C39r 1  A9 01                LDA     #1
-000C3Br 1  A0 A6                LDY     #F_EOF
-000C3Dr 1  91 rr                STA     (tmp1),y
-000C3Fr 1  A9 80                LDA     #128
-000C41r 1  A0 A5                LDY     #F_POS
-000C43r 1  91 rr                STA     (tmp1),y
-000C45r 1  4C rr rr             JMP     prun_loop
-000C48r 1               @fre_open_ok:
-000C48r 1               ; set DMA to file's internal buffer
-000C48r 1  18                   CLC
-000C49r 1  A5 rr                LDA     tmp1
-000C4Br 1  69 24                ADC     #F_BUF
-000C4Dr 1  48                   PHA
-000C4Er 1  A5 rr                LDA     tmp1+1
-000C50r 1  69 00                ADC     #0
-000C52r 1  A8                   TAY
-000C53r 1  68                   PLA
-000C54r 1  20 rr rr             JSR     file_setdma
-000C57r 1               ; pre-read first sector to detect immediate EOF
-000C57r 1  A5 rr                LDA     tmp1
-000C59r 1  A4 rr                LDY     tmp1+1
-000C5Br 1  A2 14                LDX     #PEM_READ
-000C5Dr 1  20 03 01             JSR     PEM_ENTRY
-000C60r 1  C9 00                CMP     #0
-000C62r 1  F0 0E                BEQ     @fre_have
-000C64r 1  A9 01                LDA     #1
-000C66r 1  A0 A6                LDY     #F_EOF
-000C68r 1  91 rr                STA     (tmp1),y
-000C6Ar 1  A9 80                LDA     #128
-000C6Cr 1  A0 A5                LDY     #F_POS
-000C6Er 1  91 rr                STA     (tmp1),y
-000C70r 1  80 0D                BRA     @fre_set_mode
-000C72r 1               @fre_have:
-000C72r 1  A9 00                LDA     #0
-000C74r 1  A0 A6                LDY     #F_EOF
-000C76r 1  91 rr                STA     (tmp1),y
-000C78r 1  A0 A5                LDY     #F_POS
-000C7Ar 1  91 rr                STA     (tmp1),y
-000C7Cr 1               ; lookahead: set F_EOF immediately if buf[0] is CTRL-Z
-000C7Cr 1  20 rr rr             JSR     file_check_eof_helper
-000C7Fr 1               @fre_set_mode:
-000C7Fr 1  A9 01                LDA     #F_MODE_READ
-000C81r 1  A0 A4                LDY     #F_MODE
-000C83r 1  91 rr                STA     (tmp1),y
-000C85r 1  4C rr rr             JMP     prun_loop
-000C88r 1               
-000C88r 1               ; OP_FREWRT ($B2) — TOS=fileptr → create/truncate for writing
-000C88r 1               op_FREWRT:
-000C88r 1  20 rr rr             JSR     pm_pop
-000C8Br 1  85 rr                STA     tmp1
-000C8Dr 1  A5 rr                LDA     scratch
-000C8Fr 1  85 rr                STA     tmp1+1
-000C91r 1  A5 rr                LDA     tmp1
-000C93r 1  A4 rr                LDY     tmp1+1
-000C95r 1  A2 16                LDX     #PEM_MAKE
-000C97r 1  20 03 01             JSR     PEM_ENTRY
-000C9Ar 1  18                   CLC
-000C9Br 1  A5 rr                LDA     tmp1
-000C9Dr 1  69 24                ADC     #F_BUF
-000C9Fr 1  48                   PHA
-000CA0r 1  A5 rr                LDA     tmp1+1
-000CA2r 1  69 00                ADC     #0
-000CA4r 1  A8                   TAY
-000CA5r 1  68                   PLA
-000CA6r 1  20 rr rr             JSR     file_setdma
-000CA9r 1  A9 02                LDA     #F_MODE_WRITE
-000CABr 1  A0 A4                LDY     #F_MODE
-000CADr 1  91 rr                STA     (tmp1),y
-000CAFr 1  A9 00                LDA     #0
-000CB1r 1  A0 A5                LDY     #F_POS
-000CB3r 1  91 rr                STA     (tmp1),y
-000CB5r 1  A0 A6                LDY     #F_EOF
-000CB7r 1  91 rr                STA     (tmp1),y
-000CB9r 1  4C rr rr             JMP     prun_loop
-000CBCr 1               
-000CBCr 1               ; OP_FCLOSE ($B3) — TOS=fileptr → flush (write mode) and close
-000CBCr 1               op_FCLOSE:
-000CBCr 1  20 rr rr             JSR     pm_pop
-000CBFr 1  85 rr                STA     tmp1
-000CC1r 1  A5 rr                LDA     scratch
-000CC3r 1  85 rr                STA     tmp1+1
-000CC5r 1  A0 A4                LDY     #F_MODE
-000CC7r 1  B1 rr                LDA     (tmp1),y
-000CC9r 1  C9 02                CMP     #F_MODE_WRITE
-000CCBr 1  D0 33                BNE     @fclo_just_close
-000CCDr 1  A0 A5                LDY     #F_POS
-000CCFr 1  B1 rr                LDA     (tmp1),y
-000CD1r 1  F0 2D                BEQ     @fclo_just_close        ; nothing pending in buffer
-000CD3r 1               ; pad buf[F_POS..127] with CTRL-Z, then write final sector
-000CD3r 1  18                   CLC
-000CD4r 1  A5 rr                LDA     tmp1
-000CD6r 1  69 24                ADC     #F_BUF
-000CD8r 1  85 rr                STA     tmp2
-000CDAr 1  A5 rr                LDA     tmp1+1
-000CDCr 1  69 00                ADC     #0
-000CDEr 1  85 rr                STA     tmp2+1
-000CE0r 1  A0 A5                LDY     #F_POS
-000CE2r 1  B1 rr                LDA     (tmp1),y
-000CE4r 1  A8                   TAY
-000CE5r 1               @fclo_pad:
-000CE5r 1  C0 80                CPY     #128
-000CE7r 1  B0 07                BCS     @fclo_write
-000CE9r 1  A9 1A                LDA     #CTRL_Z
-000CEBr 1  91 rr                STA     (tmp2),y
-000CEDr 1  C8                   INY
-000CEEr 1  80 F5                BRA     @fclo_pad
-000CF0r 1               @fclo_write:
-000CF0r 1  A5 rr                LDA     tmp2
-000CF2r 1  A4 rr                LDY     tmp2+1
-000CF4r 1  20 rr rr             JSR     file_setdma
-000CF7r 1  A5 rr                LDA     tmp1
-000CF9r 1  A4 rr                LDY     tmp1+1
-000CFBr 1  A2 15                LDX     #PEM_WRITE
-000CFDr 1  20 03 01             JSR     PEM_ENTRY
-000D00r 1               @fclo_just_close:
-000D00r 1  A5 rr                LDA     tmp1
-000D02r 1  A4 rr                LDY     tmp1+1
-000D04r 1  A2 10                LDX     #PEM_CLOSE
-000D06r 1  20 03 01             JSR     PEM_ENTRY
-000D09r 1  A9 00                LDA     #F_MODE_CLOSED
-000D0Br 1  A0 A4                LDY     #F_MODE
-000D0Dr 1  91 rr                STA     (tmp1),y
-000D0Fr 1  20 rr rr             JSR     file_setdma_default
-000D12r 1  4C rr rr             JMP     prun_loop
-000D15r 1               
-000D15r 1               ; OP_FWRC ($B4) — NOS=fileptr, TOS=char → append char
-000D15r 1               op_FWRC:
-000D15r 1  20 rr rr             JSR     pm_pop                  ; char val (lo byte)
-000D18r 1  48                   PHA
-000D19r 1  20 rr rr             JSR     pm_pop                  ; file ptr
-000D1Cr 1  85 rr                STA     tmp1
-000D1Er 1  A5 rr                LDA     scratch
-000D20r 1  85 rr                STA     tmp1+1
-000D22r 1  68                   PLA
-000D23r 1  20 rr rr             JSR     file_write_char_helper
-000D26r 1  4C rr rr             JMP     prun_loop
-000D29r 1               
-000D29r 1               ; OP_FWRS ($B5) — NOS=fileptr, TOS=strptr → append string
-000D29r 1               op_FWRS:
-000D29r 1  20 rr rr             JSR     pm_pop                  ; string ptr → tmp3
-000D2Cr 1  85 rr                STA     tmp3
-000D2Er 1  A5 rr                LDA     scratch
-000D30r 1  85 rr                STA     tmp3+1
-000D32r 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
-000D35r 1  85 rr                STA     tmp1
-000D37r 1  A5 rr                LDA     scratch
-000D39r 1  85 rr                STA     tmp1+1
-000D3Br 1  A0 00                LDY     #0
-000D3Dr 1  B1 rr                LDA     (tmp3),y                ; length
-000D3Fr 1  8D rr rr             STA     fws_remain
-000D42r 1  A9 01                LDA     #1
-000D44r 1  8D rr rr             STA     fws_idx
-000D47r 1               @fws_loop:
-000D47r 1  AD rr rr             LDA     fws_remain
-000D4Ar 1  F0 12                BEQ     @fws_done
-000D4Cr 1  AC rr rr             LDY     fws_idx
-000D4Fr 1  B1 rr                LDA     (tmp3),y
-000D51r 1  48                   PHA
-000D52r 1  EE rr rr             INC     fws_idx
-000D55r 1  CE rr rr             DEC     fws_remain
-000D58r 1  68                   PLA
-000D59r 1  20 rr rr             JSR     file_write_char_helper
-000D5Cr 1  80 E9                BRA     @fws_loop
-000D5Er 1               @fws_done:
-000D5Er 1  4C rr rr             JMP     prun_loop
-000D61r 1               
-000D61r 1               ; OP_FWRI ($B6) — NOS=fileptr, TOS=int → append decimal
-000D61r 1               op_FWRI:
-000D61r 1  20 rr rr             JSR     pm_pop                  ; int
-000D64r 1  8D rr rr             STA     fwi_val
-000D67r 1  A5 rr                LDA     scratch
-000D69r 1  8D rr rr             STA     fwi_val+1
-000D6Cr 1  20 rr rr             JSR     pm_pop                  ; file ptr
-000D6Fr 1  85 rr                STA     tmp1
-000D71r 1  A5 rr                LDA     scratch
-000D73r 1  85 rr                STA     tmp1+1
-000D75r 1  AD rr rr             LDA     fwi_val+1
-000D78r 1  10 16                BPL     @fwi_pos
-000D7Ar 1  A9 2D                LDA     #'-'
-000D7Cr 1  20 rr rr             JSR     file_write_char_helper
-000D7Fr 1  38                   SEC
-000D80r 1  A9 00                LDA     #0
-000D82r 1  ED rr rr             SBC     fwi_val
-000D85r 1  8D rr rr             STA     fwi_val
-000D88r 1  A9 00                LDA     #0
-000D8Ar 1  ED rr rr             SBC     fwi_val+1
-000D8Dr 1  8D rr rr             STA     fwi_val+1
-000D90r 1               @fwi_pos:
-000D90r 1  A2 00                LDX     #0
-000D92r 1               @fwi_div_loop:
-000D92r 1  AD rr rr             LDA     fwi_val
-000D95r 1  85 rr                STA     tmp0
-000D97r 1  AD rr rr             LDA     fwi_val+1
-000D9Ar 1  85 rr                STA     tmp0+1
-000D9Cr 1  DA                   PHX                             ; div16_by10 trashes X
-000D9Dr 1  20 rr rr             JSR     div16_by10              ; tmp0 = quot, scratch = rem
-000DA0r 1  FA                   PLX
-000DA1r 1  A5 rr                LDA     scratch
-000DA3r 1  18                   CLC
-000DA4r 1  69 30                ADC     #'0'
-000DA6r 1  9D rr rr             STA     fwi_buf,x
-000DA9r 1  E8                   INX
-000DAAr 1  A5 rr                LDA     tmp0
-000DACr 1  8D rr rr             STA     fwi_val
-000DAFr 1  A5 rr                LDA     tmp0+1
-000DB1r 1  8D rr rr             STA     fwi_val+1
-000DB4r 1  0D rr rr             ORA     fwi_val
-000DB7r 1  D0 D9                BNE     @fwi_div_loop
-000DB9r 1               @fwi_emit:
-000DB9r 1  CA                   DEX
-000DBAr 1  BD rr rr             LDA     fwi_buf,x
-000DBDr 1  DA                   PHX
-000DBEr 1  20 rr rr             JSR     file_write_char_helper
-000DC1r 1  FA                   PLX
-000DC2r 1  E0 00                CPX     #0
-000DC4r 1  D0 F3                BNE     @fwi_emit
-000DC6r 1  4C rr rr             JMP     prun_loop
-000DC9r 1               
-000DC9r 1               ; OP_FWLN ($B7) — TOS=fileptr → CR + LF
-000DC9r 1               op_FWLN:
-000DC9r 1  20 rr rr             JSR     pm_pop
-000DCCr 1  85 rr                STA     tmp1
-000DCEr 1  A5 rr                LDA     scratch
-000DD0r 1  85 rr                STA     tmp1+1
-000DD2r 1  A9 0D                LDA     #$0D
-000DD4r 1  20 rr rr             JSR     file_write_char_helper
-000DD7r 1  A9 0A                LDA     #$0A
-000DD9r 1  20 rr rr             JSR     file_write_char_helper
-000DDCr 1  4C rr rr             JMP     prun_loop
-000DDFr 1               
-000DDFr 1               ; OP_FRDC ($B8) — NOS=fileptr, TOS=charvar addr → read 1 char
-000DDFr 1               op_FRDC:
-000DDFr 1  20 rr rr             JSR     pm_pop                  ; charvar addr → tmp3
-000DE2r 1  85 rr                STA     tmp3
-000DE4r 1  A5 rr                LDA     scratch
-000DE6r 1  85 rr                STA     tmp3+1
-000DE8r 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
-000DEBr 1  85 rr                STA     tmp1
-000DEDr 1  A5 rr                LDA     scratch
-000DEFr 1  85 rr                STA     tmp1+1
-000DF1r 1  20 rr rr             JSR     file_read_char_helper
-000DF4r 1  A0 00                LDY     #0
-000DF6r 1  91 rr                STA     (tmp3),y
-000DF8r 1  4C rr rr             JMP     prun_loop
-000DFBr 1               
-000DFBr 1               ; OP_FRDI ($B9) — NOS=fileptr, TOS=intvar addr → read decimal
-000DFBr 1               op_FRDI:
-000DFBr 1  20 rr rr             JSR     pm_pop                  ; intvar addr → tmp3
-000DFEr 1  85 rr                STA     tmp3
-000E00r 1  A5 rr                LDA     scratch
-000E02r 1  85 rr                STA     tmp3+1
-000E04r 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
-000E07r 1  85 rr                STA     tmp1
-000E09r 1  A5 rr                LDA     scratch
-000E0Br 1  85 rr                STA     tmp1+1
-000E0Dr 1  A9 00                LDA     #0
-000E0Fr 1  8D rr rr             STA     fri_val
-000E12r 1  8D rr rr             STA     fri_val+1
-000E15r 1  8D rr rr             STA     fri_neg
-000E18r 1               @fri_skipws:
-000E18r 1  20 rr rr             JSR     file_read_char_helper
-000E1Br 1  8D rr rr             STA     fri_cur
-000E1Er 1  A0 A6                LDY     #F_EOF
-000E20r 1  B1 rr                LDA     (tmp1),y
-000E22r 1  F0 03                BEQ     @fri_chk_ws
-000E24r 1  4C rr rr             JMP     @fri_apply
-000E27r 1               @fri_chk_ws:
-000E27r 1  AD rr rr             LDA     fri_cur
-000E2Ar 1  C9 20                CMP     #' '
-000E2Cr 1  F0 EA                BEQ     @fri_skipws
-000E2Er 1  C9 09                CMP     #$09
-000E30r 1  F0 E6                BEQ     @fri_skipws
-000E32r 1  C9 0D                CMP     #$0D
-000E34r 1  F0 E2                BEQ     @fri_skipws
-000E36r 1  C9 0A                CMP     #$0A
-000E38r 1  F0 DE                BEQ     @fri_skipws
-000E3Ar 1  C9 2D                CMP     #'-'
-000E3Cr 1  D0 0D                BNE     @fri_chk_plus
-000E3Er 1  A9 01                LDA     #1
-000E40r 1  8D rr rr             STA     fri_neg
-000E43r 1  20 rr rr             JSR     file_read_char_helper
-000E46r 1  8D rr rr             STA     fri_cur
-000E49r 1  80 0A                BRA     @fri_dig_check
-000E4Br 1               @fri_chk_plus:
-000E4Br 1  C9 2B                CMP     #'+'
-000E4Dr 1  D0 06                BNE     @fri_dig_check
-000E4Fr 1  20 rr rr             JSR     file_read_char_helper
-000E52r 1  8D rr rr             STA     fri_cur
-000E55r 1               @fri_dig_check:
-000E55r 1  AD rr rr             LDA     fri_cur
-000E58r 1  C9 30                CMP     #'0'
-000E5Ar 1  90 5F                BCC     @fri_apply
-000E5Cr 1  C9 3A                CMP     #'9'+1
-000E5Er 1  B0 5B                BCS     @fri_apply
-000E60r 1               @fri_dig_loop:
-000E60r 1               ; fri_val = fri_val*10 + (digit-'0')
-000E60r 1  0E rr rr             ASL     fri_val
-000E63r 1  2E rr rr             ROL     fri_val+1
-000E66r 1  AD rr rr             LDA     fri_val
-000E69r 1  85 rr                STA     tmp0
-000E6Br 1  AD rr rr             LDA     fri_val+1
-000E6Er 1  85 rr                STA     tmp0+1
-000E70r 1  0E rr rr             ASL     fri_val
-000E73r 1  2E rr rr             ROL     fri_val+1
-000E76r 1  0E rr rr             ASL     fri_val
-000E79r 1  2E rr rr             ROL     fri_val+1
-000E7Cr 1  18                   CLC
-000E7Dr 1  AD rr rr             LDA     fri_val
-000E80r 1  65 rr                ADC     tmp0
-000E82r 1  8D rr rr             STA     fri_val
-000E85r 1  AD rr rr             LDA     fri_val+1
-000E88r 1  65 rr                ADC     tmp0+1
-000E8Ar 1  8D rr rr             STA     fri_val+1
-000E8Dr 1  AD rr rr             LDA     fri_cur
-000E90r 1  38                   SEC
-000E91r 1  E9 30                SBC     #'0'
-000E93r 1  18                   CLC
-000E94r 1  6D rr rr             ADC     fri_val
-000E97r 1  8D rr rr             STA     fri_val
-000E9Ar 1  A9 00                LDA     #0
-000E9Cr 1  6D rr rr             ADC     fri_val+1
-000E9Fr 1  8D rr rr             STA     fri_val+1
-000EA2r 1  20 rr rr             JSR     file_read_char_helper
-000EA5r 1  8D rr rr             STA     fri_cur
-000EA8r 1  A0 A6                LDY     #F_EOF
-000EAAr 1  B1 rr                LDA     (tmp1),y
-000EACr 1  D0 0D                BNE     @fri_apply
-000EAEr 1  AD rr rr             LDA     fri_cur
-000EB1r 1  C9 30                CMP     #'0'
-000EB3r 1  90 06                BCC     @fri_apply
-000EB5r 1  C9 3A                CMP     #'9'+1
-000EB7r 1  B0 02                BCS     @fri_apply
-000EB9r 1  80 A5                BRA     @fri_dig_loop
-000EBBr 1               @fri_apply:
-000EBBr 1  AD rr rr             LDA     fri_neg
-000EBEr 1  F0 11                BEQ     @fri_store
-000EC0r 1  38                   SEC
-000EC1r 1  A9 00                LDA     #0
-000EC3r 1  ED rr rr             SBC     fri_val
-000EC6r 1  8D rr rr             STA     fri_val
-000EC9r 1  A9 00                LDA     #0
-000ECBr 1  ED rr rr             SBC     fri_val+1
-000ECEr 1  8D rr rr             STA     fri_val+1
-000ED1r 1               @fri_store:
-000ED1r 1  A0 00                LDY     #0
-000ED3r 1  AD rr rr             LDA     fri_val
-000ED6r 1  91 rr                STA     (tmp3),y
-000ED8r 1  C8                   INY
-000ED9r 1  AD rr rr             LDA     fri_val+1
-000EDCr 1  91 rr                STA     (tmp3),y
-000EDEr 1  4C rr rr             JMP     prun_loop
-000EE1r 1               
-000EE1r 1               ; OP_FRDLN ($BA) — TOS=fileptr → skip remaining chars to end-of-line (LF)
-000EE1r 1               op_FRDLN:
-000EE1r 1  20 rr rr             JSR     pm_pop
-000EE4r 1  85 rr                STA     tmp1
-000EE6r 1  A5 rr                LDA     scratch
-000EE8r 1  85 rr                STA     tmp1+1
-000EEAr 1               @frln_loop:
-000EEAr 1  A0 A6                LDY     #F_EOF
-000EECr 1  B1 rr                LDA     (tmp1),y
-000EEEr 1  F0 03                BEQ     :+
-000EF0r 1  4C rr rr             JMP     prun_loop
-000EF3r 1               :
-000EF3r 1  20 rr rr             JSR     file_read_char_helper
-000EF6r 1  C9 0A                CMP     #$0A
-000EF8r 1  F0 02                BEQ     @frln_done
-000EFAr 1  80 EE                BRA     @frln_loop
-000EFCr 1               @frln_done:
-000EFCr 1  4C rr rr             JMP     prun_loop
-000EFFr 1               
-000EFFr 1               ; OP_FEOF ($BB) — TOS=fileptr → push BOOL ($FFFF=true, $0000=false)
-000EFFr 1               op_FEOF:
-000EFFr 1  20 rr rr             JSR     pm_pop
-000F02r 1  85 rr                STA     tmp1
-000F04r 1  A5 rr                LDA     scratch
-000F06r 1  85 rr                STA     tmp1+1
-000F08r 1  A0 A6                LDY     #F_EOF
-000F0Ar 1  B1 rr                LDA     (tmp1),y
-000F0Cr 1  F0 0C                BEQ     @feof_false
-000F0Er 1  A9 FF                LDA     #$FF
-000F10r 1  85 rr                STA     scratch
-000F12r 1  A9 FF                LDA     #$FF
-000F14r 1  20 rr rr             JSR     pm_push
-000F17r 1  4C rr rr             JMP     prun_loop
-000F1Ar 1               @feof_false:
-000F1Ar 1  A9 00                LDA     #0
-000F1Cr 1  85 rr                STA     scratch
-000F1Er 1  20 rr rr             JSR     pm_push
-000F21r 1  4C rr rr             JMP     prun_loop
-000F24r 1               
-000F24r 1               ; OP_FRDS ($BD) — NOS=fileptr, TOS=strvar addr → read line into a work buffer;
-000F24r 1               ; store the buffer pointer at strvar.  Skips CR, stops on LF/EOF.
-000F24r 1               ; STRING vars hold a 16-bit pointer (matching LDCS / CONCAT semantics).
-000F24r 1               FRDS_BUF        = $AC00                  ; dedicated 256-byte buffer below STR_WORK_BASE
-000F24r 1               op_FRDS:
-000F24r 1  20 rr rr             JSR     pm_pop                  ; strvar addr → tmp3
-000F27r 1  85 rr                STA     tmp3
-000F29r 1  A5 rr                LDA     scratch
-000F2Br 1  85 rr                STA     tmp3+1
-000F2Dr 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
-000F30r 1  85 rr                STA     tmp1
-000F32r 1  A5 rr                LDA     scratch
-000F34r 1  85 rr                STA     tmp1+1
-000F36r 1  A9 00                LDA     #0
-000F38r 1  8D rr rr             STA     frs_idx
-000F3Br 1               @frs_loop:
-000F3Br 1  A0 A6                LDY     #F_EOF
-000F3Dr 1  B1 rr                LDA     (tmp1),y
-000F3Fr 1  D0 37                BNE     @frs_done
-000F41r 1               ; peek char at buf[F_POS] without consuming
-000F41r 1  18                   CLC
-000F42r 1  A5 rr                LDA     tmp1
-000F44r 1  69 24                ADC     #F_BUF
-000F46r 1  85 rr                STA     tmp2
-000F48r 1  A5 rr                LDA     tmp1+1
-000F4Ar 1  69 00                ADC     #0
-000F4Cr 1  85 rr                STA     tmp2+1
-000F4Er 1  A0 A5                LDY     #F_POS
-000F50r 1  B1 rr                LDA     (tmp1),y
-000F52r 1  A8                   TAY
-000F53r 1  B1 rr                LDA     (tmp2),y
-000F55r 1  C9 0D                CMP     #$0D
-000F57r 1  F0 1F                BEQ     @frs_done               ; leave CR for READLN
-000F59r 1  C9 0A                CMP     #$0A
-000F5Br 1  F0 1B                BEQ     @frs_done               ; leave LF for READLN
-000F5Dr 1               ; not at EOL — consume and append
-000F5Dr 1  20 rr rr             JSR     file_read_char_helper
-000F60r 1  8D rr rr             STA     frs_char
-000F63r 1  AD rr rr             LDA     frs_idx
-000F66r 1  C9 FF                CMP     #255
-000F68r 1  B0 D1                BCS     @frs_loop               ; clamp (drop char)
-000F6Ar 1  EE rr rr             INC     frs_idx
-000F6Dr 1  AC rr rr             LDY     frs_idx
-000F70r 1  AD rr rr             LDA     frs_char
-000F73r 1  99 00 AC             STA     FRDS_BUF,y
-000F76r 1  80 C3                BRA     @frs_loop
-000F78r 1               @frs_done:
-000F78r 1  AD rr rr             LDA     frs_idx
-000F7Br 1  8D 00 AC             STA     FRDS_BUF                ; length byte at offset 0
-000F7Er 1               ; store buffer ptr ($AC00) into strvar at tmp3
-000F7Er 1  A9 00                LDA     #<FRDS_BUF
-000F80r 1  A0 00                LDY     #0
-000F82r 1  91 rr                STA     (tmp3),y
-000F84r 1  C8                   INY
-000F85r 1  A9 AC                LDA     #>FRDS_BUF
-000F87r 1  91 rr                STA     (tmp3),y
-000F89r 1  4C rr rr             JMP     prun_loop
-000F8Cr 1               
-000F8Cr 1               ; OP_FWRB ($BE) — NOS=fileptr, TOS=bool → append "TRUE"/"FALSE"
-000F8Cr 1               op_FWRB:
-000F8Cr 1  20 rr rr             JSR     pm_pop                  ; bool value
-000F8Fr 1  85 rr                STA     tmp2
-000F91r 1  A5 rr                LDA     scratch
-000F93r 1  05 rr                ORA     tmp2
-000F95r 1  85 rr                STA     tmp2                    ; tmp2 = nonzero if true
-000F97r 1  20 rr rr             JSR     pm_pop                  ; file ptr
-000F9Ar 1  85 rr                STA     tmp1
-000F9Cr 1  A5 rr                LDA     scratch
-000F9Er 1  85 rr                STA     tmp1+1
-000FA0r 1  A5 rr                LDA     tmp2
-000FA2r 1  F0 17                BEQ     @fwb_false
-000FA4r 1               ; "TRUE"
-000FA4r 1  A9 54                LDA     #'T'
-000FA6r 1  20 rr rr             JSR     file_write_char_helper
-000FA9r 1  A9 52                LDA     #'R'
-000FABr 1  20 rr rr             JSR     file_write_char_helper
-000FAEr 1  A9 55                LDA     #'U'
-000FB0r 1  20 rr rr             JSR     file_write_char_helper
-000FB3r 1  A9 45                LDA     #'E'
-000FB5r 1  20 rr rr             JSR     file_write_char_helper
-000FB8r 1  4C rr rr             JMP     prun_loop
-000FBBr 1               @fwb_false:
-000FBBr 1  A9 46                LDA     #'F'
-000FBDr 1  20 rr rr             JSR     file_write_char_helper
-000FC0r 1  A9 41                LDA     #'A'
-000FC2r 1  20 rr rr             JSR     file_write_char_helper
-000FC5r 1  A9 4C                LDA     #'L'
-000FC7r 1  20 rr rr             JSR     file_write_char_helper
-000FCAr 1  A9 53                LDA     #'S'
-000FCCr 1  20 rr rr             JSR     file_write_char_helper
-000FCFr 1  A9 45                LDA     #'E'
-000FD1r 1  20 rr rr             JSR     file_write_char_helper
-000FD4r 1  4C rr rr             JMP     prun_loop
-000FD7r 1               
-000FD7r 1               ; OP_FEOLN ($BF) — TOS=fileptr → push BOOL: true if EOF, CR, or LF is next
-000FD7r 1               op_FEOLN:
-000FD7r 1  20 rr rr             JSR     pm_pop
-000FDAr 1  85 rr                STA     tmp1
-000FDCr 1  A5 rr                LDA     scratch
-000FDEr 1  85 rr                STA     tmp1+1
-000FE0r 1  A0 A6                LDY     #F_EOF
-000FE2r 1  B1 rr                LDA     (tmp1),y
-000FE4r 1  D0 26                BNE     @feol_true
-000FE6r 1               ; peek current char without consuming
-000FE6r 1  18                   CLC
-000FE7r 1  A5 rr                LDA     tmp1
-000FE9r 1  69 24                ADC     #F_BUF
-000FEBr 1  85 rr                STA     tmp2
-000FEDr 1  A5 rr                LDA     tmp1+1
-000FEFr 1  69 00                ADC     #0
-000FF1r 1  85 rr                STA     tmp2+1
-000FF3r 1  A0 A5                LDY     #F_POS
-000FF5r 1  B1 rr                LDA     (tmp1),y
-000FF7r 1  A8                   TAY
-000FF8r 1  B1 rr                LDA     (tmp2),y
-000FFAr 1  C9 0D                CMP     #$0D
-000FFCr 1  F0 0E                BEQ     @feol_true
-000FFEr 1  C9 0A                CMP     #$0A
-001000r 1  F0 0A                BEQ     @feol_true
-001002r 1  A9 00                LDA     #0
-001004r 1  85 rr                STA     scratch
-001006r 1  20 rr rr             JSR     pm_push
-001009r 1  4C rr rr             JMP     prun_loop
-00100Cr 1               @feol_true:
-00100Cr 1  A9 FF                LDA     #$FF
-00100Er 1  85 rr                STA     scratch
-001010r 1  A9 FF                LDA     #$FF
-001012r 1  20 rr rr             JSR     pm_push
-001015r 1  4C rr rr             JMP     prun_loop
-001018r 1               
-001018r 1               ; --- File I/O scratch storage ---
-001018r 1  xx           fas_remain:    .RES 1
-001019r 1  xx           fas_si:        .RES 1
-00101Ar 1  xx           fas_di:        .RES 1
-00101Br 1  xx           fwrc_char:     .RES 1
-00101Cr 1  xx           fws_remain:    .RES 1
-00101Dr 1  xx           fws_idx:       .RES 1
-00101Er 1  xx xx        fwi_val:       .RES 2
-001020r 1  xx xx xx xx  fwi_buf:       .RES 6
-001024r 1  xx xx        
-001026r 1  xx           frch_char:     .RES 1
-001027r 1  xx xx        fri_val:       .RES 2
-001029r 1  xx           fri_neg:       .RES 1
-00102Ar 1  xx           fri_cur:       .RES 1
-00102Br 1  xx           frs_idx:       .RES 1
-00102Cr 1  xx           frs_char:      .RES 1
-00102Dr 1               
-00102Dr 1               ; ---------------------------------------------------------------------------
-00102Dr 1               ; Unimplemented opcode handler
-00102Dr 1               ; ---------------------------------------------------------------------------
-00102Dr 1               op_UNIMP:
-00102Dr 1               ; X still holds the offending opcode at dispatch time
-00102Dr 1  86 rr                STX     tmp0
-00102Fr 1  A9 00                LDA     #0
-001031r 1  85 rr                STA     tmp0+1
-001033r 1  DA                   PHX                     ; preserve for after banner
-001034r 1  A9 rr                LDA     #<err_rt_opcode
-001036r 1  85 rr                STA     tmp0
-001038r 1  A9 rr                LDA     #>err_rt_opcode
-00103Ar 1  85 rr                STA     tmp0+1
-00103Cr 1  20 rr rr             JSR     console_print_sz
-00103Fr 1  FA                   PLX
-001040r 1  86 rr                STX     tmp0
-001042r 1  A9 00                LDA     #0
-001044r 1  85 rr                STA     tmp0+1
-001046r 1  20 rr rr             JSR     console_print_dec
-001049r 1  A9 0D                LDA     #13
-00104Br 1  A2 02                LDX     #PEM_CONOUT
-00104Dr 1  20 03 01             JSR     PEM_ENTRY
-001050r 1  A9 0A                LDA     #10
-001052r 1  A2 02                LDX     #PEM_CONOUT
-001054r 1  20 03 01             JSR     PEM_ENTRY
-001057r 1  4C 00 01             JMP     WARM_BOOT
-00105Ar 1               
-00105Ar 1               ; ---------------------------------------------------------------------------
-00105Ar 1               ; String literals for boolean output
-00105Ar 1               ; ---------------------------------------------------------------------------
-00105Ar 1               str_true:
-00105Ar 1  54 52 55 45          .BYTE   "TRUE",0
-00105Er 1  00           
-00105Fr 1               str_false:
-00105Fr 1  46 41 4C 53          .BYTE   "FALSE",0
-001063r 1  45 00        
-001065r 1               msg_rt_banner:
-001065r 1  50 52 55 4E          .BYTE   "PRUN v0.1 - Pascal P-Code Runtime for DOS/65",13,10,0
-001069r 1  20 76 30 2E  
-00106Dr 1  31 20 2D 20  
-001094r 1               
-001094r 1               ; ---------------------------------------------------------------------------
-001094r 1               ; Dispatch table — 256 entries of (lo, hi) pointer pairs
-001094r 1               ; ---------------------------------------------------------------------------
-001094r 1  xx xx xx xx          .align  256
-001098r 1  xx xx xx xx  
-00109Cr 1  xx xx xx xx  
+0008C6r 1               ; OP_NEW ($70) — allocate inline-size bytes from heap, push pointer
+0008C6r 1               ; Bump allocator: pm_np grows down from HEAP_TOP. DISPOSE is a no-op.
+0008C6r 1               op_NEW:
+0008C6r 1  20 rr rr             JSR     pm_fetch_word   ; A=size lo, scratch=size hi
+0008C9r 1  85 rr                STA     tmp0
+0008CBr 1  A5 rr                LDA     scratch
+0008CDr 1  85 rr                STA     tmp0+1
+0008CFr 1  38                   SEC
+0008D0r 1  A5 rr                LDA     pm_np
+0008D2r 1  E5 rr                SBC     tmp0
+0008D4r 1  85 rr                STA     pm_np
+0008D6r 1  A5 rr                LDA     pm_np+1
+0008D8r 1  E5 rr                SBC     tmp0+1
+0008DAr 1  85 rr                STA     pm_np+1
+0008DCr 1  A5 rr                LDA     pm_np+1
+0008DEr 1  85 rr                STA     scratch
+0008E0r 1  A5 rr                LDA     pm_np
+0008E2r 1  20 rr rr             JSR     pm_push
+0008E5r 1  4C rr rr             JMP     prun_loop
+0008E8r 1               
+0008E8r 1               ; OP_DISP ($71) — discard pointer (bump allocator cannot free)
+0008E8r 1               op_DISP:
+0008E8r 1  20 rr rr             JSR     pm_pop
+0008EBr 1  4C rr rr             JMP     prun_loop
+0008EEr 1               
+0008EEr 1               ; ---------------------------------------------------------------------------
+0008EEr 1               ; String built-in support
+0008EEr 1               ;
+0008EEr 1               ; Pascal-style strings: length byte at offset 0, characters at offsets 1..N.
+0008EEr 1               ; COPY/CONCAT results live in one of three rotating 256-byte work buffers
+0008EEr 1               ; placed in unused heap-area memory.  Round-robin allocation lets simple
+0008EEr 1               ; nested expressions like CONCAT(COPY(s,1,3), 'x') work; deeper nesting
+0008EEr 1               ; eventually recycles a buffer and corrupts an earlier result.
+0008EEr 1               ; ---------------------------------------------------------------------------
+0008EEr 1               STR_WORK_BASE   = $AD00
+0008EEr 1               STR_WORK_COUNT  = 3
+0008EEr 1               
+0008EEr 1               str_work_idx:
+0008EEr 1  xx                   .RES    1
+0008EFr 1               
+0008EFr 1               ; next_work_buf — return current work-buffer addr in tmp1, advance idx
+0008EFr 1               next_work_buf:
+0008EFr 1  AD rr rr             LDA     str_work_idx
+0008F2r 1  18                   CLC
+0008F3r 1  69 AD                ADC     #>STR_WORK_BASE
+0008F5r 1  85 rr                STA     tmp1+1
+0008F7r 1  A9 00                LDA     #0
+0008F9r 1  85 rr                STA     tmp1
+0008FBr 1  EE rr rr             INC     str_work_idx
+0008FEr 1  AD rr rr             LDA     str_work_idx
+000901r 1  C9 03                CMP     #STR_WORK_COUNT
+000903r 1  90 05                BCC     :+
+000905r 1  A9 00                LDA     #0
+000907r 1  8D rr rr             STA     str_work_idx
+00090Ar 1  60           :       RTS
+00090Br 1               
+00090Br 1               ; OP_LEN ($A0) — TOS = string ptr → TOS = length (int)
+00090Br 1               op_LEN:
+00090Br 1  20 rr rr             JSR     pm_pop          ; A=lo, scratch=hi
+00090Er 1  85 rr                STA     tmp1
+000910r 1  A5 rr                LDA     scratch
+000912r 1  85 rr                STA     tmp1+1
+000914r 1  A0 00                LDY     #0
+000916r 1  B1 rr                LDA     (tmp1),y        ; length byte
+000918r 1  48                   PHA
+000919r 1  A9 00                LDA     #0
+00091Br 1  85 rr                STA     scratch
+00091Dr 1  68                   PLA
+00091Er 1  20 rr rr             JSR     pm_push
+000921r 1  4C rr rr             JMP     prun_loop
+000924r 1               
+000924r 1               ; OP_POS ($A1) — NOS=substr ptr, TOS=mainstr ptr → TOS=1-based position
+000924r 1               op_POS:
+000924r 1  20 rr rr             JSR     pm_pop          ; mainstr → tmp2
+000927r 1  85 rr                STA     tmp2
+000929r 1  A5 rr                LDA     scratch
+00092Br 1  85 rr                STA     tmp2+1
+00092Dr 1  20 rr rr             JSR     pm_pop          ; substr → tmp1
+000930r 1  85 rr                STA     tmp1
+000932r 1  A5 rr                LDA     scratch
+000934r 1  85 rr                STA     tmp1+1
+000936r 1               ; If substr length is 0, return 0
+000936r 1  A0 00                LDY     #0
+000938r 1  B1 rr                LDA     (tmp1),y
+00093Ar 1  D0 03                BNE     :+
+00093Cr 1  4C rr rr             JMP     @pos_zero
+00093Fr 1               :
+00093Fr 1               ; sublen in pos_sublen, mainlen in pos_mainlen
+00093Fr 1  8D rr rr             STA     pos_sublen
+000942r 1  A0 00                LDY     #0
+000944r 1  B1 rr                LDA     (tmp2),y
+000946r 1  8D rr rr             STA     pos_mainlen
+000949r 1               ; If sublen > mainlen, return 0
+000949r 1  AD rr rr             LDA     pos_sublen
+00094Cr 1  CD rr rr             CMP     pos_mainlen
+00094Fr 1  F0 02                BEQ     :+
+000951r 1  B0 4D                BCS     @pos_zero
+000953r 1               :
+000953r 1               ; pos_start = 1; loop while (pos_start + sublen - 1) <= mainlen
+000953r 1  A9 01                LDA     #1
+000955r 1  8D rr rr             STA     pos_start
+000958r 1               @pos_outer:
+000958r 1               ; max_start = mainlen - sublen + 1
+000958r 1  AD rr rr             LDA     pos_mainlen
+00095Br 1  38                   SEC
+00095Cr 1  ED rr rr             SBC     pos_sublen
+00095Fr 1  18                   CLC
+000960r 1  69 01                ADC     #1              ; A = max valid start
+000962r 1  CD rr rr             CMP     pos_start
+000965r 1  90 39                BCC     @pos_zero       ; pos_start > max_start → not found
+000967r 1               ; compare sublen bytes at main[pos_start..] vs sub[1..]
+000967r 1  A2 00                LDX     #0              ; substr offset (0..sublen-1, +1 to skip len byte)
+000969r 1               @pos_cmp:
+000969r 1  EC rr rr             CPX     pos_sublen
+00096Cr 1  F0 1F                BEQ     @pos_found
+00096Er 1  8A                   TXA
+00096Fr 1  18                   CLC
+000970r 1  6D rr rr             ADC     pos_start       ; main index = pos_start + X
+000973r 1  A8                   TAY
+000974r 1  B1 rr                LDA     (tmp2),y        ; main[pos_start+X]
+000976r 1  8D rr rr             STA     pos_save
+000979r 1  8A                   TXA
+00097Ar 1  18                   CLC
+00097Br 1  69 01                ADC     #1              ; sub index = X + 1
+00097Dr 1  A8                   TAY
+00097Er 1  B1 rr                LDA     (tmp1),y        ; sub[X+1]
+000980r 1  CD rr rr             CMP     pos_save
+000983r 1  D0 03                BNE     @pos_next
+000985r 1  E8                   INX
+000986r 1  80 E1                BRA     @pos_cmp
+000988r 1               @pos_next:
+000988r 1  EE rr rr             INC     pos_start
+00098Br 1  80 CB                BRA     @pos_outer
+00098Dr 1               @pos_found:
+00098Dr 1  AD rr rr             LDA     pos_start
+000990r 1  8D rr rr             STA     pos_save
+000993r 1  A9 00                LDA     #0
+000995r 1  85 rr                STA     scratch
+000997r 1  AD rr rr             LDA     pos_save
+00099Ar 1  20 rr rr             JSR     pm_push
+00099Dr 1  4C rr rr             JMP     prun_loop
+0009A0r 1               @pos_zero:
+0009A0r 1  A9 00                LDA     #0
+0009A2r 1  85 rr                STA     scratch
+0009A4r 1  20 rr rr             JSR     pm_push
+0009A7r 1  4C rr rr             JMP     prun_loop
+0009AAr 1               
+0009AAr 1  xx           pos_sublen:    .RES 1
+0009ABr 1  xx           pos_mainlen:   .RES 1
+0009ACr 1  xx           pos_start:     .RES 1
+0009ADr 1  xx           pos_save:      .RES 1
+0009AEr 1               
+0009AEr 1               ; OP_COPY ($A2) — NNOS=str, NOS=index (1-based), TOS=count → TOS=result strptr
+0009AEr 1               op_COPY:
+0009AEr 1  20 rr rr             JSR     pm_pop          ; count
+0009B1r 1  8D rr rr             STA     copy_count
+0009B4r 1  20 rr rr             JSR     pm_pop          ; index
+0009B7r 1  8D rr rr             STA     copy_index
+0009BAr 1  20 rr rr             JSR     pm_pop          ; source ptr
+0009BDr 1  85 rr                STA     tmp2
+0009BFr 1  A5 rr                LDA     scratch
+0009C1r 1  85 rr                STA     tmp2+1
+0009C3r 1  20 rr rr             JSR     next_work_buf   ; tmp1 = dest buffer
+0009C6r 1               ; clamp index: if index < 1 or index > srclen, result is empty
+0009C6r 1  A0 00                LDY     #0
+0009C8r 1  B1 rr                LDA     (tmp2),y
+0009CAr 1  8D rr rr             STA     copy_srclen
+0009CDr 1  AD rr rr             LDA     copy_index
+0009D0r 1  F0 4A                BEQ     @copy_empty
+0009D2r 1  CD rr rr             CMP     copy_srclen
+0009D5r 1  F0 02                BEQ     :+
+0009D7r 1  B0 43                BCS     @copy_empty
+0009D9r 1               :
+0009D9r 1               ; available = srclen - index + 1
+0009D9r 1  AD rr rr             LDA     copy_srclen
+0009DCr 1  38                   SEC
+0009DDr 1  ED rr rr             SBC     copy_index
+0009E0r 1  18                   CLC
+0009E1r 1  69 01                ADC     #1
+0009E3r 1  8D rr rr             STA     copy_avail
+0009E6r 1               ; actual = min(count, available)
+0009E6r 1  AD rr rr             LDA     copy_count
+0009E9r 1  CD rr rr             CMP     copy_avail
+0009ECr 1  90 03                BCC     :+
+0009EEr 1  AD rr rr             LDA     copy_avail
+0009F1r 1  8D rr rr     :       STA     copy_actual
+0009F4r 1               ; copy actual bytes from src[index..] into dest[1..]
+0009F4r 1  A2 00                LDX     #0
+0009F6r 1               @copy_loop:
+0009F6r 1  EC rr rr             CPX     copy_actual
+0009F9r 1  F0 18                BEQ     @copy_done
+0009FBr 1  8A                   TXA
+0009FCr 1  18                   CLC
+0009FDr 1  6D rr rr             ADC     copy_index      ; src offset = X + index
+000A00r 1  A8                   TAY
+000A01r 1  B1 rr                LDA     (tmp2),y
+000A03r 1  8D rr rr             STA     copy_save
+000A06r 1  8A                   TXA
+000A07r 1  18                   CLC
+000A08r 1  69 01                ADC     #1              ; dest offset = X + 1
+000A0Ar 1  A8                   TAY
+000A0Br 1  AD rr rr             LDA     copy_save
+000A0Er 1  91 rr                STA     (tmp1),y
+000A10r 1  E8                   INX
+000A11r 1  80 E3                BRA     @copy_loop
+000A13r 1               @copy_done:
+000A13r 1  AD rr rr             LDA     copy_actual
+000A16r 1  A0 00                LDY     #0
+000A18r 1  91 rr                STA     (tmp1),y        ; write length byte
+000A1Ar 1  80 06                BRA     @copy_push
+000A1Cr 1               @copy_empty:
+000A1Cr 1  A9 00                LDA     #0
+000A1Er 1  A0 00                LDY     #0
+000A20r 1  91 rr                STA     (tmp1),y
+000A22r 1               @copy_push:
+000A22r 1  A5 rr                LDA     tmp1+1
+000A24r 1  85 rr                STA     scratch
+000A26r 1  A5 rr                LDA     tmp1
+000A28r 1  20 rr rr             JSR     pm_push
+000A2Br 1  4C rr rr             JMP     prun_loop
+000A2Er 1               
+000A2Er 1  xx           copy_count:    .RES 1
+000A2Fr 1  xx           copy_index:    .RES 1
+000A30r 1  xx           copy_srclen:   .RES 1
+000A31r 1  xx           copy_avail:    .RES 1
+000A32r 1  xx           copy_actual:   .RES 1
+000A33r 1  xx           copy_save:     .RES 1
+000A34r 1               
+000A34r 1               ; OP_CONCAT ($A3) — NOS=s1, TOS=s2 → TOS=result strptr (s1 then s2)
+000A34r 1               op_CONCAT:
+000A34r 1  20 rr rr             JSR     pm_pop          ; s2 → tmp2
+000A37r 1  85 rr                STA     tmp2
+000A39r 1  A5 rr                LDA     scratch
+000A3Br 1  85 rr                STA     tmp2+1
+000A3Dr 1               ; stash s2 ptr in cat_s2 because next_work_buf and pm_pop touch tmp1
+000A3Dr 1  A5 rr                LDA     tmp2
+000A3Fr 1  8D rr rr             STA     cat_s2
+000A42r 1  A5 rr                LDA     tmp2+1
+000A44r 1  8D rr rr             STA     cat_s2+1
+000A47r 1  20 rr rr             JSR     pm_pop          ; s1 → tmp2
+000A4Ar 1  85 rr                STA     tmp2
+000A4Cr 1  A5 rr                LDA     scratch
+000A4Er 1  85 rr                STA     tmp2+1
+000A50r 1  A5 rr                LDA     tmp2
+000A52r 1  8D rr rr             STA     cat_s1
+000A55r 1  A5 rr                LDA     tmp2+1
+000A57r 1  8D rr rr             STA     cat_s1+1
+000A5Ar 1  20 rr rr             JSR     next_work_buf   ; tmp1 = dest
+000A5Dr 1               ; copy s1 chars
+000A5Dr 1  AD rr rr             LDA     cat_s1
+000A60r 1  85 rr                STA     tmp2
+000A62r 1  AD rr rr             LDA     cat_s1+1
+000A65r 1  85 rr                STA     tmp2+1
+000A67r 1  A0 00                LDY     #0
+000A69r 1  B1 rr                LDA     (tmp2),y
+000A6Br 1  8D rr rr             STA     cat_s1len
+000A6Er 1  AA                   TAX                     ; X = remaining
+000A6Fr 1  A0 01                LDY     #1              ; src offset
+000A71r 1  A9 01                LDA     #1
+000A73r 1  8D rr rr             STA     cat_dstoff
+000A76r 1               @cat_s1_loop:
+000A76r 1  E0 00                CPX     #0
+000A78r 1  F0 18                BEQ     @cat_s2_start
+000A7Ar 1  B1 rr                LDA     (tmp2),y
+000A7Cr 1  8D rr rr             STA     cat_save
+000A7Fr 1  DA                   PHX
+000A80r 1  5A                   PHY
+000A81r 1  AC rr rr             LDY     cat_dstoff
+000A84r 1  AD rr rr             LDA     cat_save
+000A87r 1  91 rr                STA     (tmp1),y
+000A89r 1  EE rr rr             INC     cat_dstoff
+000A8Cr 1  7A                   PLY
+000A8Dr 1  FA                   PLX
+000A8Er 1  C8                   INY
+000A8Fr 1  CA                   DEX
+000A90r 1  80 E4                BRA     @cat_s1_loop
+000A92r 1               @cat_s2_start:
+000A92r 1  AD rr rr             LDA     cat_s2
+000A95r 1  85 rr                STA     tmp2
+000A97r 1  AD rr rr             LDA     cat_s2+1
+000A9Ar 1  85 rr                STA     tmp2+1
+000A9Cr 1  A0 00                LDY     #0
+000A9Er 1  B1 rr                LDA     (tmp2),y
+000AA0r 1  8D rr rr             STA     cat_s2len
+000AA3r 1  AA                   TAX
+000AA4r 1  A0 01                LDY     #1
+000AA6r 1               @cat_s2_loop:
+000AA6r 1  E0 00                CPX     #0
+000AA8r 1  F0 18                BEQ     @cat_done
+000AAAr 1  B1 rr                LDA     (tmp2),y
+000AACr 1  8D rr rr             STA     cat_save
+000AAFr 1  DA                   PHX
+000AB0r 1  5A                   PHY
+000AB1r 1  AC rr rr             LDY     cat_dstoff
+000AB4r 1  AD rr rr             LDA     cat_save
+000AB7r 1  91 rr                STA     (tmp1),y
+000AB9r 1  EE rr rr             INC     cat_dstoff
+000ABCr 1  7A                   PLY
+000ABDr 1  FA                   PLX
+000ABEr 1  C8                   INY
+000ABFr 1  CA                   DEX
+000AC0r 1  80 E4                BRA     @cat_s2_loop
+000AC2r 1               @cat_done:
+000AC2r 1               ; total length = s1len + s2len (capped at 255)
+000AC2r 1  18                   CLC
+000AC3r 1  AD rr rr             LDA     cat_s1len
+000AC6r 1  6D rr rr             ADC     cat_s2len
+000AC9r 1  90 02                BCC     :+
+000ACBr 1  A9 FF                LDA     #255
+000ACDr 1  A0 00        :       LDY     #0
+000ACFr 1  91 rr                STA     (tmp1),y
+000AD1r 1  A5 rr                LDA     tmp1+1
+000AD3r 1  85 rr                STA     scratch
+000AD5r 1  A5 rr                LDA     tmp1
+000AD7r 1  20 rr rr             JSR     pm_push
+000ADAr 1  4C rr rr             JMP     prun_loop
+000ADDr 1               
+000ADDr 1  xx xx        cat_s1:        .RES 2
+000ADFr 1  xx xx        cat_s2:        .RES 2
+000AE1r 1  xx           cat_s1len:     .RES 1
+000AE2r 1  xx           cat_s2len:     .RES 1
+000AE3r 1  xx           cat_dstoff:    .RES 1
+000AE4r 1  xx           cat_save:      .RES 1
+000AE5r 1               
+000AE5r 1               ; ---------------------------------------------------------------------------
+000AE5r 1               ; TEXT file I/O handlers
+000AE5r 1               ;
+000AE5r 1               ; A TEXT variable is a 168-byte struct in globals:
+000AE5r 1               ;   F_FCB   (0..35)   FCB used by PEM
+000AE5r 1               ;   F_BUF   (36..163) 128-byte sector buffer
+000AE5r 1               ;   F_MODE  (164)     0=closed, 1=read, 2=write
+000AE5r 1               ;   F_POS   (165)     next byte index in F_BUF (0..128)
+000AE5r 1               ;   F_EOF   (166)     non-zero once EOF / CTRL-Z encountered
+000AE5r 1               ;
+000AE5r 1               ; The file ptr passed on the p-machine stack is the struct base address.
+000AE5r 1               ; The PEM DMA pointer is set to (struct + F_BUF) before each sector I/O,
+000AE5r 1               ; so multiple open files don't trample each other's buffers.
+000AE5r 1               ; ---------------------------------------------------------------------------
+000AE5r 1               
+000AE5r 1               ; Helper: write one char (in A) to file whose struct ptr is in tmp1.
+000AE5r 1               ; Trashes tmp2, X, Y. Preserves tmp1, tmp3, scratch.
+000AE5r 1               file_write_char_helper:
+000AE5r 1  8D rr rr             STA     fwrc_char
+000AE8r 1  18                   CLC
+000AE9r 1  A5 rr                LDA     tmp1
+000AEBr 1  69 24                ADC     #F_BUF
+000AEDr 1  85 rr                STA     tmp2
+000AEFr 1  A5 rr                LDA     tmp1+1
+000AF1r 1  69 00                ADC     #0
+000AF3r 1  85 rr                STA     tmp2+1
+000AF5r 1  A0 A5                LDY     #F_POS
+000AF7r 1  B1 rr                LDA     (tmp1),y
+000AF9r 1  A8                   TAY
+000AFAr 1  AD rr rr             LDA     fwrc_char
+000AFDr 1  91 rr                STA     (tmp2),y
+000AFFr 1  C8                   INY
+000B00r 1  98                   TYA
+000B01r 1  A0 A5                LDY     #F_POS
+000B03r 1  91 rr                STA     (tmp1),y
+000B05r 1  C9 80                CMP     #128
+000B07r 1  D0 16                BNE     @fwch_done
+000B09r 1  A5 rr                LDA     tmp2
+000B0Br 1  A4 rr                LDY     tmp2+1
+000B0Dr 1  20 rr rr             JSR     file_setdma
+000B10r 1  A5 rr                LDA     tmp1
+000B12r 1  A4 rr                LDY     tmp1+1
+000B14r 1  A2 15                LDX     #PEM_WRITE
+000B16r 1  20 03 01             JSR     PEM_ENTRY
+000B19r 1  A9 00                LDA     #0
+000B1Br 1  A0 A5                LDY     #F_POS
+000B1Dr 1  91 rr                STA     (tmp1),y
+000B1Fr 1               @fwch_done:
+000B1Fr 1  60                   RTS
+000B20r 1               
+000B20r 1               ; Helper: read one char from file in tmp1, returns it in A (0 if F_EOF set).
+000B20r 1               ; Then peeks the next char (loading next sector if needed) and sets F_EOF
+000B20r 1               ; when no more data is available — so EOF(F) reflects the correct state
+000B20r 1               ; *before* the next READ.  Trashes tmp2, X, Y.  Preserves tmp1, tmp3.
+000B20r 1               file_read_char_helper:
+000B20r 1  A0 A6                LDY     #F_EOF
+000B22r 1  B1 rr                LDA     (tmp1),y
+000B24r 1  F0 03                BEQ     :+
+000B26r 1  A9 00                LDA     #0
+000B28r 1  60                   RTS
+000B29r 1               :
+000B29r 1               ; Read current char at buf[F_POS] (RESET pre-loaded sector 0; this routine
+000B29r 1               ; is responsible for the post-read peek that triggers any future refill).
+000B29r 1  18                   CLC
+000B2Ar 1  A5 rr                LDA     tmp1
+000B2Cr 1  69 24                ADC     #F_BUF
+000B2Er 1  85 rr                STA     tmp2
+000B30r 1  A5 rr                LDA     tmp1+1
+000B32r 1  69 00                ADC     #0
+000B34r 1  85 rr                STA     tmp2+1
+000B36r 1  A0 A5                LDY     #F_POS
+000B38r 1  B1 rr                LDA     (tmp1),y
+000B3Ar 1  A8                   TAY
+000B3Br 1  B1 rr                LDA     (tmp2),y
+000B3Dr 1  8D rr rr             STA     frch_char
+000B40r 1  C8                   INY
+000B41r 1  98                   TYA
+000B42r 1  A0 A5                LDY     #F_POS
+000B44r 1  91 rr                STA     (tmp1),y
+000B46r 1  20 rr rr             JSR     file_check_eof_helper
+000B49r 1  AD rr rr             LDA     frch_char
+000B4Cr 1  60                   RTS
+000B4Dr 1               
+000B4Dr 1               ; Helper: peek buf[F_POS], refilling the sector first if F_POS == 128.
+000B4Dr 1               ; Sets F_EOF if no more data is available or peeked byte is CTRL-Z.
+000B4Dr 1               ; Does not advance F_POS.  Trashes tmp2, X, Y.  Preserves tmp1, tmp3.
+000B4Dr 1               file_check_eof_helper:
+000B4Dr 1  A0 A5                LDY     #F_POS
+000B4Fr 1  B1 rr                LDA     (tmp1),y
+000B51r 1  C9 80                CMP     #128
+000B53r 1  90 29                BCC     @fce_peek
+000B55r 1               ; sector exhausted — try to load next one
+000B55r 1  18                   CLC
+000B56r 1  A5 rr                LDA     tmp1
+000B58r 1  69 24                ADC     #F_BUF
+000B5Ar 1  48                   PHA
+000B5Br 1  A5 rr                LDA     tmp1+1
+000B5Dr 1  69 00                ADC     #0
+000B5Fr 1  A8                   TAY
+000B60r 1  68                   PLA
+000B61r 1  20 rr rr             JSR     file_setdma
+000B64r 1  A5 rr                LDA     tmp1
+000B66r 1  A4 rr                LDY     tmp1+1
+000B68r 1  A2 14                LDX     #PEM_READ
+000B6Ar 1  20 03 01             JSR     PEM_ENTRY
+000B6Dr 1  C9 00                CMP     #0
+000B6Fr 1  F0 07                BEQ     @fce_pos0
+000B71r 1  A9 01                LDA     #1
+000B73r 1  A0 A6                LDY     #F_EOF
+000B75r 1  91 rr                STA     (tmp1),y
+000B77r 1  60                   RTS
+000B78r 1               @fce_pos0:
+000B78r 1  A9 00                LDA     #0
+000B7Ar 1  A0 A5                LDY     #F_POS
+000B7Cr 1  91 rr                STA     (tmp1),y
+000B7Er 1               @fce_peek:
+000B7Er 1  18                   CLC
+000B7Fr 1  A5 rr                LDA     tmp1
+000B81r 1  69 24                ADC     #F_BUF
+000B83r 1  85 rr                STA     tmp2
+000B85r 1  A5 rr                LDA     tmp1+1
+000B87r 1  69 00                ADC     #0
+000B89r 1  85 rr                STA     tmp2+1
+000B8Br 1  A0 A5                LDY     #F_POS
+000B8Dr 1  B1 rr                LDA     (tmp1),y
+000B8Fr 1  A8                   TAY
+000B90r 1  B1 rr                LDA     (tmp2),y
+000B92r 1  C9 1A                CMP     #CTRL_Z
+000B94r 1  D0 06                BNE     @fce_done
+000B96r 1  A9 01                LDA     #1
+000B98r 1  A0 A6                LDY     #F_EOF
+000B9Ar 1  91 rr                STA     (tmp1),y
+000B9Cr 1               @fce_done:
+000B9Cr 1  60                   RTS
+000B9Dr 1               
+000B9Dr 1               ; OP_FASSGN ($B0) — NOS=fileptr, TOS=strptr → set FCB
+000B9Dr 1               op_FASSGN:
+000B9Dr 1  20 rr rr             JSR     pm_pop                  ; filename strptr → tmp3
+000BA0r 1  85 rr                STA     tmp3
+000BA2r 1  A5 rr                LDA     scratch
+000BA4r 1  85 rr                STA     tmp3+1
+000BA6r 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
+000BA9r 1  85 rr                STA     tmp1
+000BABr 1  A5 rr                LDA     scratch
+000BADr 1  85 rr                STA     tmp1+1
+000BAFr 1               ; clear FCB[0..35]
+000BAFr 1  A0 00                LDY     #0
+000BB1r 1  98                   TYA
+000BB2r 1               @fas_clr:
+000BB2r 1  91 rr                STA     (tmp1),y
+000BB4r 1  C8                   INY
+000BB5r 1  C0 24                CPY     #36
+000BB7r 1  90 F9                BCC     @fas_clr
+000BB9r 1               ; pad name+ext (FCB[1..11]) with spaces
+000BB9r 1  A9 20                LDA     #' '
+000BBBr 1  A0 01                LDY     #1
+000BBDr 1               @fas_pad:
+000BBDr 1  91 rr                STA     (tmp1),y
+000BBFr 1  C8                   INY
+000BC0r 1  C0 0C                CPY     #12
+000BC2r 1  90 F9                BCC     @fas_pad
+000BC4r 1               ; walk source string
+000BC4r 1  A0 00                LDY     #0
+000BC6r 1  B1 rr                LDA     (tmp3),y                ; length
+000BC8r 1  8D rr rr             STA     fas_remain
+000BCBr 1  A9 01                LDA     #1
+000BCDr 1  8D rr rr             STA     fas_si
+000BD0r 1  A9 01                LDA     #1
+000BD2r 1  8D rr rr             STA     fas_di
+000BD5r 1               @fas_name_loop:
+000BD5r 1  AD rr rr             LDA     fas_remain
+000BD8r 1  F0 5A                BEQ     @fas_zero
+000BDAr 1  AC rr rr             LDY     fas_si
+000BDDr 1  B1 rr                LDA     (tmp3),y
+000BDFr 1  EE rr rr             INC     fas_si
+000BE2r 1  CE rr rr             DEC     fas_remain
+000BE5r 1  C9 2E                CMP     #'.'
+000BE7r 1  F0 1B                BEQ     @fas_to_ext
+000BE9r 1  C9 61                CMP     #'a'
+000BEBr 1  90 06                BCC     @fas_store_n
+000BEDr 1  C9 7B                CMP     #'{'
+000BEFr 1  B0 02                BCS     @fas_store_n
+000BF1r 1  29 DF                AND     #$DF
+000BF3r 1               @fas_store_n:
+000BF3r 1  AE rr rr             LDX     fas_di
+000BF6r 1  E0 09                CPX     #9
+000BF8r 1  B0 DB                BCS     @fas_name_loop
+000BFAr 1  AC rr rr             LDY     fas_di
+000BFDr 1  91 rr                STA     (tmp1),y
+000BFFr 1  EE rr rr             INC     fas_di
+000C02r 1  80 D1                BRA     @fas_name_loop
+000C04r 1               @fas_to_ext:
+000C04r 1  A9 09                LDA     #9
+000C06r 1  8D rr rr             STA     fas_di
+000C09r 1               @fas_ext_loop:
+000C09r 1  AD rr rr             LDA     fas_remain
+000C0Cr 1  F0 26                BEQ     @fas_zero
+000C0Er 1  AC rr rr             LDY     fas_si
+000C11r 1  B1 rr                LDA     (tmp3),y
+000C13r 1  EE rr rr             INC     fas_si
+000C16r 1  CE rr rr             DEC     fas_remain
+000C19r 1  C9 61                CMP     #'a'
+000C1Br 1  90 06                BCC     @fas_store_e
+000C1Dr 1  C9 7B                CMP     #'{'
+000C1Fr 1  B0 02                BCS     @fas_store_e
+000C21r 1  29 DF                AND     #$DF
+000C23r 1               @fas_store_e:
+000C23r 1  AE rr rr             LDX     fas_di
+000C26r 1  E0 0C                CPX     #12
+000C28r 1  B0 DF                BCS     @fas_ext_loop
+000C2Ar 1  AC rr rr             LDY     fas_di
+000C2Dr 1  91 rr                STA     (tmp1),y
+000C2Fr 1  EE rr rr             INC     fas_di
+000C32r 1  80 D5                BRA     @fas_ext_loop
+000C34r 1               @fas_zero:
+000C34r 1  A9 00                LDA     #0
+000C36r 1  A0 A4                LDY     #F_MODE
+000C38r 1  91 rr                STA     (tmp1),y
+000C3Ar 1  A0 A5                LDY     #F_POS
+000C3Cr 1  91 rr                STA     (tmp1),y
+000C3Er 1  A0 A6                LDY     #F_EOF
+000C40r 1  91 rr                STA     (tmp1),y
+000C42r 1  4C rr rr             JMP     prun_loop
+000C45r 1               
+000C45r 1               ; OP_FRESET ($B1) — TOS=fileptr → open existing for reading, prefill buffer
+000C45r 1               op_FRESET:
+000C45r 1  20 rr rr             JSR     pm_pop
+000C48r 1  85 rr                STA     tmp1
+000C4Ar 1  A5 rr                LDA     scratch
+000C4Cr 1  85 rr                STA     tmp1+1
+000C4Er 1  A5 rr                LDA     tmp1
+000C50r 1  A4 rr                LDY     tmp1+1
+000C52r 1  A2 0F                LDX     #PEM_OPEN
+000C54r 1  20 03 01             JSR     PEM_ENTRY
+000C57r 1  C9 FF                CMP     #$FF
+000C59r 1  D0 15                BNE     @fre_open_ok
+000C5Br 1               ; open failed — leave file in EOF/closed state
+000C5Br 1  A9 00                LDA     #F_MODE_CLOSED
+000C5Dr 1  A0 A4                LDY     #F_MODE
+000C5Fr 1  91 rr                STA     (tmp1),y
+000C61r 1  A9 01                LDA     #1
+000C63r 1  A0 A6                LDY     #F_EOF
+000C65r 1  91 rr                STA     (tmp1),y
+000C67r 1  A9 80                LDA     #128
+000C69r 1  A0 A5                LDY     #F_POS
+000C6Br 1  91 rr                STA     (tmp1),y
+000C6Dr 1  4C rr rr             JMP     prun_loop
+000C70r 1               @fre_open_ok:
+000C70r 1               ; set DMA to file's internal buffer
+000C70r 1  18                   CLC
+000C71r 1  A5 rr                LDA     tmp1
+000C73r 1  69 24                ADC     #F_BUF
+000C75r 1  48                   PHA
+000C76r 1  A5 rr                LDA     tmp1+1
+000C78r 1  69 00                ADC     #0
+000C7Ar 1  A8                   TAY
+000C7Br 1  68                   PLA
+000C7Cr 1  20 rr rr             JSR     file_setdma
+000C7Fr 1               ; pre-read first sector to detect immediate EOF
+000C7Fr 1  A5 rr                LDA     tmp1
+000C81r 1  A4 rr                LDY     tmp1+1
+000C83r 1  A2 14                LDX     #PEM_READ
+000C85r 1  20 03 01             JSR     PEM_ENTRY
+000C88r 1  C9 00                CMP     #0
+000C8Ar 1  F0 0E                BEQ     @fre_have
+000C8Cr 1  A9 01                LDA     #1
+000C8Er 1  A0 A6                LDY     #F_EOF
+000C90r 1  91 rr                STA     (tmp1),y
+000C92r 1  A9 80                LDA     #128
+000C94r 1  A0 A5                LDY     #F_POS
+000C96r 1  91 rr                STA     (tmp1),y
+000C98r 1  80 0D                BRA     @fre_set_mode
+000C9Ar 1               @fre_have:
+000C9Ar 1  A9 00                LDA     #0
+000C9Cr 1  A0 A6                LDY     #F_EOF
+000C9Er 1  91 rr                STA     (tmp1),y
+000CA0r 1  A0 A5                LDY     #F_POS
+000CA2r 1  91 rr                STA     (tmp1),y
+000CA4r 1               ; lookahead: set F_EOF immediately if buf[0] is CTRL-Z
+000CA4r 1  20 rr rr             JSR     file_check_eof_helper
+000CA7r 1               @fre_set_mode:
+000CA7r 1  A9 01                LDA     #F_MODE_READ
+000CA9r 1  A0 A4                LDY     #F_MODE
+000CABr 1  91 rr                STA     (tmp1),y
+000CADr 1  4C rr rr             JMP     prun_loop
+000CB0r 1               
+000CB0r 1               ; OP_FREWRT ($B2) — TOS=fileptr → create/truncate for writing
+000CB0r 1               op_FREWRT:
+000CB0r 1  20 rr rr             JSR     pm_pop
+000CB3r 1  85 rr                STA     tmp1
+000CB5r 1  A5 rr                LDA     scratch
+000CB7r 1  85 rr                STA     tmp1+1
+000CB9r 1  A5 rr                LDA     tmp1
+000CBBr 1  A4 rr                LDY     tmp1+1
+000CBDr 1  A2 16                LDX     #PEM_MAKE
+000CBFr 1  20 03 01             JSR     PEM_ENTRY
+000CC2r 1  18                   CLC
+000CC3r 1  A5 rr                LDA     tmp1
+000CC5r 1  69 24                ADC     #F_BUF
+000CC7r 1  48                   PHA
+000CC8r 1  A5 rr                LDA     tmp1+1
+000CCAr 1  69 00                ADC     #0
+000CCCr 1  A8                   TAY
+000CCDr 1  68                   PLA
+000CCEr 1  20 rr rr             JSR     file_setdma
+000CD1r 1  A9 02                LDA     #F_MODE_WRITE
+000CD3r 1  A0 A4                LDY     #F_MODE
+000CD5r 1  91 rr                STA     (tmp1),y
+000CD7r 1  A9 00                LDA     #0
+000CD9r 1  A0 A5                LDY     #F_POS
+000CDBr 1  91 rr                STA     (tmp1),y
+000CDDr 1  A0 A6                LDY     #F_EOF
+000CDFr 1  91 rr                STA     (tmp1),y
+000CE1r 1  4C rr rr             JMP     prun_loop
+000CE4r 1               
+000CE4r 1               ; OP_FCLOSE ($B3) — TOS=fileptr → flush (write mode) and close
+000CE4r 1               op_FCLOSE:
+000CE4r 1  20 rr rr             JSR     pm_pop
+000CE7r 1  85 rr                STA     tmp1
+000CE9r 1  A5 rr                LDA     scratch
+000CEBr 1  85 rr                STA     tmp1+1
+000CEDr 1  A0 A4                LDY     #F_MODE
+000CEFr 1  B1 rr                LDA     (tmp1),y
+000CF1r 1  C9 02                CMP     #F_MODE_WRITE
+000CF3r 1  D0 33                BNE     @fclo_just_close
+000CF5r 1  A0 A5                LDY     #F_POS
+000CF7r 1  B1 rr                LDA     (tmp1),y
+000CF9r 1  F0 2D                BEQ     @fclo_just_close        ; nothing pending in buffer
+000CFBr 1               ; pad buf[F_POS..127] with CTRL-Z, then write final sector
+000CFBr 1  18                   CLC
+000CFCr 1  A5 rr                LDA     tmp1
+000CFEr 1  69 24                ADC     #F_BUF
+000D00r 1  85 rr                STA     tmp2
+000D02r 1  A5 rr                LDA     tmp1+1
+000D04r 1  69 00                ADC     #0
+000D06r 1  85 rr                STA     tmp2+1
+000D08r 1  A0 A5                LDY     #F_POS
+000D0Ar 1  B1 rr                LDA     (tmp1),y
+000D0Cr 1  A8                   TAY
+000D0Dr 1               @fclo_pad:
+000D0Dr 1  C0 80                CPY     #128
+000D0Fr 1  B0 07                BCS     @fclo_write
+000D11r 1  A9 1A                LDA     #CTRL_Z
+000D13r 1  91 rr                STA     (tmp2),y
+000D15r 1  C8                   INY
+000D16r 1  80 F5                BRA     @fclo_pad
+000D18r 1               @fclo_write:
+000D18r 1  A5 rr                LDA     tmp2
+000D1Ar 1  A4 rr                LDY     tmp2+1
+000D1Cr 1  20 rr rr             JSR     file_setdma
+000D1Fr 1  A5 rr                LDA     tmp1
+000D21r 1  A4 rr                LDY     tmp1+1
+000D23r 1  A2 15                LDX     #PEM_WRITE
+000D25r 1  20 03 01             JSR     PEM_ENTRY
+000D28r 1               @fclo_just_close:
+000D28r 1  A5 rr                LDA     tmp1
+000D2Ar 1  A4 rr                LDY     tmp1+1
+000D2Cr 1  A2 10                LDX     #PEM_CLOSE
+000D2Er 1  20 03 01             JSR     PEM_ENTRY
+000D31r 1  A9 00                LDA     #F_MODE_CLOSED
+000D33r 1  A0 A4                LDY     #F_MODE
+000D35r 1  91 rr                STA     (tmp1),y
+000D37r 1  20 rr rr             JSR     file_setdma_default
+000D3Ar 1  4C rr rr             JMP     prun_loop
+000D3Dr 1               
+000D3Dr 1               ; OP_FWRC ($B4) — NOS=fileptr, TOS=char → append char
+000D3Dr 1               op_FWRC:
+000D3Dr 1  20 rr rr             JSR     pm_pop                  ; char val (lo byte)
+000D40r 1  48                   PHA
+000D41r 1  20 rr rr             JSR     pm_pop                  ; file ptr
+000D44r 1  85 rr                STA     tmp1
+000D46r 1  A5 rr                LDA     scratch
+000D48r 1  85 rr                STA     tmp1+1
+000D4Ar 1  68                   PLA
+000D4Br 1  20 rr rr             JSR     file_write_char_helper
+000D4Er 1  4C rr rr             JMP     prun_loop
+000D51r 1               
+000D51r 1               ; OP_FWRS ($B5) — NOS=fileptr, TOS=strptr → append string
+000D51r 1               op_FWRS:
+000D51r 1  20 rr rr             JSR     pm_pop                  ; string ptr → tmp3
+000D54r 1  85 rr                STA     tmp3
+000D56r 1  A5 rr                LDA     scratch
+000D58r 1  85 rr                STA     tmp3+1
+000D5Ar 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
+000D5Dr 1  85 rr                STA     tmp1
+000D5Fr 1  A5 rr                LDA     scratch
+000D61r 1  85 rr                STA     tmp1+1
+000D63r 1  A0 00                LDY     #0
+000D65r 1  B1 rr                LDA     (tmp3),y                ; length
+000D67r 1  8D rr rr             STA     fws_remain
+000D6Ar 1  A9 01                LDA     #1
+000D6Cr 1  8D rr rr             STA     fws_idx
+000D6Fr 1               @fws_loop:
+000D6Fr 1  AD rr rr             LDA     fws_remain
+000D72r 1  F0 12                BEQ     @fws_done
+000D74r 1  AC rr rr             LDY     fws_idx
+000D77r 1  B1 rr                LDA     (tmp3),y
+000D79r 1  48                   PHA
+000D7Ar 1  EE rr rr             INC     fws_idx
+000D7Dr 1  CE rr rr             DEC     fws_remain
+000D80r 1  68                   PLA
+000D81r 1  20 rr rr             JSR     file_write_char_helper
+000D84r 1  80 E9                BRA     @fws_loop
+000D86r 1               @fws_done:
+000D86r 1  4C rr rr             JMP     prun_loop
+000D89r 1               
+000D89r 1               ; OP_FWRI ($B6) — NOS=fileptr, TOS=int → append decimal
+000D89r 1               op_FWRI:
+000D89r 1  20 rr rr             JSR     pm_pop                  ; int
+000D8Cr 1  8D rr rr             STA     fwi_val
+000D8Fr 1  A5 rr                LDA     scratch
+000D91r 1  8D rr rr             STA     fwi_val+1
+000D94r 1  20 rr rr             JSR     pm_pop                  ; file ptr
+000D97r 1  85 rr                STA     tmp1
+000D99r 1  A5 rr                LDA     scratch
+000D9Br 1  85 rr                STA     tmp1+1
+000D9Dr 1  AD rr rr             LDA     fwi_val+1
+000DA0r 1  10 16                BPL     @fwi_pos
+000DA2r 1  A9 2D                LDA     #'-'
+000DA4r 1  20 rr rr             JSR     file_write_char_helper
+000DA7r 1  38                   SEC
+000DA8r 1  A9 00                LDA     #0
+000DAAr 1  ED rr rr             SBC     fwi_val
+000DADr 1  8D rr rr             STA     fwi_val
+000DB0r 1  A9 00                LDA     #0
+000DB2r 1  ED rr rr             SBC     fwi_val+1
+000DB5r 1  8D rr rr             STA     fwi_val+1
+000DB8r 1               @fwi_pos:
+000DB8r 1  A2 00                LDX     #0
+000DBAr 1               @fwi_div_loop:
+000DBAr 1  AD rr rr             LDA     fwi_val
+000DBDr 1  85 rr                STA     tmp0
+000DBFr 1  AD rr rr             LDA     fwi_val+1
+000DC2r 1  85 rr                STA     tmp0+1
+000DC4r 1  DA                   PHX                             ; div16_by10 trashes X
+000DC5r 1  20 rr rr             JSR     div16_by10              ; tmp0 = quot, scratch = rem
+000DC8r 1  FA                   PLX
+000DC9r 1  A5 rr                LDA     scratch
+000DCBr 1  18                   CLC
+000DCCr 1  69 30                ADC     #'0'
+000DCEr 1  9D rr rr             STA     fwi_buf,x
+000DD1r 1  E8                   INX
+000DD2r 1  A5 rr                LDA     tmp0
+000DD4r 1  8D rr rr             STA     fwi_val
+000DD7r 1  A5 rr                LDA     tmp0+1
+000DD9r 1  8D rr rr             STA     fwi_val+1
+000DDCr 1  0D rr rr             ORA     fwi_val
+000DDFr 1  D0 D9                BNE     @fwi_div_loop
+000DE1r 1               @fwi_emit:
+000DE1r 1  CA                   DEX
+000DE2r 1  BD rr rr             LDA     fwi_buf,x
+000DE5r 1  DA                   PHX
+000DE6r 1  20 rr rr             JSR     file_write_char_helper
+000DE9r 1  FA                   PLX
+000DEAr 1  E0 00                CPX     #0
+000DECr 1  D0 F3                BNE     @fwi_emit
+000DEEr 1  4C rr rr             JMP     prun_loop
+000DF1r 1               
+000DF1r 1               ; OP_FWLN ($B7) — TOS=fileptr → CR + LF
+000DF1r 1               op_FWLN:
+000DF1r 1  20 rr rr             JSR     pm_pop
+000DF4r 1  85 rr                STA     tmp1
+000DF6r 1  A5 rr                LDA     scratch
+000DF8r 1  85 rr                STA     tmp1+1
+000DFAr 1  A9 0D                LDA     #$0D
+000DFCr 1  20 rr rr             JSR     file_write_char_helper
+000DFFr 1  A9 0A                LDA     #$0A
+000E01r 1  20 rr rr             JSR     file_write_char_helper
+000E04r 1  4C rr rr             JMP     prun_loop
+000E07r 1               
+000E07r 1               ; OP_FRDC ($B8) — NOS=fileptr, TOS=charvar addr → read 1 char
+000E07r 1               op_FRDC:
+000E07r 1  20 rr rr             JSR     pm_pop                  ; charvar addr → tmp3
+000E0Ar 1  85 rr                STA     tmp3
+000E0Cr 1  A5 rr                LDA     scratch
+000E0Er 1  85 rr                STA     tmp3+1
+000E10r 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
+000E13r 1  85 rr                STA     tmp1
+000E15r 1  A5 rr                LDA     scratch
+000E17r 1  85 rr                STA     tmp1+1
+000E19r 1  20 rr rr             JSR     file_read_char_helper
+000E1Cr 1  A0 00                LDY     #0
+000E1Er 1  91 rr                STA     (tmp3),y
+000E20r 1  4C rr rr             JMP     prun_loop
+000E23r 1               
+000E23r 1               ; OP_FRDI ($B9) — NOS=fileptr, TOS=intvar addr → read decimal
+000E23r 1               op_FRDI:
+000E23r 1  20 rr rr             JSR     pm_pop                  ; intvar addr → tmp3
+000E26r 1  85 rr                STA     tmp3
+000E28r 1  A5 rr                LDA     scratch
+000E2Ar 1  85 rr                STA     tmp3+1
+000E2Cr 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
+000E2Fr 1  85 rr                STA     tmp1
+000E31r 1  A5 rr                LDA     scratch
+000E33r 1  85 rr                STA     tmp1+1
+000E35r 1  A9 00                LDA     #0
+000E37r 1  8D rr rr             STA     fri_val
+000E3Ar 1  8D rr rr             STA     fri_val+1
+000E3Dr 1  8D rr rr             STA     fri_neg
+000E40r 1               @fri_skipws:
+000E40r 1  20 rr rr             JSR     file_read_char_helper
+000E43r 1  8D rr rr             STA     fri_cur
+000E46r 1  A0 A6                LDY     #F_EOF
+000E48r 1  B1 rr                LDA     (tmp1),y
+000E4Ar 1  F0 03                BEQ     @fri_chk_ws
+000E4Cr 1  4C rr rr             JMP     @fri_apply
+000E4Fr 1               @fri_chk_ws:
+000E4Fr 1  AD rr rr             LDA     fri_cur
+000E52r 1  C9 20                CMP     #' '
+000E54r 1  F0 EA                BEQ     @fri_skipws
+000E56r 1  C9 09                CMP     #$09
+000E58r 1  F0 E6                BEQ     @fri_skipws
+000E5Ar 1  C9 0D                CMP     #$0D
+000E5Cr 1  F0 E2                BEQ     @fri_skipws
+000E5Er 1  C9 0A                CMP     #$0A
+000E60r 1  F0 DE                BEQ     @fri_skipws
+000E62r 1  C9 2D                CMP     #'-'
+000E64r 1  D0 0D                BNE     @fri_chk_plus
+000E66r 1  A9 01                LDA     #1
+000E68r 1  8D rr rr             STA     fri_neg
+000E6Br 1  20 rr rr             JSR     file_read_char_helper
+000E6Er 1  8D rr rr             STA     fri_cur
+000E71r 1  80 0A                BRA     @fri_dig_check
+000E73r 1               @fri_chk_plus:
+000E73r 1  C9 2B                CMP     #'+'
+000E75r 1  D0 06                BNE     @fri_dig_check
+000E77r 1  20 rr rr             JSR     file_read_char_helper
+000E7Ar 1  8D rr rr             STA     fri_cur
+000E7Dr 1               @fri_dig_check:
+000E7Dr 1  AD rr rr             LDA     fri_cur
+000E80r 1  C9 30                CMP     #'0'
+000E82r 1  90 5F                BCC     @fri_apply
+000E84r 1  C9 3A                CMP     #'9'+1
+000E86r 1  B0 5B                BCS     @fri_apply
+000E88r 1               @fri_dig_loop:
+000E88r 1               ; fri_val = fri_val*10 + (digit-'0')
+000E88r 1  0E rr rr             ASL     fri_val
+000E8Br 1  2E rr rr             ROL     fri_val+1
+000E8Er 1  AD rr rr             LDA     fri_val
+000E91r 1  85 rr                STA     tmp0
+000E93r 1  AD rr rr             LDA     fri_val+1
+000E96r 1  85 rr                STA     tmp0+1
+000E98r 1  0E rr rr             ASL     fri_val
+000E9Br 1  2E rr rr             ROL     fri_val+1
+000E9Er 1  0E rr rr             ASL     fri_val
+000EA1r 1  2E rr rr             ROL     fri_val+1
+000EA4r 1  18                   CLC
+000EA5r 1  AD rr rr             LDA     fri_val
+000EA8r 1  65 rr                ADC     tmp0
+000EAAr 1  8D rr rr             STA     fri_val
+000EADr 1  AD rr rr             LDA     fri_val+1
+000EB0r 1  65 rr                ADC     tmp0+1
+000EB2r 1  8D rr rr             STA     fri_val+1
+000EB5r 1  AD rr rr             LDA     fri_cur
+000EB8r 1  38                   SEC
+000EB9r 1  E9 30                SBC     #'0'
+000EBBr 1  18                   CLC
+000EBCr 1  6D rr rr             ADC     fri_val
+000EBFr 1  8D rr rr             STA     fri_val
+000EC2r 1  A9 00                LDA     #0
+000EC4r 1  6D rr rr             ADC     fri_val+1
+000EC7r 1  8D rr rr             STA     fri_val+1
+000ECAr 1  20 rr rr             JSR     file_read_char_helper
+000ECDr 1  8D rr rr             STA     fri_cur
+000ED0r 1  A0 A6                LDY     #F_EOF
+000ED2r 1  B1 rr                LDA     (tmp1),y
+000ED4r 1  D0 0D                BNE     @fri_apply
+000ED6r 1  AD rr rr             LDA     fri_cur
+000ED9r 1  C9 30                CMP     #'0'
+000EDBr 1  90 06                BCC     @fri_apply
+000EDDr 1  C9 3A                CMP     #'9'+1
+000EDFr 1  B0 02                BCS     @fri_apply
+000EE1r 1  80 A5                BRA     @fri_dig_loop
+000EE3r 1               @fri_apply:
+000EE3r 1  AD rr rr             LDA     fri_neg
+000EE6r 1  F0 11                BEQ     @fri_store
+000EE8r 1  38                   SEC
+000EE9r 1  A9 00                LDA     #0
+000EEBr 1  ED rr rr             SBC     fri_val
+000EEEr 1  8D rr rr             STA     fri_val
+000EF1r 1  A9 00                LDA     #0
+000EF3r 1  ED rr rr             SBC     fri_val+1
+000EF6r 1  8D rr rr             STA     fri_val+1
+000EF9r 1               @fri_store:
+000EF9r 1  A0 00                LDY     #0
+000EFBr 1  AD rr rr             LDA     fri_val
+000EFEr 1  91 rr                STA     (tmp3),y
+000F00r 1  C8                   INY
+000F01r 1  AD rr rr             LDA     fri_val+1
+000F04r 1  91 rr                STA     (tmp3),y
+000F06r 1  4C rr rr             JMP     prun_loop
+000F09r 1               
+000F09r 1               ; OP_FRDLN ($BA) — TOS=fileptr → skip remaining chars to end-of-line (LF)
+000F09r 1               op_FRDLN:
+000F09r 1  20 rr rr             JSR     pm_pop
+000F0Cr 1  85 rr                STA     tmp1
+000F0Er 1  A5 rr                LDA     scratch
+000F10r 1  85 rr                STA     tmp1+1
+000F12r 1               @frln_loop:
+000F12r 1  A0 A6                LDY     #F_EOF
+000F14r 1  B1 rr                LDA     (tmp1),y
+000F16r 1  F0 03                BEQ     :+
+000F18r 1  4C rr rr             JMP     prun_loop
+000F1Br 1               :
+000F1Br 1  20 rr rr             JSR     file_read_char_helper
+000F1Er 1  C9 0A                CMP     #$0A
+000F20r 1  F0 02                BEQ     @frln_done
+000F22r 1  80 EE                BRA     @frln_loop
+000F24r 1               @frln_done:
+000F24r 1  4C rr rr             JMP     prun_loop
+000F27r 1               
+000F27r 1               ; OP_FEOF ($BB) — TOS=fileptr → push BOOL ($FFFF=true, $0000=false)
+000F27r 1               op_FEOF:
+000F27r 1  20 rr rr             JSR     pm_pop
+000F2Ar 1  85 rr                STA     tmp1
+000F2Cr 1  A5 rr                LDA     scratch
+000F2Er 1  85 rr                STA     tmp1+1
+000F30r 1  A0 A6                LDY     #F_EOF
+000F32r 1  B1 rr                LDA     (tmp1),y
+000F34r 1  F0 0C                BEQ     @feof_false
+000F36r 1  A9 FF                LDA     #$FF
+000F38r 1  85 rr                STA     scratch
+000F3Ar 1  A9 FF                LDA     #$FF
+000F3Cr 1  20 rr rr             JSR     pm_push
+000F3Fr 1  4C rr rr             JMP     prun_loop
+000F42r 1               @feof_false:
+000F42r 1  A9 00                LDA     #0
+000F44r 1  85 rr                STA     scratch
+000F46r 1  20 rr rr             JSR     pm_push
+000F49r 1  4C rr rr             JMP     prun_loop
+000F4Cr 1               
+000F4Cr 1               ; OP_FRDS ($BD) — NOS=fileptr, TOS=strvar addr → read line into a work buffer;
+000F4Cr 1               ; store the buffer pointer at strvar.  Skips CR, stops on LF/EOF.
+000F4Cr 1               ; STRING vars hold a 16-bit pointer (matching LDCS / CONCAT semantics).
+000F4Cr 1               FRDS_BUF        = $AC00                  ; dedicated 256-byte buffer below STR_WORK_BASE
+000F4Cr 1               op_FRDS:
+000F4Cr 1  20 rr rr             JSR     pm_pop                  ; strvar addr → tmp3
+000F4Fr 1  85 rr                STA     tmp3
+000F51r 1  A5 rr                LDA     scratch
+000F53r 1  85 rr                STA     tmp3+1
+000F55r 1  20 rr rr             JSR     pm_pop                  ; file ptr → tmp1
+000F58r 1  85 rr                STA     tmp1
+000F5Ar 1  A5 rr                LDA     scratch
+000F5Cr 1  85 rr                STA     tmp1+1
+000F5Er 1  A9 00                LDA     #0
+000F60r 1  8D rr rr             STA     frs_idx
+000F63r 1               @frs_loop:
+000F63r 1  A0 A6                LDY     #F_EOF
+000F65r 1  B1 rr                LDA     (tmp1),y
+000F67r 1  D0 37                BNE     @frs_done
+000F69r 1               ; peek char at buf[F_POS] without consuming
+000F69r 1  18                   CLC
+000F6Ar 1  A5 rr                LDA     tmp1
+000F6Cr 1  69 24                ADC     #F_BUF
+000F6Er 1  85 rr                STA     tmp2
+000F70r 1  A5 rr                LDA     tmp1+1
+000F72r 1  69 00                ADC     #0
+000F74r 1  85 rr                STA     tmp2+1
+000F76r 1  A0 A5                LDY     #F_POS
+000F78r 1  B1 rr                LDA     (tmp1),y
+000F7Ar 1  A8                   TAY
+000F7Br 1  B1 rr                LDA     (tmp2),y
+000F7Dr 1  C9 0D                CMP     #$0D
+000F7Fr 1  F0 1F                BEQ     @frs_done               ; leave CR for READLN
+000F81r 1  C9 0A                CMP     #$0A
+000F83r 1  F0 1B                BEQ     @frs_done               ; leave LF for READLN
+000F85r 1               ; not at EOL — consume and append
+000F85r 1  20 rr rr             JSR     file_read_char_helper
+000F88r 1  8D rr rr             STA     frs_char
+000F8Br 1  AD rr rr             LDA     frs_idx
+000F8Er 1  C9 FF                CMP     #255
+000F90r 1  B0 D1                BCS     @frs_loop               ; clamp (drop char)
+000F92r 1  EE rr rr             INC     frs_idx
+000F95r 1  AC rr rr             LDY     frs_idx
+000F98r 1  AD rr rr             LDA     frs_char
+000F9Br 1  99 00 AC             STA     FRDS_BUF,y
+000F9Er 1  80 C3                BRA     @frs_loop
+000FA0r 1               @frs_done:
+000FA0r 1  AD rr rr             LDA     frs_idx
+000FA3r 1  8D 00 AC             STA     FRDS_BUF                ; length byte at offset 0
+000FA6r 1               ; store buffer ptr ($AC00) into strvar at tmp3
+000FA6r 1  A9 00                LDA     #<FRDS_BUF
+000FA8r 1  A0 00                LDY     #0
+000FAAr 1  91 rr                STA     (tmp3),y
+000FACr 1  C8                   INY
+000FADr 1  A9 AC                LDA     #>FRDS_BUF
+000FAFr 1  91 rr                STA     (tmp3),y
+000FB1r 1  4C rr rr             JMP     prun_loop
+000FB4r 1               
+000FB4r 1               ; OP_FWRB ($BE) — NOS=fileptr, TOS=bool → append "TRUE"/"FALSE"
+000FB4r 1               op_FWRB:
+000FB4r 1  20 rr rr             JSR     pm_pop                  ; bool value
+000FB7r 1  85 rr                STA     tmp2
+000FB9r 1  A5 rr                LDA     scratch
+000FBBr 1  05 rr                ORA     tmp2
+000FBDr 1  85 rr                STA     tmp2                    ; tmp2 = nonzero if true
+000FBFr 1  20 rr rr             JSR     pm_pop                  ; file ptr
+000FC2r 1  85 rr                STA     tmp1
+000FC4r 1  A5 rr                LDA     scratch
+000FC6r 1  85 rr                STA     tmp1+1
+000FC8r 1  A5 rr                LDA     tmp2
+000FCAr 1  F0 17                BEQ     @fwb_false
+000FCCr 1               ; "TRUE"
+000FCCr 1  A9 54                LDA     #'T'
+000FCEr 1  20 rr rr             JSR     file_write_char_helper
+000FD1r 1  A9 52                LDA     #'R'
+000FD3r 1  20 rr rr             JSR     file_write_char_helper
+000FD6r 1  A9 55                LDA     #'U'
+000FD8r 1  20 rr rr             JSR     file_write_char_helper
+000FDBr 1  A9 45                LDA     #'E'
+000FDDr 1  20 rr rr             JSR     file_write_char_helper
+000FE0r 1  4C rr rr             JMP     prun_loop
+000FE3r 1               @fwb_false:
+000FE3r 1  A9 46                LDA     #'F'
+000FE5r 1  20 rr rr             JSR     file_write_char_helper
+000FE8r 1  A9 41                LDA     #'A'
+000FEAr 1  20 rr rr             JSR     file_write_char_helper
+000FEDr 1  A9 4C                LDA     #'L'
+000FEFr 1  20 rr rr             JSR     file_write_char_helper
+000FF2r 1  A9 53                LDA     #'S'
+000FF4r 1  20 rr rr             JSR     file_write_char_helper
+000FF7r 1  A9 45                LDA     #'E'
+000FF9r 1  20 rr rr             JSR     file_write_char_helper
+000FFCr 1  4C rr rr             JMP     prun_loop
+000FFFr 1               
+000FFFr 1               ; OP_FEOLN ($BF) — TOS=fileptr → push BOOL: true if EOF, CR, or LF is next
+000FFFr 1               op_FEOLN:
+000FFFr 1  20 rr rr             JSR     pm_pop
+001002r 1  85 rr                STA     tmp1
+001004r 1  A5 rr                LDA     scratch
+001006r 1  85 rr                STA     tmp1+1
+001008r 1  A0 A6                LDY     #F_EOF
+00100Ar 1  B1 rr                LDA     (tmp1),y
+00100Cr 1  D0 26                BNE     @feol_true
+00100Er 1               ; peek current char without consuming
+00100Er 1  18                   CLC
+00100Fr 1  A5 rr                LDA     tmp1
+001011r 1  69 24                ADC     #F_BUF
+001013r 1  85 rr                STA     tmp2
+001015r 1  A5 rr                LDA     tmp1+1
+001017r 1  69 00                ADC     #0
+001019r 1  85 rr                STA     tmp2+1
+00101Br 1  A0 A5                LDY     #F_POS
+00101Dr 1  B1 rr                LDA     (tmp1),y
+00101Fr 1  A8                   TAY
+001020r 1  B1 rr                LDA     (tmp2),y
+001022r 1  C9 0D                CMP     #$0D
+001024r 1  F0 0E                BEQ     @feol_true
+001026r 1  C9 0A                CMP     #$0A
+001028r 1  F0 0A                BEQ     @feol_true
+00102Ar 1  A9 00                LDA     #0
+00102Cr 1  85 rr                STA     scratch
+00102Er 1  20 rr rr             JSR     pm_push
+001031r 1  4C rr rr             JMP     prun_loop
+001034r 1               @feol_true:
+001034r 1  A9 FF                LDA     #$FF
+001036r 1  85 rr                STA     scratch
+001038r 1  A9 FF                LDA     #$FF
+00103Ar 1  20 rr rr             JSR     pm_push
+00103Dr 1  4C rr rr             JMP     prun_loop
+001040r 1               
+001040r 1               ; --- File I/O scratch storage ---
+001040r 1  xx           fas_remain:    .RES 1
+001041r 1  xx           fas_si:        .RES 1
+001042r 1  xx           fas_di:        .RES 1
+001043r 1  xx           fwrc_char:     .RES 1
+001044r 1  xx           fws_remain:    .RES 1
+001045r 1  xx           fws_idx:       .RES 1
+001046r 1  xx xx        fwi_val:       .RES 2
+001048r 1  xx xx xx xx  fwi_buf:       .RES 6
+00104Cr 1  xx xx        
+00104Er 1  xx           frch_char:     .RES 1
+00104Fr 1  xx xx        fri_val:       .RES 2
+001051r 1  xx           fri_neg:       .RES 1
+001052r 1  xx           fri_cur:       .RES 1
+001053r 1  xx           frs_idx:       .RES 1
+001054r 1  xx           frs_char:      .RES 1
+001055r 1               
+001055r 1               ; ---------------------------------------------------------------------------
+001055r 1               ; Unimplemented opcode handler
+001055r 1               ; ---------------------------------------------------------------------------
+001055r 1               op_UNIMP:
+001055r 1               ; X still holds the offending opcode at dispatch time
+001055r 1  86 rr                STX     tmp0
+001057r 1  A9 00                LDA     #0
+001059r 1  85 rr                STA     tmp0+1
+00105Br 1  DA                   PHX                     ; preserve for after banner
+00105Cr 1  A9 rr                LDA     #<err_rt_opcode
+00105Er 1  85 rr                STA     tmp0
+001060r 1  A9 rr                LDA     #>err_rt_opcode
+001062r 1  85 rr                STA     tmp0+1
+001064r 1  20 rr rr             JSR     console_print_sz
+001067r 1  FA                   PLX
+001068r 1  86 rr                STX     tmp0
+00106Ar 1  A9 00                LDA     #0
+00106Cr 1  85 rr                STA     tmp0+1
+00106Er 1  20 rr rr             JSR     console_print_dec
+001071r 1  A9 0D                LDA     #13
+001073r 1  A2 02                LDX     #PEM_CONOUT
+001075r 1  20 03 01             JSR     PEM_ENTRY
+001078r 1  A9 0A                LDA     #10
+00107Ar 1  A2 02                LDX     #PEM_CONOUT
+00107Cr 1  20 03 01             JSR     PEM_ENTRY
+00107Fr 1  4C 00 01             JMP     WARM_BOOT
+001082r 1               
+001082r 1               ; ---------------------------------------------------------------------------
+001082r 1               ; String literals for boolean output
+001082r 1               ; ---------------------------------------------------------------------------
+001082r 1               str_true:
+001082r 1  54 52 55 45          .BYTE   "TRUE",0
+001086r 1  00           
+001087r 1               str_false:
+001087r 1  46 41 4C 53          .BYTE   "FALSE",0
+00108Br 1  45 00        
+00108Dr 1               msg_rt_banner:
+00108Dr 1  50 52 55 4E          .BYTE   "PRUN v0.1 - Pascal P-Code Runtime for DOS/65",13,10,0
+001091r 1  20 76 30 2E  
+001095r 1  31 20 2D 20  
+0010BCr 1               
+0010BCr 1               ; ---------------------------------------------------------------------------
+0010BCr 1               ; Dispatch table — 256 entries of (lo, hi) pointer pairs
+0010BCr 1               ; ---------------------------------------------------------------------------
+0010BCr 1  xx xx xx xx          .align  256
+0010C0r 1  xx xx xx xx  
+0010C4r 1  xx xx xx xx  
 001100r 1               dispatch_lo:
 001100r 1               ; $00-$07
 001100r 1  rr rr rr rr          .BYTE   <op_LDCI,  <op_LDCW,  <op_LDCC,  <op_LDCB
@@ -3017,9 +3042,10 @@ Current file: prun.asm
 001170r 1                               .BYTE   <op_UNIMP
 001170r 1                       .ENDREPEAT
 001170r 1               ; $70-$7F
-001170r 1  rr rr rr rr          .REPEAT 16
-001174r 1  rr rr rr rr  
+001170r 1  rr rr rr rr          .BYTE   <op_NEW,   <op_DISP,  <op_UNIMP, <op_UNIMP
+001174r 1  rr rr rr rr          .REPEAT 12
 001178r 1  rr rr rr rr  
+00117Cr 1  rr rr rr rr  
 001180r 1                               .BYTE   <op_UNIMP
 001180r 1                       .ENDREPEAT
 001180r 1               ; $80-$8F
@@ -3111,9 +3137,10 @@ Current file: prun.asm
 001270r 1                               .BYTE   >op_UNIMP
 001270r 1                       .ENDREPEAT
 001270r 1               ; $70-$7F
-001270r 1  rr rr rr rr          .REPEAT 16
-001274r 1  rr rr rr rr  
+001270r 1  rr rr rr rr          .BYTE   >op_NEW,   >op_DISP,  >op_UNIMP, >op_UNIMP
+001274r 1  rr rr rr rr          .REPEAT 12
 001278r 1  rr rr rr rr  
+00127Cr 1  rr rr rr rr  
 001280r 1                               .BYTE   >op_UNIMP
 001280r 1                       .ENDREPEAT
 001280r 1               ; $80-$8F

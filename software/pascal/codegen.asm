@@ -204,6 +204,22 @@ emit_INDEX:
         JSR     emit_byte
         RTS
 
+; emit_NEW — OP_NEW + 2-byte allocation size (lo in A, hi in scratch)
+emit_NEW:
+        PHA
+        LDA     #OP_NEW
+        JSR     emit_byte
+        PLA
+        JSR     emit_byte
+        LDA     scratch
+        JSR     emit_byte
+        RTS
+
+; emit_DISP — OP_DISP (no operand)
+emit_DISP:
+        LDA     #OP_DISP
+        JMP     emit_byte
+
 ; ---------------------------------------------------------------------------
 ; codegen_alloc_array_global — allocate ARRAY [array_lo..array_hi] in globals
 ; Element size fixed at 2 (all scalars are word-sized).

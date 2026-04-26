@@ -375,19 +375,29 @@ Tests: `T21`, `T21A`, `T21B`, `T21C`.
 ---
 
 ### ✅ Phase 11 — RECORD Types
-Named record types via `TYPE T = RECORD …field-list… END;`.
-All fields are 2 bytes; offsets are 0, 2, 4, …
-Field-table at `field_table` (64 entries × 16 bytes); SYM_TYPE/SYM_VAR
+Named record types via `TYPE T = RECORD …field-list… END;`, plus
+inline `VAR P : RECORD …` and local record variables inside procs.
+Scalar fields are 2 bytes; nested-record fields use the inner record's
+own `record_size`.
+Field-table at `field_table` (32 entries × 16 bytes); SYM_TYPE/SYM_VAR
 entries store `first_field_idx` (byte 22) and `field_count` (byte 23).
-Field access compiles to `LDA_G/LDA_L base; LDCI <off>; ADI; LDIND/STIND`
-(LDCI/ADI omitted when field offset is 0).
-Tests: `T22`, `T22A` (comma-separated fields), `T22B` (two record vars).
+Per-field nested-record metadata (inner `first_field`/`count`) lives in
+parallel arrays `field_nested_first` / `field_nested_count`.
+Field access compiles to `LDA_G/LDA_L base; { LDCI <off>; ADI }* ;
+LDIND/STIND` — chained `r.outer.inner` walks one level per `.` and
+only deref/store at the leaf scalar.
+Tests: `T22`, `T22A`, `T22B`, plus `T27A` (inline records), `T27B`
+(local record in a proc), `T27C` (named + anonymous nested records).
 
-**Known limitations:**
-- Inline records (`VAR P : RECORD …`) clobber `var_name_buf` — only
-  named records via `TYPE` are safe in this build
-- No nested records; field type must be a scalar (INTEGER/CHAR/BOOL)
-- Local record variables not implemented (globals only)
+Implementation notes:
+- Field-name collection uses a dedicated `field_name_buf` so an inline
+  `VAR x : RECORD …` no longer overwrites the outer variable name.
+- The recursive `parse_type_spec` call inside the RECORD parser
+  saves/restores outer `record_size`/`first_field`/`field_count` on
+  the 6502 stack and snapshots the inner record's metadata into
+  `nest_save_*` so each field gets its correct nested first/count.
+- `parse_var_decls` allocates `record_size` bytes for local RECORD
+  variables (still capped at one byte of local-AR offset for now).
 
 ---
 
@@ -397,14 +407,23 @@ Tests: `T22`, `T22A` (comma-separated fields), `T22B` (two record vars).
   - New opcodes `OP_LEN/POS/COPY/CONCAT` ($A0–$A3) handled in `prun.asm`
   - `COPY`/`CONCAT` results land in 3 round-robin work buffers at `$AD00/$AE00/$AF00`; deeply nested expressions can recycle a buffer before it's consumed
   - Test: `tests/t23.pas`
-- ✅ `TEXT` file I/O: `ASSIGN`, `RESET`, `REWRITE`, `CLOSE`, `EOF`; file-mode `WRITE`/`WRITELN`/`READ`/`READLN`
+- ✅ `TEXT` file I/O: `ASSIGN`, `RESET`, `REWRITE`, `CLOSE`, `EOF`, `EOLN`; file-mode `WRITE`/`WRITELN`/`READ`/`READLN`
   - New type `TY_TEXT` ($08); each `TEXT` variable is a 168-byte struct (FCB 36 + buf 128 + mode/pos/eof/spare 4) allocated in the global area via `codegen_alloc_text_global`
-  - New opcodes `OP_FASSGN/FRESET/FREWRT/FCLOSE/FWRC/FWRS/FWRI/FWLN/FRDC/FRDI/FRDLN/FEOF` ($B0–$BB)
+  - New opcodes `OP_FASSGN/FRESET/FREWRT/FCLOSE/FWRC/FWRS/FWRI/FWLN/FRDC/FRDI/FRDLN/FEOF` ($B0–$BB), plus `FRDS/FWRB/FEOLN` ($BD–$BF) for STRING reads, BOOLEAN writes ("TRUE"/"FALSE"), and EOLN(F) testing.  $BC is reserved (APPEND not implemented — would require PEM #35/#36 random-record I/O)
   - Each file's struct embeds its own 128-byte sector buffer; runtime calls PEM `SETDMA` (fn 26) before each sector I/O so multiple files don't trample each other
   - `EOF(F)` uses 1-char lookahead — `RESET` and every `READ` peek the next byte, setting `F_EOF` on either CTRL-Z or PEM read-EOF, so `WHILE NOT EOF DO READ` consumes only real data
-  - `WRITE`/`WRITELN` detect a `TEXT` first arg and switch to file mode (DUP file ptr, dispatch to `FWRC/FWRS/FWRI`, terminate with `FWLN` or `POP`); `READ`/`READLN` peek the symtab to spot a `TEXT` first arg and route subsequent variables through `FRDC/FRDI`
+  - `EOLN(F)` peeks `buf[F_POS]` and returns true at CR/LF/EOF without consuming
+  - `READ(F, S)` reads chars up to (not including) the next CR/LF into a fixed buffer at `$AC00`, storing the buffer pointer into the strvar (matching LDCS/CONCAT pointer semantics).  Stops at EOL without consuming so `READLN(F)` can advance past it
+  - `WRITE`/`WRITELN` detect a `TEXT` first arg and switch to file mode (DUP file ptr, dispatch to `FWRC/FWRS/FWRB/FWRI`, terminate with `FWLN` or `POP`); `READ`/`READLN` peek the symtab to spot a `TEXT` first arg and route subsequent variables through `FRDC/FRDI/FRDS`
   - Filenames passed to `ASSIGN` are uppercased and split into 8.3 FCB form on the fly; closing a write-mode file pads the final partial sector with CTRL-Z
-  - Test: `tests/t24.pas`
+  - `TRUE`/`FALSE` recognized as predefined boolean constants in `parse_factor` (alongside built-in EOF/EOLN); emit `LDCB 1`/`LDCB 0` with `expr_type=TY_BOOL` so file/console writes route to `FWRB`/`WRITB`
+  - Tests: `tests/t24.pas` (basic ops), `tests/t25.pas` (STRING read, BOOLEAN write, EOLN)
+- ✅ Heap allocation: `NEW`/`DISPOSE` for pointer-to-INTEGER (v1)
+  - New type `TY_PTR` ($07); `^BASETYPE` parsed by `parse_type_spec` (base type code currently discarded — bump allocator always grants 2 bytes)
+  - Opcodes `OP_NEW` ($70, inline 2-byte size) and `OP_DISP` ($71) wired into runtime; `OP_NEW` decrements `pm_np` by size and pushes the new heap address; `OP_DISP` is a no-op (bump allocator can't free)
+  - `NEW(p)` parser pushes `&p` via `parse_arg_lvalue`, emits `OP_NEW 2` then `OP_STIND`; `DISPOSE(p)` parses an expression then emits `OP_DISP`
+  - Pointer dereference: `p^` as rvalue routes through `@maybe_deref_ptr` after the `LDG`/`LDL` load (emits `OP_LDIND`, retypes to `TY_INT`); `p^ := expr` is a new branch in `@do_assign` that pushes the pointer value then `OP_STIND`s the RHS
+  - Test: `tests/t26.pas`
 - `REAL` type (future — 16.16 fixed-point or software float)
 - Random-access typed files (`FILE OF X`) — not planned
 
