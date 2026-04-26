@@ -59,11 +59,14 @@ field_nested_count:
 
 ; Separate buffer for collecting field names inside a RECORD declaration.
 ; Distinct from var_name_buf so inline `VAR x: RECORD ... END` doesn't
-; lose the outer "x" while the field group is being parsed.
+; lose the outer "x" while the field group is being parsed. Each active
+; RECORD nesting depth gets its own slice so an inner anonymous RECORD
+; doesn't overwrite the outer field names that still need to be added.
+FIELD_NAME_DEPTHS = 8
 field_name_count:
-        .RES    1
+        .RES    FIELD_NAME_DEPTHS
 field_name_buf:
-        .RES    128
+        .RES    128 * FIELD_NAME_DEPTHS
 
 ; Scratch slots used by @rec_addf to remember the most recently-parsed
 ; field's nested-record metadata.  Populated by the wrapper around the
@@ -75,10 +78,105 @@ nest_save_count:
 nest_save_size:
         .RES    2
 
-; Code generation buffer — p-code accumulates here until file write
-; Overlaps the CPMDATA area above $2400 after FCBs.
+; Nesting depth tracked by parse_type_spec @rec_loop. 0 = outside any
+; RECORD; bumped on entry, decremented on exit. Stored into byte 15 of
+; each field_table entry by field_table_add so field_lookup_in_record
+; can skip slots that belong to a deeper inline record. Without this
+; an outer record whose later fields follow an inline RECORD would
+; have an interleaved layout that count-based scan can't navigate.
+field_depth:
+        .RES    1
+field_lookup_depth:
+        .RES    1
+
+; Active WITH contexts. Each entry stores a hidden global word that holds
+; the selected record's runtime base address, plus that record's first-field
+; index/count so unqualified identifiers can resolve as fields.
+WITH_DEPTHS = 8
+with_depth:
+        .RES    1
+with_base_lo:
+        .RES    WITH_DEPTHS
+with_base_hi:
+        .RES    WITH_DEPTHS
+with_first_field:
+        .RES    WITH_DEPTHS
+with_field_count:
+        .RES    WITH_DEPTHS
+
+; Record-valued expressions leave an address on the stack and publish the
+; matching field-table span here so WITH selectors can reuse it.
+expr_record_first:
+        .RES    1
+expr_record_count:
+        .RES    1
+
+; Scratch filled by with_lookup_field before parse_with_field_{load,assign}.
+with_lookup_off:
+        .RES    1
+with_lookup_type:
+        .RES    1
+with_lookup_base_lo:
+        .RES    1
+with_lookup_base_hi:
+        .RES    1
+with_lookup_first:
+        .RES    1
+with_lookup_count:
+        .RES    1
+
+; Top-level source mode: 0=plain program, 1=UNIT interface, 2=UNIT
+; implementation. Used so interface routine headings can be rebound to
+; their later implementation bodies without creating duplicate globals.
+unit_section:
+        .RES    1
+unit_import_mode:
+        .RES    1               ; 0=standalone source, nonzero=USES-import nesting depth
+
+; Names collected from a single top-level USES clause. Separate from
+; var_name_buf because imported unit compilation reuses var_name_buf.
+USES_NAME_SLOTS = 8
+uses_name_count:
+        .RES    1
+uses_name_buf:
+        .RES    16 * USES_NAME_SLOTS
+
+; Imported-unit de-duplication table. Names are stored in uppercase
+; ident_buf layout (length byte + 15 chars) so nested/repeated USES
+; clauses compile a unit at most once.
+USED_UNIT_SLOTS = 8
+used_unit_count:
+        .RES    1
+used_unit_buf:
+        .RES    16 * USED_UNIT_SLOTS
+
+; Source-context stack for nested USES imports. Each entry saves the
+; current source FCB, buffered DMA sector, and lexer position so the
+; compiler can suspend one file, compile another, then resume cleanly.
+SRC_CTX_DEPTHS = 4
+src_ctx_depth:
+        .RES    1
+src_ctx_buf_pos:
+        .RES    SRC_CTX_DEPTHS
+src_ctx_buf_end:
+        .RES    SRC_CTX_DEPTHS
+src_ctx_line_lo:
+        .RES    SRC_CTX_DEPTHS
+src_ctx_line_hi:
+        .RES    SRC_CTX_DEPTHS
+src_ctx_col:
+        .RES    SRC_CTX_DEPTHS
+src_ctx_char:
+        .RES    SRC_CTX_DEPTHS
+src_ctx_fcb:
+        .RES    36 * SRC_CTX_DEPTHS
+src_ctx_dma:
+        .RES    128 * SRC_CTX_DEPTHS
+
+; Code generation buffer — p-code accumulates here until file write.
+; Keep this above the live CPMDATA working set used by the parser.
 ; This holds up to ~32KB of generated p-code.
-CODEBUF_BASE    = $3000
+CODEBUF_BASE    = $4500
 CODEBUF_MAXSZ   = $8000         ; 32 KB
 
 ; Symbol table area
@@ -260,6 +358,181 @@ build_out_fcb:
         RTS
 
 ; ---------------------------------------------------------------------------
+; build_named_src_fcb — populate comp_src_fcb from ident_buf, force ".PAS"
+; The identifier is uppercased already by the lexer. Names longer than 8
+; chars are truncated to fit the FCB filename field.
+; Returns: carry clear = ok, carry set = empty name
+; ---------------------------------------------------------------------------
+build_named_src_fcb:
+        LDA     ident_buf
+        BNE     :+
+        SEC
+        RTS
+:       LDX     #0
+        LDA     #0
+@zero:
+        STA     comp_src_fcb,x
+        INX
+        CPX     #36
+        BCC     @zero
+        LDX     #1
+        LDA     #' '
+@pad_name:
+        STA     comp_src_fcb,x
+        INX
+        CPX     #12
+        BCC     @pad_name
+        LDX     #0
+@copy_name:
+        CPX     ident_buf
+        BCS     @set_ext
+        CPX     #8
+        BCS     @set_ext
+        LDA     ident_buf+1,x
+        STA     comp_src_fcb+1,x
+        INX
+        BRA     @copy_name
+@set_ext:
+        LDA     #'P'
+        STA     comp_src_fcb+9
+        LDA     #'A'
+        STA     comp_src_fcb+10
+        LDA     #'S'
+        STA     comp_src_fcb+11
+        CLC
+        RTS
+
+; source_ctx_fcb_ptr — A=stack index, returns tmp0 -> saved FCB slot
+source_ctx_fcb_ptr:
+        STA     scratch
+        LDA     #<src_ctx_fcb
+        STA     tmp0
+        LDA     #>src_ctx_fcb
+        STA     tmp0+1
+@scfp_loop:
+        LDA     scratch
+        BEQ     @scfp_done
+        CLC
+        LDA     tmp0
+        ADC     #36
+        STA     tmp0
+        BCC     :+
+        INC     tmp0+1
+:       DEC     scratch
+        BRA     @scfp_loop
+@scfp_done:
+        RTS
+
+; source_ctx_dma_ptr — A=stack index, returns tmp0 -> saved DMA slot
+source_ctx_dma_ptr:
+        STA     scratch
+        LDA     #<src_ctx_dma
+        STA     tmp0
+        LDA     #>src_ctx_dma
+        STA     tmp0+1
+@scdp_loop:
+        LDA     scratch
+        BEQ     @scdp_done
+        CLC
+        LDA     tmp0
+        ADC     #$80
+        STA     tmp0
+        BCC     :+
+        INC     tmp0+1
+:       DEC     scratch
+        BRA     @scdp_loop
+@scdp_done:
+        RTS
+
+; ---------------------------------------------------------------------------
+; source_push_current / source_pop_current — save and restore the active
+; source-file context around USES-imported unit compilation.
+; source_push_current returns carry set if the context stack is full.
+; ---------------------------------------------------------------------------
+source_push_current:
+        LDX     src_ctx_depth
+        CPX     #SRC_CTX_DEPTHS
+        BCC     @spc_room
+        SEC
+        RTS
+@spc_room:
+        LDA     src_buf_pos
+        STA     src_ctx_buf_pos,x
+        LDA     src_buf_end
+        STA     src_ctx_buf_end,x
+        LDA     lex_line
+        STA     src_ctx_line_lo,x
+        LDA     lex_line+1
+        STA     src_ctx_line_hi,x
+        LDA     lex_col
+        STA     src_ctx_col,x
+        LDA     lex_char
+        STA     src_ctx_char,x
+        TXA
+        JSR     source_ctx_fcb_ptr
+        LDY     #0
+@spc_fcb_copy:
+        LDA     comp_src_fcb,y
+        STA     (tmp0),y
+        INY
+        CPY     #36
+        BCC     @spc_fcb_copy
+        TXA
+        JSR     source_ctx_dma_ptr
+        LDY     #0
+@spc_dma_copy:
+        LDA     DMA_BUF,y
+        STA     (tmp0),y
+        INY
+        CPY     #128
+        BCC     @spc_dma_copy
+        INC     src_ctx_depth
+        CLC
+        RTS
+
+source_pop_current:
+        LDA     src_ctx_depth
+        BEQ     @spop_done
+        DEC     src_ctx_depth
+        LDX     src_ctx_depth
+        LDA     src_ctx_buf_pos,x
+        STA     src_buf_pos
+        LDA     src_ctx_buf_end,x
+        STA     src_buf_end
+        LDA     src_ctx_line_lo,x
+        STA     lex_line
+        LDA     src_ctx_line_hi,x
+        STA     lex_line+1
+        LDA     src_ctx_col,x
+        STA     lex_col
+        LDA     src_ctx_char,x
+        STA     lex_char
+        TXA
+        JSR     source_ctx_fcb_ptr
+        LDY     #0
+@spop_fcb_copy:
+        LDA     (tmp0),y
+        STA     comp_src_fcb,y
+        INY
+        CPY     #36
+        BCC     @spop_fcb_copy
+        TXA
+        JSR     source_ctx_dma_ptr
+        LDY     #0
+@spop_dma_copy:
+        LDA     (tmp0),y
+        STA     DMA_BUF,y
+        INY
+        CPY     #128
+        BCC     @spop_dma_copy
+        LDA     #<comp_src_fcb
+        STA     src_fcb
+        LDA     #>comp_src_fcb
+        STA     src_fcb+1
+@spop_done:
+        RTS
+
+; ---------------------------------------------------------------------------
 ; compiler_init — zero-out compiler state
 ; ---------------------------------------------------------------------------
 error_count:
@@ -277,9 +550,18 @@ compiler_init:
         STA     cg_globals+1
 ; scope depth 0 = global
         STA     scope_depth
+        STA     with_depth
+        STA     expr_record_first
+        STA     expr_record_count
+        STA     unit_section
+        STA     unit_import_mode
+        STA     uses_name_count
+        STA     used_unit_count
+        STA     src_ctx_depth
 ; main entry-point patch slot — sentinel hi byte = $FF means "none/done"
         LDA     #$FF
         STA     main_jmp_patch+1
+        STA     body_chain_patch+1
 ; init lexer and prime first token
         JSR     lexer_init
         JSR     next_token

@@ -5,7 +5,7 @@
 ;   [0]    name length (1-15)
 ;   [1-15] name chars (uppercase, padded with spaces)
 ;   [16]   symbol kind: SYM_VAR, SYM_CONST, SYM_PROC, SYM_FUNC, SYM_TYPE, SYM_PARAM
-;   [17]   data type:   TY_INT, TY_CHAR, TY_BOOL, TY_STRING, TY_ARRAY, TY_RECORD, TY_PTR
+;   [17]   data type:   TY_INT, TY_CHAR, TY_BOOL, TY_STRING, TY_ARRAY, TY_RECORD, TY_PTR, TY_TEXT, TY_SET
 ;   [18-19] value/offset (word): variable offset from BASE/MP; const value; proc address
 ;   [20]   scope depth (0=global)
 ;   [21]   parameter count (for SYM_PROC/SYM_FUNC)
@@ -33,6 +33,7 @@ TY_ARRAY        = 5
 TY_RECORD       = 6
 TY_PTR          = 7
 TY_TEXT         = 8             ; TEXT file variable (168-byte struct)
+TY_SET          = 9             ; 16-bit set mask over element values 0..15
 TY_NONE         = 0             ; for procedures
 
         .segment        "CODE"
@@ -49,6 +50,7 @@ symtab_init:
         STA     symtab_count
         STA     symtab_count+1
         STA     field_table_count
+        STA     field_depth
         RTS
 
 ; ---------------------------------------------------------------------------
@@ -125,8 +127,8 @@ field_table_add:
         PLA                     ; offset
         LDY     #13
         STA     (tmp2),y
-        LDA     #0
-        LDY     #15
+        LDA     field_depth     ; nesting depth so scans can skip
+        LDY     #15             ; fields owned by deeper inline records
         STA     (tmp2),y
 ; bump count, return new index
         LDA     field_table_count
@@ -149,6 +151,30 @@ field_table_add:
 field_lookup_in_record:
         STA     tmp3            ; tmp3 = current field index
         STX     tmp3+1          ; tmp3+1 = remaining count
+; Read the depth of field[tmp3] — the scan's "target depth". Slots
+; deeper than this belong to inline sub-records and are skipped so
+; the scan stays at the record's own nesting level.
+        LDA     tmp3
+        ASL
+        ASL
+        ASL
+        ASL
+        STA     tmp2
+        LDA     #0
+        ROL
+        CLC
+        ADC     #>field_table
+        STA     tmp2+1
+        LDA     tmp2
+        CLC
+        ADC     #<field_table
+        STA     tmp2
+        BCC     :+
+        INC     tmp2+1
+:
+        LDY     #15
+        LDA     (tmp2),y
+        STA     field_lookup_depth
 @scan:
         LDA     tmp3+1
         BEQ     @nf
@@ -171,6 +197,11 @@ field_lookup_in_record:
         BCC     :+
         INC     tmp2+1
 :
+; skip slots whose depth differs from the scan's target depth
+        LDY     #15
+        LDA     (tmp2),y
+        CMP     field_lookup_depth
+        BNE     @next
 ; compare name length
         LDY     #0
         LDA     (tmp2),y

@@ -36,10 +36,19 @@ expect:
 ; Helper macros — not ca65 .macros since they'd be complex; use inline calls.
 
 ; ---------------------------------------------------------------------------
-; compile_program — top-level: PROGRAM name ; block .
+; compile_program — top-level dispatcher for PROGRAM or UNIT sources.
 ; ---------------------------------------------------------------------------
 compile_program:
         JSR     symtab_init
+        LDA     #0
+        STA     unit_section
+        LDA     tok_type
+        CMP     #TOK_UNIT
+        BEQ     @unit_src
+        JMP     @program_src
+@unit_src:
+        JMP     compile_unit
+@program_src:
 ; expect PROGRAM keyword
         LDA     tok_type
         CMP     #TOK_PROGRAM
@@ -63,7 +72,324 @@ compile_program:
         STA     main_jmp_patch+1
         JSR     parse_block
 ; Emit HALT at end of main program
+        JSR     patch_startup_chain_if_needed
         JSR     emit_HALT
+        RTS
+
+; patch_startup_chain_if_needed — patch any pending top-level startup jumps
+; to the current cg_pc. This handles both the entry UJP (jump to the first
+; unit-init/main body) and the tail UJP emitted after each prior top-level
+; body (jump to the next one, or eventually HALT).
+patch_startup_chain_if_needed:
+        LDA     main_jmp_patch+1
+        CMP     #$FF
+        BEQ     @pscii_tail
+        LDA     main_jmp_patch
+        STA     tmp2
+        LDA     main_jmp_patch+1
+        STA     tmp2+1
+        JSR     patch_jump
+        LDA     #$FF
+        STA     main_jmp_patch+1
+@pscii_tail:
+        LDA     body_chain_patch+1
+        CMP     #$FF
+        BEQ     @pscii_done
+        LDA     body_chain_patch
+        STA     tmp2
+        LDA     body_chain_patch+1
+        STA     tmp2+1
+        JSR     patch_jump
+        LDA     #$FF
+        STA     body_chain_patch+1
+@pscii_done:
+        RTS
+
+; ---------------------------------------------------------------------------
+; compile_unit — UNIT name ; INTERFACE ... IMPLEMENTATION ... [BEGIN ...] END.
+; UNIT sources may be standalone roots or USES-imported. The INTERFACE
+; section registers globals and routine headings; IMPLEMENTATION provides the
+; bodies plus an optional init block. Imported units compile inline into the
+; current .PCD while the startup jump chain preserves init order.
+; ---------------------------------------------------------------------------
+compile_unit:
+        JSR     next_token              ; consume UNIT
+        LDA     tok_type
+        CMP     #TOK_IDENT
+        BNE     :+
+        LDA     unit_import_mode
+        BNE     @cu_name_done
+        LDX     used_unit_count
+        CPX     #USED_UNIT_SLOTS
+        BCS     @cu_name_done
+        PHX
+        JSR     used_unit_slot_ptr
+        LDY     #15
+@cu_root_name_copy:
+        LDA     ident_buf,y
+        STA     (tmp2),y
+        DEY
+        BPL     @cu_root_name_copy
+        PLX
+        INC     used_unit_count
+@cu_name_done:
+        JSR     next_token              ; consume unit name
+:       LDA     tok_type
+        CMP     #TOK_SEMICOLON
+        BNE     :+
+        JSR     next_token
+:       LDA     tok_type
+        CMP     #TOK_INTERFACE
+        BEQ     @cu_have_iface
+        LDA     #<err_unexpected
+        STA     tmp0
+        LDA     #>err_unexpected
+        STA     tmp0+1
+        JSR     compile_error
+        BRA     @cu_after_iface_kw
+@cu_have_iface:
+        JSR     next_token              ; consume INTERFACE
+@cu_after_iface_kw:
+        LDA     unit_import_mode
+        BNE     @cu_iface_ready
+        JSR     emit_UJP
+        STA     main_jmp_patch
+        LDA     scratch
+        STA     main_jmp_patch+1
+@cu_iface_ready:
+        LDA     #1
+        STA     unit_section
+        JSR     parse_interface_block
+        LDA     tok_type
+        CMP     #TOK_IMPLEMENTATION
+        BEQ     @cu_have_impl
+        LDA     #<err_unexpected
+        STA     tmp0
+        LDA     #>err_unexpected
+        STA     tmp0+1
+        JSR     compile_error
+        BRA     @cu_impl_start
+@cu_have_impl:
+        JSR     next_token              ; consume IMPLEMENTATION
+@cu_impl_start:
+        LDA     #2
+        STA     unit_section
+        JSR     parse_block
+        LDA     unit_import_mode
+        BNE     @cu_done
+        JSR     patch_startup_chain_if_needed
+        JSR     emit_HALT
+@cu_done:
+        LDA     #0
+        STA     unit_section
+        RTS
+
+; ---------------------------------------------------------------------------
+; parse_interface_block — top-level INTERFACE declarations only.
+; Mirrors parse_block but PROCEDURE/FUNCTION consume headings without bodies.
+; Stops when IMPLEMENTATION (or anything unrecognised) is reached.
+; ---------------------------------------------------------------------------
+parse_interface_block:
+@pib_again:
+        LDA     tok_type
+        CMP     #TOK_USES
+        BEQ     @pib_uses
+        CMP     #TOK_CONST
+        BEQ     @pib_const
+        CMP     #TOK_TYPE
+        BEQ     @pib_type
+        CMP     #TOK_VAR
+        BEQ     @pib_var
+        CMP     #TOK_PROCEDURE
+        BEQ     @pib_proc
+        CMP     #TOK_FUNCTION
+        BEQ     @pib_func
+        RTS
+@pib_uses:
+        JSR     parse_uses_clause
+        BRA     @pib_again
+@pib_const:
+        JSR     next_token
+        JSR     parse_const_decls
+        BRA     @pib_again
+@pib_type:
+        JSR     next_token
+        JSR     parse_type_decls
+        BRA     @pib_again
+@pib_var:
+        JSR     next_token
+        JSR     parse_var_decls
+        BRA     @pib_again
+@pib_proc:
+        JSR     next_token
+        JSR     parse_proc_iface_decl
+        BRA     @pib_again
+@pib_func:
+        JSR     next_token
+        JSR     parse_func_iface_decl
+        BRA     @pib_again
+
+; ---------------------------------------------------------------------------
+; import_unit_by_name — ident_buf names a UNIT source file to compile into the
+; current output. Repeated/nested imports are de-duplicated globally.
+; ---------------------------------------------------------------------------
+import_unit_by_name:
+        LDX     #0
+@iun_scan:
+        CPX     used_unit_count
+        BCS     @iun_add
+        PHX
+        JSR     used_unit_slot_ptr
+        LDY     #0
+        LDA     (tmp2),y
+        CMP     ident_buf
+        BNE     @iun_next
+        STA     scratch
+        LDY     #1
+@iun_cmp:
+        LDA     (tmp2),y
+        CMP     ident_buf,y
+        BNE     @iun_next
+        DEC     scratch
+        BEQ     @iun_found
+        INY
+        BRA     @iun_cmp
+@iun_next:
+        PLX
+        INX
+        BRA     @iun_scan
+@iun_found:
+        PLX
+        RTS
+@iun_add:
+        CPX     #USED_UNIT_SLOTS
+        BCC     :+
+        LDA     #<err_too_many
+        STA     tmp0
+        LDA     #>err_too_many
+        STA     tmp0+1
+        JSR     compile_error
+        RTS
+:       PHX
+        JSR     used_unit_slot_ptr
+        LDY     #15
+@iun_copy_name:
+        LDA     ident_buf,y
+        STA     (tmp2),y
+        DEY
+        BPL     @iun_copy_name
+        PLX
+        INC     used_unit_count
+        JSR     source_push_current
+        BCC     @iun_pushed
+        LDA     #<err_too_many
+        STA     tmp0
+        LDA     #>err_too_many
+        STA     tmp0+1
+        JSR     compile_error
+        RTS
+@iun_pushed:
+        JSR     build_named_src_fcb
+        BCC     :+
+        JSR     source_pop_current
+        RTS
+:       LDA     #<comp_src_fcb
+        STA     src_fcb
+        STA     tmp1
+        LDA     #>comp_src_fcb
+        STA     src_fcb+1
+        STA     tmp1+1
+        JSR     file_open
+        CMP     #$FF
+        BNE     @iun_open_ok
+        LDA     #<err_nofile
+        STA     tmp0
+        LDA     #>err_nofile
+        STA     tmp0+1
+        JSR     compile_error
+        JSR     source_pop_current
+        RTS
+@iun_open_ok:
+        INC     unit_import_mode
+        JSR     lexer_init
+        JSR     next_token
+        JSR     compile_unit
+        DEC     unit_import_mode
+        LDA     #<comp_src_fcb
+        STA     tmp1
+        LDA     #>comp_src_fcb
+        STA     tmp1+1
+        JSR     file_close
+        JSR     source_pop_current
+        RTS
+
+; ---------------------------------------------------------------------------
+; parse_uses_clause — top-level USES unit1, unit2, ... ;
+; Collects the unit names from the current source first, then compiles each
+; imported UNIT source while the current file context is suspended.
+; ---------------------------------------------------------------------------
+parse_uses_clause:
+        JSR     next_token              ; consume USES
+        LDA     #0
+        STA     uses_name_count
+@puc_collect:
+        LDA     tok_type
+        CMP     #TOK_IDENT
+        BNE     @puc_done_collect
+        LDX     uses_name_count
+        CPX     #USES_NAME_SLOTS
+        BCS     @puc_skip_store
+        PHX
+        JSR     uses_name_slot_ptr
+        LDY     #15
+@puc_store:
+        LDA     ident_buf,y
+        STA     (tmp2),y
+        DEY
+        BPL     @puc_store
+        PLX
+        INC     uses_name_count
+        BRA     @puc_after_store
+@puc_skip_store:
+        LDA     #<err_too_many
+        STA     tmp0
+        LDA     #>err_too_many
+        STA     tmp0+1
+        JSR     compile_error
+@puc_after_store:
+        JSR     next_token              ; consume unit name
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BNE     @puc_done_collect
+        JSR     next_token
+        BRA     @puc_collect
+@puc_done_collect:
+        LDA     tok_type
+        PHA
+        LDX     #0
+@puc_import_loop:
+        CPX     uses_name_count
+        BCS     @puc_resume
+        PHX
+        JSR     uses_name_slot_ptr
+        LDY     #15
+@puc_restore_name:
+        LDA     (tmp2),y
+        STA     ident_buf,y
+        DEY
+        BPL     @puc_restore_name
+        JSR     import_unit_by_name
+        PLX
+        INX
+        JMP     @puc_import_loop
+@puc_resume:
+        PLA
+        CMP     #TOK_SEMICOLON
+        BNE     @puc_no_semi
+        JSR     next_token
+        RTS
+@puc_no_semi:
+        STA     tok_type
         RTS
 
 ; ---------------------------------------------------------------------------
@@ -72,6 +398,13 @@ compile_program:
 parse_block:
 @again:
         LDA     tok_type
+        CMP     #TOK_USES
+        BNE     @blk_chk_const
+        LDA     scope_depth
+        BNE     @blk_chk_const
+        JSR     parse_uses_clause
+        BRA     @again
+@blk_chk_const:
         CMP     #TOK_CONST
         BEQ     @const
         CMP     #TOK_TYPE
@@ -106,23 +439,20 @@ parse_block:
         JSR     next_token
         JSR     parse_func_decl
         BRA     @again
-@body:  ; If at global scope and the main UJP hasn't been patched yet, do so
-        ; before emitting any main-body code. main_jmp_patch+1 = $FF means
-        ; "already patched" (or no UJP emitted, e.g. early-error path).
+@body:  ; If at global scope, patch the startup chain to this body's start
+        ; before emitting any top-level init/main code.
         LDA     scope_depth
         BNE     @body_emit
-        LDA     main_jmp_patch+1
-        CMP     #$FF
-        BEQ     @body_emit
-        LDA     main_jmp_patch
-        STA     tmp2
-        LDA     main_jmp_patch+1
-        STA     tmp2+1
-        JSR     patch_jump
-        LDA     #$FF
-        STA     main_jmp_patch+1
+        JSR     patch_startup_chain_if_needed
 @body_emit:
         JSR     parse_compound_stmt
+        LDA     scope_depth
+        BNE     @body_done
+        JSR     emit_UJP
+        STA     body_chain_patch
+        LDA     scratch
+        STA     body_chain_patch+1
+@body_done:
         RTS
 
 ; ---------------------------------------------------------------------------
@@ -445,6 +775,69 @@ swap_ident_save:
         BPL     @sw
         RTS
 
+; field_name_slot_ptr â€” tmp2 = pointer to the current RECORD depth's
+; field-name slot. A = slot index (0..7).
+field_name_slot_ptr:
+        ASL
+        ASL
+        ASL
+        ASL                             ; slot * 16
+        STA     tmp2
+        LDA     #0
+        STA     tmp2+1
+        LDX     field_depth
+        DEX                             ; 1-based depth -> 0-based slice index
+@fnsp_depth:
+        CPX     #0
+        BEQ     @fnsp_base
+        CLC
+        LDA     tmp2
+        ADC     #$80
+        STA     tmp2
+        BCC     :+
+        INC     tmp2+1
+:       DEX
+        BRA     @fnsp_depth
+@fnsp_base:
+        CLC
+        LDA     tmp2
+        ADC     #<field_name_buf
+        STA     tmp2
+        LDA     tmp2+1
+        ADC     #>field_name_buf
+        STA     tmp2+1
+        RTS
+
+; uses_name_slot_ptr — tmp2 = pointer to USES-name slot X (0..7)
+uses_name_slot_ptr:
+        TXA
+        ASL
+        ASL
+        ASL
+        ASL
+        CLC
+        ADC     #<uses_name_buf
+        STA     tmp2
+        LDA     #0
+        ADC     #>uses_name_buf
+        STA     tmp2+1
+        RTS
+
+; used_unit_slot_ptr — tmp2 = pointer to imported-unit slot X (0..7)
+used_unit_slot_ptr:
+        TXA
+        ASL
+        ASL
+        ASL
+        ASL
+        CLC
+        ADC     #<used_unit_buf
+        STA     tmp2
+        LDA     #0
+        ADC     #>used_unit_buf
+        STA     tmp2+1
+        RTS
+
 ; ---------------------------------------------------------------------------
 ; parse_type_spec — consume type token(s), return TY_* code in A
 ; ---------------------------------------------------------------------------
@@ -596,6 +989,62 @@ parse_type_spec:
         RTS
 @not_array:
         LDA     tok_type
+        CMP     #TOK_SET
+        BEQ     :+
+        JMP     @not_set
+:
+; --- SET OF lo..hi ---
+; v1 stores sets as 16-bit masks over element values 0..15, so the
+; declared bounds must fit within that range. The bounds are validated
+; here but not otherwise retained for later type-checking.
+        JSR     next_token              ; consume SET
+        LDA     tok_type
+        CMP     #TOK_OF
+        BNE     :+
+        JSR     next_token              ; consume OF
+:
+        LDA     tok_type
+        CMP     #TOK_INT
+        BNE     @set_bad
+        LDA     tok_ival_hi
+        BNE     @set_bad
+        LDA     tok_ival_lo
+        STA     set_lit_lo
+        CMP     #16
+        BCS     @set_bad
+        JSR     next_token
+        LDA     tok_type
+        CMP     #TOK_DOTDOT
+        BNE     @set_bad
+        JSR     next_token
+        LDA     tok_type
+        CMP     #TOK_INT
+        BNE     @set_bad
+        LDA     tok_ival_hi
+        BNE     @set_bad
+        LDA     tok_ival_lo
+        STA     set_lit_hi
+        CMP     #16
+        BCS     @set_bad
+        CMP     set_lit_lo
+        BCC     @set_bad
+        JSR     next_token
+        LDA     #TY_SET
+        RTS
+@set_bad:
+        LDA     #<err_type
+        STA     tmp0
+        LDA     #>err_type
+        STA     tmp0+1
+        JSR     compile_error
+        LDA     tok_type
+        CMP     #TOK_INT
+        BNE     :+
+        JSR     next_token
+:       LDA     #TY_SET
+        RTS
+@not_set:
+        LDA     tok_type
         CMP     #TOK_RECORD
         BEQ     :+
         JMP     @not_record
@@ -604,6 +1053,8 @@ parse_type_spec:
 ; Each field group: name { , name } : type
 ; All fields are stored as 2-byte slots; offsets are 0, 2, 4, ...
         JSR     next_token              ; consume RECORD
+        INC     field_depth             ; mark new fields as belonging
+                                        ; to this nesting level
         LDA     #0
         STA     record_size
         STA     record_size+1
@@ -623,32 +1074,29 @@ parse_type_spec:
 ; --- collect comma-separated field names into field_name_buf ---
 ;     (separate from var_name_buf so an inline RECORD inside a VAR
 ;      decl doesn't clobber the outer variable names being collected)
+        LDX     field_depth
+        DEX
         LDA     #0
-        STA     field_name_count
+        STA     field_name_count,x
 @rec_collect:
         LDA     tok_type
         CMP     #TOK_IDENT
         BNE     @rec_endcol
-        LDA     field_name_count
+        LDX     field_depth
+        DEX
+        LDA     field_name_count,x
         CMP     #8
         BCS     @rec_skip_save
-        ASL
-        ASL
-        ASL
-        ASL                             ; *16
-        CLC
-        ADC     #<field_name_buf
-        STA     tmp2
-        LDA     #0
-        ADC     #>field_name_buf
-        STA     tmp2+1
+        JSR     field_name_slot_ptr
         LDY     #15
 @rec_cpin:
         LDA     ident_buf,y
         STA     (tmp2),y
         DEY
         BPL     @rec_cpin
-        INC     field_name_count
+        LDX     field_depth
+        DEX
+        INC     field_name_count,x
 @rec_skip_save:
         JSR     next_token              ; consume name
         LDA     tok_type
@@ -697,26 +1145,30 @@ parse_type_spec:
 ; --- add each collected name to field_table at current record_size ---
         LDX     #0
 @rec_addf:
-        CPX     field_name_count
+        TXA
+        LDY     field_depth
+        DEY
+        CMP     field_name_count,y
         BCS     @rec_endf
         PHX
         TXA
-        ASL
-        ASL
-        ASL
-        ASL                             ; *16
-        CLC
-        ADC     #<field_name_buf
-        STA     tmp2
-        LDA     #0
-        ADC     #>field_name_buf
-        STA     tmp2+1
+        JSR     field_name_slot_ptr
         LDY     #15
 @rec_cpout:
         LDA     (tmp2),y
         STA     ident_buf,y
         DEY
         BPL     @rec_cpout
+; If the previous field group's type was an inline RECORD, its fields
+; got appended to field_table BEFORE this outer field. Bump
+; record_first_field past those leading slots so the lookup-scan starts
+; at the first outer-depth field instead of an inner one. Only applies
+; when no outer fields have been recorded yet.
+        LDA     record_field_count
+        BNE     :+
+        LDA     field_table_count
+        STA     record_first_field
+:
 ; field_table_add: A=offset (record_size lo), X=type
 ;   Returns: A = newly-assigned field index
         LDA     record_size
@@ -777,6 +1229,14 @@ parse_type_spec:
 :
 @rec_end:
         JSR     next_token              ; consume END
+        DEC     field_depth             ; leaving this nesting level
+; record_field_count was per-named-field; recompute as the slot span so
+; field_lookup_in_record covers any inline-record sub-fields that got
+; physically interleaved between this record's named fields.
+        SEC
+        LDA     field_table_count
+        SBC     record_first_field
+        STA     record_field_count
         LDA     #TY_RECORD
         RTS
 @not_record:
@@ -852,6 +1312,72 @@ parse_arg_lvalue:
 @lv_passthrough:
         TXA
         JMP     emit_LDL        ; slot already holds caller's address
+
+; ---------------------------------------------------------------------------
+; with_lookup_field — search active WITH contexts for ident_buf as an
+; unqualified field name. Innermost WITH wins.
+; Returns: carry set if found, A=field offset, X=field type
+;          carry clear if not found
+; Side effects on hit:
+;   with_lookup_off/type      = matched field offset/type
+;   with_lookup_base_lo/hi    = hidden global holding the WITH base address
+;   with_lookup_first/count   = nested-record metadata for this field
+; ---------------------------------------------------------------------------
+with_lookup_field:
+        LDA     with_depth
+        BNE     :+
+        CLC
+        RTS
+:       LDX     with_depth
+        DEX
+@wlf_ctx:
+        STX     tmp1
+        LDY     with_field_count,x
+        LDA     with_first_field,x
+        STY     scratch
+        LDX     scratch
+        JSR     field_lookup_in_record
+        BCC     @wlf_next
+        STA     with_lookup_off
+        TXA
+        STA     with_lookup_type
+        LDX     tmp3
+        LDA     field_nested_first,x
+        STA     with_lookup_first
+        LDA     field_nested_count,x
+        STA     with_lookup_count
+        LDX     tmp1
+        LDA     with_base_lo,x
+        STA     with_lookup_base_lo
+        LDA     with_base_hi,x
+        STA     with_lookup_base_hi
+        LDA     with_lookup_off
+        LDX     with_lookup_type
+        SEC
+        RTS
+@wlf_next:
+        LDX     tmp1
+        CPX     #0
+        BEQ     @wlf_nf
+        DEX
+        BRA     @wlf_ctx
+@wlf_nf:
+        CLC
+        RTS
+
+; emit_with_field_base — push the selected WITH record's base address, then
+; add the matched field offset (with_lookup_off) if nonzero.
+emit_with_field_base:
+        LDA     with_lookup_base_hi
+        STA     scratch
+        LDA     with_lookup_base_lo
+        JSR     emit_LDG
+        LDA     with_lookup_off
+        BEQ     @ewfb_done
+        JSR     emit_LDCI
+        JSR     emit_ADI
+@ewfb_done:
+        RTS
 
 ; ---------------------------------------------------------------------------
 ; parse_param_list — assumes '(' has already been consumed.  Parses zero or
@@ -989,6 +1515,26 @@ parse_param_list:
         LDA     #SYM_VAR
 @do_add:
         JSR     symtab_add
+        LDA     scratch
+        CMP     #TY_ARRAY
+        BNE     @pl_chk_rec
+        LDA     array_elem_ty
+        LDY     #22
+        STA     (tmp3),y
+        LDA     #2
+        LDY     #23
+        STA     (tmp3),y
+        BRA     @pl_meta_done
+@pl_chk_rec:
+        CMP     #TY_RECORD
+        BNE     @pl_meta_done
+        LDA     record_first_field
+        LDY     #22
+        STA     (tmp3),y
+        LDA     record_field_count
+        LDY     #23
+        STA     (tmp3),y
+@pl_meta_done:
         INC     proc_param_count
         PLX
         INX
@@ -1007,6 +1553,183 @@ parse_param_list:
         JSR     next_token      ; consume ')'
 :
         RTS
+
+; ---------------------------------------------------------------------------
+; parse_param_sig_list — parse a PROCEDURE/FUNCTION signature parameter list
+; without creating SYM_VAR entries. Used by UNIT interface headings so the
+; exported routine can record only param-count / VAR-mask metadata.
+; ---------------------------------------------------------------------------
+parse_param_sig_list:
+        LDA     #0
+        STA     param_var_mask
+@psig_group:
+        LDA     #0
+        STA     group_is_var
+        LDA     tok_type
+        CMP     #TOK_VAR
+        BNE     @psig_no_var
+        LDA     #1
+        STA     group_is_var
+        JSR     next_token
+@psig_no_var:
+        LDA     tok_type
+        CMP     #TOK_IDENT
+        BEQ     @psig_have_ident
+        JMP     @psig_done
+@psig_have_ident:
+        LDA     #0
+        STA     var_name_count
+@psig_collect:
+        LDA     tok_type
+        CMP     #TOK_IDENT
+        BNE     @psig_end_names
+        INC     var_name_count
+        JSR     next_token
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BNE     @psig_end_names
+        JSR     next_token
+        BRA     @psig_collect
+@psig_end_names:
+        LDA     tok_type
+        CMP     #TOK_COLON
+        BNE     :+
+        JSR     next_token
+:       JSR     parse_type_spec
+        LDX     #0
+@psig_add:
+        CPX     var_name_count
+        BCS     @psig_group_done
+        LDA     group_is_var
+        BEQ     @psig_inc
+        LDY     proc_param_count
+        CPY     #8
+        BCS     @psig_inc
+        LDA     #1
+@psig_shl:
+        CPY     #0
+        BEQ     @psig_shl_done
+        ASL
+        DEY
+        BRA     @psig_shl
+@psig_shl_done:
+        ORA     param_var_mask
+        STA     param_var_mask
+@psig_inc:
+        INC     proc_param_count
+        INX
+        BRA     @psig_add
+@psig_group_done:
+        LDA     tok_type
+        CMP     #TOK_SEMICOLON
+        BNE     @psig_done
+        JSR     next_token
+        JMP     @psig_group
+@psig_done:
+        LDA     tok_type
+        CMP     #TOK_RPAREN
+        BNE     :+
+        JSR     next_token
+:       RTS
+
+; ---------------------------------------------------------------------------
+; parse_proc_iface_decl — PROCEDURE heading in a UNIT INTERFACE section.
+; Registers a global SYM_PROC with placeholder code offset 0 and fills
+; param-count / VAR-mask metadata for later callers and implementation.
+; ---------------------------------------------------------------------------
+parse_proc_iface_decl:
+        LDA     tok_type
+        CMP     #TOK_IDENT
+        BEQ     :+
+        RTS
+:       LDA     #0
+        STA     proc_param_count
+        STA     param_var_mask
+        STA     tmp2
+        STA     tmp2+1
+        LDA     #SYM_PROC
+        LDX     #TY_NONE
+        JSR     symtab_add
+        LDA     tmp3
+        STA     proc_entry_idx
+        LDA     tmp3+1
+        STA     proc_entry_idx+1
+        JSR     next_token              ; consume name
+        LDA     tok_type
+        CMP     #TOK_LPAREN
+        BNE     @ppid_patch
+        JSR     next_token
+        JSR     parse_param_sig_list
+@ppid_patch:
+        LDA     proc_entry_idx
+        STA     tmp3
+        LDA     proc_entry_idx+1
+        STA     tmp3+1
+        LDY     #21
+        LDA     proc_param_count
+        STA     (tmp3),y
+        LDY     #22
+        LDA     param_var_mask
+        STA     (tmp3),y
+        LDA     tok_type
+        CMP     #TOK_SEMICOLON
+        BNE     :+
+        JSR     next_token
+:       RTS
+
+; ---------------------------------------------------------------------------
+; parse_func_iface_decl — FUNCTION heading in a UNIT INTERFACE section.
+; Registers a global SYM_FUNC with placeholder code offset 0 and patches
+; the return type plus param-count / VAR-mask metadata.
+; ---------------------------------------------------------------------------
+parse_func_iface_decl:
+        LDA     tok_type
+        CMP     #TOK_IDENT
+        BEQ     :+
+        RTS
+:       LDA     #0
+        STA     proc_param_count
+        STA     param_var_mask
+        STA     tmp2
+        STA     tmp2+1
+        LDA     #SYM_FUNC
+        LDX     #TY_NONE
+        JSR     symtab_add
+        LDA     tmp3
+        STA     proc_entry_idx
+        LDA     tmp3+1
+        STA     proc_entry_idx+1
+        JSR     next_token              ; consume name
+        LDA     tok_type
+        CMP     #TOK_LPAREN
+        BNE     @pfid_after_params
+        JSR     next_token
+        JSR     parse_param_sig_list
+@pfid_after_params:
+        LDA     tok_type
+        CMP     #TOK_COLON
+        BNE     :+
+        JSR     next_token
+:       JSR     parse_type_spec
+        STA     scratch
+        LDA     proc_entry_idx
+        STA     tmp3
+        LDA     proc_entry_idx+1
+        STA     tmp3+1
+        LDY     #17
+        LDA     scratch
+        STA     (tmp3),y
+        LDY     #21
+        LDA     proc_param_count
+        STA     (tmp3),y
+        LDY     #22
+        LDA     param_var_mask
+        STA     (tmp3),y
+        LDA     tok_type
+        CMP     #TOK_SEMICOLON
+        BNE     :+
+        JSR     next_token
+:       RTS
 
 ; ---------------------------------------------------------------------------
 ; parse_proc_decl — PROCEDURE name [ ( params ) ] ; <block> ;
@@ -1037,16 +1760,35 @@ parse_proc_decl:
         DEY
         BPL     @savename
 
+; UNIT implementation bodies may be preceded by an INTERFACE heading.
+; Reuse that global SYM_PROC entry instead of creating a duplicate.
+        LDA     scope_depth
+        BNE     @new_entry
+        LDA     unit_section
+        CMP     #2
+        BNE     @new_entry
+        JSR     symtab_find
+        BCC     @new_entry
+        LDY     #16
+        LDA     (tmp3),y
+        CMP     #SYM_PROC
+        BNE     @new_entry
+        LDY     #20
+        LDA     (tmp3),y
+        BNE     @new_entry
+        LDA     tmp3
+        STA     proc_entry_idx
+        LDA     tmp3+1
+        STA     proc_entry_idx+1
+        JSR     next_token
+        JMP     @enter_scope
+@new_entry:
+
         JSR     next_token      ; consume name
 
 ; Register proc in symbol table NOW so we have an entry to update
 ; with the param count once the param list has been parsed.
 ; Offset (proc entry point) = current cg_pc.
-; Remember the symbol-table index for backpatch.
-        LDA     symtab_count
-        STA     proc_entry_idx
-        LDA     symtab_count+1
-        STA     proc_entry_idx+1
         JSR     swap_ident_save ; ident_buf <-> save_name_buf
         LDA     cg_pc
         STA     tmp2
@@ -1055,9 +1797,14 @@ parse_proc_decl:
         LDA     #SYM_PROC
         LDX     #TY_NONE
         JSR     symtab_add
+        LDA     tmp3
+        STA     proc_entry_idx
+        LDA     tmp3+1
+        STA     proc_entry_idx+1
         JSR     swap_ident_save
 
 ; Enter scope: params and any locals belong to the proc's frame.
+@enter_scope:
         JSR     symtab_enter_scope
 
 ; init param count and VAR-mask
@@ -1074,20 +1821,16 @@ parse_proc_decl:
 
 @backpatch_pcount:
 ; Write param count into proc's symbol entry (offset 21).
-; entry addr = SYMTAB_BASE + proc_entry_idx * 32
         LDA     proc_entry_idx
-        ASL
-        ASL
-        ASL
-        ASL
-        ASL                     ; *32 (low byte)
-        CLC
-        ADC     #<SYMTAB_BASE
         STA     tmp3
         LDA     proc_entry_idx+1
-        ROL
-        ADC     #>SYMTAB_BASE
         STA     tmp3+1
+        LDY     #18
+        LDA     cg_pc
+        STA     (tmp3),y
+        INY
+        LDA     cg_pc+1
+        STA     (tmp3),y
         LDY     #21
         LDA     proc_param_count
         STA     (tmp3),y
@@ -1123,17 +1866,8 @@ parse_proc_decl:
 ; emits MRKSTK <lsize> so the AR is large enough to hold all locals
 ; below pm_sp (otherwise value-stack pushes corrupt local slots).
         LDA     proc_entry_idx
-        ASL
-        ASL
-        ASL
-        ASL
-        ASL
-        CLC
-        ADC     #<SYMTAB_BASE
         STA     tmp3
         LDA     proc_entry_idx+1
-        ROL
-        ADC     #>SYMTAB_BASE
         STA     tmp3+1
         LDY     #23
         LDA     local_alloc_off
@@ -1178,14 +1912,33 @@ parse_func_decl:
         DEY
         BPL     @savename
 
+; UNIT implementation bodies may bind to an INTERFACE-declared SYM_FUNC.
+        LDA     scope_depth
+        BNE     @new_entry
+        LDA     unit_section
+        CMP     #2
+        BNE     @new_entry
+        JSR     symtab_find
+        BCC     @new_entry
+        LDY     #16
+        LDA     (tmp3),y
+        CMP     #SYM_FUNC
+        BNE     @new_entry
+        LDY     #20
+        LDA     (tmp3),y
+        BNE     @new_entry
+        LDA     tmp3
+        STA     proc_entry_idx
+        LDA     tmp3+1
+        STA     proc_entry_idx+1
+        JSR     next_token
+        JMP     @enter_scope
+@new_entry:
+
         JSR     next_token      ; consume name
 
 ; Register SYM_FUNC NOW so we have an entry to backpatch.
 ; Type backpatched after we parse `: RETURN_TYPE`.
-        LDA     symtab_count
-        STA     proc_entry_idx
-        LDA     symtab_count+1
-        STA     proc_entry_idx+1
         JSR     swap_ident_save ; ident_buf <-> save_name_buf
         LDA     cg_pc
         STA     tmp2
@@ -1194,9 +1947,14 @@ parse_func_decl:
         LDA     #SYM_FUNC
         LDX     #TY_NONE        ; placeholder
         JSR     symtab_add
+        LDA     tmp3
+        STA     proc_entry_idx
+        LDA     tmp3+1
+        STA     proc_entry_idx+1
         JSR     swap_ident_save
 
 ; Enter scope: params, locals, and SYM_RETVAL belong to fn frame.
+@enter_scope:
         JSR     symtab_enter_scope
 
 ; init param count and VAR-mask
@@ -1224,18 +1982,15 @@ parse_func_decl:
 ; Recompute SYM_FUNC entry pointer from proc_entry_idx and backpatch
 ; offset 17 (return type) and offset 21 (param count).
         LDA     proc_entry_idx
-        ASL
-        ASL
-        ASL
-        ASL
-        ASL
-        CLC
-        ADC     #<SYMTAB_BASE
         STA     tmp3
         LDA     proc_entry_idx+1
-        ROL
-        ADC     #>SYMTAB_BASE
         STA     tmp3+1
+        LDY     #18
+        LDA     cg_pc
+        STA     (tmp3),y
+        INY
+        LDA     cg_pc+1
+        STA     (tmp3),y
         LDY     #17
         LDA     scratch
         STA     (tmp3),y
@@ -1279,17 +2034,8 @@ parse_func_decl:
 ; offset 23 (params + declared body locals).  Caller emits MRKSTK
 ; with this value so the AR holds all locals below pm_sp.
         LDA     proc_entry_idx
-        ASL
-        ASL
-        ASL
-        ASL
-        ASL
-        CLC
-        ADC     #<SYMTAB_BASE
         STA     tmp3
         LDA     proc_entry_idx+1
-        ROL
-        ADC     #>SYMTAB_BASE
         STA     tmp3+1
         LDY     #23
         LDA     local_alloc_off
@@ -1353,6 +2099,8 @@ parse_statement:
         LDA     tok_type
         CMP     #TOK_BEGIN
         BEQ     @compound
+        CMP     #TOK_WITH
+        BEQ     @with
         CMP     #TOK_IF
         BEQ     @if
         CMP     #TOK_WHILE
@@ -1367,6 +2115,10 @@ parse_statement:
 
 @compound:
         JMP     parse_compound_stmt
+
+@with:
+        JSR     parse_with_stmt
+        RTS
 
 @assign_or_call:
         JSR     parse_assign_or_call
@@ -1389,6 +2141,187 @@ parse_statement:
         RTS
 
 ; ---------------------------------------------------------------------------
+; parse_with_stmt — WITH record_expr { , record_expr } DO statement
+; Each selector gets a hidden global word holding the runtime record base
+; address. The compile-time WITH context stack records the matching field
+; table span so unqualified identifiers can resolve as fields.
+; ---------------------------------------------------------------------------
+parse_with_stmt:
+        LDA     with_depth
+        PHA                             ; restore point after the body
+        JSR     next_token              ; consume WITH
+@pws_item:
+        JSR     parse_expression
+        LDA     expr_type
+        CMP     #TY_RECORD
+        BEQ     @pws_record
+        LDA     #<err_type
+        STA     tmp0
+        LDA     #>err_type
+        STA     tmp0+1
+        JSR     compile_error
+        JSR     emit_POP                ; discard non-record expression result
+        BRA     @pws_after_item
+@pws_record:
+        LDA     #2
+        JSR     codegen_alloc_global    ; tmp2 = hidden word for base addr
+        LDA     tmp2
+        PHA
+        LDA     tmp2+1
+        PHA
+        LDA     tmp2+1
+        STA     scratch
+        LDA     tmp2
+        JSR     emit_STG                ; save selector address
+        LDX     with_depth
+        CPX     #WITH_DEPTHS
+        BCC     @pws_push
+        LDA     #<err_too_many
+        STA     tmp0
+        LDA     #>err_too_many
+        STA     tmp0+1
+        JSR     compile_error
+        BRA     @pws_discard_hidden
+@pws_push:
+        PLA
+        STA     with_base_hi,x
+        PLA
+        STA     with_base_lo,x
+        LDA     expr_record_first
+        STA     with_first_field,x
+        LDA     expr_record_count
+        STA     with_field_count,x
+        INC     with_depth
+        BRA     @pws_after_item
+@pws_discard_hidden:
+        PLA
+        PLA
+@pws_after_item:
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BNE     @pws_need_do
+        JSR     next_token
+        BRA     @pws_item
+@pws_need_do:
+        LDA     tok_type
+        CMP     #TOK_DO
+        BEQ     @pws_do
+        LDA     #<err_expected_do
+        STA     tmp0
+        LDA     #>err_expected_do
+        STA     tmp0+1
+        JSR     compile_error
+        BRA     @pws_body
+@pws_do:
+        JSR     next_token              ; consume DO
+@pws_body:
+        JSR     parse_statement
+        PLA
+        STA     with_depth
+        RTS
+
+; ---------------------------------------------------------------------------
+; parse_with_field_assign — current token is the field IDENT already matched
+; by with_lookup_field. Handles scalar fields, pointer-field dereference, and
+; chained nested-record assignments such as `WITH R DO A.X := 1`.
+; ---------------------------------------------------------------------------
+parse_with_field_assign:
+        JSR     next_token              ; consume field name
+        JSR     emit_with_field_base    ; push &field / &subrecord
+        LDA     with_lookup_type
+        CMP     #TY_RECORD
+        BEQ     @pwfa_record
+        CMP     #TY_PTR
+        BNE     @pwfa_scalar
+        LDA     tok_type
+        CMP     #TOK_CARET
+        BNE     @pwfa_scalar
+        JSR     emit_LDIND              ; load pointer value from field cell
+        JSR     next_token              ; consume '^'
+        LDA     tok_type
+        CMP     #TOK_ASSIGN
+        BNE     :+
+        JSR     next_token
+:       JSR     parse_expression
+        JSR     emit_STIND
+        RTS
+@pwfa_scalar:
+        LDA     tok_type
+        CMP     #TOK_ASSIGN
+        BNE     :+
+        JSR     next_token
+:       JSR     parse_expression
+        JSR     emit_STIND
+        RTS
+@pwfa_record:
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BEQ     @pwfa_chain_prep
+        LDA     #<err_type
+        STA     tmp0
+        LDA     #>err_type
+        STA     tmp0+1
+        JSR     compile_error
+        JSR     emit_POP                ; discard the subrecord address
+        RTS
+@pwfa_chain_prep:
+        LDA     with_lookup_first
+        STA     fcall_vmask
+        LDA     with_lookup_count
+        STA     fcall_lsize
+@pwfa_chain:
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BNE     :+
+        JSR     next_token
+:
+        LDA     fcall_vmask
+        LDX     fcall_lsize
+        JSR     field_lookup_in_record
+        BCC     @pwfa_nf
+        PHA
+        TXA
+        STA     field_chain_type
+        LDA     tmp3
+        TAX
+        LDA     field_nested_first,x
+        STA     field_chain_first
+        LDA     field_nested_count,x
+        STA     field_chain_count
+        PLA
+        BEQ     @pwfa_no_off
+        JSR     emit_LDCI
+        JSR     emit_ADI
+@pwfa_no_off:
+        JSR     next_token              ; consume nested field name
+        LDA     field_chain_type
+        CMP     #TY_RECORD
+        BNE     @pwfa_leaf
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BNE     @pwfa_leaf
+        LDA     field_chain_first
+        STA     fcall_vmask
+        LDA     field_chain_count
+        STA     fcall_lsize
+        BRA     @pwfa_chain
+@pwfa_leaf:
+        LDA     tok_type
+        CMP     #TOK_ASSIGN
+        BNE     :+
+        JSR     next_token
+:       JSR     parse_expression
+        JSR     emit_STIND
+        RTS
+@pwfa_nf:
+        LDA     #<err_undef
+        STA     tmp0
+        LDA     #>err_undef
+        STA     tmp0+1
+        JSR     compile_error
+        RTS
+
+; ---------------------------------------------------------------------------
 ; parse_assign_or_call — identifier already consumed by caller (in ident_buf)
 ; If next is ':=' → assignment
 ; If next is '(' → procedure call
@@ -1400,7 +2333,7 @@ parse_assign_or_call:
 ;   len 3 : NEW
 ;   len 4 : READ
 ;   len 5 : WRITE  | RESET  | CLOSE
-;   len 6 : READLN | ASSIGN
+;   len 6 : READLN | ASSIGN | APPEND
 ;   len 7 : WRITELN| REWRITE | DISPOSE
         LDA     ident_buf       ; length
         CMP     #3
@@ -1455,6 +2388,15 @@ parse_assign_or_call:
         CMP     #'R'
         BEQ     @chk_readln
         CMP     #'A'
+        BEQ     @chk_len6_a
+        JMP     @lookup_sym
+@chk_len6_a:
+        LDA     ident_buf+2
+        CMP     #'P'
+        BNE     :+
+        JMP     @chk_append
+:
+        CMP     #'S'
         BEQ     @chk_assign
         JMP     @lookup_sym
 
@@ -1533,6 +2475,9 @@ parse_assign_or_call:
 @chk_assign:
 ; "ASSIGN" (6)
         JMP     parse_builtin_assign
+@chk_append:
+; "APPEND" (6)
+        JMP     parse_builtin_append
 @chk_reset:
 ; "RESET" (5)
         JMP     parse_builtin_reset
@@ -1547,6 +2492,14 @@ parse_assign_or_call:
         JMP     @lookup_sym
 
 @lookup_sym:
+; WITH fields behave like an injected inner scope. Check them before the
+; real symbol table so `WITH R DO X := 1` binds `X` to the record field.
+        JSR     with_lookup_field
+        BCC     @lookup_symtab
+        JSR     parse_with_field_assign
+        RTS
+
+@lookup_symtab:
 ; look up identifier in symbol table
         JSR     symtab_find
         BCS     @found_sym
@@ -1747,9 +2700,13 @@ parse_assign_or_call:
 ; A=offset, X=type, tmp3=matched index
         PHA
         TXA
-        STA     scratch         ; field type
+        STA     field_chain_type
         LDA     tmp3
-        STA     fcall_lo        ; matched field index
+        TAX
+        LDA     field_nested_first,x
+        STA     field_chain_first
+        LDA     field_nested_count,x
+        STA     field_chain_count
         PLA
         BEQ     @rla_no_off
         JSR     emit_LDCI
@@ -1757,16 +2714,15 @@ parse_assign_or_call:
 @rla_no_off:
         JSR     next_token      ; consume field name
 ; If field is RECORD and next is '.', chain another level
-        LDA     scratch
+        LDA     field_chain_type
         CMP     #TY_RECORD
         BNE     @rla_leaf
         LDA     tok_type
         CMP     #TOK_DOT
         BNE     @rla_leaf
-        LDX     fcall_lo
-        LDA     field_nested_first,x
+        LDA     field_chain_first
         STA     fcall_vmask
-        LDA     field_nested_count,x
+        LDA     field_chain_count
         STA     fcall_lsize
         BRA     @rla_chain
 @rla_leaf:
@@ -1894,7 +2850,15 @@ parse_assign_or_call:
         JSR     next_token      ; consume ')'
 @emit_call:
 ; Emit CALL <delta>: A=target lo, scratch=target hi
-        LDA     sym_save_off+1
+        LDA     sym_save_off
+        ORA     sym_save_off+1
+        BNE     :+
+        LDA     #<err_undef
+        STA     tmp0
+        LDA     #>err_undef
+        STA     tmp0+1
+        JSR     compile_error
+:       LDA     sym_save_off+1
         STA     scratch
         LDA     sym_save_off
         JSR     emit_CALL
@@ -1992,12 +2956,31 @@ pw_emit_file:
 :
         JMP     emit_FWRI
 
+; emit_console_read_arg — current token must be an IDENT naming the target
+; variable. CHAR targets compile as:
+;   <addr> READC STIND
+; so the zero-extended character from OP_READC is stored into the variable's
+; 2-byte cell. Everything else currently uses READI.
+emit_console_read_arg:
+        JSR     symtab_find
+        BCC     @cra_int
+        LDY     #17
+        LDA     (tmp3),y
+        CMP     #TY_CHAR
+        BNE     @cra_int
+        JSR     parse_arg_lvalue
+        JSR     emit_READC
+        JMP     emit_STIND
+@cra_int:
+        JSR     parse_arg_lvalue
+        JMP     emit_READI
+
 ; ---------------------------------------------------------------------------
 ; parse_read_args — READ/READLN argument list.  Each argument must be a
-; variable identifier.  For each, push the variable's address (LDA_G /
-; LDA_L / LDL passthrough for VAR-ref params) then emit OP_READI which
-; pops the address, reads a line from the console, parses a decimal
-; integer, and stores it as a 16-bit word at that address.
+; variable identifier. Console mode dispatches by target type:
+;   CHAR    -> READC + STIND
+;   default -> READI
+; File mode still routes through FRDC / FRDS / FRDI based on target type.
 ; ---------------------------------------------------------------------------
 parse_read_args:
         LDA     tok_type
@@ -2017,8 +3000,7 @@ parse_read_args:
         CMP     #TY_TEXT
         BEQ     @file_first
 @cons_first:
-        JSR     parse_arg_lvalue        ; push address of var
-        JSR     emit_READI              ; pop addr, read int, store word
+        JSR     emit_console_read_arg
 @cons_loop:
         LDA     tok_type
         CMP     #TOK_COMMA
@@ -2027,8 +3009,7 @@ parse_read_args:
         LDA     tok_type
         CMP     #TOK_IDENT
         BNE     @rclose_console
-        JSR     parse_arg_lvalue
-        JSR     emit_READI
+        JSR     emit_console_read_arg
         BRA     @cons_loop
 @rclose_console:
         LDA     tok_type
@@ -2509,6 +3490,8 @@ parse_expression:
         JSR     parse_simple_expr
 ; check for relational operator
         LDA     tok_type
+        CMP     #TOK_IN
+        BEQ     @rel_in
         CMP     #TOK_EQ
         BEQ     @rel_eq
         CMP     #TOK_NEQ
@@ -2522,6 +3505,11 @@ parse_expression:
         CMP     #TOK_GEQ
         BEQ     @rel_geq
         RTS                     ; expr_type set by parse_simple_expr
+@rel_in:
+        JSR     next_token
+        JSR     parse_simple_expr
+        JSR     emit_INSET
+        JMP     @rel_done
 @rel_eq:
         JSR     next_token
         JSR     parse_simple_expr
@@ -2582,17 +3570,38 @@ parse_simple_expr:
         BEQ     @or
         RTS
 @add:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_term
+        PLA
+        CMP     #TY_SET
+        BEQ     @add_set
         JSR     emit_ADI
         LDA     #TY_INT
         STA     expr_type
         BRA     @addop
+@add_set:
+        JSR     emit_LOR
+        LDA     #TY_SET
+        STA     expr_type
+        BRA     @addop
 @sub:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_term
+        PLA
+        CMP     #TY_SET
+        BEQ     @sub_set
         JSR     emit_SBI
         LDA     #TY_INT
+        STA     expr_type
+        BRA     @addop
+@sub_set:
+        JSR     emit_BNOT
+        JSR     emit_LAND
+        LDA     #TY_SET
         STA     expr_type
         BRA     @addop
 @or:
@@ -2622,10 +3631,20 @@ parse_term:
         BEQ     @and
         RTS
 @mul:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_factor
+        PLA
+        CMP     #TY_SET
+        BEQ     @mul_set
         JSR     emit_MPI
         LDA     #TY_INT
+        STA     expr_type
+        BRA     @mulop
+@mul_set:
+        JSR     emit_LAND
+        LDA     #TY_SET
         STA     expr_type
         BRA     @mulop
 @div:
@@ -2652,8 +3671,235 @@ parse_term:
 
 TOK_DIV_KW      = TOK_DIV       ; alias
 
+; maybe_deref_loaded_ptr — a pointer value is already on the stack.
+; If the following token is '^', consume it and load the pointed-to word.
+; v1 pointer dereference still assumes pointer-to-INTEGER.
+maybe_deref_loaded_ptr:
+        LDA     expr_type
+        CMP     #TY_PTR
+        BNE     @mdlp_done
+        LDA     tok_type
+        CMP     #TOK_CARET
+        BNE     @mdlp_done
+        JSR     next_token
+        JSR     emit_LDIND
+        LDA     #TY_INT
+        STA     expr_type
+@mdlp_done:
+        RTS
+
+; parse_with_field_load — current token is the field IDENT already matched by
+; with_lookup_field. Emits code for the field expression and leaves expr_type
+; set appropriately. Record-valued results stay as addresses on the stack.
+parse_with_field_load:
+        JSR     next_token              ; consume field name
+        JSR     emit_with_field_base
+        LDA     with_lookup_type
+        STA     expr_type
+        CMP     #TY_RECORD
+        BEQ     @pwfl_record
+        JSR     emit_LDIND
+        JMP     maybe_deref_loaded_ptr
+@pwfl_record:
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BEQ     @pwfl_chain_prep
+        LDA     with_lookup_first
+        STA     expr_record_first
+        LDA     with_lookup_count
+        STA     expr_record_count
+        RTS
+@pwfl_chain_prep:
+        LDA     with_lookup_first
+        STA     fcall_vmask
+        LDA     with_lookup_count
+        STA     fcall_lsize
+@pwfl_chain:
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BNE     :+
+        JSR     next_token
+:
+        LDA     fcall_vmask
+        LDX     fcall_lsize
+        JSR     field_lookup_in_record
+        BCC     @pwfl_nf
+        PHA
+        TXA
+        STA     field_chain_type
+        LDA     tmp3
+        TAX
+        LDA     field_nested_first,x
+        STA     field_chain_first
+        LDA     field_nested_count,x
+        STA     field_chain_count
+        PLA
+        BEQ     @pwfl_no_off
+        JSR     emit_LDCI
+        JSR     emit_ADI
+@pwfl_no_off:
+        JSR     next_token              ; consume nested field name
+        LDA     field_chain_type
+        CMP     #TY_RECORD
+        BNE     @pwfl_done_chain
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BNE     @pwfl_done_chain
+        LDA     field_chain_first
+        STA     fcall_vmask
+        LDA     field_chain_count
+        STA     fcall_lsize
+        BRA     @pwfl_chain
+@pwfl_done_chain:
+        LDA     field_chain_type
+        STA     expr_type
+        CMP     #TY_RECORD
+        BEQ     @pwfl_record_result
+        JSR     emit_LDIND
+        JMP     maybe_deref_loaded_ptr
+@pwfl_record_result:
+        LDA     field_chain_first
+        STA     expr_record_first
+        LDA     field_chain_count
+        STA     expr_record_count
+        RTS
+@pwfl_nf:
+        LDA     #<err_undef
+        STA     tmp0
+        LDA     #>err_undef
+        STA     tmp0+1
+        JSR     compile_error
+        JSR     next_token
+        JSR     emit_LDIND
+        LDA     #TY_INT
+        STA     expr_type
+        RTS
+
 ; ---------------------------------------------------------------------------
-; parse_factor — literal | variable | ( expr ) | NOT factor
+; SET literal helpers
+; ---------------------------------------------------------------------------
+set_lit_type_error:
+        LDA     #<err_type
+        STA     tmp0
+        LDA     #>err_type
+        STA     tmp0+1
+        JSR     compile_error
+        RTS
+
+; set_lit_add_value — A=value 0..15. ORs the matching bit into set_lit_mask.
+set_lit_add_value:
+        TAX
+        LDA     #1
+        STA     tmp0
+        LDA     #0
+        STA     tmp0+1
+@slav_shift:
+        CPX     #0
+        BEQ     @slav_merge
+        ASL     tmp0
+        ROL     tmp0+1
+        DEX
+        BRA     @slav_shift
+@slav_merge:
+        LDA     set_lit_mask
+        ORA     tmp0
+        STA     set_lit_mask
+        LDA     set_lit_mask+1
+        ORA     tmp0+1
+        STA     set_lit_mask+1
+        RTS
+
+; parse_set_literal — current token is '['. Supports [] and constant integer
+; items/ranges like [1,3,5] and [3..6]. Elements must be 0..15 in this build.
+parse_set_literal:
+        LDA     #0
+        STA     set_lit_mask
+        STA     set_lit_mask+1
+        JSR     next_token              ; consume '['
+        LDA     tok_type
+        CMP     #TOK_RBRACK
+        BNE     @psl_item
+        JMP     @psl_close
+@psl_item:
+        LDA     tok_type
+        CMP     #TOK_INT
+        BNE     @psl_bad_item
+        LDA     tok_ival_hi
+        BNE     @psl_bad_item
+        LDA     tok_ival_lo
+        CMP     #16
+        BCS     @psl_bad_item
+        STA     set_lit_lo
+        JSR     next_token              ; consume item lo
+        LDA     tok_type
+        CMP     #TOK_DOTDOT
+        BNE     @psl_single
+        JSR     next_token              ; consume ..
+        LDA     tok_type
+        CMP     #TOK_INT
+        BNE     @psl_bad_range
+        LDA     tok_ival_hi
+        BNE     @psl_bad_range
+        LDA     tok_ival_lo
+        CMP     #16
+        BCS     @psl_bad_range
+        STA     set_lit_hi
+        CMP     set_lit_lo
+        BCC     @psl_bad_range
+        JSR     next_token              ; consume item hi
+        LDA     set_lit_lo
+        STA     set_lit_cur
+@psl_range_loop:
+        LDA     set_lit_cur
+        JSR     set_lit_add_value
+        LDA     set_lit_cur
+        CMP     set_lit_hi
+        BEQ     @psl_after_item
+        INC     set_lit_cur
+        BRA     @psl_range_loop
+@psl_single:
+        LDA     set_lit_lo
+        JSR     set_lit_add_value
+        BRA     @psl_after_item
+@psl_bad_item:
+        JSR     set_lit_type_error
+        JSR     next_token
+        BRA     @psl_after_item
+@psl_bad_range:
+        JSR     set_lit_type_error
+        LDA     tok_type
+        CMP     #TOK_INT
+        BNE     @psl_after_item
+        JSR     next_token
+@psl_after_item:
+        LDA     tok_type
+        CMP     #TOK_COMMA
+        BNE     @psl_done_items
+        JSR     next_token
+        BRA     @psl_item
+@psl_done_items:
+        LDA     tok_type
+        CMP     #TOK_RBRACK
+        BEQ     @psl_close
+        LDA     #<err_expected_rb
+        STA     tmp0
+        LDA     #>err_expected_rb
+        STA     tmp0+1
+        JSR     compile_error
+        BRA     @psl_emit
+@psl_close:
+        JSR     next_token              ; consume ']'
+@psl_emit:
+        LDA     set_lit_mask+1
+        STA     scratch
+        LDA     set_lit_mask
+        JSR     emit_LDCW
+        LDA     #TY_SET
+        STA     expr_type
+        RTS
+
+; ---------------------------------------------------------------------------
+; parse_factor — literal | set-literal | variable | ( expr ) | NOT factor
 ; ---------------------------------------------------------------------------
 parse_factor:
         LDA     tok_type
@@ -2668,6 +3914,10 @@ parse_factor:
         CMP     #TOK_STRING
         BNE     :+
         JMP     @str_lit
+:
+        CMP     #TOK_LBRACK
+        BNE     :+
+        JMP     @set_lit
 :
         CMP     #TOK_IDENT
         BNE     :+
@@ -2726,6 +3976,10 @@ parse_factor:
         JSR     next_token
         LDA     #TY_STRING
         STA     expr_type
+        RTS
+
+@set_lit:
+        JSR     parse_set_literal
         RTS
 
 @ident_or_call:
@@ -2869,6 +4123,10 @@ parse_factor:
         BNE     @do_lookup
         JMP     parse_builtin_length
 @do_lookup:
+        JSR     with_lookup_field
+        BCC     @lookup_symtab
+        JMP     parse_with_field_load
+@lookup_symtab:
 ; Look up BEFORE next_token — next_token may overwrite ident_buf
 ; if the following token is an identifier or keyword (e.g. J THEN).
         JSR     symtab_find
@@ -2966,21 +4224,7 @@ parse_factor:
         JSR     emit_LDL
         ; fall through to @maybe_deref_ptr
 @maybe_deref_ptr:
-; If this load was a TY_PTR and the next token is '^', emit LDIND to
-; dereference. v1 only supports pointer-to-INTEGER, so the result type
-; is always TY_INT.
-        LDA     expr_type
-        CMP     #TY_PTR
-        BNE     @mdp_done
-        LDA     tok_type
-        CMP     #TOK_CARET
-        BNE     @mdp_done
-        JSR     next_token              ; consume '^'
-        JSR     emit_LDIND
-        LDA     #TY_INT
-        STA     expr_type
-@mdp_done:
-        RTS
+        JMP     maybe_deref_loaded_ptr
 @text_rhs_local:
         TXA
         JMP     emit_LDA_L
@@ -3015,6 +4259,14 @@ parse_factor:
 ; Each iteration consumes ".name" and walks one level deeper.  When the
 ; resolved field is itself a RECORD and another '.' follows, repeat;
 ; otherwise emit LDIND on the final scalar address.
+        LDA     tok_type
+        CMP     #TOK_DOT
+        BEQ     @rrf_chain
+        LDA     fcall_vmask
+        STA     expr_record_first
+        LDA     fcall_lsize
+        STA     expr_record_count
+        RTS
 @rrf_chain:
 ; consume '.'
         LDA     tok_type
@@ -3030,9 +4282,13 @@ parse_factor:
 ; A=offset, X=type, tmp3=matched index. Stash all three across emits.
         PHA                     ; save offset
         TXA
-        STA     scratch         ; save field type
+        STA     field_chain_type
         LDA     tmp3
-        STA     fcall_lo        ; save matched field index
+        TAX
+        LDA     field_nested_first,x
+        STA     field_chain_first
+        LDA     field_nested_count,x
+        STA     field_chain_count
         PLA                     ; offset back; PLA sets Z
         BEQ     @rrf_no_off
         JSR     emit_LDCI
@@ -3040,27 +4296,33 @@ parse_factor:
 @rrf_no_off:
         JSR     next_token              ; consume field name
 ; If field type is RECORD AND next token is '.', chain into it.
-        LDA     scratch
+        LDA     field_chain_type
         CMP     #TY_RECORD
         BNE     @rrf_done_chain
         LDA     tok_type
         CMP     #TOK_DOT
         BNE     @rrf_done_chain
-        LDX     fcall_lo
-        LDA     field_nested_first,x
+        LDA     field_chain_first
         STA     fcall_vmask
-        LDA     field_nested_count,x
+        LDA     field_chain_count
         STA     fcall_lsize
         BRA     @rrf_chain
 @rrf_done_chain:
 ; Final step: scalar fields → LDIND value; record fields stay as
 ; addresses (so calling code sees them as TY_RECORD pointers).
-        LDA     scratch
+        LDA     field_chain_type
         CMP     #TY_RECORD
-        BEQ     @rrf_no_load
+        BEQ     @rrf_rec_result
         JSR     emit_LDIND
-@rrf_no_load:
-        LDA     scratch
+        LDA     field_chain_type
+        STA     expr_type
+        JMP     maybe_deref_loaded_ptr
+@rrf_rec_result:
+        LDA     field_chain_first
+        STA     expr_record_first
+        LDA     field_chain_count
+        STA     expr_record_count
+        LDA     field_chain_type
         STA     expr_type
         RTS
 @rec_rhs_nf:
@@ -3075,12 +4337,28 @@ parse_factor:
         STA     expr_type
         RTS
 @varref_load:
-; SYM_VARREF: local slot holds an address. Emit LDL then LDIND.
+; SYM_VARREF: local slot holds an address. Compound types keep that
+; address as their expression result; scalars load through it.
         PLA                     ; discard pcount
         TXA
         JSR     emit_LDL        ; push address from slot
+        LDA     expr_type
+        CMP     #TY_RECORD
+        BEQ     @vrf_addr
+        CMP     #TY_ARRAY
+        BEQ     @vrf_addr
+        CMP     #TY_TEXT
+        BEQ     @vrf_addr
         JSR     emit_LDIND      ; deref → push word
-        RTS
+        JMP     maybe_deref_loaded_ptr
+@vrf_addr:
+        CMP     #TY_RECORD
+        BNE     :+
+        LDA     fcall_vmask
+        STA     expr_record_first
+        LDA     fcall_lsize
+        STA     expr_record_count
+:       RTS
 @const_emit:
 ; CONST: offset bytes hold the literal value. X=lo, scratch=hi.
         PLA                     ; discard pcount
@@ -3163,7 +4441,15 @@ parse_factor:
         BNE     @fc_emit_call
         JSR     next_token
 @fc_emit_call:
-        LDA     fcall_hi
+        LDA     fcall_lo
+        ORA     fcall_hi
+        BNE     :+
+        LDA     #<err_undef
+        STA     tmp0
+        LDA     #>err_undef
+        STA     tmp0+1
+        JSR     compile_error
+:       LDA     fcall_hi
         STA     scratch
         LDA     fcall_lo
         JSR     emit_CALL
@@ -3321,6 +4607,15 @@ parse_builtin_rewrite:
         LDA     #TOK_RPAREN
         JSR     parse_eat_token
         JMP     emit_FREWRT
+
+parse_builtin_append:
+        JSR     next_token              ; consume APPEND
+        LDA     #TOK_LPAREN
+        JSR     parse_eat_token
+        JSR     parse_expression
+        LDA     #TOK_RPAREN
+        JSR     parse_eat_token
+        JMP     emit_FAPPND
 
 parse_builtin_close:
         JSR     next_token              ; consume CLOSE

@@ -1,0 +1,17 @@
+PROGRAM T28A;
+TYPE
+  TPOINT = RECORD X, Y: INTEGER END;
+  TBOX = RECORD P, Q: TPOINT END;
+VAR
+  B: TBOX;
+BEGIN
+  WITH B, P DO
+  BEGIN
+    X := 5;
+    Y := 6;
+    Q.X := X + 1
+  END;
+  WRITELN(B.P.X);
+  WRITELN(B.P.Y);
+  WRITELN(B.Q.X)
+END.

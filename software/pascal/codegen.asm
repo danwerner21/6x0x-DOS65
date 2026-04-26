@@ -375,6 +375,14 @@ emit_LNOT:
         LDA     #OP_LNOT
         JMP     emit_byte
 
+emit_BNOT:
+        LDA     #OP_BNOT
+        JMP     emit_byte
+
+emit_INSET:
+        LDA     #OP_INSET
+        JMP     emit_byte
+
 ; --- Jump emitters ---
 ; Returns: A/scratch = offset of the word operand in code buffer
 ; (needed for backpatching)
@@ -618,6 +626,9 @@ emit_FRDLN:
         JMP     emit_byte
 emit_FEOF:
         LDA     #OP_FEOF
+        JMP     emit_byte
+emit_FAPPND:
+        LDA     #OP_FAPPND
         JMP     emit_byte
 emit_FRDS:
         LDA     #OP_FRDS

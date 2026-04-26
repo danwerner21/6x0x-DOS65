@@ -25,6 +25,9 @@ keyword_table:
         .BYTE   3, "FOR",       TOK_FOR
         .BYTE   8, "FUNCTION",  TOK_FUNCTION
         .BYTE   2, "IF",        TOK_IF
+        .BYTE   14, "IMPLEMENTATION", TOK_IMPLEMENTATION
+        .BYTE   2, "IN",        TOK_IN
+        .BYTE   9, "INTERFACE", TOK_INTERFACE
         .BYTE   3, "MOD",       TOK_MOD_KW
         .BYTE   3, "NIL",       TOK_NIL
         .BYTE   3, "NOT",       TOK_NOT
@@ -34,10 +37,13 @@ keyword_table:
         .BYTE   7, "PROGRAM",   TOK_PROGRAM
         .BYTE   6, "RECORD",    TOK_RECORD
         .BYTE   6, "REPEAT",    TOK_REPEAT
+        .BYTE   3, "SET",       TOK_SET
         .BYTE   4, "THEN",      TOK_THEN
         .BYTE   2, "TO",        TOK_TO
         .BYTE   4, "TYPE",      TOK_TYPE
+        .BYTE   4, "UNIT",      TOK_UNIT
         .BYTE   5, "UNTIL",     TOK_UNTIL
+        .BYTE   4, "USES",      TOK_USES
         .BYTE   3, "VAR",       TOK_VAR
         .BYTE   5, "WHILE",     TOK_WHILE
         .BYTE   4, "WITH",      TOK_WITH
@@ -92,13 +98,15 @@ record_field_count:
 proc_param_count:
         .RES    1               ; running count while parsing param list
 proc_entry_idx:
-        .RES    2               ; symtab index of the proc entry (for backpatch)
+        .RES    2               ; symtab entry pointer (legacy name; for backpatch)
 param_var_mask:
         .RES    1               ; bitmap of which params are VAR (bit i ↔ param i, max 8)
 group_is_var:
         .RES    1               ; 1 while parsing the names of a VAR-prefixed group
 local_alloc_off:
         .RES    1               ; next free local-AR offset; init = pcount*2 at proc entry
+uses_saved_tok:
+        .RES    1               ; saved top-level lookahead token while USES imports other source files
 
 ; Function-call scratch (parse_factor @sym_func_call; nested fn calls in args
 ; not yet supported — see TODO).
@@ -115,12 +123,38 @@ fcall_vmask:
 fcall_lsize:
         .RES    1               ; the called proc/func's total local-area size (params+locals)
 
+; Record-chain scratch (parse_statement / parse_factor). Used while walking
+; dotted field access through nested RECORD values.
+field_chain_type:
+        .RES    1
+field_chain_first:
+        .RES    1
+field_chain_count:
+        .RES    1
+
+; SET literal scratch (compile-time only). SET values are 16-bit masks over
+; element values 0..15 in this build.
+set_lit_mask:
+        .RES    2
+set_lit_lo:
+        .RES    1
+set_lit_hi:
+        .RES    1
+set_lit_cur:
+        .RES    1
+
 ; Main-program entry-point patch slot. compile_program emits a UJP at code
-; offset 0; parse_block patches it when it reaches the top-level BEGIN block
-; so the main body executes first (and proc bodies are reached only via CALL).
-; Hi byte = $FF means "already patched" (sentinel — never a valid patch addr
-; since cg_pc starts at 0).
+; offset 0; top-level BEGIN/init blocks patch it to the first startup body
+; that should run. Hi byte = $FF means "already patched / none pending"
+; (sentinel — never a valid patch addr since cg_pc starts at 0).
 main_jmp_patch:
+        .RES    2
+
+; Pending tail-jump patch for the most recently emitted top-level body.
+; Each startup body (unit init or main BEGIN) ends with a UJP placeholder so
+; later top-level bodies can be chained together without falling through into
+; intervening procedure/function code.
+body_chain_patch:
         .RES    2
 
 ; ---------------------------------------------------------------------------

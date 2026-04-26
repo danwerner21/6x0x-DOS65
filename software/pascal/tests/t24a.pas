@@ -1,0 +1,21 @@
+PROGRAM T24A;
+VAR
+  F: TEXT;
+  C: CHAR;
+BEGIN
+  ASSIGN(F, 'APPEND.TXT');
+  REWRITE(F);
+  WRITE(F, 'ONE');
+  CLOSE(F);
+
+  APPEND(F);
+  WRITE(F, 'TWO');
+  CLOSE(F);
+
+  RESET(F);
+  WHILE NOT EOF(F) DO BEGIN
+    READ(F, C);
+    WRITE(C)
+  END;
+  CLOSE(F)
+END.

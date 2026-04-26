@@ -76,11 +76,8 @@ Implement standard Pascal sufficient for real programs:
 
 ### Phase 2 additions (future)
 - `REAL` (floating point via software)
-- `SET OF` types
-- `WITH` statement
-- `GOTO` / `LABEL`
-- Unit/module system (UCSD-style)
-- File I/O (`TEXT`, `FILE OF`)
+- Multi-file unit/module system (`USES` / imports, UCSD-style)
+- Typed file I/O (`FILE OF X`, random-access records)
 
 ---
 
@@ -269,6 +266,10 @@ $B000–$B7DF  String pool + global data area
 
 ## Compiler Memory Map (PASCAL.COM)
 
+High-level sketch only; exact placement is controlled by `dos65.cfg` and
+the source segment order. Current key anchors are `CPMDATA = $3400` and
+`CODEBUF_BASE = $3E00`.
+
 ```
 $0800–$0FFF  Compiler bootstrap / main loop
 $1000–$2FFF  Lexer + scanner
@@ -343,7 +344,7 @@ software/pascal/
 - `TYPE` declarations (named type aliases)
 
 ### ✅ Phase 4 — Code Generator
-- In-memory emit buffer (`CODEBUF_BASE = $3000`)
+- In-memory emit buffer (`CODEBUF_BASE = $3C00`)
 - Emit routines for all opcodes
 - Forward-jump backpatching (FJP/TJP/UJP patch slots)
 - `.PCD` file header + sequential sector write
@@ -361,8 +362,17 @@ End-to-end compilation and execution verified for:
 - `T15`: procedures with local vars
 - `T16`–`T17`: functions and return values
 - `T18`: VAR (by-reference) parameters
-- `T19`: READ/READLN integer input
-- `T20`/`T20A`: TYPE declarations (named type aliases) ← just fixed
+- `T19`/`T19B`: READ/READLN integer and char console input
+- `T20`/`T20A`: TYPE declarations (named type aliases)
+- `T21`/`T21A`/`T21B`/`T21C`: ARRAY types
+- `T22`/`T22A`/`T22B`: RECORD types
+- `T23`: STRING built-ins (`LENGTH`, `POS`, `COPY`, `CONCAT`)
+- `T24`/`T24A`/`T25`: TEXT file I/O, `APPEND`, `EOF`, `EOLN`
+- `T26`: pointers with `NEW`/`DISPOSE`
+- `T27A`/`T27B`/`T27C`/`T27J`: inline, local, and nested RECORD coverage
+- `T28`/`T28A`: `WITH` statements, including nested and comma-separated selectors
+- `T29`/`T29A`: `SET OF` literals, membership, and set algebra
+- `T30U`: standalone `UNIT ... INTERFACE ... IMPLEMENTATION ... END.` source form
 
 ---
 
@@ -387,7 +397,8 @@ Field access compiles to `LDA_G/LDA_L base; { LDCI <off>; ADI }* ;
 LDIND/STIND` — chained `r.outer.inner` walks one level per `.` and
 only deref/store at the leaf scalar.
 Tests: `T22`, `T22A`, `T22B`, plus `T27A` (inline records), `T27B`
-(local record in a proc), `T27C` (named + anonymous nested records).
+(local record in a proc), `T27C` (named + anonymous nested records),
+`T27D` (named nested field chain), and `T27J` (anonymous nested tail field).
 
 Implementation notes:
 - Field-name collection uses a dedicated `field_name_buf` so an inline
@@ -409,7 +420,7 @@ Implementation notes:
   - Test: `tests/t23.pas`
 - ✅ `TEXT` file I/O: `ASSIGN`, `RESET`, `REWRITE`, `CLOSE`, `EOF`, `EOLN`; file-mode `WRITE`/`WRITELN`/`READ`/`READLN`
   - New type `TY_TEXT` ($08); each `TEXT` variable is a 168-byte struct (FCB 36 + buf 128 + mode/pos/eof/spare 4) allocated in the global area via `codegen_alloc_text_global`
-  - New opcodes `OP_FASSGN/FRESET/FREWRT/FCLOSE/FWRC/FWRS/FWRI/FWLN/FRDC/FRDI/FRDLN/FEOF` ($B0–$BB), plus `FRDS/FWRB/FEOLN` ($BD–$BF) for STRING reads, BOOLEAN writes ("TRUE"/"FALSE"), and EOLN(F) testing.  $BC is reserved (APPEND not implemented — would require PEM #35/#36 random-record I/O)
+  - New opcodes `OP_FASSGN/FRESET/FREWRT/FCLOSE/FWRC/FWRS/FWRI/FWLN/FRDC/FRDI/FRDLN/FEOF/FAPPND` ($B0–$BC), plus `FRDS/FWRB/FEOLN` ($BD–$BF) for STRING reads, BOOLEAN writes ("TRUE"/"FALSE"), and EOLN(F) testing. `APPEND` reuses the existing buffered TEXT path by scanning to EOF, keeping the final sector resident, and backing up the FCB next-record counter when the last record is only partially full.
   - Each file's struct embeds its own 128-byte sector buffer; runtime calls PEM `SETDMA` (fn 26) before each sector I/O so multiple files don't trample each other
   - `EOF(F)` uses 1-char lookahead — `RESET` and every `READ` peek the next byte, setting `F_EOF` on either CTRL-Z or PEM read-EOF, so `WHILE NOT EOF DO READ` consumes only real data
   - `EOLN(F)` peeks `buf[F_POS]` and returns true at CR/LF/EOF without consuming
@@ -417,15 +428,46 @@ Implementation notes:
   - `WRITE`/`WRITELN` detect a `TEXT` first arg and switch to file mode (DUP file ptr, dispatch to `FWRC/FWRS/FWRB/FWRI`, terminate with `FWLN` or `POP`); `READ`/`READLN` peek the symtab to spot a `TEXT` first arg and route subsequent variables through `FRDC/FRDI/FRDS`
   - Filenames passed to `ASSIGN` are uppercased and split into 8.3 FCB form on the fly; closing a write-mode file pads the final partial sector with CTRL-Z
   - `TRUE`/`FALSE` recognized as predefined boolean constants in `parse_factor` (alongside built-in EOF/EOLN); emit `LDCB 1`/`LDCB 0` with `expr_type=TY_BOOL` so file/console writes route to `FWRB`/`WRITB`
-  - Tests: `tests/t24.pas` (basic ops), `tests/t25.pas` (STRING read, BOOLEAN write, EOLN)
+  - Tests: `tests/t24.pas` (basic ops), `tests/t24a.pas` (`APPEND`), `tests/t25.pas` (STRING read, BOOLEAN write, EOLN)
 - ✅ Heap allocation: `NEW`/`DISPOSE` for pointer-to-INTEGER (v1)
   - New type `TY_PTR` ($07); `^BASETYPE` parsed by `parse_type_spec` (base type code currently discarded — bump allocator always grants 2 bytes)
   - Opcodes `OP_NEW` ($70, inline 2-byte size) and `OP_DISP` ($71) wired into runtime; `OP_NEW` decrements `pm_np` by size and pushes the new heap address; `OP_DISP` is a no-op (bump allocator can't free)
   - `NEW(p)` parser pushes `&p` via `parse_arg_lvalue`, emits `OP_NEW 2` then `OP_STIND`; `DISPOSE(p)` parses an expression then emits `OP_DISP`
   - Pointer dereference: `p^` as rvalue routes through `@maybe_deref_ptr` after the `LDG`/`LDL` load (emits `OP_LDIND`, retypes to `TY_INT`); `p^ := expr` is a new branch in `@do_assign` that pushes the pointer value then `OP_STIND`s the RHS
   - Test: `tests/t26.pas`
+- ✅ `WITH` statements for record selectors
+  - `WITH record_expr DO stmt` and comma-separated selector lists (`WITH a, b DO ...`) are supported
+  - Active `WITH` contexts are resolved innermost-first against record field tables; selected record base addresses are stored in hidden globals during code generation
+  - Plain record-valued expressions now remain as addresses long enough for `WITH` and chained field selection to reuse their field metadata
+  - Tests: `tests/t28.pas`, `tests/t28a.pas`
+- ✅ `SET OF` types (v1: 16-bit masks over element values `0..15`)
+  - New type `TY_SET` ($09), keywords `SET` and `IN`, and runtime opcode `OP_INSET` ($A4)
+  - `SET OF lo..hi` is accepted when the declared bounds fit inside `0..15`; values are represented as 16-bit masks and stored like other 2-byte scalars
+  - Set literals support `[]`, comma-separated items, and constant integer ranges such as `[1,3,5]` and `[3..6]`
+  - `x IN s` emits `OP_INSET`; set union / difference / intersection compile through the existing bitwise ops as `+` / `-` / `*`
+  - Tests: `tests/t29.pas`, `tests/t29a.pas`
+- ✅ Standalone `UNIT` source form (v1)
+  - Top-level parser now accepts `UNIT name; INTERFACE ... IMPLEMENTATION ... [BEGIN ...] END.`
+  - INTERFACE supports exported `CONST`, `TYPE`, `VAR`, plus procedure/function headings
+  - IMPLEMENTATION bodies rebind to interface-declared global routine entries instead of creating duplicates, so exported procedures/functions can be implemented later in the same source file
+  - The optional final `BEGIN ... END` block serves as unit initialization code and becomes the entrypoint in the generated `.PCD`
+  - This first pass is single-source only; `USES` / cross-file imports are still pending
+  - Test: `tests/t30u.pas`
 - `REAL` type (future — 16.16 fixed-point or software float)
 - Random-access typed files (`FILE OF X`) — not planned
+
+---
+
+## Remaining Feature Todo
+
+Implemented already: core Pascal flow control, nested procedures/functions,
+arrays, records, strings, pointer allocation, console I/O, and `TEXT` file
+I/O including `APPEND`.
+
+Still open:
+- `REAL` (future; likely 16.16 fixed-point or software float)
+- Multi-file unit/module support (`USES` / imports)
+- Typed files / `FILE OF X` random-access I/O (deferred; not planned in the current scope)
 
 ---
 

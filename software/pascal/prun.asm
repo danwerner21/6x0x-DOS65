@@ -1817,6 +1817,50 @@ cat_s2len:     .RES 1
 cat_dstoff:    .RES 1
 cat_save:      .RES 1
 
+; OP_INSET ($A4) — NOS=elem, TOS=setmask → TOS=membership bool
+op_INSET:
+        JSR     pm_pop          ; setmask
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+        JSR     pm_pop          ; elem
+        STA     tmp1
+        LDA     scratch
+        BNE     @inset_false
+        LDA     tmp1
+        CMP     #16
+        BCS     @inset_false
+        TAX
+        LDA     #1
+        STA     tmp1
+        LDA     #0
+        STA     tmp1+1
+@inset_shift:
+        CPX     #0
+        BEQ     @inset_check
+        ASL     tmp1
+        ROL     tmp1+1
+        DEX
+        BRA     @inset_shift
+@inset_check:
+        LDA     tmp1
+        AND     tmp2
+        STA     tmp0
+        LDA     tmp1+1
+        AND     tmp2+1
+        ORA     tmp0
+        BEQ     @inset_false
+        LDA     #$FF
+        STA     scratch
+        LDA     #$FF
+        JSR     pm_push
+        JMP     prun_loop
+@inset_false:
+        LDA     #0
+        STA     scratch
+        JSR     pm_push
+        JMP     prun_loop
+
 ; ---------------------------------------------------------------------------
 ; TEXT file I/O handlers
 ;
@@ -2047,6 +2091,9 @@ op_FRESET:
         STA     tmp1
         LDA     scratch
         STA     tmp1+1
+        LDA     #0
+        LDY     #32
+        STA     (tmp1),y                ; restart sequential I/O at record 0
         LDA     tmp1
         LDY     tmp1+1
         LDX     #PEM_OPEN
@@ -2109,6 +2156,9 @@ op_FREWRT:
         STA     tmp1
         LDA     scratch
         STA     tmp1+1
+        LDA     #0
+        LDY     #32
+        STA     (tmp1),y                ; fresh file starts at record 0
         LDA     tmp1
         LDY     tmp1+1
         LDX     #PEM_MAKE
@@ -2448,6 +2498,102 @@ op_FEOF:
         JSR     pm_push
         JMP     prun_loop
 
+; OP_FAPPND ($BC) — TOS=fileptr → open/create for append at EOF.
+; Existing files are scanned to EOF using the normal buffered read path so
+; F_BUF holds the last sector and F_POS lands at the first CTRL-Z (or 128
+; when the file ended on a full sector boundary). For a partial final sector,
+; FCB[32] is backed up so the next PEM_WRITE updates that last record first.
+op_FAPPND:
+        JSR     pm_pop
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     #0
+        LDY     #32
+        STA     (tmp1),y                ; scan existing file from record 0
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_OPEN
+        JSR     PEM_ENTRY
+        CMP     #$FF
+        BNE     @fap_open_ok
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_MAKE
+        JSR     PEM_ENTRY
+        JMP     @fap_empty_write
+@fap_open_ok:
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        PHA
+        LDA     tmp1+1
+        ADC     #0
+        TAY
+        PLA
+        JSR     file_setdma
+        LDA     tmp1
+        LDY     tmp1+1
+        LDX     #PEM_READ
+        JSR     PEM_ENTRY
+        CMP     #0
+        BNE     @fap_empty_write
+        LDA     #0
+        LDY     #F_EOF
+        STA     (tmp1),y
+        LDY     #F_POS
+        STA     (tmp1),y
+        JSR     file_check_eof_helper
+@fap_scan:
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BNE     @fap_at_eof
+        JSR     file_read_char_helper
+        BRA     @fap_scan
+@fap_at_eof:
+        LDY     #F_POS
+        LDA     (tmp1),y
+        CMP     #128
+        BEQ     @fap_new_sector
+        LDY     #32
+        LDA     (tmp1),y
+        BEQ     @fap_set_write
+        SEC
+        SBC     #1
+        STA     (tmp1),y
+        BRA     @fap_set_write
+@fap_new_sector:
+        LDA     #0
+        LDY     #F_POS
+        STA     (tmp1),y
+@fap_set_write:
+        LDA     #0
+        LDY     #F_EOF
+        STA     (tmp1),y
+        LDA     #F_MODE_WRITE
+        LDY     #F_MODE
+        STA     (tmp1),y
+        JMP     prun_loop
+@fap_empty_write:
+        CLC
+        LDA     tmp1
+        ADC     #F_BUF
+        PHA
+        LDA     tmp1+1
+        ADC     #0
+        TAY
+        PLA
+        JSR     file_setdma
+        LDA     #0
+        LDY     #F_POS
+        STA     (tmp1),y
+        LDY     #F_EOF
+        STA     (tmp1),y
+        LDA     #F_MODE_WRITE
+        LDY     #F_MODE
+        STA     (tmp1),y
+        JMP     prun_loop
+
 ; OP_FRDS ($BD) — NOS=fileptr, TOS=strvar addr → read line into a work buffer;
 ; store the buffer pointer at strvar.  Skips CR, stops on LF/EOF.
 ; STRING vars hold a 16-bit pointer (matching LDCS / CONCAT semantics).
@@ -2699,14 +2845,15 @@ dispatch_lo:
 ; $A0-$A3 string built-ins
         .BYTE   <op_LEN,   <op_POS,   <op_COPY,  <op_CONCAT
 ; $A4-$AF
-        .REPEAT 12
+        .BYTE   <op_INSET
+        .REPEAT 11
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $B0-$BF TEXT file I/O
         .BYTE   <op_FASSGN,<op_FRESET,<op_FREWRT,<op_FCLOSE
         .BYTE   <op_FWRC,  <op_FWRS,  <op_FWRI,  <op_FWLN
         .BYTE   <op_FRDC,  <op_FRDI,  <op_FRDLN, <op_FEOF
-        .BYTE   <op_UNIMP, <op_FRDS,  <op_FWRB,  <op_FEOLN  ; $BC reserved
+        .BYTE   <op_FAPPND,<op_FRDS,  <op_FWRB,  <op_FEOLN
 ; $C0-$FE
         .REPEAT 63
                 .BYTE   <op_UNIMP
@@ -2778,14 +2925,15 @@ dispatch_hi:
 ; $A0-$A3 string built-ins
         .BYTE   >op_LEN,   >op_POS,   >op_COPY,  >op_CONCAT
 ; $A4-$AF
-        .REPEAT 12
+        .BYTE   >op_INSET
+        .REPEAT 11
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $B0-$BF TEXT file I/O
         .BYTE   >op_FASSGN,>op_FRESET,>op_FREWRT,>op_FCLOSE
         .BYTE   >op_FWRC,  >op_FWRS,  >op_FWRI,  >op_FWLN
         .BYTE   >op_FRDC,  >op_FRDI,  >op_FRDLN, >op_FEOF
-        .BYTE   >op_UNIMP, >op_FRDS,  >op_FWRB,  >op_FEOLN  ; $BC reserved
+        .BYTE   >op_FAPPND, >op_FRDS,  >op_FWRB,  >op_FEOLN
 ; $C0-$FE
         .REPEAT 63
                 .BYTE   >op_UNIMP

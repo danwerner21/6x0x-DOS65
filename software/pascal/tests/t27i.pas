@@ -1,0 +1,19 @@
+PROGRAM T27I;
+TYPE
+  TPOINT = RECORD X, Y: INTEGER END;
+  TLINE = RECORD A, B: TPOINT END;
+  TBOX  = RECORD
+            HEAD: TLINE;
+            TAIL: RECORD U, V: INTEGER END
+          END;
+VAR
+  L: TLINE;
+  K: TBOX;
+BEGIN
+  L.A.X := 1;
+  L.B.X := 30;
+  WRITELN(L.A.X);
+  WRITELN(L.B.X);
+  K.TAIL.U := 555;
+  WRITELN(K.TAIL.U)
+END.

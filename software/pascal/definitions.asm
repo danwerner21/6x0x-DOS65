@@ -121,6 +121,7 @@ OP_LEN          = $A0           ; TOS=strptr -> TOS=length (int)
 OP_POS          = $A1           ; NOS=substr, TOS=str -> TOS=1-based pos (0=not found)
 OP_COPY         = $A2           ; NNOS=str, NOS=index, TOS=count -> TOS=result strptr
 OP_CONCAT       = $A3           ; NOS=s1, TOS=s2 -> TOS=result strptr
+OP_INSET        = $A4           ; NOS=elem, TOS=setmask -> TOS=membership bool
 
 ; --- TEXT file I/O ---
 ; All file ops take a file-struct pointer (NOS / TOS).
@@ -136,6 +137,7 @@ OP_FRDC         = $B8           ; NOS=fileptr, TOS=charvar addr -> read char
 OP_FRDI         = $B9           ; NOS=fileptr, TOS=intvar  addr -> read decimal int
 OP_FRDLN        = $BA           ; TOS=fileptr -> skip remaining chars to end-of-line
 OP_FEOF         = $BB           ; TOS=fileptr -> push EOF flag (0=false, $FFFF=true)
+OP_FAPPND       = $BC           ; TOS=fileptr -> open/create for append at EOF
 OP_FRDS         = $BD           ; NOS=fileptr, TOS=strvar addr -> read string to EOL
 OP_FWRB         = $BE           ; NOS=fileptr, TOS=bool -> append "TRUE"/"FALSE"
 OP_FEOLN        = $BF           ; TOS=fileptr -> push EOLN flag (true if at CR/LF/EOF)
@@ -220,22 +222,28 @@ TOK_END         = $49
 TOK_FOR         = $4A
 TOK_FUNCTION    = $4B
 TOK_IF          = $4C
-TOK_MOD_KW      = $4D
-TOK_NIL         = $4E
-TOK_NOT         = $4F
-TOK_OF          = $50
-TOK_OR          = $51
-TOK_PROCEDURE   = $52
-TOK_PROGRAM     = $53
-TOK_RECORD      = $54
-TOK_REPEAT      = $55
-TOK_THEN        = $56
-TOK_TO          = $57
-TOK_TYPE        = $58
-TOK_UNTIL       = $59
-TOK_VAR         = $5A
-TOK_WHILE       = $5B
-TOK_WITH        = $5C
+TOK_IN          = $4D
+TOK_MOD_KW      = $4E
+TOK_NIL         = $4F
+TOK_NOT         = $50
+TOK_OF          = $51
+TOK_OR          = $52
+TOK_PROCEDURE   = $53
+TOK_PROGRAM     = $54
+TOK_RECORD      = $55
+TOK_REPEAT      = $56
+TOK_SET         = $57
+TOK_THEN        = $58
+TOK_TO          = $59
+TOK_TYPE        = $5A
+TOK_UNTIL       = $5B
+TOK_VAR         = $5C
+TOK_WHILE       = $5D
+TOK_WITH        = $5E
+TOK_IMPLEMENTATION = $5F
+TOK_INTERFACE   = $60
+TOK_UNIT        = $61
+TOK_USES        = $62
 
 ; ---------------------------------------------------------------------------
 ; Useful macros
