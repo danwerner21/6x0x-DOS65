@@ -5,12 +5,12 @@
 ;   [0]    name length (1-15)
 ;   [1-15] name chars (uppercase, padded with spaces)
 ;   [16]   symbol kind: SYM_VAR, SYM_CONST, SYM_PROC, SYM_FUNC, SYM_TYPE, SYM_PARAM
-;   [17]   data type:   TY_INT, TY_CHAR, TY_BOOL, TY_STRING, TY_ARRAY, TY_RECORD, TY_PTR, TY_TEXT, TY_SET
+;   [17]   data type:   TY_INT, TY_CHAR, TY_BOOL, TY_STRING, TY_ARRAY, TY_RECORD, TY_PTR, TY_TEXT, TY_SET, TY_REAL
 ;   [18-19] value/offset (word): variable offset from BASE/MP; const value; proc address
 ;   [20]   scope depth (0=global)
 ;   [21]   parameter count (for SYM_PROC/SYM_FUNC)
 ;   [22-23] type info pointer (for array/record types)
-;   [24-31] reserved
+;   [24-31] formal parameter types 0..7 (for SYM_PROC/SYM_FUNC)
 
 SYM_ENTRY_SZ    = 32
 
@@ -34,6 +34,7 @@ TY_RECORD       = 6
 TY_PTR          = 7
 TY_TEXT         = 8             ; TEXT file variable (168-byte struct)
 TY_SET          = 9             ; 16-bit set mask over element values 0..15
+TY_REAL         = 10            ; signed fixed-point REAL (scale 100, 2 decimal places)
 TY_NONE         = 0             ; for procedures
 
         .segment        "CODE"

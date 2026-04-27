@@ -76,7 +76,6 @@ Implement standard Pascal sufficient for real programs:
 
 ### Phase 2 additions (future)
 - `REAL` (floating point via software)
-- Multi-file unit/module system (`USES` / imports, UCSD-style)
 - Typed file I/O (`FILE OF X`, random-access records)
 
 ---
@@ -192,8 +191,10 @@ Each opcode is 1 byte, followed by 0–2 operand bytes as noted.
 | $61 | CALI addr | 2: absolute address | Call at absolute p-code address |
 | $62 | RET | — | Return from procedure (restore IPC/MP) |
 | $63 | RETF | — | Return from function (leave return value on stack) |
-| $64 | MRKSTK n | 1: local-size byte | Reserve n bytes for locals, set up frame |
+| $64 | MRKSTK n | 1: local-size byte | (Legacy) Reserve n bytes for locals, set up frame. Compiler no longer emits this — use MRKA instead. |
 | $65 | DEPSTK | — | Discard locals, restore SP to frame base |
+| $66 | STR | — | Pop word, store at MP+AR_RET_VAL (function result) |
+| $67 | MRKA p,e | 2: pcount, lsize_extra | Mark+gather: pop pcount values from stack, set up new frame with those values as local slots 0..pcount-1, reserve lsize_extra extra bytes for body locals. Lets the caller evaluate args under its OWN MP. |
 
 #### Heap
 | Opcode | Mnemonic | Operands | Description |
@@ -373,6 +374,8 @@ End-to-end compilation and execution verified for:
 - `T28`/`T28A`: `WITH` statements, including nested and comma-separated selectors
 - `T29`/`T29A`: `SET OF` literals, membership, and set algebra
 - `T30U`: standalone `UNIT ... INTERFACE ... IMPLEMENTATION ... END.` source form
+- `T30V`/`T31`/`T31A`: `USES` cross-unit imports, including a unit's `IMPLEMENTATION` importing another unit
+- `T32`/`T32A`/`T32B`/`T32C`: calls passing caller-local args (covers the `OP_MRKA` arg-gathering fix)
 
 ---
 
@@ -451,8 +454,34 @@ Implementation notes:
   - INTERFACE supports exported `CONST`, `TYPE`, `VAR`, plus procedure/function headings
   - IMPLEMENTATION bodies rebind to interface-declared global routine entries instead of creating duplicates, so exported procedures/functions can be implemented later in the same source file
   - The optional final `BEGIN ... END` block serves as unit initialization code and becomes the entrypoint in the generated `.PCD`
-  - This first pass is single-source only; `USES` / cross-file imports are still pending
   - Test: `tests/t30u.pas`
+- ✅ Cross-unit `USES` / module imports (v1)
+  - `PROGRAM`/`UNIT` sources may declare `USES unit1, unit2 ;` at the top of the
+    main block (program) or within `INTERFACE` / `IMPLEMENTATION` (unit).
+  - Imports compile inline into the current `.PCD`; per-unit init bodies run in
+    declaration order, threaded through the startup-jump chain.
+  - Tests: `tests/t30v.pas` (UNIT importing UNIT), `tests/t31.pas`,
+    `tests/t31a.pas` (PROGRAM importing chained UNITs).
+- ✅ Activation-record arg gathering via `OP_MRKA` ($67)
+  - Bug fix: `OP_MRKSTK` changed `pm_mp` *before* the caller evaluated its
+    args, so any `LDL`/`LDA_L` inside an arg expression read the *callee's*
+    uninitialised frame instead of the caller's frame. All previous tests
+    happened to pass only constants or globals as args, so the bug was latent
+    until `t31a` exercised `TRIPLE(7)` whose body calls `TWICE(X)` with a
+    local `X` — `TWICE` saw `X = 0` and the wrong total was returned.
+  - Fix: new `OP_MRKA pcount, lsize_extra` opcode. The compiler now evaluates
+    args first (under the caller's MP), pushes them to the value stack, then
+    emits `MRKA`. At runtime `MRKA` shifts those `pcount` words up by
+    `AR_LOCALS` so they land in local slots 0..pcount-1 of the new frame, and
+    reserves `lsize_extra` more bytes for body locals. `OP_MRKSTK` is left in
+    the runtime as a legacy entry but is no longer emitted.
+  - `lsize_extra` is computed up-front and stashed on the 6502 hw stack across
+    the arg loop so record-field lookups inside an arg (which scratch
+    `fcall_lsize`) can't corrupt the MRKA operand.
+  - Tests: `tests/t32.pas` (function-of-function with local arg),
+    `tests/t32a.pas` (proc-of-proc with local arg + arithmetic),
+    `tests/t32b.pas` (`VAR` by-ref param of a caller-local), `tests/t32c.pas`
+    (callee with body locals beyond params, exercising non-zero `lsize_extra`).
 - `REAL` type (future — 16.16 fixed-point or software float)
 - Random-access typed files (`FILE OF X`) — not planned
 
@@ -466,8 +495,7 @@ I/O including `APPEND`.
 
 Still open:
 - `REAL` (future; likely 16.16 fixed-point or software float)
-- Multi-file unit/module support (`USES` / imports)
-- Typed files / `FILE OF X` random-access I/O (deferred; not planned in the current scope)
+
 
 ---
 

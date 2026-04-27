@@ -19,10 +19,10 @@
 ; ---------------------------------------------------------------------------
 ; PCODE_BASE must lie above the end of the CODE segment so that loading
 ; a .PCD file does not overwrite iolib/messages or the dispatch table.
-; CODE has grown to ~$1DDE with file I/O ops, so push PCODE_BASE to $2000
-; for headroom; STACK_BASE bumps to $4000 leaves 8 KB for p-code.
-PCODE_BASE      = $2000         ; where p-code is loaded
-STACK_BASE      = $4000         ; bottom of p-machine value stack
+; CODE now reaches past $24DD, so move PCODE_BASE to $3000 for comfortable
+; headroom; STACK_BASE at $5000 leaves 8 KB for p-code.
+PCODE_BASE      = $3000         ; where p-code is loaded
+STACK_BASE      = $5000         ; bottom of p-machine value stack
 STACK_TOP       = $8000         ; top of stack (grows up)
 HEAP_TOP        = $B000         ; heap grows down from here
 GLOBALS_BASE    = $B000         ; global variable area (below heap top)
@@ -816,6 +816,211 @@ udiv16:
         BNE     @bit
         RTS
 
+; mul_tmp2_by10: tmp2 = tmp2 * 10 (16-bit, unsigned low word)
+mul_tmp2_by10:
+        ASL     tmp2
+        ROL     tmp2+1
+        LDA     tmp2
+        STA     tmp0
+        LDA     tmp2+1
+        STA     tmp0+1
+        ASL     tmp2
+        ROL     tmp2+1
+        ASL     tmp2
+        ROL     tmp2+1
+        CLC
+        LDA     tmp2
+        ADC     tmp0
+        STA     tmp2
+        LDA     tmp2+1
+        ADC     tmp0+1
+        STA     tmp2+1
+        RTS
+
+; accum_digit_tmp2: tmp2 = tmp2*10 + A (digit 0..9)
+accum_digit_tmp2:
+        PHA
+        JSR     mul_tmp2_by10
+        PLA
+        CLC
+        ADC     tmp2
+        STA     tmp2
+        LDA     #0
+        ADC     tmp2+1
+        STA     tmp2+1
+        RTS
+
+; mul16_to32: unsigned tmp2 * tmp1 -> real32_res[0..3]
+mul16_to32:
+        LDA     #0
+        STA     real32_res0
+        STA     real32_res1
+        STA     real32_res2
+        STA     real32_res3
+        LDA     tmp2
+        STA     real32_mcand0
+        LDA     tmp2+1
+        STA     real32_mcand1
+        LDA     #0
+        STA     real32_mcand2
+        STA     real32_mcand3
+        LDX     #16
+@m32_bit:
+        LSR     tmp1+1
+        ROR     tmp1
+        BCC     @m32_no_add
+        CLC
+        LDA     real32_res0
+        ADC     real32_mcand0
+        STA     real32_res0
+        LDA     real32_res1
+        ADC     real32_mcand1
+        STA     real32_res1
+        LDA     real32_res2
+        ADC     real32_mcand2
+        STA     real32_res2
+        LDA     real32_res3
+        ADC     real32_mcand3
+        STA     real32_res3
+@m32_no_add:
+        ASL     real32_mcand0
+        ROL     real32_mcand1
+        ROL     real32_mcand2
+        ROL     real32_mcand3
+        DEX
+        BNE     @m32_bit
+        RTS
+
+; udiv32by16: unsigned real32_res[0..3] / tmp1 -> quotient in real32_res,
+; remainder in real32_rem0..1.
+udiv32by16:
+        LDA     #0
+        STA     real32_rem0
+        STA     real32_rem1
+        LDX     #32
+@d32_bit:
+        ASL     real32_res0
+        ROL     real32_res1
+        ROL     real32_res2
+        ROL     real32_res3
+        ROL     real32_rem0
+        ROL     real32_rem1
+        LDA     real32_rem0
+        SEC
+        SBC     tmp1
+        TAY
+        LDA     real32_rem1
+        SBC     tmp1+1
+        BCC     @d32_no_sub
+        STA     real32_rem1
+        STY     real32_rem0
+        INC     real32_res0
+        BNE     @d32_no_sub
+        INC     real32_res1
+        BNE     @d32_no_sub
+        INC     real32_res2
+        BNE     @d32_no_sub
+        INC     real32_res3
+@d32_no_sub:
+        DEX
+        BNE     @d32_bit
+        RTS
+
+; real_split_abs_tmp0: tmp0 = signed fixed-point REAL (scale 100)
+; -> tmp0 = absolute integer part, real_frac = fractional part 0..99,
+;    real_sign = 0/1.
+real_split_abs_tmp0:
+        LDA     #0
+        STA     real_sign
+        LDA     tmp0+1
+        BPL     @rsat_abs
+        LDA     #1
+        STA     real_sign
+        SEC
+        LDA     #0
+        SBC     tmp0
+        STA     tmp0
+        LDA     #0
+        SBC     tmp0+1
+        STA     tmp0+1
+@rsat_abs:
+        LDA     tmp0
+        STA     tmp2
+        LDA     tmp0+1
+        STA     tmp2+1
+        LDA     #100
+        STA     tmp1
+        LDA     #0
+        STA     tmp1+1
+        JSR     udiv16
+        LDA     tmp2
+        STA     tmp0
+        LDA     tmp2+1
+        STA     tmp0+1
+        LDA     scratch
+        STA     real_frac
+        RTS
+
+; file_write_uint_helper: tmp0 = non-negative integer, tmp1 = file ptr
+file_write_uint_helper:
+        LDA     tmp0
+        STA     fwi_val
+        LDA     tmp0+1
+        STA     fwi_val+1
+        LDX     #0
+@fwuh_div_loop:
+        LDA     fwi_val
+        STA     tmp0
+        LDA     fwi_val+1
+        STA     tmp0+1
+        PHX
+        JSR     div16_by10
+        PLX
+        LDA     scratch
+        CLC
+        ADC     #'0'
+        STA     fwi_buf,x
+        INX
+        LDA     tmp0
+        STA     fwi_val
+        LDA     tmp0+1
+        STA     fwi_val+1
+        ORA     fwi_val
+        BNE     @fwuh_div_loop
+@fwuh_emit:
+        DEX
+        LDA     fwi_buf,x
+        PHX
+        JSR     file_write_char_helper
+        PLX
+        CPX     #0
+        BNE     @fwuh_emit
+        RTS
+
+real_print_console_helper:
+        JSR     real_split_abs_tmp0
+        LDA     real_sign
+        BEQ     :+
+        LDA     #'-'
+        JSR     console_putc
+:       JSR     console_print_dec
+        LDA     #'.'
+        JSR     console_putc
+        LDA     real_frac
+        STA     tmp0
+        LDA     #0
+        STA     tmp0+1
+        JSR     div16_by10
+        LDA     tmp0
+        CLC
+        ADC     #'0'
+        JSR     console_putc
+        LDA     scratch
+        CLC
+        ADC     #'0'
+        JSR     console_putc
+        RTS
+
 ; sign16: returns A=0 if tmp2>=0, A=$FF if negative
 sign16:
         LDA     tmp2+1
@@ -934,6 +1139,124 @@ op_MOD:
         JSR     neg_tmp2
 :
         LDA     tmp2
+        LDX     tmp2+1
+        STX     scratch
+        JSR     pm_push
+        JMP     prun_loop
+
+; OP_MPR ($A5) — signed fixed-point REAL multiply (scale 100)
+op_MPR:
+        JSR     pm_pop          ; b → tmp1
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        JSR     pm_pop          ; a → tmp2
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+        LDA     tmp2+1
+        EOR     tmp1+1
+        AND     #$80
+        BEQ     :+
+        LDA     #1
+        STA     real_sign
+        BRA     @mpr_abs
+:       LDA     #0
+        STA     real_sign
+@mpr_abs:
+        BIT     tmp2+1
+        BPL     :+
+        JSR     neg_tmp2
+:       BIT     tmp1+1
+        BPL     :+
+        SEC
+        LDA     #0
+        SBC     tmp1
+        STA     tmp1
+        LDA     #0
+        SBC     tmp1+1
+        STA     tmp1+1
+:       JSR     mul16_to32
+        LDA     #100
+        STA     tmp1
+        LDA     #0
+        STA     tmp1+1
+        JSR     udiv32by16
+        LDA     real32_res0
+        STA     tmp2
+        LDA     real32_res1
+        STA     tmp2+1
+        LDA     real_sign
+        BEQ     :+
+        JSR     neg_tmp2
+:       LDA     tmp2
+        LDX     tmp2+1
+        STX     scratch
+        JSR     pm_push
+        JMP     prun_loop
+
+; OP_DVR ($A6) — signed fixed-point REAL divide (scale 100)
+op_DVR:
+        JSR     pm_pop          ; b → tmp1
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        JSR     pm_pop          ; a → tmp2
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+        LDA     tmp2+1
+        EOR     tmp1+1
+        AND     #$80
+        BEQ     :+
+        LDA     #1
+        STA     real_sign
+        BRA     @dvr_abs
+:       LDA     #0
+        STA     real_sign
+@dvr_abs:
+        BIT     tmp2+1
+        BPL     :+
+        JSR     neg_tmp2
+:       BIT     tmp1+1
+        BPL     :+
+        SEC
+        LDA     #0
+        SBC     tmp1
+        STA     tmp1
+        LDA     #0
+        SBC     tmp1+1
+        STA     tmp1+1
+:       LDA     tmp1
+        STA     tmp3
+        LDA     tmp1+1
+        STA     tmp3+1
+        LDA     tmp3
+        ORA     tmp3+1
+        BNE     :+
+        LDA     #<err_rt_div0
+        STA     tmp0
+        LDA     #>err_rt_div0
+        STA     tmp0+1
+        JMP     rt_error
+:       LDA     #100
+        STA     tmp1
+        LDA     #0
+        STA     tmp1+1
+        JSR     mul16_to32
+        LDA     tmp3
+        STA     tmp1
+        LDA     tmp3+1
+        STA     tmp1+1
+        JSR     udiv32by16
+        LDA     real32_res0
+        STA     tmp2
+        LDA     real32_res1
+        STA     tmp2+1
+        LDA     real_sign
+        BEQ     :+
+        JSR     neg_tmp2
+:       LDA     tmp2
         LDX     tmp2+1
         STX     scratch
         JSR     pm_push
@@ -1208,6 +1531,106 @@ op_MRKSTK:
 :
         JMP     prun_loop
 
+; ---------------------------------------------------------------------------
+; OP_MRKA ($67) — mark stack and gather args.
+; Operands: pcount (1 byte), lsize_extra (1 byte).
+; The caller pushed pcount 16-bit args to the value stack BEFORE MRKA, so
+; their bytes occupy [pm_sp - 2*pcount .. pm_sp - 1].  MRKA shifts those
+; bytes UP by AR_LOCALS to make room for the AR header, sets up new MP
+; pointing at where the args used to start, and reserves AR_LOCALS +
+; 2*pcount + lsize_extra bytes of frame.  After MRKA, args occupy local
+; slots 0..pcount-1; LDL/STL with offsets 0,2,..,2*(pcount-1) reach them.
+; This lets the caller evaluate args under its OWN MP, fixing the bug
+; where MRKSTK changed MP before LDL could load caller-frame locals.
+; ---------------------------------------------------------------------------
+op_MRKA:
+        JSR     pm_fetch_byte           ; A = pcount
+        STA     tmp2                    ; tmp2 = pcount (≤ 8)
+        JSR     pm_fetch_byte           ; A = lsize_extra
+        STA     tmp3                    ; tmp3 = lsize_extra
+
+; new_mp = pm_sp - 2*pcount  (start of arg block, becomes new AR base)
+        LDA     pm_sp
+        SEC
+        SBC     tmp2
+        SBC     tmp2
+        STA     tmp0                    ; tmp0 = new_mp lo
+        LDA     pm_sp+1
+        SBC     #0
+        SBC     #0
+        STA     tmp0+1                  ; tmp0+1 = new_mp hi
+
+; Shift 2*pcount bytes UP by AR_LOCALS to make room for the AR header.
+;   src = (tmp0)
+;   dst = (tmp0)+AR_LOCALS  (alias tmp1)
+        LDA     tmp0
+        CLC
+        ADC     #AR_LOCALS
+        STA     tmp1
+        LDA     tmp0+1
+        ADC     #0
+        STA     tmp1+1
+
+        LDA     tmp2
+        ASL                             ; A = 2*pcount (bytes to copy)
+        BEQ     @mrka_no_copy
+        TAY                             ; Y = byte count (1..16)
+@mrka_copy:
+        DEY
+        LDA     (tmp0),y
+        STA     (tmp1),y
+        TYA
+        BNE     @mrka_copy
+@mrka_no_copy:
+
+; Initialize AR header: AR_DYN_LINK <- old MP.
+        LDY     #AR_DYN_LINK
+        LDA     pm_mp
+        STA     (tmp0),y
+        INY
+        LDA     pm_mp+1
+        STA     (tmp0),y
+
+; pm_mp = new_mp
+        LDA     tmp0
+        STA     pm_mp
+        LDA     tmp0+1
+        STA     pm_mp+1
+
+; pm_sp = new_mp + AR_LOCALS + 2*pcount + lsize_extra
+        LDA     pm_mp
+        CLC
+        ADC     #AR_LOCALS
+        STA     pm_sp
+        LDA     pm_mp+1
+        ADC     #0
+        STA     pm_sp+1
+
+        LDA     pm_sp
+        CLC
+        ADC     tmp2
+        STA     pm_sp
+        LDA     pm_sp+1
+        ADC     #0
+        STA     pm_sp+1
+        LDA     pm_sp
+        CLC
+        ADC     tmp2
+        STA     pm_sp
+        LDA     pm_sp+1
+        ADC     #0
+        STA     pm_sp+1
+
+        LDA     pm_sp
+        CLC
+        ADC     tmp3
+        STA     pm_sp
+        LDA     pm_sp+1
+        ADC     #0
+        STA     pm_sp+1
+
+        JMP     prun_loop
+
 ; OP_CALL ($60) — call procedure: signed 16-bit offset relative to IPC after operand
 ; Saves return IPC into the new frame's AR_RET_ADDR slot, then jumps.
 op_CALL:
@@ -1323,6 +1746,15 @@ op_WRITI:
         LDA     scratch
         STA     tmp0+1
         JSR     console_print_dec
+        JMP     prun_loop
+
+; OP_WRITR ($88) — pop REAL, print fixed-point decimal with 2 digits
+op_WRITR:
+        JSR     pm_pop
+        STA     tmp0
+        LDA     scratch
+        STA     tmp0+1
+        JSR     real_print_console_helper
         JMP     prun_loop
 
 ; OP_WRITC ($81) — pop char, print
@@ -1463,11 +1895,108 @@ op_READI:
         STA     (tmp1),y
         JMP     prun_loop
 
+; OP_READR ($89) — read a console line, parse fixed-point REAL, push it.
+op_READR:
+        LDA     #<read_line_buf
+        STA     tmp0
+        LDA     #>read_line_buf
+        STA     tmp0+1
+        LDX     #31
+        JSR     console_read_line
+        STY     read_len
+        JSR     console_newline
+        LDA     #0
+        STA     tmp2
+        STA     tmp2+1
+        STA     read_neg
+        STA     read_frac_count
+        STA     read_seen_dot
+        LDY     #0
+@rr_skip:
+        CPY     read_len
+        BCS     @rr_scale
+        LDA     read_line_buf,y
+        CMP     #' '
+        BNE     @rr_chk_sign
+        INY
+        BRA     @rr_skip
+@rr_chk_sign:
+        CMP     #'-'
+        BNE     @rr_chk_plus
+        LDA     #1
+        STA     read_neg
+        INY
+        BRA     @rr_loop
+@rr_chk_plus:
+        CMP     #'+'
+        BNE     @rr_loop
+        INY
+@rr_loop:
+        CPY     read_len
+        BCS     @rr_scale
+        LDA     read_line_buf,y
+        CMP     #'.'
+        BNE     @rr_digit
+        LDA     read_seen_dot
+        BNE     @rr_scale
+        LDA     #1
+        STA     read_seen_dot
+        INY
+        BRA     @rr_loop
+@rr_digit:
+        CMP     #'0'
+        BCC     @rr_scale
+        CMP     #'9'+1
+        BCS     @rr_scale
+        LDA     read_seen_dot
+        BEQ     @rr_accum
+        LDA     read_frac_count
+        CMP     #2
+        BCS     @rr_skip_digit
+@rr_accum:
+        LDA     read_line_buf,y
+        SEC
+        SBC     #'0'
+        JSR     accum_digit_tmp2
+        LDA     read_seen_dot
+        BEQ     @rr_after_digit
+        INC     read_frac_count
+@rr_after_digit:
+        INY
+        BRA     @rr_loop
+@rr_skip_digit:
+        INY
+        BRA     @rr_loop
+@rr_scale:
+        LDA     read_frac_count
+        BNE     @rr_chk_frac1
+        JSR     mul_tmp2_by10
+        JSR     mul_tmp2_by10
+        BRA     @rr_apply
+@rr_chk_frac1:
+        CMP     #1
+        BNE     @rr_apply
+        JSR     mul_tmp2_by10
+@rr_apply:
+        LDA     read_neg
+        BEQ     @rr_push
+        JSR     neg_tmp2
+@rr_push:
+        LDA     tmp2
+        LDX     tmp2+1
+        STX     scratch
+        JSR     pm_push
+        JMP     prun_loop
+
 read_line_buf:
         .RES    32
 read_len:
         .RES    1
 read_neg:
+        .RES    1
+read_frac_count:
+        .RES    1
+read_seen_dot:
         .RES    1
 read_save2:
         .RES    2
@@ -1491,6 +2020,20 @@ op_DUP:
 ; OP_POP ($91) — discard TOS
 op_POP:
         JSR     pm_pop
+        JMP     prun_loop
+
+; OP_SWAP ($92) — swap TOS and NOS
+op_SWAP:
+        JSR     pm_pop
+        STA     tmp2
+        LDA     scratch
+        STA     tmp2+1
+        JSR     pm_pop
+        JSR     pm_push
+        LDA     tmp2
+        LDX     tmp2+1
+        STX     scratch
+        JSR     pm_push
         JMP     prun_loop
 
 ; OP_NEW ($70) — allocate inline-size bytes from heap, push pointer
@@ -2295,34 +2838,52 @@ op_FWRI:
         SBC     fwi_val+1
         STA     fwi_val+1
 @fwi_pos:
-        LDX     #0
-@fwi_div_loop:
         LDA     fwi_val
         STA     tmp0
         LDA     fwi_val+1
         STA     tmp0+1
-        PHX                             ; div16_by10 trashes X
-        JSR     div16_by10              ; tmp0 = quot, scratch = rem
-        PLX
+        JSR     file_write_uint_helper
+        JMP     prun_loop
+
+; OP_FWRR ($C0) — NOS=fileptr, TOS=REAL → append fixed-point decimal
+op_FWRR:
+        JSR     pm_pop
+        STA     tmp0
+        LDA     scratch
+        STA     tmp0+1
+        JSR     pm_pop
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     tmp1
+        STA     real_file_ptr
+        LDA     tmp1+1
+        STA     real_file_ptr+1
+        JSR     real_split_abs_tmp0
+        LDA     real_file_ptr
+        STA     tmp1
+        LDA     real_file_ptr+1
+        STA     tmp1+1
+        LDA     real_sign
+        BEQ     :+
+        LDA     #'-'
+        JSR     file_write_char_helper
+:       JSR     file_write_uint_helper
+        LDA     #'.'
+        JSR     file_write_char_helper
+        LDA     real_frac
+        STA     tmp0
+        LDA     #0
+        STA     tmp0+1
+        JSR     div16_by10
+        LDA     tmp0
+        CLC
+        ADC     #'0'
+        JSR     file_write_char_helper
         LDA     scratch
         CLC
         ADC     #'0'
-        STA     fwi_buf,x
-        INX
-        LDA     tmp0
-        STA     fwi_val
-        LDA     tmp0+1
-        STA     fwi_val+1
-        ORA     fwi_val
-        BNE     @fwi_div_loop
-@fwi_emit:
-        DEX
-        LDA     fwi_buf,x
-        PHX
         JSR     file_write_char_helper
-        PLX
-        CPX     #0
-        BNE     @fwi_emit
         JMP     prun_loop
 
 ; OP_FWLN ($B7) — TOS=fileptr → CR + LF
@@ -2456,6 +3017,115 @@ op_FRDI:
         STA     (tmp3),y
         INY
         LDA     fri_val+1
+        STA     (tmp3),y
+        JMP     prun_loop
+
+; OP_FRDR ($C1) — NOS=fileptr, TOS=realvar addr → read fixed-point decimal
+op_FRDR:
+        JSR     pm_pop                  ; realvar addr → tmp3
+        STA     tmp3
+        LDA     scratch
+        STA     tmp3+1
+        JSR     pm_pop                  ; file ptr → tmp1
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
+        LDA     #0
+        STA     tmp2
+        STA     tmp2+1
+        STA     frr_neg
+        STA     frr_frac_count
+        STA     frr_seen_dot
+@frr_skipws:
+        JSR     file_read_char_helper
+        STA     frr_cur
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BEQ     @frr_chk_ws
+        JMP     @frr_scale
+@frr_chk_ws:
+        LDA     frr_cur
+        CMP     #' '
+        BEQ     @frr_skipws
+        CMP     #$09
+        BEQ     @frr_skipws
+        CMP     #$0D
+        BEQ     @frr_skipws
+        CMP     #$0A
+        BEQ     @frr_skipws
+        CMP     #'-'
+        BNE     @frr_chk_plus
+        LDA     #1
+        STA     frr_neg
+        JSR     file_read_char_helper
+        STA     frr_cur
+        BRA     @frr_loop
+@frr_chk_plus:
+        CMP     #'+'
+        BNE     @frr_loop
+        JSR     file_read_char_helper
+        STA     frr_cur
+@frr_loop:
+        LDY     #F_EOF
+        LDA     (tmp1),y
+        BNE     @frr_scale
+        LDA     frr_cur
+        CMP     #'.'
+        BNE     @frr_digit
+        LDA     frr_seen_dot
+        BNE     @frr_scale
+        LDA     #1
+        STA     frr_seen_dot
+        JSR     file_read_char_helper
+        STA     frr_cur
+        BRA     @frr_loop
+@frr_digit:
+        LDA     frr_cur
+        CMP     #'0'
+        BCC     @frr_scale
+        CMP     #'9'+1
+        BCS     @frr_scale
+        LDA     frr_seen_dot
+        BEQ     @frr_accum
+        LDA     frr_frac_count
+        CMP     #2
+        BCS     @frr_skip_digit
+@frr_accum:
+        LDA     frr_cur
+        SEC
+        SBC     #'0'
+        JSR     accum_digit_tmp2
+        LDA     frr_seen_dot
+        BEQ     @frr_after_digit
+        INC     frr_frac_count
+@frr_after_digit:
+        JSR     file_read_char_helper
+        STA     frr_cur
+        BRA     @frr_loop
+@frr_skip_digit:
+        JSR     file_read_char_helper
+        STA     frr_cur
+        BRA     @frr_loop
+@frr_scale:
+        LDA     frr_frac_count
+        BNE     @frr_chk_frac1
+        JSR     mul_tmp2_by10
+        JSR     mul_tmp2_by10
+        BRA     @frr_apply
+@frr_chk_frac1:
+        CMP     #1
+        BNE     @frr_apply
+        JSR     mul_tmp2_by10
+@frr_apply:
+        LDA     frr_neg
+        BEQ     @frr_store
+        JSR     neg_tmp2
+@frr_store:
+        LDY     #0
+        LDA     tmp2
+        STA     (tmp3),y
+        INY
+        LDA     tmp2+1
         STA     (tmp3),y
         JMP     prun_loop
 
@@ -2739,6 +3409,23 @@ fri_neg:       .RES 1
 fri_cur:       .RES 1
 frs_idx:       .RES 1
 frs_char:      .RES 1
+real32_res0:   .RES 1
+real32_res1:   .RES 1
+real32_res2:   .RES 1
+real32_res3:   .RES 1
+real32_mcand0: .RES 1
+real32_mcand1: .RES 1
+real32_mcand2: .RES 1
+real32_mcand3: .RES 1
+real32_rem0:   .RES 1
+real32_rem1:   .RES 1
+real_sign:     .RES 1
+real_frac:     .RES 1
+real_file_ptr: .RES 2
+frr_neg:       .RES 1
+frr_frac_count:.RES 1
+frr_seen_dot:  .RES 1
+frr_cur:       .RES 1
 
 ; ---------------------------------------------------------------------------
 ; Unimplemented opcode handler
@@ -2822,7 +3509,7 @@ dispatch_lo:
         .ENDREPEAT
 ; $60-$6F
         .BYTE   <op_CALL,  <op_UNIMP, <op_RET,   <op_RETF
-        .BYTE   <op_MRKSTK,<op_UNIMP, <op_STR,   <op_UNIMP
+        .BYTE   <op_MRKSTK,<op_UNIMP, <op_STR,   <op_MRKA
         .REPEAT 8
                 .BYTE   <op_UNIMP
         .ENDREPEAT
@@ -2834,19 +3521,20 @@ dispatch_lo:
 ; $80-$8F
         .BYTE   <op_WRITI, <op_WRITC, <op_WRITB, <op_WRITS
         .BYTE   <op_WRITLN,<op_READI, <op_READC, <op_UNIMP
-        .REPEAT 8
+        .BYTE   <op_WRITR, <op_READR
+        .REPEAT 6
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $90-$9F
-        .BYTE   <op_DUP,   <op_POP,   <op_UNIMP, <op_UNIMP
+        .BYTE   <op_DUP,   <op_POP,   <op_SWAP,  <op_UNIMP
         .REPEAT 12
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $A0-$A3 string built-ins
         .BYTE   <op_LEN,   <op_POS,   <op_COPY,  <op_CONCAT
 ; $A4-$AF
-        .BYTE   <op_INSET
-        .REPEAT 11
+        .BYTE   <op_INSET, <op_MPR,   <op_DVR
+        .REPEAT 9
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $B0-$BF TEXT file I/O
@@ -2855,7 +3543,8 @@ dispatch_lo:
         .BYTE   <op_FRDC,  <op_FRDI,  <op_FRDLN, <op_FEOF
         .BYTE   <op_FAPPND,<op_FRDS,  <op_FWRB,  <op_FEOLN
 ; $C0-$FE
-        .REPEAT 63
+        .BYTE   <op_FWRR,  <op_FRDR
+        .REPEAT 61
                 .BYTE   <op_UNIMP
         .ENDREPEAT
 ; $FF
@@ -2902,7 +3591,7 @@ dispatch_hi:
         .ENDREPEAT
 ; $60-$6F
         .BYTE   >op_CALL,  >op_UNIMP, >op_RET,   >op_RETF
-        .BYTE   >op_MRKSTK,>op_UNIMP, >op_STR,   >op_UNIMP
+        .BYTE   >op_MRKSTK,>op_UNIMP, >op_STR,   >op_MRKA
         .REPEAT 8
                 .BYTE   >op_UNIMP
         .ENDREPEAT
@@ -2914,19 +3603,20 @@ dispatch_hi:
 ; $80-$8F
         .BYTE   >op_WRITI, >op_WRITC, >op_WRITB, >op_WRITS
         .BYTE   >op_WRITLN,>op_READI, >op_READC, >op_UNIMP
-        .REPEAT 8
+        .BYTE   >op_WRITR, >op_READR
+        .REPEAT 6
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $90-$9F
-        .BYTE   >op_DUP,   >op_POP,   >op_UNIMP, >op_UNIMP
+        .BYTE   >op_DUP,   >op_POP,   >op_SWAP,  >op_UNIMP
         .REPEAT 12
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $A0-$A3 string built-ins
         .BYTE   >op_LEN,   >op_POS,   >op_COPY,  >op_CONCAT
 ; $A4-$AF
-        .BYTE   >op_INSET
-        .REPEAT 11
+        .BYTE   >op_INSET, >op_MPR,   >op_DVR
+        .REPEAT 9
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $B0-$BF TEXT file I/O
@@ -2935,7 +3625,8 @@ dispatch_hi:
         .BYTE   >op_FRDC,  >op_FRDI,  >op_FRDLN, >op_FEOF
         .BYTE   >op_FAPPND, >op_FRDS,  >op_FWRB,  >op_FEOLN
 ; $C0-$FE
-        .REPEAT 63
+        .BYTE   >op_FWRR,  >op_FRDR
+        .REPEAT 61
                 .BYTE   >op_UNIMP
         .ENDREPEAT
 ; $FF

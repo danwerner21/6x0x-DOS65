@@ -176,7 +176,7 @@ src_ctx_dma:
 ; Code generation buffer — p-code accumulates here until file write.
 ; Keep this above the live CPMDATA working set used by the parser.
 ; This holds up to ~32KB of generated p-code.
-CODEBUF_BASE    = $4500
+CODEBUF_BASE    = $4900
 CODEBUF_MAXSZ   = $8000         ; 32 KB
 
 ; Symbol table area

@@ -1,0 +1,20 @@
+PROGRAM T33B;
+VAR
+  F: TEXT;
+  R, S: REAL;
+BEGIN
+  ASSIGN(F, 'REAL.TXT');
+  REWRITE(F);
+  WRITELN(F, 1.25);
+  WRITELN(F, -3.50);
+  CLOSE(F);
+
+  RESET(F);
+  READLN(F, R);
+  READLN(F, S);
+  CLOSE(F);
+
+  WRITELN(R);
+  WRITELN(S);
+  WRITELN(R + S)
+END.

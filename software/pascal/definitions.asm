@@ -95,6 +95,9 @@ OP_RETF         = $63           ; return from function (leave result on stack)
 OP_MRKSTK       = $64           ; set up activation record (byte: local size)
 OP_DEPSTK       = $65           ; tear down activation record
 OP_STR          = $66           ; pop word, store at MP+AR_RET_VAL (function result)
+OP_MRKA         = $67           ; mark+gather: bytes pcount, lsize_extra.
+                                ; pcount values on TOS become local slots 0..pcount-1
+                                ; in the new frame; lsize_extra reserves body-local space.
 
 ; --- Heap ---
 OP_NEW          = $70           ; allocate (word size follows); push pointer
@@ -109,6 +112,8 @@ OP_WRITLN       = $84           ; write newline
 OP_READI        = $85           ; read integer
 OP_READC        = $86           ; read character
 OP_READS        = $87           ; read string
+OP_WRITR        = $88           ; write real (signed fixed-point, scale 100)
+OP_READR        = $89           ; read real  (signed fixed-point, scale 100)
 
 ; --- Stack manipulation ---
 OP_DUP          = $90
@@ -122,6 +127,8 @@ OP_POS          = $A1           ; NOS=substr, TOS=str -> TOS=1-based pos (0=not 
 OP_COPY         = $A2           ; NNOS=str, NOS=index, TOS=count -> TOS=result strptr
 OP_CONCAT       = $A3           ; NOS=s1, TOS=s2 -> TOS=result strptr
 OP_INSET        = $A4           ; NOS=elem, TOS=setmask -> TOS=membership bool
+OP_MPR          = $A5           ; real multiply (signed fixed-point, scale 100)
+OP_DVR          = $A6           ; real divide   (signed fixed-point, scale 100)
 
 ; --- TEXT file I/O ---
 ; All file ops take a file-struct pointer (NOS / TOS).
@@ -141,6 +148,8 @@ OP_FAPPND       = $BC           ; TOS=fileptr -> open/create for append at EOF
 OP_FRDS         = $BD           ; NOS=fileptr, TOS=strvar addr -> read string to EOL
 OP_FWRB         = $BE           ; NOS=fileptr, TOS=bool -> append "TRUE"/"FALSE"
 OP_FEOLN        = $BF           ; TOS=fileptr -> push EOLN flag (true if at CR/LF/EOF)
+OP_FWRR         = $C0           ; NOS=fileptr, TOS=real -> append fixed-point decimal
+OP_FRDR         = $C1           ; NOS=fileptr, TOS=realvar addr -> read fixed-point decimal
 
 ; TEXT-file struct layout (168 bytes per variable)
 F_FCB           = 0             ; 36 bytes
@@ -184,6 +193,7 @@ TOK_IDENT       = 1
 TOK_INT         = 2
 TOK_STRING      = 3
 TOK_CHAR        = 4
+TOK_REAL        = 5
 
 ; Operators / punctuation
 TOK_PLUS        = $10           ; +

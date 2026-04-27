@@ -74,6 +74,8 @@ sym_save_vmask:
         .RES    1               ; SYM_PROC/SYM_FUNC VAR-param bitmap (entry offset 22)
 sym_save_lsize:
         .RES    1               ; SYM_PROC/SYM_FUNC total local-area size (entry offset 23)
+sym_param_types:
+        .RES    8               ; formal parameter types 0..7 copied from entry bytes 24..31
 
 ; ARRAY type scratch — set by parse_type_spec when it parses an ARRAY type;
 ; read by parse_var_decls to compute storage size and adjusted offset.
@@ -122,6 +124,8 @@ fcall_vmask:
         .RES    1               ; the called proc/func's VAR-param bitmap
 fcall_lsize:
         .RES    1               ; the called proc/func's total local-area size (params+locals)
+fcall_param_types:
+        .RES    8               ; formal parameter types 0..7 for the active function call
 
 ; Record-chain scratch (parse_statement / parse_factor). Used while walking
 ; dotted field access through nested RECORD values.
@@ -142,6 +146,8 @@ set_lit_hi:
         .RES    1
 set_lit_cur:
         .RES    1
+real_frac_count:
+        .RES    1               ; lexer scratch while tokenising fixed-point REAL literals
 
 ; Main-program entry-point patch slot. compile_program emits a UJP at code
 ; offset 0; top-level BEGIN/init blocks patch it to the first startup body
@@ -225,15 +231,21 @@ next_token:
 @not_ws:
 ; letter → identifier or keyword
         JSR     is_letter
-        BCS     @ident
+        BCC     :+
+        JMP     @ident
+:
 
 ; digit → integer literal
         JSR     is_digit
-        BCS     @number
+        BCC     :+
+        JMP     @number
+:
 
 ; string → string literal
         CMP     #$27            ; single quote
-        BEQ     @string
+        BNE     :+
+        JMP     @string
+:
 
 ; operators and punctuation
         JMP     @punct
@@ -262,7 +274,7 @@ next_token:
         STA     tok_type
         RTS
 
-; --- Integer literal ---
+; --- Numeric literal (integer or fixed-point REAL) ---
 @number:
         LDA     #0
         STA     tok_ival_lo
@@ -276,6 +288,56 @@ next_token:
         LDA     lex_char
         JSR     is_digit
         BCS     @num_loop
+        LDA     lex_char
+        CMP     #'.'
+        BNE     @num_int
+        LDA     src_buf_pos
+        CMP     src_buf_end
+        BCS     @num_int               ; dot at sector boundary -> treat as integer
+        TAY
+        LDA     DMA_BUF,y
+        CMP     #'.'
+        BEQ     @num_int               ; 1..10 range syntax
+        CMP     #'0'
+        BCC     @num_int
+        CMP     #'9'+1
+        BCS     @num_int
+        LDA     #0
+        STA     real_frac_count
+        JSR     lexer_getc             ; consume '.' -> first fractional digit
+@real_loop:
+        LDA     lex_char
+        JSR     is_digit
+        BCC     @real_done
+        LDA     real_frac_count
+        CMP     #2
+        BCS     @real_skip_digit
+        LDA     lex_char
+        SEC
+        SBC     #'0'
+        JSR     mul10_tokval
+        INC     real_frac_count
+@real_skip_digit:
+        JSR     lexer_getc
+        BRA     @real_loop
+@real_done:
+        LDA     real_frac_count
+        CMP     #0
+        BNE     :+
+        LDA     #0
+        JSR     mul10_tokval
+        LDA     #0
+        JSR     mul10_tokval
+        BRA     @num_real
+:       CMP     #1
+        BNE     @num_real
+        LDA     #0
+        JSR     mul10_tokval
+@num_real:
+        LDA     #TOK_REAL
+        STA     tok_type
+        RTS
+@num_int:
         LDA     #TOK_INT
         STA     tok_type
         RTS

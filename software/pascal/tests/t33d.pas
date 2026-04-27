@@ -1,0 +1,8 @@
+PROGRAM T33D;
+VAR
+  R: REAL;
+BEGIN
+  R := 1.25;
+  WRITELN(123);
+  WRITELN(R)
+END.

@@ -327,6 +327,14 @@ emit_DVI:
         LDA     #OP_DVI
         JMP     emit_byte
 
+emit_MPR:
+        LDA     #OP_MPR
+        JMP     emit_byte
+
+emit_DVR:
+        LDA     #OP_DVR
+        JMP     emit_byte
+
 emit_MOD:
         LDA     #OP_MOD
         JMP     emit_byte
@@ -501,6 +509,14 @@ emit_READI:
         LDA     #OP_READI
         JMP     emit_byte
 
+emit_WRITR:
+        LDA     #OP_WRITR
+        JMP     emit_byte
+
+emit_READR:
+        LDA     #OP_READR
+        JMP     emit_byte
+
 emit_READC:
         LDA     #OP_READC
         JMP     emit_byte
@@ -515,6 +531,10 @@ emit_POP:
         LDA     #OP_POP
         JMP     emit_byte
 
+emit_SWAP:
+        LDA     #OP_SWAP
+        JMP     emit_byte
+
 ; --- Calls ---
 
 emit_MRKSTK:                    ; local size in A
@@ -522,6 +542,19 @@ emit_MRKSTK:                    ; local size in A
         LDA     #OP_MRKSTK
         JSR     emit_byte
         PLA
+        JMP     emit_byte
+
+; emit_MRKA — A=pcount, X=lsize_extra
+; Emits OP_MRKA + pcount byte + lsize_extra byte.  See op_MRKA in prun.asm
+; for runtime semantics.
+emit_MRKA:
+        PHX                     ; save lsize_extra
+        PHA                     ; save pcount
+        LDA     #OP_MRKA
+        JSR     emit_byte
+        PLA                     ; pcount
+        JSR     emit_byte
+        PLA                     ; lsize_extra
         JMP     emit_byte
 
 emit_RET:
@@ -612,6 +645,9 @@ emit_FWRS:
 emit_FWRI:
         LDA     #OP_FWRI
         JMP     emit_byte
+emit_FWRR:
+        LDA     #OP_FWRR
+        JMP     emit_byte
 emit_FWLN:
         LDA     #OP_FWLN
         JMP     emit_byte
@@ -620,6 +656,9 @@ emit_FRDC:
         JMP     emit_byte
 emit_FRDI:
         LDA     #OP_FRDI
+        JMP     emit_byte
+emit_FRDR:
+        LDA     #OP_FRDR
         JMP     emit_byte
 emit_FRDLN:
         LDA     #OP_FRDLN

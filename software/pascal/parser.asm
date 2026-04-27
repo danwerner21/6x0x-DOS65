@@ -490,10 +490,14 @@ parse_const_decls:
         STA     scratch
         JSR     next_token
 @no_minus:
-        ; expect INT literal
+        LDA     #TY_INT
+        STA     expr_type
+        ; expect INT/REAL literal
         LDA     tok_type
         CMP     #TOK_INT
         BEQ     @have_int
+        CMP     #TOK_REAL
+        BEQ     @have_real
         ; bad value — store 0 and try to recover
         LDA     #0
         STA     tmp2
@@ -505,6 +509,15 @@ parse_const_decls:
         LDA     tok_ival_hi
         STA     tmp2+1
         JSR     next_token      ; consume INT
+        BRA     @add_const
+@have_real:
+        LDA     tok_ival_lo
+        STA     tmp2
+        LDA     tok_ival_hi
+        STA     tmp2+1
+        LDA     #TY_REAL
+        STA     expr_type
+        JSR     next_token      ; consume REAL
 @add_const:
 ; apply negate flag if set
         LDA     scratch
@@ -520,15 +533,17 @@ parse_const_decls:
 ; install in symbol table — value lives at offsets 18-19
         JSR     swap_ident_save
         LDA     #SYM_CONST
-        LDX     #TY_INT
+        LDX     expr_type
         JSR     symtab_add
         JSR     swap_ident_save
 ; expect ';'
         LDA     tok_type
         CMP     #TOK_SEMICOLON
-        BNE     @loop
+        BEQ     @pcd_semi
+        JMP     @loop
+@pcd_semi:
         JSR     next_token
-        BRA     @loop
+        JMP     @loop
 
 ; ---------------------------------------------------------------------------
 ; parse_type_decls — name = type_spec ;  { ... }
@@ -590,9 +605,11 @@ parse_type_decls:
 ; expect ';'
         LDA     tok_type
         CMP     #TOK_SEMICOLON
-        BNE     @loop
+        BEQ     @ptd_semi
+        JMP     @loop
+@ptd_semi:
         JSR     next_token
-        BRA     @loop
+        JMP     @loop
 
 ; ---------------------------------------------------------------------------
 ; parse_var_decls — name { , name } : type ;  { ... }
@@ -838,6 +855,28 @@ used_unit_slot_ptr:
         STA     tmp2+1
         RTS
 
+; store_proc_param_type — record the current parameter's type code in the
+; owning proc/func entry at byte 24+proc_param_count (up to 8 params).
+store_proc_param_type:
+        PHA
+        LDY     proc_param_count
+        CPY     #8
+        BCS     @sppt_drop
+        LDA     proc_entry_idx
+        STA     tmp3
+        LDA     proc_entry_idx+1
+        STA     tmp3+1
+        TYA
+        CLC
+        ADC     #24
+        TAY
+        PLA
+        STA     (tmp3),y
+        RTS
+@sppt_drop:
+        PLA
+        RTS
+
 ; ---------------------------------------------------------------------------
 ; parse_type_spec — consume type token(s), return TY_* code in A
 ; ---------------------------------------------------------------------------
@@ -905,7 +944,7 @@ parse_type_spec:
 @chk3:
         CMP     #4
         BNE     @chk6
-; 4-char built-in types: "CHAR" or "TEXT"
+; 4-char built-in types: "CHAR", "TEXT", or "REAL"
         LDA     ident_buf+1
         CMP     #'C'
         BNE     @chk_text
@@ -914,9 +953,15 @@ parse_type_spec:
         RTS
 @chk_text:
         CMP     #'T'
-        BNE     @chk3b
+        BNE     @chk_real
         JSR     next_token
         LDA     #TY_TEXT
+        RTS
+@chk_real:
+        CMP     #'R'
+        BNE     @chk3b
+        JSR     next_token
+        LDA     #TY_REAL
         RTS
 @chk3b:
         JSR     next_token
@@ -1460,8 +1505,12 @@ parse_param_list:
         LDX     #0
 @addloop:
         CPX     var_name_count
-        BCS     @groupdone
+        BCC     :+
+        JMP     @groupdone
+:
         PHX
+        LDA     scratch
+        JSR     store_proc_param_type
 ; copy var_name_buf[X*16] → ident_buf
         TXA
         ASL
@@ -1596,10 +1645,13 @@ parse_param_sig_list:
         BNE     :+
         JSR     next_token
 :       JSR     parse_type_spec
+        STA     scratch
         LDX     #0
 @psig_add:
         CPX     var_name_count
         BCS     @psig_group_done
+        LDA     scratch
+        JSR     store_proc_param_type
         LDA     group_is_var
         BEQ     @psig_inc
         LDY     proc_param_count
@@ -2017,7 +2069,7 @@ parse_func_decl:
         STA     tmp2
         STA     tmp2+1
         LDA     #SYM_RETVAL
-        LDX     #TY_NONE
+        LDX     scratch
         JSR     symtab_add
 
 ; Expect ';' before body
@@ -2081,12 +2133,14 @@ parse_compound_stmt:
 ; if parse_statement didn't consume anything, force-advance to avoid
 ; an infinite loop on an unrecognised token
         CMP     tmp3
-        BNE     @loop
+        BEQ     @pcs_force_advance
+        JMP     @loop
+@pcs_force_advance:
         JSR     next_token
-        BRA     @loop
+        JMP     @loop
 @consume_semi:
         JSR     next_token
-        BRA     @loop
+        JMP     @loop
 @end:
         JSR     next_token      ; consume END
 @done:
@@ -2540,6 +2594,15 @@ parse_assign_or_call:
         LDY     #23
         LDA     (tmp3),y
         STA     sym_save_lsize
+        LDY     #24
+        LDX     #0
+@copy_ptypes:
+        LDA     (tmp3),y
+        STA     sym_param_types,x
+        INY
+        INX
+        CPX     #8
+        BCC     @copy_ptypes
         LDA     sym_save_kind
         CMP     #SYM_VAR
         BEQ     @do_assign
@@ -2563,6 +2626,8 @@ parse_assign_or_call:
         JSR     next_token      ; consume ':='
 :
         JSR     parse_expression
+        LDA     sym_save_type
+        JSR     coerce_expr_to_target_type
         JSR     emit_STR
         RTS
 
@@ -2581,6 +2646,8 @@ parse_assign_or_call:
         LDA     sym_save_off
         JSR     emit_LDL        ; push address from local slot
         JSR     parse_expression
+        LDA     sym_save_type
+        JSR     coerce_expr_to_target_type
         JSR     emit_STIND
         RTS
 
@@ -2608,6 +2675,8 @@ parse_assign_or_call:
         BNE     :+
         JSR     next_token
 :       JSR     parse_expression
+        LDA     sym_save_type
+        JSR     coerce_expr_to_target_type
         LDA     sym_save_scope
         BNE     @local_store
         LDA     sym_save_off+1
@@ -2657,7 +2726,11 @@ parse_assign_or_call:
         JSR     next_token
 :
 ; parse and emit RHS expression
+        LDA     sym_save_vmask
+        PHA
         JSR     parse_expression
+        PLA
+        JSR     coerce_expr_to_target_type
 ; store: NOS=element_addr TOS=value → STIND
         JSR     emit_STIND
         RTS
@@ -2732,7 +2805,11 @@ parse_assign_or_call:
         BNE     :+
         JSR     next_token
 :
+        LDA     field_chain_type
+        PHA
         JSR     parse_expression
+        PLA
+        JSR     coerce_expr_to_target_type
         JSR     emit_STIND
         RTS
 @rec_la_undef:
@@ -2772,27 +2849,24 @@ parse_assign_or_call:
 ; sym_save_pcount    = declared parameter count
 ;
 ; Calling sequence emitted:
-;   MRKSTK <pcount*2>            ; reserves AR + param slots
 ;   for each arg i:
-;       <expr>                   ; pushes value to TOS
-;       STL <i*2>                ; pop into local slot i
+;       <expr>                   ; pushes value to TOS (uses CALLER's MP)
+;   MRKA <pcount> <lsize_extra>  ; reframe + gather args into local slots
 ;   CALL <proc>                  ; jump (saves IPC into AR)
 ;
-; The procedure body reads params via LDL because they were added
-; to the symbol table as SYM_VAR with scope=inner (proc) at
-; offsets 0, 2, 4, ...
+; Args are evaluated BEFORE MRKA so any LDL/LDA_L inside arg expressions
+; reads the caller's frame.  MRKA then shifts the pcount values up by
+; AR_LOCALS so they land at local slots 0..pcount-1 of the new frame.
+; The procedure body reads params via LDL because they were added to the
+; symbol table as SYM_VAR with scope=inner (proc) at offsets 0, 2, 4, ...
         JSR     next_token      ; consume the proc-name identifier
-; emit MRKSTK with full local-area size (params + body locals).
-; sym_save_lsize was captured at @found_sym from entry offset 23.
-        LDA     sym_save_lsize
-        JSR     emit_MRKSTK
-; if no params, optionally consume "()" then emit CALL
+; if no params, optionally consume "()" then emit MRKA + CALL
         LDA     sym_save_pcount
         BEQ     @no_args
 ; expect '(' for arg list
         LDA     tok_type
         CMP     #TOK_LPAREN
-        BNE     @emit_call      ; missing '(' — caller mistake; emit CALL anyway
+        BNE     @emit_call      ; missing '(' — caller mistake; emit anyway
         JSR     next_token      ; consume '('
         LDX     #0              ; X = current arg index
 @arg_loop:
@@ -2818,11 +2892,10 @@ parse_assign_or_call:
         PHX
         JSR     parse_expression
         PLX
+        LDA     sym_param_types,x
+        JSR     coerce_expr_to_target_type
 @arg_stored:
-; emit STL <X*2> — store popped value (or address) into local slot X
-        TXA
-        ASL
-        JSR     emit_STL
+; Value (or address for VAR) left on stack — MRKA gathers later.
         INX
         CPX     sym_save_pcount
         BCS     @done_args      ; X >= pcount — done
@@ -2849,6 +2922,14 @@ parse_assign_or_call:
         BNE     @emit_call
         JSR     next_token      ; consume ')'
 @emit_call:
+; Emit MRKA <pcount> <lsize_extra>; lsize_extra = sym_save_lsize - 2*pcount.
+        LDA     sym_save_lsize
+        SEC
+        SBC     sym_save_pcount
+        SBC     sym_save_pcount
+        TAX                     ; X = lsize_extra (body locals only)
+        LDA     sym_save_pcount ; A = pcount
+        JSR     emit_MRKA
 ; Emit CALL <delta>: A=target lo, scratch=target hi
         LDA     sym_save_off
         ORA     sym_save_off+1
@@ -2937,6 +3018,10 @@ pw_emit_console:
         BNE     :+
         JMP     emit_WRITB
 :
+        CMP     #TY_REAL
+        BNE     :+
+        JMP     emit_WRITR
+:
         JMP     emit_WRITI
 
 ; pw_emit_file — emit FWRS/FWRC/FWRB/FWRI based on expr_type
@@ -2954,6 +3039,10 @@ pw_emit_file:
         BNE     :+
         JMP     emit_FWRB
 :
+        CMP     #TY_REAL
+        BNE     :+
+        JMP     emit_FWRR
+:
         JMP     emit_FWRI
 
 ; emit_console_read_arg — current token must be an IDENT naming the target
@@ -2966,6 +3055,12 @@ emit_console_read_arg:
         BCC     @cra_int
         LDY     #17
         LDA     (tmp3),y
+        CMP     #TY_REAL
+        BNE     :+
+        JSR     parse_arg_lvalue
+        JSR     emit_READR
+        JMP     emit_STIND
+:
         CMP     #TY_CHAR
         BNE     @cra_int
         JSR     parse_arg_lvalue
@@ -3046,10 +3141,17 @@ parse_read_args:
         BRA     @file_loop
 @file_chk_str:
         CMP     #TY_STRING
-        BNE     @file_int_default
+        BNE     @file_chk_real
         JSR     emit_DUP                ; dup file ptr
         JSR     parse_arg_lvalue
         JSR     emit_FRDS
+        BRA     @file_loop
+@file_chk_real:
+        CMP     #TY_REAL
+        BNE     @file_int_default
+        JSR     emit_DUP                ; dup file ptr
+        JSR     parse_arg_lvalue
+        JSR     emit_FRDR
         BRA     @file_loop
 @file_int_default:
         JSR     emit_DUP                ; dup file ptr
@@ -3097,18 +3199,18 @@ parse_if:
 ; (need to dig under the UJP entries on the stack)
 ; stack top → bottom: UJP_hi, UJP_lo, FJP_hi, FJP_lo
         PLA                     ; UJP hi
-        STA     sym_save_off    ; reuse sym_save_off as temp byte
+        TAX
         PLA                     ; UJP lo
-        STA     sym_save_off+1
+        TAY
         PLA                     ; FJP hi
         STA     tmp2+1
         PLA                     ; FJP lo
         STA     tmp2
         JSR     patch_jump      ; patch FJP → start of else branch
 ; push UJP patch addr back for after-else patching
-        LDA     sym_save_off+1  ; UJP lo
+        TYA                     ; UJP lo
         PHA
-        LDA     sym_save_off    ; UJP hi
+        TXA                     ; UJP hi
         PHA
         JSR     next_token      ; consume ELSE
         JSR     parse_statement
@@ -3483,6 +3585,131 @@ parse_repeat:
         RTS
 
 ; ---------------------------------------------------------------------------
+; REAL / INTEGER coercion helpers
+; ---------------------------------------------------------------------------
+
+emit_promote_tos_int_to_real:
+        LDA     #100
+        JSR     emit_LDCI
+        JMP     emit_MPI
+
+emit_promote_tos_real_to_int:
+        LDA     #100
+        JSR     emit_LDCI
+        JMP     emit_DVI
+
+emit_promote_nos_int_to_real:
+        JSR     emit_SWAP
+        JSR     emit_promote_tos_int_to_real
+        JMP     emit_SWAP
+
+emit_promote_nos_real_to_int:
+        JSR     emit_SWAP
+        JSR     emit_promote_tos_real_to_int
+        JMP     emit_SWAP
+
+; coerce_expr_to_target_type — A=target TY_*, expr_type=current TOS type.
+; Only INTEGER<->REAL coercions are performed; other combinations are left as-is.
+coerce_expr_to_target_type:
+        TAX
+        CPX     #TY_REAL
+        BEQ     @cett_real
+        CPX     #TY_INT
+        BEQ     @cett_int
+        RTS
+@cett_real:
+        LDA     expr_type
+        CMP     #TY_INT
+        BNE     @cett_done
+        JSR     emit_promote_tos_int_to_real
+        LDA     #TY_REAL
+        STA     expr_type
+@cett_done:
+        RTS
+@cett_int:
+        LDA     expr_type
+        CMP     #TY_REAL
+        BNE     @cett_done2
+        JSR     emit_promote_tos_real_to_int
+        LDA     #TY_INT
+        STA     expr_type
+@cett_done2:
+        RTS
+
+; coerce_binary_numeric_types — A=lhs type, expr_type=rhs type.
+; Promotes one INTEGER operand to REAL when the other side is REAL.
+; Returns A=result type (TY_INT or TY_REAL).
+coerce_binary_numeric_types:
+        CMP     #TY_REAL
+        BEQ     @cbnt_lhs_real
+        LDA     expr_type
+        CMP     #TY_REAL
+        BEQ     @cbnt_lhs_int_rhs_real
+        LDA     #TY_INT
+        RTS
+@cbnt_lhs_real:
+        LDA     expr_type
+        CMP     #TY_INT
+        BNE     @cbnt_real_done
+        JSR     emit_promote_tos_int_to_real
+@cbnt_real_done:
+        LDA     #TY_REAL
+        RTS
+@cbnt_lhs_int_rhs_real:
+        JSR     emit_promote_nos_int_to_real
+        LDA     #TY_REAL
+        RTS
+
+; coerce_binary_to_real — A=lhs type, expr_type=rhs type.
+; Ensures both operands are REAL and returns A=TY_REAL.
+coerce_binary_to_real:
+        CMP     #TY_REAL
+        BEQ     @cbtr_lhs_real
+        LDA     expr_type
+        CMP     #TY_REAL
+        BEQ     @cbtr_lhs_int_rhs_real
+        JSR     emit_promote_tos_int_to_real
+        JSR     emit_promote_nos_int_to_real
+        LDA     #TY_REAL
+        RTS
+@cbtr_lhs_real:
+        LDA     expr_type
+        CMP     #TY_REAL
+        BEQ     @cbtr_done
+        JSR     emit_promote_tos_int_to_real
+@cbtr_done:
+        LDA     #TY_REAL
+        RTS
+@cbtr_lhs_int_rhs_real:
+        JSR     emit_promote_nos_int_to_real
+        LDA     #TY_REAL
+        RTS
+
+; coerce_binary_to_int — A=lhs type, expr_type=rhs type.
+; Truncates REAL operands to INTEGER and returns A=TY_INT.
+coerce_binary_to_int:
+        CMP     #TY_REAL
+        BEQ     @cbti_lhs_real
+        LDA     expr_type
+        CMP     #TY_REAL
+        BEQ     @cbti_rhs_real
+        LDA     #TY_INT
+        RTS
+@cbti_lhs_real:
+        JSR     emit_promote_nos_real_to_int
+        LDA     expr_type
+        CMP     #TY_REAL
+        BNE     @cbti_done
+        JSR     emit_promote_tos_real_to_int
+@cbti_done:
+        LDA     #TY_INT
+        RTS
+@cbti_rhs_real:
+        JSR     emit_promote_tos_real_to_int
+        LDA     #TY_INT
+        RTS
+
+; ---------------------------------------------------------------------------
 ; parse_expression — full expression with operator precedence
 ; Phase 1: simple additive + comparison; no precedence climbing yet
 ; ---------------------------------------------------------------------------
@@ -3511,33 +3738,57 @@ parse_expression:
         JSR     emit_INSET
         JMP     @rel_done
 @rel_eq:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_simple_expr
+        PLA
+        JSR     coerce_binary_numeric_types
         JSR     emit_EQUI
         JMP     @rel_done
 @rel_neq:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_simple_expr
+        PLA
+        JSR     coerce_binary_numeric_types
         JSR     emit_NEQI
         JMP     @rel_done
 @rel_lt:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_simple_expr
+        PLA
+        JSR     coerce_binary_numeric_types
         JSR     emit_LESI
         JMP     @rel_done
 @rel_gt:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_simple_expr
+        PLA
+        JSR     coerce_binary_numeric_types
         JSR     emit_GTRI
         JMP     @rel_done
 @rel_leq:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_simple_expr
+        PLA
+        JSR     coerce_binary_numeric_types
         JSR     emit_LEQI
         JMP     @rel_done
 @rel_geq:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_simple_expr
+        PLA
+        JSR     coerce_binary_numeric_types
         JSR     emit_GEQI
 @rel_done:
         LDA     #TY_BOOL
@@ -3555,8 +3806,6 @@ parse_simple_expr:
         JSR     next_token
         JSR     parse_term
         JSR     emit_NGI
-        LDA     #TY_INT
-        STA     expr_type
         RTS
 :
         JSR     parse_term
@@ -3577,8 +3826,10 @@ parse_simple_expr:
         PLA
         CMP     #TY_SET
         BEQ     @add_set
+        JSR     coerce_binary_numeric_types
+        PHA
         JSR     emit_ADI
-        LDA     #TY_INT
+        PLA
         STA     expr_type
         BRA     @addop
 @add_set:
@@ -3594,8 +3845,10 @@ parse_simple_expr:
         PLA
         CMP     #TY_SET
         BEQ     @sub_set
+        JSR     coerce_binary_numeric_types
+        PHA
         JSR     emit_SBI
-        LDA     #TY_INT
+        PLA
         STA     expr_type
         BRA     @addop
 @sub_set:
@@ -3621,6 +3874,8 @@ parse_term:
         LDA     tok_type
         CMP     #TOK_STAR
         BEQ     @mul
+        CMP     #TOK_SLASH
+        BEQ     @rdiv
         CMP     #TOK_DIV
         BEQ     @div
         CMP     #TOK_DIV_KW
@@ -3638,36 +3893,63 @@ parse_term:
         PLA
         CMP     #TY_SET
         BEQ     @mul_set
+        JSR     coerce_binary_numeric_types
+        CMP     #TY_REAL
+        BEQ     @mul_real
         JSR     emit_MPI
         LDA     #TY_INT
         STA     expr_type
-        BRA     @mulop
+        JMP     @mulop
+@mul_real:
+        JSR     emit_MPR
+        LDA     #TY_REAL
+        STA     expr_type
+        JMP     @mulop
 @mul_set:
         JSR     emit_LAND
         LDA     #TY_SET
         STA     expr_type
-        BRA     @mulop
-@div:
+        JMP     @mulop
+@rdiv:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_factor
+        PLA
+        JSR     coerce_binary_to_real
+        JSR     emit_DVR
+        LDA     #TY_REAL
+        STA     expr_type
+        JMP     @mulop
+@div:
+        LDA     expr_type
+        PHA
+        JSR     next_token
+        JSR     parse_factor
+        PLA
+        JSR     coerce_binary_to_int
         JSR     emit_DVI
         LDA     #TY_INT
         STA     expr_type
-        BRA     @mulop
+        JMP     @mulop
 @mod:
+        LDA     expr_type
+        PHA
         JSR     next_token
         JSR     parse_factor
+        PLA
+        JSR     coerce_binary_to_int
         JSR     emit_MOD
         LDA     #TY_INT
         STA     expr_type
-        BRA     @mulop
+        JMP     @mulop
 @and:
         JSR     next_token
         JSR     parse_factor
         JSR     emit_LAND
         LDA     #TY_BOOL
         STA     expr_type
-        BRA     @mulop
+        JMP     @mulop
 
 TOK_DIV_KW      = TOK_DIV       ; alias
 
@@ -3907,6 +4189,10 @@ parse_factor:
         BNE     :+
         JMP     @int_lit
 :
+        CMP     #TOK_REAL
+        BNE     :+
+        JMP     @real_lit
+:
         CMP     #TOK_CHAR
         BNE     :+
         JMP     @char_lit
@@ -3958,6 +4244,16 @@ parse_factor:
         JSR     emit_LDCW
         JSR     next_token
         LDA     #TY_INT
+        STA     expr_type
+        RTS
+
+@real_lit:
+        LDA     tok_ival_hi
+        STA     scratch
+        LDA     tok_ival_lo
+        JSR     emit_LDCW
+        JSR     next_token
+        LDA     #TY_REAL
         STA     expr_type
         RTS
 
@@ -4148,6 +4444,15 @@ parse_factor:
         LDY     #23
         LDA     (tmp3),y
         STA     fcall_lsize     ; full local-area size for MRKSTK
+        LDY     #24
+        LDX     #0
+@copy_fptypes:
+        LDA     (tmp3),y
+        STA     fcall_param_types,x
+        INY
+        INX
+        CPX     #8
+        BCC     @copy_fptypes
         LDY     #21
         LDA     (tmp3),y
         PHA                     ; pcount (deepest)
@@ -4233,6 +4538,8 @@ parse_factor:
         JSR     emit_LDA_L
 @arr_rhs_index:
 ; parse [index], emit INDEX, LDIND
+        LDA     fcall_vmask
+        PHA
         LDA     tok_type
         CMP     #TOK_LBRACK
         BNE     :+
@@ -4247,7 +4554,7 @@ parse_factor:
         LDA     #2
         JSR     emit_INDEX
         JSR     emit_LDIND
-        LDA     #TY_INT
+        PLA
         STA     expr_type
         RTS
 @rec_rhs_local:
@@ -4366,11 +4673,20 @@ parse_factor:
         JSR     emit_LDCW
         RTS
 @sym_func_call:
-; SYM_FUNC: emit MRKSTK + arg-stores + CALL.  Result is left on TOS
-; by op_RETF.  expr_type is the function's return type (already set).
+; SYM_FUNC: emit args, then MRKA + CALL.  Result is left on TOS by op_RETF.
+; expr_type is the function's return type (already set).
 ; X=off lo, scratch=off hi, top of 6502 stack = pcount.
-; NOTE: not nest-safe — calling a function inside another function
-; call's argument list will clobber fcall_*.  TODO: fix later.
+; NOTE: still not nest-safe inside one arg expression — fcall_pcount and
+; fcall_vmask live in zero-page across the loop and a nested function-call
+; arg would clobber them.  Pre-existing limitation; tracked as TODO.
+;
+; Args are evaluated BEFORE MRKA so LDL/LDA_L inside arg expressions
+; addresses the caller's MP (not the callee's).  MRKA then shifts the
+; pcount pushed values up by AR_LOCALS into local slots 0..pcount-1.
+;
+; lsize_extra is computed up-front and stashed on the 6502 hw stack so
+; record-field lookup inside an arg (which scratches fcall_lsize) cannot
+; corrupt the MRKA operand we emit at the end.
         STX     fcall_lo
         LDA     scratch
         STA     fcall_hi
@@ -4378,10 +4694,13 @@ parse_factor:
         STA     fcall_type      ; preserve across parse_expression
         PLA                     ; pcount
         STA     fcall_pcount
-; emit MRKSTK <full local-area size> (params + body locals).
-; fcall_lsize was captured at @sym_ok from entry offset 23.
+; Compute lsize_extra now (before any parse_expression call may clobber
+; fcall_lsize) and push it onto the 6502 hw stack.
         LDA     fcall_lsize
-        JSR     emit_MRKSTK
+        SEC
+        SBC     fcall_pcount
+        SBC     fcall_pcount
+        PHA                     ; saved lsize_extra
         LDA     fcall_pcount
         BEQ     @fc_no_args
 ; expect '('
@@ -4412,10 +4731,10 @@ parse_factor:
         PHX
         JSR     parse_expression
         PLX
+        LDA     fcall_param_types,x
+        JSR     coerce_expr_to_target_type
 @fc_arg_stored:
-        TXA
-        ASL
-        JSR     emit_STL        ; store popped value (or address) into local slot X
+; Value (or address for VAR) left on stack — MRKA gathers them later.
         INX
         CPX     fcall_pcount
         BCS     @fc_done_args
@@ -4441,6 +4760,13 @@ parse_factor:
         BNE     @fc_emit_call
         JSR     next_token
 @fc_emit_call:
+; Emit MRKA <pcount> <lsize_extra>; pop saved lsize_extra from hw stack
+; (fcall_lsize may have been clobbered by record-field lookup in args).
+        PLA
+        TAX                     ; X = saved lsize_extra
+        LDA     fcall_pcount    ; A = pcount
+        JSR     emit_MRKA
+; Emit CALL.
         LDA     fcall_lo
         ORA     fcall_hi
         BNE     :+
