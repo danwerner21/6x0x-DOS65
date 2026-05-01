@@ -49,7 +49,8 @@ Implement standard Pascal sufficient for real programs:
 - Pointer types (heap allocation via `NEW`/`DISPOSE`)
 
 ### Expressions
-- Integer: `+`, `−`, `*`, `DIV`, `MOD`
+- Integer: `+`, `-`, `*`, `DIV`, `MOD`
+- `REAL`: `+`, `-`, `*`, `/` with automatic `INTEGER`/`REAL` coercions
 - Boolean: `AND`, `OR`, `NOT`
 - Comparison: `=`, `<>`, `<`, `>`, `<=`, `>=`
 - String concatenation: `+` (on strings)
@@ -74,10 +75,8 @@ Implement standard Pascal sufficient for real programs:
 - `PROCEDURE` and `FUNCTION` (nested, with lexical scoping)
 - `BEGIN … END.` main body
 
-### Phase 2 additions (future)
-- `REAL` (floating point via software)
+### Deferred additions
 - Typed file I/O (`FILE OF X`, random-access records)
-
 ---
 
 ## P-Code Instruction Set
@@ -376,6 +375,7 @@ End-to-end compilation and execution verified for:
 - `T30U`: standalone `UNIT ... INTERFACE ... IMPLEMENTATION ... END.` source form
 - `T30V`/`T31`/`T31A`: `USES` cross-unit imports, including a unit's `IMPLEMENTATION` importing another unit
 - `T32`/`T32A`/`T32B`/`T32C`: calls passing caller-local args (covers the `OP_MRKA` arg-gathering fix)
+- `T33`/`T33A`/`T33B`/`T33C`/`T33D`/`T33E`: `REAL` arithmetic, coercions, functions, and `TEXT` file I/O
 
 ---
 
@@ -482,7 +482,12 @@ Implementation notes:
     `tests/t32a.pas` (proc-of-proc with local arg + arithmetic),
     `tests/t32b.pas` (`VAR` by-ref param of a caller-local), `tests/t32c.pas`
     (callee with body locals beyond params, exercising non-zero `lsize_extra`).
-- `REAL` type (future — 16.16 fixed-point or software float)
+- ✅ `REAL` type (v1: signed fixed-point, scale 100 / two decimal places)
+  - New type `TY_REAL` ($0A), decimal literal token `TOK_REAL`, and runtime opcodes `OP_MPR`/`OP_DVR`/`OP_WRITR`/`OP_READR`/`FWRR`/`FRDR` for arithmetic and console / `TEXT` file I/O
+  - Decimal literals compile to scaled 16-bit fixed-point integers; `/` yields `REAL`, while `DIV` / `MOD` remain integer-only
+  - Mixed `INTEGER`/`REAL` assignments, parameter passing, comparisons, and arithmetic coerce automatically through the parser's numeric-coercion path
+  - `WRITE` / `WRITELN` and `READ` / `READLN` support `REAL` for both console and `TEXT` files
+  - Tests: `tests/t33.pas` (literals + arithmetic), `tests/t33a.pas` (functions + mixed compare/subtract), `tests/t33b.pas` (`TEXT` file write/read), `tests/t33c.pas` (literal console write), `tests/t33d.pas` (var assignment + write), `tests/t33e.pas` (mixed subtract in functions)
 - Random-access typed files (`FILE OF X`) — not planned
 
 ---
@@ -490,11 +495,9 @@ Implementation notes:
 ## Remaining Feature Todo
 
 Implemented already: core Pascal flow control, nested procedures/functions,
-arrays, records, strings, pointer allocation, console I/O, and `TEXT` file
-I/O including `APPEND`.
+arrays, records, strings, pointer allocation, `REAL`, console I/O, and `TEXT`
+file I/O including `APPEND`.
 
-Still open:
-- `REAL` (future; likely 16.16 fixed-point or software float)
 
 
 ---
@@ -520,7 +523,6 @@ as in CP/M). The compiler forces extension to `.PAS`; the runtime forces `.PCD`.
 - Sequential 128-byte sector reads/writes via FCB in `$0900` area
 
 ---
-
 ## Key Design Constraints
 
 | Constraint | Impact |

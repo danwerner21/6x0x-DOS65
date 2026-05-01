@@ -2029,9 +2029,15 @@ op_SWAP:
         LDA     scratch
         STA     tmp2+1
         JSR     pm_pop
-        JSR     pm_push
+        STA     tmp1
+        LDA     scratch
+        STA     tmp1+1
         LDA     tmp2
         LDX     tmp2+1
+        STX     scratch
+        JSR     pm_push
+        LDA     tmp1
+        LDX     tmp1+1
         STX     scratch
         JSR     pm_push
         JMP     prun_loop
@@ -3031,8 +3037,8 @@ op_FRDR:
         LDA     scratch
         STA     tmp1+1
         LDA     #0
-        STA     tmp2
-        STA     tmp2+1
+        STA     tmp0
+        STA     tmp0+1
         STA     frr_neg
         STA     frr_frac_count
         STA     frr_seen_dot
@@ -3091,10 +3097,18 @@ op_FRDR:
         CMP     #2
         BCS     @frr_skip_digit
 @frr_accum:
+        LDA     tmp0
+        STA     tmp2
+        LDA     tmp0+1
+        STA     tmp2+1
         LDA     frr_cur
         SEC
         SBC     #'0'
         JSR     accum_digit_tmp2
+        LDA     tmp2
+        STA     tmp0
+        LDA     tmp2+1
+        STA     tmp0+1
         LDA     frr_seen_dot
         BEQ     @frr_after_digit
         INC     frr_frac_count
@@ -3109,23 +3123,47 @@ op_FRDR:
 @frr_scale:
         LDA     frr_frac_count
         BNE     @frr_chk_frac1
+        LDA     tmp0
+        STA     tmp2
+        LDA     tmp0+1
+        STA     tmp2+1
         JSR     mul_tmp2_by10
         JSR     mul_tmp2_by10
+        LDA     tmp2
+        STA     tmp0
+        LDA     tmp2+1
+        STA     tmp0+1
         BRA     @frr_apply
 @frr_chk_frac1:
         CMP     #1
         BNE     @frr_apply
+        LDA     tmp0
+        STA     tmp2
+        LDA     tmp0+1
+        STA     tmp2+1
         JSR     mul_tmp2_by10
+        LDA     tmp2
+        STA     tmp0
+        LDA     tmp2+1
+        STA     tmp0+1
 @frr_apply:
         LDA     frr_neg
         BEQ     @frr_store
+        LDA     tmp0
+        STA     tmp2
+        LDA     tmp0+1
+        STA     tmp2+1
         JSR     neg_tmp2
+        LDA     tmp2
+        STA     tmp0
+        LDA     tmp2+1
+        STA     tmp0+1
 @frr_store:
         LDY     #0
-        LDA     tmp2
+        LDA     tmp0
         STA     (tmp3),y
         INY
-        LDA     tmp2+1
+        LDA     tmp0+1
         STA     (tmp3),y
         JMP     prun_loop
 

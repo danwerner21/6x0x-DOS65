@@ -56,6 +56,8 @@ field_nested_first:
         .RES    32
 field_nested_count:
         .RES    32
+field_ptr_meta:
+        .RES    32
 
 ; Separate buffer for collecting field names inside a RECORD declaration.
 ; Distinct from var_name_buf so inline `VAR x: RECORD ... END` doesn't
@@ -89,6 +91,28 @@ field_depth:
 field_lookup_depth:
         .RES    1
 
+; Pointer-type metadata table. Each pointer type remembers the pointee
+; type, its allocation size for NEW, and a few aux bytes that are
+; interpreted by pointee type:
+;   TY_RECORD -> aux0=first_field, aux1=field_count
+;   TY_ARRAY  -> aux0=elem_type,   aux1=elem_size (currently always 2)
+;   TY_PTR    -> aux0=child ptr-meta index
+PTR_META_MAX = 32
+ptr_meta_count:
+        .RES    1
+ptr_meta_type:
+        .RES    PTR_META_MAX
+ptr_meta_size_lo:
+        .RES    PTR_META_MAX
+ptr_meta_size_hi:
+        .RES    PTR_META_MAX
+ptr_meta_aux0:
+        .RES    PTR_META_MAX
+ptr_meta_aux1:
+        .RES    PTR_META_MAX
+ptr_meta_aux2:
+        .RES    PTR_META_MAX
+
 ; Active WITH contexts. Each entry stores a hidden global word that holds
 ; the selected record's runtime base address, plus that record's first-field
 ; index/count so unqualified identifiers can resolve as fields.
@@ -110,6 +134,8 @@ expr_record_first:
         .RES    1
 expr_record_count:
         .RES    1
+expr_ptr_meta:
+        .RES    1
 
 ; Scratch filled by with_lookup_field before parse_with_field_{load,assign}.
 with_lookup_off:
@@ -123,6 +149,8 @@ with_lookup_base_hi:
 with_lookup_first:
         .RES    1
 with_lookup_count:
+        .RES    1
+with_lookup_ptrmeta:
         .RES    1
 
 ; Top-level source mode: 0=plain program, 1=UNIT interface, 2=UNIT
@@ -558,8 +586,9 @@ compiler_init:
         STA     uses_name_count
         STA     used_unit_count
         STA     src_ctx_depth
-; main entry-point patch slot — sentinel hi byte = $FF means "none/done"
         LDA     #$FF
+        STA     expr_ptr_meta
+; main entry-point patch slot — sentinel hi byte = $FF means "none/done"
         STA     main_jmp_patch+1
         STA     body_chain_patch+1
 ; init lexer and prime first token

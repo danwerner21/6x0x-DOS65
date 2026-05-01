@@ -52,6 +52,7 @@ symtab_init:
         STA     symtab_count+1
         STA     field_table_count
         STA     field_depth
+        STA     ptr_meta_count
         RTS
 
 ; ---------------------------------------------------------------------------

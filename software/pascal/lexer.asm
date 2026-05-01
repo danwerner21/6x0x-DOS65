@@ -95,6 +95,8 @@ record_first_field:
         .RES    1               ; index of first field in field_table
 record_field_count:
         .RES    1               ; number of fields in this record
+ptr_meta_cur:
+        .RES    1               ; current pointer-type metadata index
 
 ; Procedure-declaration scratch (parse_proc_decl; not nestable in this build).
 proc_param_count:
@@ -134,6 +136,8 @@ field_chain_type:
 field_chain_first:
         .RES    1
 field_chain_count:
+        .RES    1
+field_chain_ptrmeta:
         .RES    1
 
 ; SET literal scratch (compile-time only). SET values are 16-bit masks over

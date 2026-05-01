@@ -855,6 +855,101 @@ used_unit_slot_ptr:
         STA     tmp2+1
         RTS
 
+; ptr_meta_alloc — create one pointer-type metadata entry from the most
+; recently parsed pointee type. Input A = pointee TY_*.
+; For pointee TY_RECORD / TY_ARRAY, the current record_* / array_* globals
+; are consulted for size and aux metadata.
+; Returns: ptr_meta_cur = allocated metadata index, or $FF if full.
+ptr_meta_alloc:
+        PHA
+        LDX     ptr_meta_count
+        CPX     #PTR_META_MAX
+        BCC     :+
+        PLA
+        LDA     #$FF
+        STA     ptr_meta_cur
+        RTS
+:       PLA
+        STA     ptr_meta_type,x
+        CMP     #TY_PTR
+        BEQ     @pma_ptr
+        CMP     #TY_RECORD
+        BEQ     @pma_record
+        CMP     #TY_ARRAY
+        BEQ     @pma_array
+        CMP     #TY_TEXT
+        BEQ     @pma_text
+@pma_scalar:
+        LDA     #2
+        STA     ptr_meta_size_lo,x
+        LDA     #0
+        STA     ptr_meta_size_hi,x
+        STA     ptr_meta_aux0,x
+        STA     ptr_meta_aux1,x
+        STA     ptr_meta_aux2,x
+        JMP     @pma_done
+@pma_text:
+        LDA     #168
+        STA     ptr_meta_size_lo,x
+        LDA     #0
+        STA     ptr_meta_size_hi,x
+        STA     ptr_meta_aux0,x
+        STA     ptr_meta_aux1,x
+        STA     ptr_meta_aux2,x
+        JMP     @pma_done
+@pma_ptr:
+        LDA     #2
+        STA     ptr_meta_size_lo,x
+        LDA     #0
+        STA     ptr_meta_size_hi,x
+        LDA     ptr_meta_cur
+        STA     ptr_meta_aux0,x
+        LDA     #0
+        STA     ptr_meta_aux1,x
+        STA     ptr_meta_aux2,x
+        JMP     @pma_done
+@pma_record:
+        LDA     record_size
+        STA     ptr_meta_size_lo,x
+        LDA     record_size+1
+        STA     ptr_meta_size_hi,x
+        LDA     record_first_field
+        STA     ptr_meta_aux0,x
+        LDA     record_field_count
+        STA     ptr_meta_aux1,x
+        LDA     #0
+        STA     ptr_meta_aux2,x
+        JMP     @pma_done
+@pma_array:
+; size = (hi - lo + 1) * 2  (all array elements are word-sized here)
+        LDA     array_hi
+        SEC
+        SBC     array_lo
+        STA     tmp0
+        LDA     array_hi+1
+        SBC     array_lo+1
+        STA     tmp0+1
+        INC     tmp0
+        BNE     :+
+        INC     tmp0+1
+:       ASL     tmp0
+        ROL     tmp0+1
+        LDA     tmp0
+        STA     ptr_meta_size_lo,x
+        LDA     tmp0+1
+        STA     ptr_meta_size_hi,x
+        LDA     array_elem_ty
+        STA     ptr_meta_aux0,x
+        LDA     #2
+        STA     ptr_meta_aux1,x
+        LDA     #0
+        STA     ptr_meta_aux2,x
+@pma_done:
+        TXA
+        STA     ptr_meta_cur
+        INC     ptr_meta_count
+        RTS
+
 ; store_proc_param_type — record the current parameter's type code in the
 ; owning proc/func entry at byte 24+proc_param_count (up to 8 params).
 store_proc_param_type:
@@ -2892,8 +2987,12 @@ parse_assign_or_call:
         PHX
         JSR     parse_expression
         PLX
+        TXA
+        PHA
         LDA     sym_param_types,x
         JSR     coerce_expr_to_target_type
+        PLA
+        TAX
 @arg_stored:
 ; Value (or address for VAR) left on stack — MRKA gathers later.
         INX
@@ -3199,18 +3298,18 @@ parse_if:
 ; (need to dig under the UJP entries on the stack)
 ; stack top → bottom: UJP_hi, UJP_lo, FJP_hi, FJP_lo
         PLA                     ; UJP hi
-        TAX
+        STA     tmp1+1
         PLA                     ; UJP lo
-        TAY
+        STA     tmp1
         PLA                     ; FJP hi
         STA     tmp2+1
         PLA                     ; FJP lo
         STA     tmp2
         JSR     patch_jump      ; patch FJP → start of else branch
 ; push UJP patch addr back for after-else patching
-        TYA                     ; UJP lo
+        LDA     tmp1            ; UJP lo
         PHA
-        TXA                     ; UJP hi
+        LDA     tmp1+1          ; UJP hi
         PHA
         JSR     next_token      ; consume ELSE
         JSR     parse_statement
@@ -4731,8 +4830,12 @@ parse_factor:
         PHX
         JSR     parse_expression
         PLX
+        TXA
+        PHA
         LDA     fcall_param_types,x
         JSR     coerce_expr_to_target_type
+        PLA
+        TAX
 @fc_arg_stored:
 ; Value (or address for VAR) left on stack — MRKA gathers them later.
         INX
