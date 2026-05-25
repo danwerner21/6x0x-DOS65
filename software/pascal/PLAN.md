@@ -494,10 +494,7 @@ Implementation notes:
 
 ## Remaining Feature Todo
 
-Implemented already: core Pascal flow control, nested procedures/functions,
-arrays, records, strings, pointer allocation, `REAL`, console I/O, and `TEXT`
-file I/O including `APPEND`.
-
+* NONE
 
 
 ---
