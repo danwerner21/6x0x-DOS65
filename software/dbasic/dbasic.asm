@@ -52,6 +52,10 @@ BASICBEGIN:
         STA     PEMVEC
         LDA     $0105
         STA     PEMVEC+1
+        .IFNDEF  DUODYNE
+        JSR     psginit
+        JSR     clrpsg
+        .ENDIF
 
         .IFDEF  MEMORYMAPPEDSCREEN
         LDA     #0

@@ -7,12 +7,9 @@ This project implements a two-component Pascal toolchain for the PC6502 running 
 1. **PASCAL.COM** — Pascal compiler: reads `.PAS` source → emits `.PCD` p-code bytecode
 2. **PRUN.COM** — P-code runtime engine: reads `.PCD` → interprets/executes on the 6502
 
-Both components are written in 6502 assembly (ca65), built with ld65, and distributed as
-standard DOS/65 `.COM` files loaded at `$0800`.
+Both components are written in 6502 assembly (ca65), built with ld65, and distributed as standard DOS/65 `.COM` files loaded at `$0800`.
 
-The design is inspired by the UCSD Pascal p-System (1978), which successfully ran Pascal
-on 6502 systems (Apple II, etc.) with 16–64 KB RAM. We implement a **simplified subset**
-suitable for the DOS/65 memory model and the educational/retro context.
+The design is inspired by the UCSD Pascal p-System (1978), which successfully ran Pascal on 6502 systems (Apple II, etc.) with 16–64 KB RAM. We implement a **simplified subset** suitable for the DOS/65 memory model and the educational/retro context.
 
 ---
 
@@ -29,9 +26,7 @@ suitable for the DOS/65 memory model and the educational/retro context.
 - Users can distribute `.PCD` files and run them without recompiling.
 - Mirrors the original UCSD p-System model.
 
-**Alternative considered:** Native-code compiler (Pascal → 6502 machine code). Rejected
-because it is far harder to implement correctly, produces larger programs, and offers no
-portability advantage on a single-target system.
+**Alternative considered:** Native-code compiler (Pascal → 6502 machine code). Rejected because it is far harder to implement correctly, produces larger programs, and offers no portability advantage on a single-target system.
 
 ---
 
@@ -81,8 +76,7 @@ Implement standard Pascal sufficient for real programs:
 
 ## P-Code Instruction Set
 
-The p-machine is a **stack-based virtual machine**. All operands live on a value stack;
-instructions pop inputs and push results.
+The p-machine is a **stack-based virtual machine**. All operands live on a value stack; instructions pop inputs and push results.
 
 ### Machine Registers (implemented in zero page)
 ```

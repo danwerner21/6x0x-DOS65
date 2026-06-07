@@ -2,25 +2,12 @@
         .IFNDEF  DUODYNE
 .pc02
 
-VIA_BASE        = $E1E0
-via1regb        = VIA_BASE+0         ; Register
-via1rega        = VIA_BASE+1         ; Register
-via1ddrb        = VIA_BASE+2         ; Register
-via1ddra        = VIA_BASE+3         ; Register
-via1t1cl        = VIA_BASE+4         ; Register
-via1t1ch        = VIA_BASE+5         ; Register
-via1t1ll        = VIA_BASE+6         ; Register
-via1t1lh        = VIA_BASE+7         ; Register
-via1t2cl        = VIA_BASE+8         ; Register
-via1t2ch        = VIA_BASE+9         ; Register
-via1sr          = VIA_BASE+$A         ; Register
-via1acr         = VIA_BASE+$B         ; Register
-via1pcr         = VIA_BASE+$C         ; Register
-via1ifr         = VIA_BASE+$D         ; Register
-via1ier         = VIA_BASE+$E         ; Register
-via1ora         = VIA_BASE+$F         ; Register
+PPI_BASE        = $E230
 
-
+ppiPortA        = PPI_BASE+0         ; Register
+ppiPortB        = PPI_BASE+1         ; Register
+ppiPortC        = PPI_BASE+2         ; Register
+ppiControl      = PPI_BASE+3         ; Register
 
 ;___SOUND__________________________________________________
 ;
@@ -28,7 +15,6 @@ via1ora         = VIA_BASE+$F         ; Register
 ;
 ;  TAKES TWO PARAMETERS CHANNEL,FREQUENCY
 ;
-; THIS IS NATIVE '816 CODE
 ;__________________________________________________________
 LAB_SOUND:
         JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X (CHANNEL)
@@ -57,7 +43,6 @@ LAB_SOUND:
 ;
 ;  TAKES TWO PARAMETERS CHANNEL,VOLUME
 ;
-; THIS IS NATIVE '816 CODE
 ;__________________________________________________________
 LAB_VOLUME:
         JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X (CHANNEL)
@@ -81,7 +66,6 @@ LAB_VOLUME:
 ;
 ;  TAKES TWO PARAMETERS VOICE, ENVELOPE
 ;
-; THIS IS NATIVE '816 CODE
 ;__________________________________________________________
 LAB_VOICE:
         JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X (CHANNEL)
@@ -113,7 +97,6 @@ LAB_VOICE:
 ;
 ;  TAKES TWO PARAMETERS CHANNEL,FREQUENCY
 ;
-; THIS IS NATIVE '816 CODE
 ;__________________________________________________________
 LAB_NOISE:
         JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X (CHANNEL)
@@ -162,7 +145,6 @@ NOISE_3:
 ;
 ;  TAKES ONE PARAMETER CHANNEL
 ;
-; THIS IS NATIVE '816 CODE
 ;__________________________________________________________
 LAB_TONE:
         JSR     LAB_GTBY        ; GET THE FIRST PARAMETER, RETURN IN X (CHANNEL)
@@ -202,10 +184,9 @@ TONE_3:
 ;
 ;  TAKES ONE PARAMETERS JOYSTICK#, RETURNS STATUS
 ;
-; THIS IS NATIVE '816 CODE
 ;__________________________________________________________
 LAB_CON:
-        JSR     LAB_F2FX        ; GET THE PARAMETER, RETURN IN X (controller#)
+        JSR     LAB_F2FX        ; save integer part of FAC1 in temporary integer
         LDA     <Itempl
         AND     #$01
         CLC
@@ -218,79 +199,69 @@ LAB_CON:
 
 ;___utility functions____________________________________________
 psginit:
-        LDA     #%10011100
-        STA     via1ddra
+        LDA     #%10000000
+        STA     ppiControl
         LDA     #%00010000
-        STA     via1rega
-        LDA     #$FF
-        STA     via1ddrb
+        STA     ppiPortC
         LDA     #$00
-        STA     via1regb
+        STA     ppiPortB
         RTS
         JSR     clrpsg
-
         LDA     #7
         LDY     #$3F
         JSR     psgwr
         RTS
 
 psgrd:
-        STA     via1regb      ; select register
+        STA     ppiPortB      ; select register
         LDA     #%00011100      ; latch address
-        STA     via1rega
-
-        STA     via1rega
-        STA     via1rega
+        STA     ppiPortC
+        STA     ppiPortC
+        STA     ppiPortC
 
         LDA     #%00010000      ; inact
-        STA     via1rega
+        STA     ppiPortC
+        STA     ppiPortC
 
-        STA     via1rega
-
-        LDA     #$00
-        STA     via1ddrb
+        LDA     #%10000010
+        STA     ppiControl
         LDA     #%00011000      ; latch data
-        STA     via1rega
+        STA     ppiPortC
+        STA     ppiPortC
+        STA     ppiPortC
 
-        STA     via1rega
-        STA     via1rega
-
-        LDA     via1regb      ; get data
+        LDA     ppiPortB      ; get data
         TAY
-        LDA     #$FF
-        STA     via1ddrb
+        LDA     #%10000000
+        STA     ppiControl
         LDA     #%00010000      ; inact
-        STA     via1rega
+        STA     ppiPortC
         RTS
 
 
 psgwr:
-        STA     via1regb      ; select register
+        STA     ppiPortB      ; select register
         LDA     #%00011100      ; latch address
-        STA     via1rega
-
-        STA     via1rega
-        STA     via1rega
+        STA     ppiPortC
+        STA     ppiPortC
+        STA     ppiPortC
 
         LDA     #%00010000      ; inact
-        STA     via1rega
-
-        STA     via1rega
-        STA     via1rega
+        STA     ppiPortC
+        STA     ppiPortC
+        STA     ppiPortC
         TYA
-        STA     via1regb      ; store data
-
-        STA     via1regb      ; store data
-        STA     via1regb      ; store data
+        STA     ppiPortB      ; store data
+        STA     ppiPortB      ; store data
+        STA     ppiPortB      ; store data
 
         LDA     #%00010100      ; latch data
-        STA     via1rega
-
-        STA     via1rega
-        STA     via1rega
+        STA     ppiPortC
+        STA     ppiPortC
+        STA     ppiPortC
 
         LDA     #%00010000      ; inact
-        STA     via1rega
+        STA     ppiPortC
         RTS
 
 ;
@@ -303,8 +274,11 @@ clrpsg1:
         TXA
         JSR     psgwr           ; set register X to 0
         INX
-        CPX     #17
+        CPX     #16
         BNE     clrpsg1
+        LDA     #07
+        LDY     #%00111000
+        JSR     psgwr
         RTS
 
         .ELSE

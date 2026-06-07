@@ -38,8 +38,7 @@ The toolchain consists of two separate programs:
 | `PASCAL.COM` | Compiles a `.PAS` source file to a `.PCD` p-code bytecode file |
 | `PRUN.COM` | Loads and executes a `.PCD` file on the p-code virtual machine |
 
-Separating the compiler from the runtime allows each to use the full DOS/65 address space
-($0800–$B7DF, ~44 KB). You can distribute `.PCD` files and run them without recompiling.
+Separating the compiler from the runtime allows each to use the full DOS/65 address space ($0800–$B7DF, ~44 KB). You can distribute `.PCD` files and run them without recompiling.
 
 ### Supported Pascal Subset
 
@@ -122,11 +121,9 @@ BEGIN
 END.
 ```
 
-The `PROGRAM` header and the final `END.` (with a period) are required. Sections may appear in
-any order and may be repeated.
+The `PROGRAM` header and the final `END.` (with a period) are required. Sections may appear in any order and may be repeated.
 
-**Case sensitivity:** Keywords and identifiers are case-insensitive. `begin`, `BEGIN`, and `Begin`
-are all equivalent.
+**Case sensitivity:** Keywords and identifiers are case-insensitive. `begin`, `BEGIN`, and `Begin` are all equivalent.
 
 **Comments:** Use curly braces: `{ this is a comment }`. Comments may span multiple lines.
 
@@ -187,8 +184,7 @@ X := X * 2.0;
 WRITELN(X);           { prints 6.28 }
 ```
 
-`INTEGER` values are automatically coerced to `REAL` in mixed expressions. The `/` operator
-always produces a `REAL` result; use `DIV` for integer division.
+`INTEGER` values are automatically coerced to `REAL` in mixed expressions. The `/` operator always produces a `REAL` result; use `DIV` for integer division.
 
 #### ARRAY
 
@@ -244,8 +240,7 @@ END;
 
 #### SET
 
-A set of small integers. The current implementation supports element values in the range 0..15
-only; the value is stored as a 16-bit bitmask.
+A set of small integers. The current implementation supports element values in the range 0..15 only; the value is stored as a 16-bit bitmask.
 
 ```pascal
 TYPE
@@ -281,8 +276,7 @@ BEGIN
 END;
 ```
 
-The predefined constant `NIL` is a null pointer. Pointer types may point to any base type,
-including arrays and records.
+The predefined constant `NIL` is a null pointer. Pointer types may point to any base type, including arrays and records.
 
 #### TEXT
 
@@ -325,9 +319,7 @@ VAR
   P        : ^INTEGER;
 ```
 
-Variables declared at the top level (outside any procedure or function) are **global**. Variables
-declared inside a procedure or function are **local** to that scope and are not accessible outside
-it.
+Variables declared at the top level (outside any procedure or function) are **global**. Variables declared inside a procedure or function are **local** to that scope and are not accessible outside it.
 
 ---
 
@@ -341,7 +333,7 @@ From highest to lowest:
 |-------|-----------|-------|
 | 1 (highest) | unary `-`, `NOT` | |
 | 2 | `*`, `/`, `DIV`, `MOD`, `AND` | `*` on sets = intersection |
-| 3 | `+`, `-`, `OR` | `+` on strings = concat; `+`/`-` on sets = union/difference |
+| 3 | `+`, `-`, `OR` | `+` on strings = concat; `+`/`-` on sets = union/difference | 
 | 4 (lowest) | `=`, `<>`, `<`, `>`, `<=`, `>=`, `IN` | |
 
 Use parentheses to override precedence.
@@ -426,8 +418,7 @@ BEGIN
 END
 ```
 
-The semicolon is a **separator** between statements, not a terminator. No semicolon is needed
-before `END`, `ELSE`, or `UNTIL`.
+The semicolon is a **separator** between statements, not a terminator. No semicolon is needed before `END`, `ELSE`, or `UNTIL`.
 
 #### IF
 
@@ -440,8 +431,7 @@ ELSE
   statement;
 ```
 
-The `ELSE` branch is optional. In a chain of `IF`/`ELSE IF`, each `ELSE` binds to the nearest
-preceding `IF`.
+The `ELSE` branch is optional. In a chain of `IF`/`ELSE IF`, each `ELSE` binds to the nearest preceding `IF`.
 
 #### WHILE
 
@@ -449,8 +439,7 @@ preceding `IF`.
 WHILE condition DO statement;
 ```
 
-Evaluates `condition` before each iteration. If the condition is initially false, the body is
-never executed.
+Evaluates `condition` before each iteration. If the condition is initially false, the body is never executed.
 
 ```pascal
 WHILE I <= 10 DO BEGIN
@@ -477,10 +466,7 @@ FOR i := start TO end DO statement;
 FOR i := start DOWNTO end DO statement;
 ```
 
-The loop variable `i` must be an INTEGER. The loop body executes for each value from `start` to
-`end` inclusive. With `TO`, the variable increments by 1 each iteration; with `DOWNTO`, it
-decrements. If `start > end` (for `TO`) or `start < end` (for `DOWNTO`) the body is never
-executed.
+The loop variable `i` must be an INTEGER. The loop body executes for each value from `start` to `end` inclusive. With `TO`, the variable increments by 1 each iteration; with `DOWNTO`, it decrements. If `start > end` (for `TO`) or `start < end` (for `DOWNTO`) the body is never executed.
 
 **Note:** Do not modify the loop variable inside the body.
 
@@ -495,8 +481,7 @@ CASE expression OF
 END;
 ```
 
-`expression` must be INTEGER or CHAR. Each `value` must be a constant. If no case matches,
-execution continues after `END` (there is no `ELSE` branch).
+`expression` must be INTEGER or CHAR. Each `value` must be a constant. If no case matches, execution continues after `END` (there is no `ELSE` branch).
 
 #### WITH
 
@@ -548,8 +533,7 @@ BEGIN
 END;
 ```
 
-The return value is set by assigning to the function's own name inside the body. A function must
-assign its name at least once on every code path.
+The return value is set by assigning to the function's own name inside the body. A function must assign its name at least once on every code path.
 
 #### Parameters
 
@@ -562,8 +546,7 @@ BEGIN
 END;
 ```
 
-**VAR parameters** — the caller passes the address of the variable; changes inside the procedure
-affect the caller's variable:
+**VAR parameters** — the caller passes the address of the variable; changes inside the procedure affect the caller's variable:
 
 ```pascal
 PROCEDURE SWAP(VAR A, B : INTEGER);
@@ -580,8 +563,7 @@ types must be in separate groups.
 
 #### Nested Procedures
 
-Procedures and functions may be nested. A nested routine has access to all variables in its
-enclosing scopes (lexical/static scoping).
+Procedures and functions may be nested. A nested routine has access to all variables in its enclosing scopes (lexical/static scoping).
 
 ```pascal
 PROCEDURE OUTER;
@@ -601,15 +583,13 @@ END;
 
 #### Forward Declarations
 
-There are no forward declarations in Pascal/65. All identifiers must be declared before use.
-Mutually recursive procedures can be structured by declaring the inner one first.
+There are no forward declarations in Pascal/65. All identifiers must be declared before use. Mutually recursive procedures can be structured by declaring the inner one first.
 
 ---
 
 ### 3.7 Units and Modules
 
-Pascal/65 supports modular programming through **units**. A unit packages a set of declarations
-that can be imported by other programs or units.
+Pascal/65 supports modular programming through **units**. A unit packages a set of declarations that can be imported by other programs or units.
 
 #### Defining a Unit
 
@@ -641,8 +621,7 @@ END.
 
 - The `INTERFACE` section lists what is exported (visible to importers).
 - The `IMPLEMENTATION` section contains the actual bodies.
-- The optional `BEGIN...END` block at the end is initialization code that runs before the
-  main program.
+- The optional `BEGIN...END` block at the end is initialization code that runs before the main program.
 - Save the unit as `UnitName.PAS` (matching the unit name).
 
 #### Importing a Unit
@@ -655,15 +634,13 @@ BEGIN
 END.
 ```
 
-The `USES` clause must appear immediately after the `PROGRAM` (or `UNIT`) header, before other
-declarations. Multiple units may be listed:
+The `USES` clause must appear immediately after the `PROGRAM` (or `UNIT`) header, before other declarations. Multiple units may be listed:
 
 ```pascal
 USES MathLib, StringLib, IoLib;
 ```
 
-Units are compiled inline into the importing `.PCD` file. Each unit may itself have a `USES`
-clause to import other units. Circular imports are not supported.
+Units are compiled inline into the importing `.PCD` file. Each unit may itself have a `USES` clause to import other units. Circular imports are not supported.
 
 ---
 
@@ -715,8 +692,7 @@ NEW(p)      { allocate heap memory for the type that p points to; set p to addre
 DISPOSE(p)  { release heap memory pointed to by p }
 ```
 
-The current heap allocator is a simple bump allocator. `DISPOSE` is accepted by the compiler but
-does not actually reclaim memory.
+The current heap allocator is a simple bump allocator. `DISPOSE` is accepted by the compiler but does not actually reclaim memory.
 
 ---
 
@@ -764,8 +740,7 @@ END;
 CLOSE(F);
 ```
 
-`EOLN(F)` returns `TRUE` if the next character is a line ending (CR or LF) or the file is at EOF,
-without consuming the character.
+`EOLN(F)` returns `TRUE` if the next character is a line ending (CR or LF) or the file is at EOF, without consuming the character.
 
 ### Writing to a File
 
@@ -783,8 +758,7 @@ Supported types: `CHAR`, `INTEGER`, `REAL`, `BOOLEAN`, `STRING`.
 CLOSE(F);
 ```
 
-Always close a file after writing. Closing a write-mode file flushes the final sector and pads it
-with CTRL-Z (the DOS/65 EOF marker).
+Always close a file after writing. Closing a write-mode file flushes the final sector and pads it with CTRL-Z (the DOS/65 EOF marker).
 
 ### Complete File I/O Example
 
@@ -820,16 +794,12 @@ END.
 
 ### Language Restrictions
 
-- **No typed files.** `FILE OF T` (random-access typed files) is not implemented. Only sequential
-  `TEXT` files are supported.
+- **No typed files.** `FILE OF T` (random-access typed files) is not implemented. Only sequential `TEXT` files are supported.
 - **No forward declarations.** All symbols must be declared before use.
 - **Maximum 8 parameters** per procedure or function.
-- **SET elements 0..15 only.** Sets are stored as 16-bit bitmasks; element values above 15 are
-  not supported.
-- **REAL range is narrow.** Fixed-point REAL (scale 100) covers approximately −327.67 to 327.67
-  with exactly 2 decimal places. There is no floating-point support.
-- **No multidimensional arrays.** `ARRAY [1..N] OF ARRAY [1..M] OF T` works, but there is no
-  two-subscript syntax. Use a type alias for the inner array type.
+- **SET elements 0..15 only.** Sets are stored as 16-bit bitmasks; element values above 15 are not supported.
+- **REAL range is narrow.** Fixed-point REAL (scale 100) covers approximately −327.67 to 327.67 with exactly 2 decimal places. There is no floating-point support.
+- **No multidimensional arrays.** `ARRAY [1..N] OF ARRAY [1..M] OF T` works, but there is no two-subscript syntax. Use a type alias for the inner array type.
 - **No exception handling.** Runtime errors (e.g., division by zero) print a message and halt.
 - **No GOTO.** The `GOTO` statement is not implemented.
 
@@ -837,18 +807,15 @@ END.
 
 - **No bounds checking.** Array index out of bounds silently accesses wrong memory.
 - **No nil-pointer check.** Dereferencing `NIL` causes undefined behavior.
-- **Heap is not freed.** `DISPOSE` is a no-op; a program that allocates heavily will eventually
-  exhaust heap memory.
+- **Heap is not freed.** `DISPOSE` is a no-op; a program that allocates heavily will eventually exhaust heap memory.
 - **Stack overflow is not detected.** Deep recursion may silently corrupt data.
 
 ### Compiler Restrictions
 
 - **Identifier length:** up to 63 characters. Record field names: up to 12 characters.
 - **Maximum ~32 KB of p-code** per program (code buffer limit).
-- **Maximum ~6 KB symbol table** — very large programs with many globals or deeply nested scopes
-  may exceed this.
-- **Error recovery is basic.** After a syntax error, the compiler may emit spurious follow-on
-  errors.
+- **Maximum ~6 KB symbol table** — very large programs with many globals or deeply nested scopes may exceed this.
+- **Error recovery is basic.** After a syntax error, the compiler may emit spurious follow-on errors.
 
 ---
 
@@ -940,8 +907,7 @@ After a runtime error the program halts and returns to the DOS/65 command prompt
 | `$8000–$AFFF` | Heap (grows downward from `$B000`) |
 | `$B000–$B7DF` | Global variables and string constants |
 
-The p-machine value stack and heap grow toward each other. A program that uses very deep recursion
-(large stack) or heavy dynamic allocation (large heap) may cause them to collide.
+The p-machine value stack and heap grow toward each other. A program that uses very deep recursion (large stack) or heavy dynamic allocation (large heap) may cause them to collide.
 
 ---
 
@@ -961,10 +927,8 @@ The `.PCD` file produced by the compiler has a 12-byte header:
 | `$0C+n` | *m* | Global data initial values |
 | `$0C+n+m` | *p* | String constants pool |
 
-The file is padded to 128-byte sector boundaries (DOS/65 requirement). The runtime validates the
-magic bytes and version before executing.
+The file is padded to 128-byte sector boundaries (DOS/65 requirement). The runtime validates the magic bytes and version before executing.
 
 ---
 
-*Pascal/65 is inspired by the UCSD p-System. See PLAN.md for implementation notes and the full
-opcode reference.*
+*Pascal/65 is inspired by the UCSD p-System. See PLAN.md for implementation notes and the full opcode reference.*

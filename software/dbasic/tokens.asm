@@ -248,8 +248,9 @@ LAB_FTPM        = LAB_FTPL+$01
         .WORD   LAB_PYEAR-1     ; YEAR	        "
         .WORD   $0000           ; VARPTR()	none
         .WORD   LAB_LRMS-1      ; LEFT$()	process string expression
-        .WORD   LAB_LRMS-1      ; RIGHT$()		"
-        .WORD   LAB_LRMS-1      ; MID$()		"
+        .WORD   LAB_LRMS-1      ; RIGHT$()	"
+        .WORD   LAB_LRMS-1      ; MID$()	"
+        .WORD   LAB_PPFN-1      ; CON()		"
 
 ; action addresses for functions
 
@@ -677,10 +678,10 @@ LBB_TAN:
         .BYTE   "AN(",TK_TAN    ; TAN(
 LBB_THEN:
         .BYTE   "HEN",TK_THEN   ; THEN
-LBB_TO:
-        .BYTE   "O",TK_TO       ; TO
 LBB_TONE:
         .BYTE   "ONE",TK_TONE   ; TONE
+LBB_TO:
+        .BYTE   "O",TK_TO       ; TO
         .BYTE   $00
 TAB_ASCU:
 LBB_UCASES:
