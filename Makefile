@@ -9,6 +9,7 @@ all:
 	$(MAKE) --directory software/ZMachine
 	$(MAKE) --directory software/dbasic
 	$(MAKE) --directory software/speedscript
+	$(MAKE) --directory software/wyrmhold
 
 pretty:
 	$(MAKE) --directory 6x0x_firmware pretty
@@ -21,6 +22,7 @@ pretty:
 	$(MAKE) --directory software/ZMachine pretty
 	$(MAKE) --directory software/dbasic pretty
 	$(MAKE) --directory software/speedscript pretty
+	$(MAKE) --directory software/wyrmhold pretty
 
 clean:
 	$(MAKE) --directory 6x0x_firmware clean
@@ -33,3 +35,4 @@ clean:
 	$(MAKE) --directory software/ZMachine clean
 	$(MAKE) --directory software/dbasic clean
 	$(MAKE) --directory software/speedscript clean
+	$(MAKE) --directory software/wyrmhold clean
