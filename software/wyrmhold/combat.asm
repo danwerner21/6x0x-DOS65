@@ -36,7 +36,7 @@ mb_num:
         LDA     #0
         STA     numarg+1
 mb_num16:
-        ; find highest place
+; find highest place
         LDY     #8
 @find:
         LDA     numarg+1
@@ -104,18 +104,18 @@ mb_flush:
 ;----------------------------------------------------------------
 player_attacks_monster:
         STX     monidx
-        ; damage roll: base from weapon
+; damage roll: base from weapon
         LDX     pweapon
         LDA     wpn_power,X
         JSR     rng_d           ; 1..power
         STA     tmp0            ; damage
-        ; subtract from monster hp
+; subtract from monster hp
         LDX     monidx
         SEC
         LDA     mon_hp,X
         SBC     tmp0
         STA     mon_hp,X
-        ; build "You hit the Orc for N!"
+; build "You hit the Orc for N!"
         JSR     mb_reset
         LDA     #<c_youhit
         LDY     #>c_youhit
@@ -133,7 +133,7 @@ player_attacks_monster:
         JSR     mb_str
         JSR     mb_flush
         JSR     sfx_hit
-        ; dead?  (hp <= 0 i.e. hp was <= damage -> result negative/zero)
+; dead?  (hp <= 0 i.e. hp was <= damage -> result negative/zero)
         LDX     monidx
         LDA     mon_hp,X
         BEQ     @dead
@@ -150,7 +150,7 @@ monster_dies:
         LDX     monidx
         LDA     mon_type,X
         STA     tmp1            ; type
-        ; XP
+; XP
         TAY
         LDA     mtype_xp,Y
         CLC
@@ -159,7 +159,7 @@ monster_dies:
         LDA     pxp+1
         ADC     #0
         STA     pxp+1
-        ; gold drop 0..mtype_gold
+; gold drop 0..mtype_gold
         LDY     tmp1
         LDA     mtype_gold,Y
         BEQ     @nogold
@@ -171,7 +171,7 @@ monster_dies:
         ADC     #0
         STA     pgold+1
 @nogold:
-        ; message "The Orc dies!"
+; message "The Orc dies!"
         JSR     mb_reset
         LDA     #<c_the
         LDY     #>c_the
@@ -183,10 +183,10 @@ monster_dies:
         JSR     mb_str
         JSR     mb_flush
         JSR     sfx_killed
-        ; remove monster
+; remove monster
         LDX     monidx
         JSR     mon_kill
-        ; boss?
+; boss?
         LDA     tmp1
         CMP     #M_BOSS
         BNE     @lvl
@@ -200,12 +200,12 @@ monster_dies:
 ; check_levelup - if xp >= level*20, level up (raise maxhp, heal).
 ;----------------------------------------------------------------
 check_levelup:
-        ; threshold = plevel * 20  (8-bit is enough up to lvl 12)
+; threshold = plevel * 20  (8-bit is enough up to lvl 12)
         LDA     plevel
         STA     tmp0
         LDA     #0
         STA     tmp1
-        ; tmp = level*20 = level*16 + level*4
+; tmp = level*20 = level*16 + level*4
         LDA     plevel
         ASL     A
         ASL     A               ; *4
@@ -218,7 +218,7 @@ check_levelup:
         CLC
         ADC     tmp2
         STA     tmp2            ; level*20 (low); ignore >255 (caps fine)
-        ; compare xp (16-bit) >= tmp2
+; compare xp (16-bit) >= tmp2
         LDA     pxp+1
         BNE     @levelup        ; xp >= 256 definitely past early thresholds
         LDA     pxp
@@ -226,7 +226,7 @@ check_levelup:
         BCC     @done
 @levelup:
         INC     plevel
-        ; maxhp += 8, full heal
+; maxhp += 8, full heal
         LDA     pmaxhp
         CLC
         ADC     #8
@@ -258,7 +258,7 @@ monster_attacks_player:
         LDA     mtype_atk,Y
         JSR     rng_d           ; 1..atk
         STA     tmp0            ; raw damage
-        ; armor reduces by armor index (0..3)
+; armor reduces by armor index (0..3)
         LDX     parmor
         LDA     arm_def,X
         STA     tmp2
@@ -272,7 +272,7 @@ monster_attacks_player:
         LDA     #1
 @apply:
         STA     tmp0
-        ; subtract from phealth (floor at 0)
+; subtract from phealth (floor at 0)
         SEC
         LDA     phealth
         SBC     tmp0
@@ -280,7 +280,7 @@ monster_attacks_player:
         LDA     #0
 @sethp:
         STA     phealth
-        ; message "Orc hits you for N!"
+; message "Orc hits you for N!"
         JSR     mb_reset
         LDA     #<c_the
         LDY     #>c_the
@@ -318,30 +318,49 @@ arm_def:
 ;----------------------------------------------------------------
 mon_names:
         .WORD   mn_none, mn_orc, mn_snake, mn_skel, mn_thief, mn_troll, mn_boss
-mn_none:  .BYTE "thing",0
-mn_orc:   .BYTE "Orc",0
-mn_snake: .BYTE "Snake",0
-mn_skel:  .BYTE "Skeleton",0
-mn_thief: .BYTE "Thief",0
-mn_troll: .BYTE "Troll",0
-mn_boss:  .BYTE "Dragon",0
+mn_none:
+        .BYTE   "thing",0
+mn_orc:
+        .BYTE   "Orc",0
+mn_snake:
+        .BYTE   "Snake",0
+mn_skel:
+        .BYTE   "Skeleton",0
+mn_thief:
+        .BYTE   "Thief",0
+mn_troll:
+        .BYTE   "Troll",0
+mn_boss:
+        .BYTE   "Dragon",0
 
 ;----------------------------------------------------------------
 ; Combat / event message fragments
 ;----------------------------------------------------------------
-c_youhit:   .BYTE "You hit the ",0
-c_for:      .BYTE " for ",0
-c_bang:     .BYTE "!",0
-c_the:      .BYTE "The ",0
-c_dies:     .BYTE " dies!",0
-c_hitsyou:  .BYTE " hits you for ",0
-c_levelup:  .BYTE "Welcome to level ",0
+c_youhit:
+        .BYTE   "You hit the ",0
+c_for:
+        .BYTE   " for ",0
+c_bang:
+        .BYTE   "!",0
+c_the:
+        .BYTE   "The ",0
+c_dies:
+        .BYTE   " dies!",0
+c_hitsyou:
+        .BYTE   " hits you for ",0
+c_levelup:
+        .BYTE   "Welcome to level ",0
 
 ;----------------------------------------------------------------
 ; Map / event messages (shared with player.asm)
 ;----------------------------------------------------------------
-m_blocked:  .BYTE "Blocked!",0
-m_treasure: .BYTE "You found gold in a chest!",0
-m_town:     .BYTE "Town. Step on the door '+' (south) to leave. T at 'S' to shop.",0
-m_dungeon:  .BYTE "Dungeon! Step on the stairs '<' to climb back out.",0
-m_world:    .BYTE "You return to the land of Wyrmhold.",0
+m_blocked:
+        .BYTE   "Blocked!",0
+m_treasure:
+        .BYTE   "You found gold in a chest!",0
+m_town:
+        .BYTE   "Town. Step on the door '+' (south) to leave. T at 'S' to shop.",0
+m_dungeon:
+        .BYTE   "Dungeon! Step on the stairs '<' to climb back out.",0
+m_world:
+        .BYTE   "You return to the land of Wyrmhold.",0

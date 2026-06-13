@@ -23,7 +23,7 @@ use_action:
         PRINTMSG_MSG t_nothing
         RTS
 @intown:
-        ; is a shop tile adjacent (4-neighbour) or under us?
+; is a shop tile adjacent (4-neighbour) or under us?
         JSR     shop_adjacent
         BCS     @open
         PRINTMSG_MSG t_noshop
@@ -35,7 +35,7 @@ use_action:
 ; shop_adjacent - C=1 if a T_SHOP tile is at or next to the player.
 ;----------------------------------------------------------------
 shop_adjacent:
-        ; center
+; center
         LDA     px
         STA     tgtx
         LDA     py
@@ -44,7 +44,7 @@ shop_adjacent:
         LDA     tgttile
         CMP     #T_SHOP
         BEQ     @yes
-        ; up
+; up
         LDA     px
         STA     tgtx
         LDA     py
@@ -55,7 +55,7 @@ shop_adjacent:
         LDA     tgttile
         CMP     #T_SHOP
         BEQ     @yes
-        ; down
+; down
         LDA     py
         CLC
         ADC     #1
@@ -66,7 +66,7 @@ shop_adjacent:
         LDA     tgttile
         CMP     #T_SHOP
         BEQ     @yes
-        ; left
+; left
         LDA     py
         STA     tgty
         LDA     px
@@ -77,7 +77,7 @@ shop_adjacent:
         LDA     tgttile
         CMP     #T_SHOP
         BEQ     @yes
-        ; right
+; right
         LDA     px
         CLC
         ADC     #1
@@ -98,7 +98,7 @@ shop_adjacent:
 ;----------------------------------------------------------------
 shop_menu:
         JSR     sfx_door
-        ; start with the greeting as the status line
+; start with the greeting as the status line
         LDA     #<t_greet
         STA     shopstat
         LDA     #>t_greet
@@ -175,7 +175,7 @@ shop_menu:
         SETSTAT t_poor
         JMP     @redraw
 @leave:
-        ; fully restore the game screen, then report leaving
+; fully restore the game screen, then report leaving
         JSR     full_redraw
         JSR     msg_redraw
         PRINTMSG_MSG t_bye
@@ -187,7 +187,7 @@ shop_menu:
 ;----------------------------------------------------------------
 spend_gold:
         STA     tmp0
-        ; gold >= tmp0 ?  (16-bit gold, 8-bit cost)
+; gold >= tmp0 ?  (16-bit gold, 8-bit cost)
         LDA     pgold+1
         BNE     @ok             ; high byte nonzero -> plenty
         LDA     pgold
@@ -223,7 +223,7 @@ SHOP_W          = SHOP_X1-SHOP_X0+1
 ; direct VRAM, then text via firmware) so it is always clean.
 ;----------------------------------------------------------------
 shop_draw:
-        ; --- paint box background + border directly to VRAM ---
+; --- paint box background + border directly to VRAM ---
         JSR     vid_enter
         LDA     #SHOP_Y0
         STA     rowidx
@@ -232,7 +232,7 @@ shop_draw:
         JSR     rowbase
         LDY     #SHOP_X0
 @bgcol:
-        ; border on edges, blank interior
+; border on edges, blank interior
         CPY     #SHOP_X0
         BEQ     @edge
         CPY     #SHOP_X1
@@ -242,7 +242,7 @@ shop_draw:
         BEQ     @edge
         CMP     #SHOP_Y1
         BEQ     @edge
-        ; interior cell
+; interior cell
         LDA     #space
         STA     (vptr),Y
         LDA     #C_SHOPBG
@@ -263,7 +263,7 @@ shop_draw:
         BNE     @bgrow
         JSR     vid_exit
 
-        ; --- text lines via firmware (interior color C_SHOPBG) ---
+; --- text lines via firmware (interior color C_SHOPBG) ---
         LDA     #C_SHOPTTL
         STA     CURCOLOR
         LDX     #SHOP_X0+8
@@ -294,7 +294,7 @@ shop_draw:
         JSR     locate
         PRINTMSG t_optx
 
-        ; gold line
+; gold line
         LDX     #SHOP_X0+3
         LDY     #SHOP_Y0+8
         JSR     locate
@@ -304,7 +304,7 @@ shop_draw:
         COPY16  pgold, numarg
         JSR     displaynum
 
-        ; status line (last action / greeting)
+; status line (last action / greeting)
         LDX     #SHOP_X0+3
         LDY     #SHOP_Y1-1
         JSR     locate
@@ -318,21 +318,38 @@ shop_draw:
 ;----------------------------------------------------------------
 ; Shop strings
 ;----------------------------------------------------------------
-t_header: .BYTE "- SHOP -",0
-t_opt1:   .BYTE "1) Heal to full     10 gold",0
-t_opt2:   .BYTE "2) Provisions +100  20 gold",0
-t_opt3:   .BYTE "3) Better weapon    60 gold",0
-t_opt4:   .BYTE "4) Better armor     50 gold",0
-t_optx:   .BYTE "X) Leave the shop",0
-t_gold:   .BYTE "Thy gold: ",0
+t_header:
+        .BYTE   "- SHOP -",0
+t_opt1:
+        .BYTE   "1) Heal to full     10 gold",0
+t_opt2:
+        .BYTE   "2) Provisions +100  20 gold",0
+t_opt3:
+        .BYTE   "3) Better weapon    60 gold",0
+t_opt4:
+        .BYTE   "4) Better armor     50 gold",0
+t_optx:
+        .BYTE   "X) Leave the shop",0
+t_gold:
+        .BYTE   "Thy gold: ",0
 
-t_greet:   .BYTE "Welcome! What dost thou need?",0
-t_nothing: .BYTE "Nothing happens.",0
-t_noshop:  .BYTE "There is no shop here. Find the 'S' counter.",0
-t_healed:  .BYTE "Thou art fully healed.        ",0
-t_fed:     .BYTE "Provisions purchased.         ",0
-t_boughtw: .BYTE "A finer weapon is thine!      ",0
-t_boughta: .BYTE "Sturdier armor is thine!      ",0
-t_maxed:   .BYTE "Thou hast the finest already. ",0
-t_poor:    .BYTE "Thou canst not afford that.   ",0
-t_bye:     .BYTE "Come again, adventurer.",0
+t_greet:
+        .BYTE   "Welcome! What dost thou need?",0
+t_nothing:
+        .BYTE   "Nothing happens.",0
+t_noshop:
+        .BYTE   "There is no shop here. Find the 'S' counter.",0
+t_healed:
+        .BYTE   "Thou art fully healed.        ",0
+t_fed:
+        .BYTE   "Provisions purchased.         ",0
+t_boughtw:
+        .BYTE   "A finer weapon is thine!      ",0
+t_boughta:
+        .BYTE   "Sturdier armor is thine!      ",0
+t_maxed:
+        .BYTE   "Thou hast the finest already. ",0
+t_poor:
+        .BYTE   "Thou canst not afford that.   ",0
+t_bye:
+        .BYTE   "Come again, adventurer.",0

@@ -42,7 +42,7 @@ vid_exit:
 ;----------------------------------------------------------------
 rowbase:
         STA     tmp0            ; row
-        ; row*16 -> ptr2
+; row*16 -> ptr2
         LDA     #0
         STA     ptr2+1
         LDA     tmp0
@@ -54,7 +54,7 @@ rowbase:
         LDA     #0
         ROL     A
         STA     ptr2+1          ; high bits of row*16
-        ; row*64 -> ptr
+; row*64 -> ptr
         LDA     tmp0
         STA     ptr
         LDA     #0
@@ -71,7 +71,7 @@ rowbase:
         ROL     ptr+1           ; *32
         ASL     ptr
         ROL     ptr+1           ; *64
-        ; ptr = ptr + ptr2 = row*80
+; ptr = ptr + ptr2 = row*80
         CLC
         LDA     ptr
         ADC     ptr2
@@ -79,14 +79,14 @@ rowbase:
         LDA     ptr+1
         ADC     ptr2+1
         STA     ptr+1
-        ; vptr = $A000 + ptr
+; vptr = $A000 + ptr
         CLC
         LDA     ptr
         STA     vptr
         LDA     ptr+1
         ADC     #>VRAM_TEXT
         STA     vptr+1
-        ; cptr = $A800 + ptr
+; cptr = $A800 + ptr
         CLC
         LDA     ptr
         STA     cptr
@@ -166,7 +166,7 @@ draw_frame:
         JSR     cls_vram
         JSR     vid_enter
 
-        ; --- top title bar (row 0) ---
+; --- top title bar (row 0) ---
         LDA     #0
         STA     tmp1
         LDA     #0
@@ -178,12 +178,12 @@ draw_frame:
         LDA     #SCRW
         STA     cnt0
         JSR     fillrow_vram
-        ; centered title text written below via vid_exit path
+; centered title text written below via vid_exit path
 
-        ; --- viewport top/bottom horizontal borders ---
-        ; top border at row 0 already part of title; we frame the
-        ; viewport with vertical bars and a bottom rule at VPY0+VPH.
-        ; vertical left/right bars for viewport rows
+; --- viewport top/bottom horizontal borders ---
+; top border at row 0 already part of title; we frame the
+; viewport with vertical bars and a bottom rule at VPY0+VPH.
+; vertical left/right bars for viewport rows
         LDX     #VPY0
 @vbar:
         TXA
@@ -203,8 +203,8 @@ draw_frame:
         CPX     #(VPY0+VPH)
         BNE     @vbar
 
-        ; viewport bottom rule + message divider share row VPY0+VPH
-        ; (= MSGY0-1).  Draw it full-width.
+; viewport bottom rule + message divider share row VPY0+VPH
+; (= MSGY0-1).  Draw it full-width.
         LDA     #(VPY0+VPH)
         STA     tmp1
         LDA     #0
@@ -217,7 +217,7 @@ draw_frame:
         STA     cnt0
         JSR     fillrow_vram
 
-        ; panel header row (row 1) background highlight
+; panel header row (row 1) background highlight
         LDA     #1
         STA     tmp1
         LDA     #(VPW+2)
@@ -232,7 +232,7 @@ draw_frame:
 
         JSR     vid_exit
 
-        ; write the title bar + panel header text via firmware
+; write the title bar + panel header text via firmware
         LDX     #30
         LDY     #0
         JSR     locate
@@ -330,42 +330,42 @@ clear_panel_value:
 ;----------------------------------------------------------------
 render_view:
         JSR     vid_enter
-        ; vrow = 0..VPH-1
+; vrow = 0..VPH-1
         LDA     #0
         STA     rowidx          ; viewport row
 @vrow:
-        ; screen row = VPY0 + rowidx ; compute vptr/cptr base for it
+; screen row = VPY0 + rowidx ; compute vptr/cptr base for it
         CLC
         LDA     rowidx
         ADC     #VPY0
         JSR     rowbase         ; vptr/cptr -> start of that screen row
-        ; world y for this row = py - VPCY + rowidx
+; world y for this row = py - VPCY + rowidx
         SEC
         LDA     py
         SBC     #VPCY
         CLC
         ADC     rowidx
         STA     tgty
-        ; column loop
+; column loop
         LDA     #0
         STA     colidx          ; viewport column
 @vcol:
-        ; world x = px - VPCX + colidx
+; world x = px - VPCX + colidx
         SEC
         LDA     px
         SBC     #VPCX
         CLC
         ADC     colidx
         STA     tgtx
-        ; fetch tile (returns tgttile)
+; fetch tile (returns tgttile)
         JSR     tileat
-        ; look up glyph and color
+; look up glyph and color
         LDX     tgttile
         LDA     tile_glyph,X
         STA     tmp0            ; glyph
         LDA     tile_color,X
         STA     tmp1            ; color
-        ; write to VRAM at column VPX0+colidx
+; write to VRAM at column VPX0+colidx
         CLC
         LDA     colidx
         ADC     #VPX0
@@ -374,21 +374,21 @@ render_view:
         STA     (vptr),Y
         LDA     tmp1
         STA     (cptr),Y
-        ; next column
+; next column
         INC     colidx
         LDA     colidx
         CMP     #VPW
         BNE     @vcol
-        ; next row
+; next row
         INC     rowidx
         LDA     rowidx
         CMP     #VPH
         BNE     @vrow
 
-        ; --- overlay monsters that fall within the viewport ---
+; --- overlay monsters that fall within the viewport ---
         JSR     draw_monsters_vram
 
-        ; --- overlay the player at the fixed center cell ---
+; --- overlay the player at the fixed center cell ---
         LDA     #(VPY0+VPCY)
         JSR     rowbase
         LDY     #(VPX0+VPCX)
@@ -409,18 +409,18 @@ render_view:
 ;   because rowbase (called below) clobbers tmp0.
 ;----------------------------------------------------------------
 plot_view_cell:
-        ; vc = tgtx - (px - VPCX) = tgtx - px + VPCX
+; vc = tgtx - (px - VPCX) = tgtx - px + VPCX
         SEC
         LDA     tgtx
         SBC     px
         CLC
         ADC     #VPCX
-        ; must be 0..VPW-1
+; must be 0..VPW-1
         BMI     @no             ; (signed underflow check via N flag)
         CMP     #VPW
         BCS     @no
         STA     tmp2            ; viewport column
-        ; vr = tgty - py + VPCY
+; vr = tgty - py + VPCY
         SEC
         LDA     tgty
         SBC     py
@@ -430,7 +430,7 @@ plot_view_cell:
         CMP     #VPH
         BCS     @no
         STA     tmp3            ; viewport row
-        ; screen row = VPY0 + tmp3
+; screen row = VPY0 + tmp3
         CLC
         LDA     tmp3
         ADC     #VPY0

@@ -14,7 +14,7 @@
 ;______________________________________________________________________________
 
 VideoCharGenOffset = $A002
-VideoCharGenData   = $A003
+VideoCharGenData = $A003
 
 ;----------------------------------------------------------------
 ; cg_enter / cg_exit - map the character-generator RAM (page $F8)
@@ -47,7 +47,7 @@ chargen_init:
         LDA     (srcp),Y        ; char code
         BEQ     @done           ; 0 = end of table
         STA     VideoCharGenOffset
-        ; write the 8 scanline bytes
+; write the 8 scanline bytes
         LDY     #1
 @row:
         LDA     (srcp),Y
@@ -55,7 +55,7 @@ chargen_init:
         INY
         CPY     #9
         BNE     @row
-        ; advance srcp by 9 (1 code + 8 data)
+; advance srcp by 9 (1 code + 8 data)
         CLC
         LDA     srcp
         ADC     #9
@@ -76,7 +76,7 @@ glyphtab:
 ; Terrain is kept very light so the player and monsters read clearly
 ; against it.  The cell's background color fills the empty pixels.
 
-        ; grass: blank (color plane gives it its green)
+; grass: blank (color plane gives it its green)
         .BYTE   G_GRASS
         .BYTE   %00000000
         .BYTE   %00000000
@@ -87,7 +87,7 @@ glyphtab:
         .BYTE   %00000000
         .BYTE   %00000000
 
-        ; forest: a single small tree, lots of empty space
+; forest: a single small tree, lots of empty space
         .BYTE   G_FOREST
         .BYTE   %00000000
         .BYTE   %00011000
@@ -98,7 +98,7 @@ glyphtab:
         .BYTE   %00000000
         .BYTE   %00000000
 
-        ; mountain: a simple peak
+; mountain: a simple peak
         .BYTE   G_MOUNT
         .BYTE   %00000000
         .BYTE   %00000000
@@ -109,7 +109,7 @@ glyphtab:
         .BYTE   %00000000
         .BYTE   %00000000
 
-        ; water: a couple of gentle ripples
+; water: a couple of gentle ripples
         .BYTE   G_WATER
         .BYTE   %00000000
         .BYTE   %00000000
@@ -120,7 +120,7 @@ glyphtab:
         .BYTE   %00000000
         .BYTE   %00000000
 
-        ; town: one tidy house
+; town: one tidy house
         .BYTE   G_TOWN
         .BYTE   %00000000
         .BYTE   %00011000
@@ -131,7 +131,7 @@ glyphtab:
         .BYTE   %01100110
         .BYTE   %00000000
 
-        ; dungeon: an arched cave mouth (outline)
+; dungeon: an arched cave mouth (outline)
         .BYTE   G_DUNG
         .BYTE   %00000000
         .BYTE   %00111100
@@ -142,7 +142,7 @@ glyphtab:
         .BYTE   %01111110
         .BYTE   %00000000
 
-        ; castle: crenellated tower (outline)
+; castle: crenellated tower (outline)
         .BYTE   G_CASTLE
         .BYTE   %10101010
         .BYTE   %11111110
@@ -153,7 +153,7 @@ glyphtab:
         .BYTE   %11111110
         .BYTE   %00000000
 
-        ; road: a faint dashed path
+; road: a faint dashed path
         .BYTE   G_ROAD
         .BYTE   %00000000
         .BYTE   %00000000
@@ -164,7 +164,7 @@ glyphtab:
         .BYTE   %00000000
         .BYTE   %00000000
 
-        ; bridge: two rails with planks between
+; bridge: two rails with planks between
         .BYTE   G_BRIDGE
         .BYTE   %11111111
         .BYTE   %00000000
@@ -175,7 +175,7 @@ glyphtab:
         .BYTE   %11111111
         .BYTE   %00000000
 
-        ; floor: blank (interior is just dark)
+; floor: blank (interior is just dark)
         .BYTE   G_FLOOR
         .BYTE   %00000000
         .BYTE   %00000000
@@ -186,7 +186,7 @@ glyphtab:
         .BYTE   %00000000
         .BYTE   %00000000
 
-        ; wall: solid block (fills the whole cell)
+; wall: solid block (fills the whole cell)
         .BYTE   G_WALL
         .BYTE   %11111111
         .BYTE   %11111111
@@ -197,7 +197,7 @@ glyphtab:
         .BYTE   %11111111
         .BYTE   %11111111
 
-        ; door: a clear doorway outline
+; door: a clear doorway outline
         .BYTE   G_DOOR
         .BYTE   %00000000
         .BYTE   %00111100
@@ -208,7 +208,7 @@ glyphtab:
         .BYTE   %00100100
         .BYTE   %00000000
 
-        ; treasure: a small chest
+; treasure: a small chest
         .BYTE   G_TREAS
         .BYTE   %00000000
         .BYTE   %00000000
@@ -219,7 +219,7 @@ glyphtab:
         .BYTE   %00000000
         .BYTE   %00000000
 
-        ; stairs up: clear diagonal steps
+; stairs up: clear diagonal steps
         .BYTE   G_UPSTAIR
         .BYTE   %00000000
         .BYTE   %00000110
@@ -230,7 +230,7 @@ glyphtab:
         .BYTE   %00000000
         .BYTE   %00000000
 
-        ; shop: a coin
+; shop: a coin
         .BYTE   G_SHOP
         .BYTE   %00000000
         .BYTE   %00111100
@@ -242,7 +242,7 @@ glyphtab:
         .BYTE   %00000000
 
 ; --- player ----------------------------------------------------
-        ; player: a clear little figure
+; player: a clear little figure
         .BYTE   G_PLAYER
         .BYTE   %00011000
         .BYTE   %00011000
@@ -257,7 +257,7 @@ glyphtab:
 ; Distinct silhouettes with empty margins so they stand out and are
 ; easy to tell apart.
 
-        ; orc: squat brute with two tusks at the bottom
+; orc: squat brute with two tusks at the bottom
         .BYTE   G_ORC
         .BYTE   %00000000
         .BYTE   %00111100
@@ -268,7 +268,7 @@ glyphtab:
         .BYTE   %00100100
         .BYTE   %00000000
 
-        ; snake: slim S-curve
+; snake: slim S-curve
         .BYTE   G_SNAKE
         .BYTE   %00000000
         .BYTE   %00111000
@@ -279,7 +279,7 @@ glyphtab:
         .BYTE   %00000000
         .BYTE   %00000000
 
-        ; skeleton: skull on a thin body
+; skeleton: skull on a thin body
         .BYTE   G_SKELETON
         .BYTE   %00000000
         .BYTE   %00111100
@@ -290,7 +290,7 @@ glyphtab:
         .BYTE   %00100100
         .BYTE   %00000000
 
-        ; thief: hooded, narrow shoulders
+; thief: hooded, narrow shoulders
         .BYTE   G_THIEF
         .BYTE   %00000000
         .BYTE   %00011000
@@ -301,7 +301,7 @@ glyphtab:
         .BYTE   %00100100
         .BYTE   %00000000
 
-        ; troll: big broad ogre
+; troll: big broad ogre
         .BYTE   G_TROLL
         .BYTE   %00000000
         .BYTE   %01100110
@@ -312,7 +312,7 @@ glyphtab:
         .BYTE   %01100110
         .BYTE   %00000000
 
-        ; boss: a winged dragon (clear wings + body)
+; boss: a winged dragon (clear wings + body)
         .BYTE   G_BOSS
         .BYTE   %10000001
         .BYTE   %11000011

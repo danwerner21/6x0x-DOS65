@@ -77,7 +77,7 @@ print_byte:
 msg_print:
         STA     strp
         STY     strp+1
-        ; copy current bottom line (msgbuf1) up to (msgbuf0)
+; copy current bottom line (msgbuf1) up to (msgbuf0)
         LDX     #0
 @up:
         LDA     msgbuf1,X
@@ -85,7 +85,7 @@ msg_print:
         INX
         CPX     #SCRW
         BNE     @up
-        ; copy new string into msgbuf1 (truncate/pad to SCRW)
+; copy new string into msgbuf1 (truncate/pad to SCRW)
         LDY     #0
 @cp:
         LDA     (strp),Y
@@ -111,7 +111,7 @@ msg_print:
 ;----------------------------------------------------------------
 msg_redraw:
         JSR     vid_enter
-        ; row MSGY0 <- msgbuf0
+; row MSGY0 <- msgbuf0
         LDA     #MSGY0
         JSR     rowbase
         LDY     #0
@@ -123,7 +123,7 @@ msg_redraw:
         INY
         CPY     #SCRW
         BNE     @r0
-        ; row MSGY0+1 <- msgbuf1
+; row MSGY0+1 <- msgbuf1
         LDA     #MSGY0+1
         JSR     rowbase
         LDY     #0
@@ -156,7 +156,7 @@ msg_clear:
 ; Labels are static; values are redrawn each turn.
 ;----------------------------------------------------------------
 draw_panel:
-        ; HP line:  "HP   : nn/nn"
+; HP line:  "HP   : nn/nn"
         LDX     #PANX
         LDY     #3
         JSR     locate
@@ -171,7 +171,7 @@ draw_panel:
         JSR     print_byte
         JSR     pad_clear       ; clear trailing junk
 
-        ; Level / XP
+; Level / XP
         LDX     #PANX
         LDY     #5
         JSR     locate
@@ -186,7 +186,7 @@ draw_panel:
         JSR     displaynum
         JSR     pad_clear
 
-        ; Gold / Food
+; Gold / Food
         LDX     #PANX
         LDY     #7
         JSR     locate
@@ -201,7 +201,7 @@ draw_panel:
         JSR     displaynum
         JSR     pad_clear
 
-        ; Weapon
+; Weapon
         LDX     #PANX
         LDY     #9
         JSR     locate
@@ -213,7 +213,7 @@ draw_panel:
         JSR     prmsg
         JSR     pad_clear
 
-        ; Armor
+; Armor
         LDX     #PANX
         LDY     #10
         JSR     locate
@@ -225,7 +225,7 @@ draw_panel:
         JSR     prmsg
         JSR     pad_clear
 
-        ; Location
+; Location
         LDX     #PANX
         LDY     #12
         JSR     locate
@@ -337,31 +337,50 @@ drainkeys:
 ;----------------------------------------------------------------
 ; Panel labels and name tables
 ;----------------------------------------------------------------
-lbl_hp:   .BYTE "HP   : ",0
-lbl_lvl:  .BYTE "Lvl: ",0
-lbl_xp:   .BYTE "XP: ",0
-lbl_gold: .BYTE "Gold: ",0
-lbl_food: .BYTE "Food: ",0
-lbl_wpn:  .BYTE "Weapon: ",0
-lbl_arm:  .BYTE "Armor : ",0
-lbl_loc:  .BYTE "Where : ",0
+lbl_hp:
+        .BYTE   "HP   : ",0
+lbl_lvl:
+        .BYTE   "Lvl: ",0
+lbl_xp:
+        .BYTE   "XP: ",0
+lbl_gold:
+        .BYTE   "Gold: ",0
+lbl_food:
+        .BYTE   "Food: ",0
+lbl_wpn:
+        .BYTE   "Weapon: ",0
+lbl_arm:
+        .BYTE   "Armor : ",0
+lbl_loc:
+        .BYTE   "Where : ",0
 
 wpn_names:
         .WORD   wn0, wn1, wn2, wn3
-wn0:    .BYTE   "Fists",0
-wn1:    .BYTE   "Dagger",0
-wn2:    .BYTE   "Sword",0
-wn3:    .BYTE   "Axe",0
+wn0:
+        .BYTE   "Fists",0
+wn1:
+        .BYTE   "Dagger",0
+wn2:
+        .BYTE   "Sword",0
+wn3:
+        .BYTE   "Axe",0
 
 arm_names:
         .WORD   an0, an1, an2, an3
-an0:    .BYTE   "Clothes",0
-an1:    .BYTE   "Leather",0
-an2:    .BYTE   "Chain",0
-an3:    .BYTE   "Plate",0
+an0:
+        .BYTE   "Clothes",0
+an1:
+        .BYTE   "Leather",0
+an2:
+        .BYTE   "Chain",0
+an3:
+        .BYTE   "Plate",0
 
 loc_names:
         .WORD   ln0, ln1, ln2
-ln0:    .BYTE   "Wyrmhold",0
-ln1:    .BYTE   "Town",0
-ln2:    .BYTE   "Dungeon",0
+ln0:
+        .BYTE   "Wyrmhold",0
+ln1:
+        .BYTE   "Town",0
+ln2:
+        .BYTE   "Dungeon",0

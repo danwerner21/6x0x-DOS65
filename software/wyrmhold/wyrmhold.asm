@@ -23,28 +23,28 @@ BEGIN:
         JSR     psg_init
         JSR     rng_seed
         JSR     chargen_init    ; upload custom terrain/monster tiles
-        ; hide the firmware text cursor; we draw our own world
+; hide the firmware text cursor; we draw our own world
         LDA     #0
         STA     SHOWCRSR
 title_loop_outer:
         JSR     title_screen    ; returns when a key is pressed
         JSR     new_game
         JSR     game_loop       ; returns on death / victory / quit
-        ; game_loop decides what to do; if it returns we go to DOS
+; game_loop decides what to do; if it returns we go to DOS
         JMP     exit_to_dos
 
 ;==============================================================================
 ; Title screen - draws a banner, plays the melody, waits for a key.
 ;==============================================================================
 title_screen:
-        JSR     draw_title_scene        ; full graphical title (title.asm)
+        JSR     draw_title_scene; full graphical title (title.asm)
 
-        ; Settle period: for the first stretch of the title we PLAY the
-        ; music but ignore (and keep draining) any keys.  This swallows
-        ; the Enter typed to launch the program - on re-runs that key is
-        ; sometimes delivered just after we start, and without this it
-        ; would dismiss the title instantly (the "no intro on 2nd run"
-        ; bug).
+; Settle period: for the first stretch of the title we PLAY the
+; music but ignore (and keep draining) any keys.  This swallows
+; the Enter typed to launch the program - on re-runs that key is
+; sometimes delivered just after we start, and without this it
+; would dismiss the title instantly (the "no intro on 2nd run"
+; bug).
         JSR     music_start
         LDX     #40             ; settle ticks
 @settle:
@@ -90,7 +90,7 @@ full_redraw:
 ;==============================================================================
 game_loop:
 @loop:
-        ; check end conditions first
+; check end conditions first
         LDA     bosskilled
         BEQ     @alive
         JMP     victory
@@ -109,7 +109,7 @@ game_loop:
         BEQ     @loop           ; no key - idle (no time passes)
         STA     keych
 
-        ; movement keys -> set dx,dy then try_move
+; movement keys -> set dx,dy then try_move
         LDA     #0
         STA     dx
         STA     dy
@@ -167,7 +167,7 @@ game_loop:
         STA     dx
 @domove:
         JSR     try_move
-        ; if a turn was consumed and we're not in town, monsters act
+; if a turn was consumed and we're not in town, monsters act
         LDA     did_move
         BEQ     @after
         JSR     mon_act
@@ -231,7 +231,7 @@ game_over_hp:
 game_over_food:
         LDA     #<go_food
         LDY     #>go_food
-        ; fall through
+; fall through
 game_over_common:
         STA     strp
         STY     strp+1
@@ -263,7 +263,7 @@ game_over_common:
 ;==============================================================================
 exit_to_dos:
         JSR     psg_silence
-        ; restore a normal console: 80-col, default colors, cursor on
+; restore a normal console: 80-col, default colors, cursor on
         LDA     #FC_SETMODE
         STA     farfunct
         LDA     #1
@@ -281,24 +281,40 @@ CSRCOLOR_DEF    = $E1
 ;==============================================================================
 ; Title / end strings
 ;==============================================================================
-ttl1:   .BYTE "+--------------------------------+",0
-ttl2:   .BYTE "|       W Y R M H O L D          |",0
-ttl3:   .BYTE "|     a quest for the 6502PC     |",0
-ttl4:   .BYTE "+--------------------------------+",0
-ttl_by: .BYTE "Defeat the Dragon to save the realm",0
-ttl_prompt: .BYTE "Press any key to begin thy quest",0
-ttl_keys1:  .BYTE "Move: W A S D (or H J K L)   T: use/shop",0
-ttl_keys2:  .BYTE "Bump monsters to fight.  Q: quit to DOS",0
+ttl1:
+        .BYTE   "+--------------------------------+",0
+ttl2:
+        .BYTE   "|       W Y R M H O L D          |",0
+ttl3:
+        .BYTE   "|     a quest for the 6502PC     |",0
+ttl4:
+        .BYTE   "+--------------------------------+",0
+ttl_by:
+        .BYTE   "Defeat the Dragon to save the realm",0
+ttl_prompt:
+        .BYTE   "Press any key to begin thy quest",0
+ttl_keys1:
+        .BYTE   "Move: W A S D (or H J K L)   T: use/shop",0
+ttl_keys2:
+        .BYTE   "Bump monsters to fight.  Q: quit to DOS",0
 
-intro_msg:  .BYTE "Welcome to Wyrmhold. Seek and slay the dragon!",0
-q_quit:     .BYTE "Quit to DOS? (Y/N)",0
+intro_msg:
+        .BYTE   "Welcome to Wyrmhold. Seek and slay the dragon!",0
+q_quit:
+        .BYTE   "Quit to DOS? (Y/N)",0
 
-win1:   .BYTE "*** VICTORY! ***",0
-win2:   .BYTE "The dragon is slain. The land is saved!",0
-over1:  .BYTE "*** THOU HAST FALLEN ***",0
-go_hp:    .BYTE "Thy wounds were too grave.",0
-go_food:  .BYTE "Thou hast starved in the wilds.",0
-anykey:   .BYTE "Press any key...",0
+win1:
+        .BYTE   "*** VICTORY! ***",0
+win2:
+        .BYTE   "The dragon is slain. The land is saved!",0
+over1:
+        .BYTE   "*** THOU HAST FALLEN ***",0
+go_hp:
+        .BYTE   "Thy wounds were too grave.",0
+go_food:
+        .BYTE   "Thou hast starved in the wilds.",0
+anykey:
+        .BYTE   "Press any key...",0
 
 ;==============================================================================
 ; Include the rest of the engine
@@ -322,57 +338,96 @@ anykey:   .BYTE "Press any key...",0
 ;==============================================================================
 gamevars:
 ; player
-px:         .BYTE 0
-py:         .BYTE 0
-phealth:        .BYTE 0
-pmaxhp:     .BYTE 0
-plevel:     .BYTE 0
-pxp:        .WORD 0
-pgold:      .WORD 0
-pfood:      .WORD 0
-pweapon:    .BYTE 0
-parmor:     .BYTE 0
-loc:        .BYTE 0
-locw:       .BYTE 0
-loch:       .BYTE 0
-owretx:     .BYTE 0
-owrety:     .BYTE 0
-bosskilled: .BYTE 0
-did_move:   .BYTE 0
+px:
+        .BYTE   0
+py:
+        .BYTE   0
+phealth:
+        .BYTE   0
+pmaxhp:
+        .BYTE   0
+plevel:
+        .BYTE   0
+pxp:
+        .WORD   0
+pgold:
+        .WORD   0
+pfood:
+        .WORD   0
+pweapon:
+        .BYTE   0
+parmor:
+        .BYTE   0
+loc:
+        .BYTE   0
+locw:
+        .BYTE   0
+loch:
+        .BYTE   0
+owretx:
+        .BYTE   0
+owrety:
+        .BYTE   0
+bosskilled:
+        .BYTE   0
+did_move:
+        .BYTE   0
 
 ; music player state - three voice cursors (ptr) + hold counters
-mvA_ptr:    .WORD 0
-mvA_cnt:    .BYTE 0
-mvB_ptr:    .WORD 0
-mvB_cnt:    .BYTE 0
-mvC_ptr:    .WORD 0
-mvC_cnt:    .BYTE 0
+mvA_ptr:
+        .WORD   0
+mvA_cnt:
+        .BYTE   0
+mvB_ptr:
+        .WORD   0
+mvB_cnt:
+        .BYTE   0
+mvC_ptr:
+        .WORD   0
+mvC_cnt:
+        .BYTE   0
 
 ; shop status-line pointer (last action / greeting)
-shopstat:   .WORD 0
+shopstat:
+        .WORD   0
 
 ; title-screen logo drawing scratch
-logo_li:    .BYTE 0
-logo_lx:    .BYTE 0
-logo_ry:    .BYTE 0
-logo_cx:    .BYTE 0
-logo_bits:  .BYTE 0
+logo_li:
+        .BYTE   0
+logo_lx:
+        .BYTE   0
+logo_ry:
+        .BYTE   0
+logo_cx:
+        .BYTE   0
+logo_bits:
+        .BYTE   0
 
 ; message log buffers (one screen row each)
-msgbuf0:    .RES SCRW
-msgbuf1:    .RES SCRW
+msgbuf0:
+        .RES    SCRW
+msgbuf1:
+        .RES    SCRW
 ; message builder scratch
-mbuf:       .RES 96
-mblen:      .BYTE 0
+mbuf:
+        .RES    96
+mblen:
+        .BYTE   0
 
 ; monster table (parallel arrays)
-mon_type:   .RES MAXMON
-mon_x:      .RES MAXMON
-mon_y:      .RES MAXMON
-mon_hp:     .RES MAXMON
+mon_type:
+        .RES    MAXMON
+mon_x:
+        .RES    MAXMON
+mon_y:
+        .RES    MAXMON
+mon_hp:
+        .RES    MAXMON
 
 ; map tile buffers
-owmap:      .RES OWW*OWH
-locmap:     .RES TOWNW*TOWNH         ; town and dungeon share this (same size)
+owmap:
+        .RES    OWW*OWH
+locmap:
+        .RES    TOWNW*TOWNH     ; town and dungeon share this (same size)
 
         .END

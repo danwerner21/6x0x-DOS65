@@ -75,7 +75,7 @@ CO_BRCYAN       = $E
 CO_BRWHITE      = $F
 
 ; convenience: build a color byte from fg,bg nibbles
-.define COLOR(fg,bg)  (((bg)<<4)|(fg))
+        .DEFINE COLOR(fg,bg) (((bg)<<4)|(fg))
 
 ; named cell colors used throughout the game
 C_GRASS         = COLOR(CO_BRGREEN, CO_BLACK)

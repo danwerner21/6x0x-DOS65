@@ -17,12 +17,12 @@ rng_seed:
 ;            in A.  (xorshift: x ^= x<<7; x ^= x>>9; x ^= x<<8)
 ;----------------------------------------------------------------
 rng_next:
-        ; x ^= x << 7
+; x ^= x << 7
         LDA     seedhi
         LSR     A               ; carry = bit7 of hi after some shifts...
-        ; Implement x<<7 via: shift left 7 = shift right 1 then swap?
-        ; Simpler: do a byte-wise xorshift that is "good enough".
-        ; x ^= x << 7
+; Implement x<<7 via: shift left 7 = shift right 1 then swap?
+; Simpler: do a byte-wise xorshift that is "good enough".
+; x ^= x << 7
         LDA     seedlo
         ASL     A
         ASL     A
@@ -33,12 +33,12 @@ rng_next:
         ASL     A               ; lo << 7 (only bit0 survives into bit7)
         EOR     seedhi
         STA     seedhi
-        ; x ^= x >> 9  (>>9 of 16-bit = hi >> 1 into lo)
+; x ^= x >> 9  (>>9 of 16-bit = hi >> 1 into lo)
         LDA     seedhi
         LSR     A
         EOR     seedlo
         STA     seedlo
-        ; x ^= x << 8  (swap bytes contribution: lo ^ into hi)
+; x ^= x << 8  (swap bytes contribution: lo ^ into hi)
         LDA     seedlo
         EOR     seedhi
         STA     seedhi
@@ -53,7 +53,7 @@ rng_next:
 rng_mod:
         STA     tmp3            ; modulus
         JSR     rng_next        ; A = random byte
-        ; reduce A mod tmp3 by subtraction
+; reduce A mod tmp3 by subtraction
 @rm:
         CMP     tmp3
         BCC     @done

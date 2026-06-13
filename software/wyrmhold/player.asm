@@ -47,7 +47,7 @@ player_init:
 try_move:
         LDA     #0
         STA     did_move
-        ; target = (px+dx, py+dy)
+; target = (px+dx, py+dy)
         CLC
         LDA     px
         ADC     dx
@@ -57,28 +57,28 @@ try_move:
         ADC     dy
         STA     tgty
 
-        ; monster there? -> attack (consumes the turn)
+; monster there? -> attack (consumes the turn)
         JSR     mon_at
         BCC     @noenemy
-        ; X = monster slot ; resolve combat
+; X = monster slot ; resolve combat
         JSR     player_attacks_monster
         LDA     #1
         STA     did_move
         RTS
 @noenemy:
-        ; look at the terrain
+; look at the terrain
         JSR     tileat          ; -> tgttile
         LDX     tgttile
         LDA     tile_prop,X
         STA     tmp0            ; property bits
         AND     #P_PASS
         BNE     @passable
-        ; blocked
+; blocked
         JSR     sfx_blocked
         PRINTMSG_MSG m_blocked
         RTS                     ; no turn consumed on a wall bump
 @passable:
-        ; check special tiles
+; check special tiles
         LDA     tmp0
         AND     #P_TOWN
         BEQ     @ck_dung
@@ -94,20 +94,20 @@ try_move:
         BEQ     @ck_treas
         JMP     leave_interior
 @ck_treas:
-        ; commit the move first
+; commit the move first
         LDA     tgtx
         STA     px
         LDA     tgty
         STA     py
         LDA     #1
         STA     did_move
-        ; treasure?
+; treasure?
         LDA     tmp0
         AND     #P_TREAS
         BEQ     @food
         JSR     collect_treasure
 @food:
-        ; consume a unit of food per step
+; consume a unit of food per step
         LDA     pfood
         ORA     pfood+1
         BEQ     @nofood
@@ -126,19 +126,19 @@ try_move:
 ; XP, then clear the tile to floor.
 ;----------------------------------------------------------------
 collect_treasure:
-        ; gold 5..20
+; gold 5..20
         LDA     #16
         JSR     rng_d
         CLC
         ADC     #4
-        ; add to gold (16-bit)
+; add to gold (16-bit)
         CLC
         ADC     pgold
         STA     pgold
         LDA     pgold+1
         ADC     #0
         STA     pgold+1
-        ; clear the chest tile -> floor
+; clear the chest tile -> floor
         LDA     #T_FLOOR
         JSR     settile
         JSR     sfx_treasure
@@ -157,18 +157,18 @@ enter_town:
         STA     locw
         LDA     #TOWNH
         STA     loch
-        ; remember overworld position to restore on exit
+; remember overworld position to restore on exit
         LDA     px
         STA     owretx
         LDA     py
         STA     owrety
-        ; place player just inside, one tile NORTH of the door so the
-        ; exit '+' is visible directly south of the player on entry.
+; place player just inside, one tile NORTH of the door so the
+; exit '+' is visible directly south of the player on entry.
         LDA     #14
         STA     px
         LDA     #TOWNH-3
         STA     py
-        ; towns have no monsters
+; towns have no monsters
         JSR     mon_clear_all
         LDA     #1
         STA     did_move
@@ -191,8 +191,8 @@ enter_dungeon:
         STA     owretx
         LDA     py
         STA     owrety
-        ; start just east of the stairs-up '<' (at 1,1) so the exit
-        ; is visible immediately to the west of the player.
+; start just east of the stairs-up '<' (at 1,1) so the exit
+; is visible immediately to the west of the player.
         LDA     #2
         STA     px
         LDA     #1

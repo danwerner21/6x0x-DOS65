@@ -25,12 +25,12 @@ mtype_glyph:
         .BYTE   G_BOSS          ; 6 boss (dragon)
 mtype_color:
         .BYTE   C_MONST         ; 0
-        .BYTE   COLOR(CO_BRGREEN,CO_BLACK)  ; orc
-        .BYTE   COLOR(CO_GREEN, CO_BLACK)   ; snake
-        .BYTE   COLOR(CO_BRWHITE,CO_BLACK)  ; skeleton
-        .BYTE   COLOR(CO_BRYELLOW,CO_BLACK) ; thief
-        .BYTE   COLOR(CO_BRCYAN,CO_BLACK)   ; troll
-        .BYTE   C_BOSS                      ; boss
+        .BYTE   COLOR(CO_BRGREEN,CO_BLACK); orc
+        .BYTE   COLOR(CO_GREEN, CO_BLACK); snake
+        .BYTE   COLOR(CO_BRWHITE,CO_BLACK); skeleton
+        .BYTE   COLOR(CO_BRYELLOW,CO_BLACK); thief
+        .BYTE   COLOR(CO_BRCYAN,CO_BLACK); troll
+        .BYTE   C_BOSS          ; boss
 mtype_hp:
         .BYTE   0, 6, 4, 8, 5, 14, 40
 mtype_atk:
@@ -135,9 +135,9 @@ spawn_overworld_monsters:
         LDA     #4              ; only a few roaming monsters at a time
         STA     cnt0
 @loop:
-        ; place in a ring roughly 6..21 tiles from the player: far
-        ; enough not to crowd you, near enough to be encountered.
-        ; offset = (rand(0..15) + 6), sign random per axis.
+; place in a ring roughly 6..21 tiles from the player: far
+; enough not to crowd you, near enough to be encountered.
+; offset = (rand(0..15) + 6), sign random per axis.
         LDA     #16
         JSR     rng_mod
         CLC
@@ -174,7 +174,7 @@ spawn_overworld_monsters:
         ADC     tmp1
 @sety:
         STA     tgty
-        ; reject the player's own tile (don't spawn on top of you)
+; reject the player's own tile (don't spawn on top of you)
         LDA     tgtx
         CMP     px
         BNE     @okpos
@@ -182,7 +182,7 @@ spawn_overworld_monsters:
         CMP     py
         BEQ     @skip
 @okpos:
-        ; must be passable grass/forest (not water/mountain/town...)
+; must be passable grass/forest (not water/mountain/town...)
         JSR     tileat
         LDX     tgttile
         LDA     tile_prop,X
@@ -191,10 +191,10 @@ spawn_overworld_monsters:
         LDA     tile_prop,X
         AND     #(P_TOWN|P_DUNG)
         BNE     @skip           ; don't sit on a town/dungeon tile
-        ; not already occupied by a monster?
+; not already occupied by a monster?
         JSR     mon_at
         BCS     @skip
-        ; pick a random monster type 1..5
+; pick a random monster type 1..5
         LDA     #5
         JSR     rng_d           ; 1..5
         JSR     mon_spawn
@@ -208,14 +208,14 @@ spawn_overworld_monsters:
 ;----------------------------------------------------------------
 spawn_dungeon_monsters:
         JSR     mon_clear_all
-        ; the boss waits at the far corner treasure room (bottom-right)
+; the boss waits at the far corner treasure room (bottom-right)
         LDA     #29
         STA     tgtx
         LDA     #18
         STA     tgty
         LDA     #M_BOSS
         JSR     mon_spawn
-        ; a couple of guards on floor tiles
+; a couple of guards on floor tiles
         LDA     #4
         STA     cnt0
 @loop:
@@ -255,7 +255,7 @@ draw_monsters_vram:
         LDA     mon_type,X
         CMP     #M_NONE
         BEQ     @next
-        ; set world coords + glyph/color, then plot if visible
+; set world coords + glyph/color, then plot if visible
         LDA     mon_x,X
         STA     tgtx
         LDA     mon_y,X
@@ -291,8 +291,8 @@ mon_act:
         LDA     mon_type,X
         CMP     #M_NONE
         BEQ     @next
-        ; distance to player: dxv = px - mon_x ; dyv = py - mon_y
-        ; adjacency test (|dx|<=1 && |dy|<=1 && not both 0)
+; distance to player: dxv = px - mon_x ; dyv = py - mon_y
+; adjacency test (|dx|<=1 && |dy|<=1 && not both 0)
         JSR     mon_step_or_attack
 @next:
         INC     monidx
@@ -304,7 +304,7 @@ mon_act:
 
 ; mon_step_or_attack - for monster in slot monidx (X on entry).
 mon_step_or_attack:
-        ; compute signed dx = px - mon_x  -> tmp0 ; dy -> tmp1
+; compute signed dx = px - mon_x  -> tmp0 ; dy -> tmp1
         LDX     monidx
         SEC
         LDA     px
@@ -314,36 +314,36 @@ mon_step_or_attack:
         LDA     py
         SBC     mon_y,X
         STA     tmp1            ; dy (signed)
-        ; |dx| <= 1 ?
+; |dx| <= 1 ?
         LDA     tmp0
         JSR     abs_a
         STA     tmp2            ; |dx|
         LDA     tmp1
         JSR     abs_a
         STA     tmp3            ; |dy|
-        ; adjacency: |dx|<=1 and |dy|<=1
+; adjacency: |dx|<=1 and |dy|<=1
         LDA     tmp2
         CMP     #2
         BCS     @move
         LDA     tmp3
         CMP     #2
         BCS     @move
-        ; adjacent (and since one of them is the player, not same cell)
-        ; -> attack the player
-        JMP     monster_attacks_player          ; in combat.asm
+; adjacent (and since one of them is the player, not same cell)
+; -> attack the player
+        JMP     monster_attacks_player; in combat.asm
 @move:
-        ; step one tile toward player along the larger axis
-        ; choose step in x: sign of dx
+; step one tile toward player along the larger axis
+; choose step in x: sign of dx
         LDX     monidx
         LDA     mon_x,X
         STA     tgtx
         LDA     mon_y,X
         STA     tgty
-        ; prefer horizontal if |dx|>=|dy|
+; prefer horizontal if |dx|>=|dy|
         LDA     tmp2
         CMP     tmp3
         BCC     @vert
-        ; horizontal step
+; horizontal step
         LDA     tmp0
         BEQ     @vert           ; dx==0 -> try vertical
         BMI     @left
@@ -361,13 +361,13 @@ mon_step_or_attack:
 @up:
         DEC     tgty
 @trymove:
-        ; passable terrain?
+; passable terrain?
         JSR     tileat
         LDX     tgttile
         LDA     tile_prop,X
         AND     #P_PASS
         BEQ     @done           ; blocked terrain
-        ; not onto the player?
+; not onto the player?
         LDA     tgtx
         CMP     px
         BNE     @okcell
@@ -375,10 +375,10 @@ mon_step_or_attack:
         CMP     py
         BEQ     @done           ; would land on player (shouldn't: adjacency handled)
 @okcell:
-        ; not onto another monster?
+; not onto another monster?
         JSR     mon_at
         BCS     @done           ; occupied
-        ; commit move
+; commit move
         LDX     monidx
         LDA     tgtx
         STA     mon_x,X

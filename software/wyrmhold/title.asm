@@ -214,7 +214,9 @@ draw_logo:
 @letter:
         LDA     logo_li
         CMP     #8              ; 8 letters
-        BCS     @done
+        BCC     :+
+        JMP     @done
+:
         ; pointer to this letter's 5 bytes:  logo_font + li*5
         LDA     logo_li
         STA     tmp0

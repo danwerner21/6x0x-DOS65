@@ -367,36 +367,36 @@ MUS_VOL_C       = 13            ; bass volume (strong, so it is audible)
 ; the lead.
 ;----------------------------------------------------------------
 music_start:
-        ; voice cursors -> track starts
+; voice cursors -> track starts
         SETW16  mvA_ptr, trackA
         SETW16  mvB_ptr, trackB
         SETW16  mvC_ptr, trackC
-        ; all hold-counters = 0 so every voice fetches on the first tick.
-        ; (must load #0 fresh each time - SETW16 above left A non-zero,
-        ;  which is why B/C previously got garbage counts and went silent)
+; all hold-counters = 0 so every voice fetches on the first tick.
+; (must load #0 fresh each time - SETW16 above left A non-zero,
+;  which is why B/C previously got garbage counts and went silent)
         LDA     #0
         STA     mvA_cnt
         STA     mvB_cnt
         STA     mvC_cnt
 
-        ; mixer: enable tone on A, B, C (noise off)  -> bits 0..2 clear
+; mixer: enable tone on A, B, C (noise off)  -> bits 0..2 clear
         LDA     #07
         LDY     #%00111000
         JSR     psgwr
-        ; envelope period (regs 11/12) - sets attack/decay length.
-        ; longer = the plucked lead note rings out for more of its
-        ; duration before fading.  Tune ENV_PERIOD to taste.
+; envelope period (regs 11/12) - sets attack/decay length.
+; longer = the plucked lead note rings out for more of its
+; duration before fading.  Tune ENV_PERIOD to taste.
         LDA     #11
         LDY     #<ENV_PERIOD
         JSR     psgwr
         LDA     #12
         LDY     #>ENV_PERIOD
         JSR     psgwr
-        ; channel A volume register = use envelope (bit4 set)
+; channel A volume register = use envelope (bit4 set)
         LDA     #8
         LDY     #%00010000
         JSR     psgwr
-        ; channel B: gentle harmony pad ; channel C: strong bass
+; channel B: gentle harmony pad ; channel C: strong bass
         LDA     #9
         LDY     #MUS_VOL_B
         JSR     psgwr
@@ -413,7 +413,7 @@ music_tick:
         JSR     busywait
         JSR     mus_finewait    ; fine tempo trim
 
-        ; --- voice A (lead, envelope) ---
+; --- voice A (lead, envelope) ---
         LDA     mvA_cnt
         BEQ     @nextA
         DEC     mvA_cnt
@@ -425,7 +425,7 @@ music_tick:
         LDA     mvA_ptr+1
         STA     ptr2+1
         JSR     mus_fetch       ; -> tmp0=note, tmp1=dur, ptr2 advanced
-        ; program channel A tone (regs 0/1) from the note
+; program channel A tone (regs 0/1) from the note
         LDX     tmp0
         BEQ     @restA          ; rest
         JSR     note_period     ; -> ptr = period for note X
@@ -435,18 +435,18 @@ music_tick:
         LDA     #1
         LDY     ptr+1
         JSR     psgwr
-        ; (re)trigger the envelope by rewriting the shape register
+; (re)trigger the envelope by rewriting the shape register
         LDA     #13
         LDY     #ENV_DECAY
         JSR     psgwr
         JMP     @setA
 @restA:
-        ; silence A for the rest: drop its volume to 0 (no envelope)
+; silence A for the rest: drop its volume to 0 (no envelope)
         LDA     #8
         LDY     #0
         JSR     psgwr
 @setA:
-        ; for a non-rest, make sure A uses the envelope again
+; for a non-rest, make sure A uses the envelope again
         LDA     tmp0
         BEQ     @cntA
         LDA     #8
@@ -461,7 +461,7 @@ music_tick:
         STA     mvA_ptr+1
 
 @doB:
-        ; --- voice B (harmony, fixed volume on channel B) ---
+; --- voice B (harmony, fixed volume on channel B) ---
         LDA     mvB_cnt
         BEQ     @nextB
         DEC     mvB_cnt
@@ -499,7 +499,7 @@ music_tick:
         STA     mvB_ptr+1
 
 @doC:
-        ; --- voice C (bass, fixed volume on channel C) ---
+; --- voice C (bass, fixed volume on channel C) ---
         LDA     mvC_cnt
         BEQ     @nextC
         DEC     mvC_cnt
@@ -549,7 +549,7 @@ mus_fetch:
         LDA     (ptr2),Y
         CMP     #$FF
         BNE     @ok
-        ; loop: reset ptr2 to track base (srcp)
+; loop: reset ptr2 to track base (srcp)
         LDA     srcp
         STA     ptr2
         LDA     srcp+1
@@ -560,17 +560,17 @@ mus_fetch:
         STA     tmp0            ; note
         INY
         LDA     (ptr2),Y
-        ; The voice loops "fetch when counter hits 0", and the fetch
-        ; tick itself is the first tick of the note.  So a note must
-        ; hold for (dur-1) MORE ticks after the fetch tick to last
-        ; exactly dur ticks.  Subtract 1 here.  (All durations are >=2,
-        ; so no underflow.)  This keeps voices with different note
-        ; counts the same real length - otherwise B/C drift away from
-        ; the lead because they have fewer/more notes per loop.
+; The voice loops "fetch when counter hits 0", and the fetch
+; tick itself is the first tick of the note.  So a note must
+; hold for (dur-1) MORE ticks after the fetch tick to last
+; exactly dur ticks.  Subtract 1 here.  (All durations are >=2,
+; so no underflow.)  This keeps voices with different note
+; counts the same real length - otherwise B/C drift away from
+; the lead because they have fewer/more notes per loop.
         SEC
         SBC     #1
         STA     tmp1            ; duration - 1
-        ; advance ptr2 by 2
+; advance ptr2 by 2
         CLC
         LDA     ptr2
         ADC     #2
@@ -602,10 +602,10 @@ note_period:
 ; (a diatonic C-major set is plenty for a heroic theme)
 ;----------------------------------------------------------------
 note_lo:
-        .BYTE   <1008, <898, <800, <756, <672, <600, <534    ; C3..B3
-        .BYTE   <504,  <450, <400, <378, <336, <300, <267    ; C4..B4
-        .BYTE   <252,  <225, <200, <189, <168, <150, <133    ; C5..B5
-        .BYTE   <126                                          ; C6
+        .BYTE   <1008, <898, <800, <756, <672, <600, <534; C3..B3
+        .BYTE   <504,  <450, <400, <378, <336, <300, <267; C4..B4
+        .BYTE   <252,  <225, <200, <189, <168, <150, <133; C5..B5
+        .BYTE   <126            ; C6
 note_hi:
         .BYTE   >1008, >898, >800, >756, >672, >600, >534
         .BYTE   >504,  >450, >400, >378, >336, >300, >267
@@ -613,29 +613,29 @@ note_hi:
         .BYTE   >126
 
 ; note name -> index defines for readable tracks
-N_REST  = 0
-C3 = 1
-D3 = 2
-E3 = 3
-F3 = 4
-G3 = 5
-A3 = 6
-B3 = 7
-C4 = 8
-D4 = 9
-E4 = 10
-F4 = 11
-G4 = 12
-A4 = 13
-B4 = 14
-C5 = 15
-D5 = 16
-E5 = 17
-F5 = 18
-G5 = 19
-A5 = 20
-B5 = 21
-C6 = 22
+N_REST          = 0
+C3              = 1
+D3              = 2
+E3              = 3
+F3              = 4
+G3              = 5
+A3              = 6
+B3              = 7
+C4              = 8
+D4              = 9
+E4              = 10
+F4              = 11
+G4              = 12
+A4              = 13
+B4              = 14
+C5              = 15
+D5              = 16
+E5              = 17
+F5              = 18
+G5              = 19
+A5              = 20
+B5              = 21
+C6              = 22
 
 ;----------------------------------------------------------------
 ; The theme: a stately heroic tune in C major, 3 voices.
@@ -648,14 +648,14 @@ C6 = 22
 ; with the 16-tick harmony (B) and bass (C) lines.  (Line 1 was 20
 ; ticks before, which drifted B/C out of phase each loop.)
 trackA:
-        .BYTE   G4,4,  C5,4,  E5,4,  G5,2,  E5,2   ; 16
-        .BYTE   F5,4,  E5,4,  D5,8                 ; 16
-        .BYTE   E5,4,  G5,4,  C6,6,  B5,2          ; 16
-        .BYTE   A5,4,  G5,4,  E5,8                 ; 16
-        .BYTE   F5,4,  A5,4,  G5,4,  E5,4          ; 16
-        .BYTE   D5,4,  F5,4,  E5,8                 ; 16
-        .BYTE   C5,4,  E5,4,  G5,4,  C6,4          ; 16
-        .BYTE   G5,4,  E5,4,  C5,8                 ; 16
+        .BYTE   G4,4,  C5,4,  E5,4,  G5,2,  E5,2; 16
+        .BYTE   F5,4,  E5,4,  D5,8; 16
+        .BYTE   E5,4,  G5,4,  C6,6,  B5,2; 16
+        .BYTE   A5,4,  G5,4,  E5,8; 16
+        .BYTE   F5,4,  A5,4,  G5,4,  E5,4; 16
+        .BYTE   D5,4,  F5,4,  E5,8; 16
+        .BYTE   C5,4,  E5,4,  G5,4,  C6,4; 16
+        .BYTE   G5,4,  E5,4,  C5,8; 16
         .BYTE   N_REST,4
         .BYTE   $FF
 

@@ -70,21 +70,21 @@ P_TREAS         = $20
 P_SHOP          = $40
 
 tile_prop:
-        .BYTE   P_PASS                  ; 0 grass
-        .BYTE   P_PASS                  ; 1 forest (passable, slow flavor)
-        .BYTE   $00                     ; 2 mountain (blocked)
-        .BYTE   P_WATER                 ; 3 water (blocked on foot)
-        .BYTE   P_PASS|P_TOWN           ; 4 town
-        .BYTE   P_PASS|P_DUNG           ; 5 dungeon
-        .BYTE   $00                     ; 6 castle (blocked, decorative)
-        .BYTE   P_PASS                  ; 7 road
-        .BYTE   P_PASS                  ; 8 bridge
-        .BYTE   P_PASS                  ; 9 floor
-        .BYTE   $00                     ; 10 wall
-        .BYTE   P_PASS|P_EXIT           ; 11 door (exit interior)
-        .BYTE   P_PASS|P_TREAS          ; 12 treasure
-        .BYTE   P_PASS|P_EXIT           ; 13 stairs up (exit dungeon)
-        .BYTE   P_PASS|P_SHOP           ; 14 shop
+        .BYTE   P_PASS          ; 0 grass
+        .BYTE   P_PASS          ; 1 forest (passable, slow flavor)
+        .BYTE   $00             ; 2 mountain (blocked)
+        .BYTE   P_WATER         ; 3 water (blocked on foot)
+        .BYTE   P_PASS|P_TOWN   ; 4 town
+        .BYTE   P_PASS|P_DUNG   ; 5 dungeon
+        .BYTE   $00             ; 6 castle (blocked, decorative)
+        .BYTE   P_PASS          ; 7 road
+        .BYTE   P_PASS          ; 8 bridge
+        .BYTE   P_PASS          ; 9 floor
+        .BYTE   $00             ; 10 wall
+        .BYTE   P_PASS|P_EXIT   ; 11 door (exit interior)
+        .BYTE   P_PASS|P_TREAS  ; 12 treasure
+        .BYTE   P_PASS|P_EXIT   ; 13 stairs up (exit dungeon)
+        .BYTE   P_PASS|P_SHOP   ; 14 shop
 
 ;----------------------------------------------------------------
 ; Authoring char -> tile code translation (used by map_decode).
@@ -155,14 +155,14 @@ map_decode:
         LDA     cnt0
         CMP     tmp2
         BCS     @rowfull
-        ; cnt0 tracks column for width logic; srcp is the read head.
+; cnt0 tracks column for width logic; srcp is the read head.
         LDY     #0
         LDA     (srcp),Y
         BEQ     @padrow         ; early NUL -> pad rest with grass
         JSR     xlate_char      ; A=tile code (clobbers X)
         LDY     #0
         STA     (dstp),Y
-        ; advance read head and dest
+; advance read head and dest
         INC     srcp
         BNE     :+
         INC     srcp+1
@@ -174,7 +174,7 @@ map_decode:
         INC     cnt0
         JMP     @col
 @rowfull:
-        ; consume any extra source chars up to the terminating NUL
+; consume any extra source chars up to the terminating NUL
 @skip:
         LDY     #0
         LDA     (srcp),Y
@@ -184,7 +184,7 @@ map_decode:
         INC     srcp+1
         JMP     @skip
 @padrow:
-        ; fill remaining columns (cnt0..width-1) with grass in dest
+; fill remaining columns (cnt0..width-1) with grass in dest
 @pad:
         LDA     cnt0
         CMP     tmp2
@@ -199,7 +199,7 @@ map_decode:
         INC     cnt0
         JMP     @pad
 @aftrow:
-        ; step srcp past the row terminator NUL
+; step srcp past the row terminator NUL
         INC     srcp
         BNE     :+
         INC     srcp+1
@@ -250,14 +250,14 @@ tileat:
         LDA     loc
         BNE     @interior
 ;--- overworld ---
-        ; bounds check 0..OWW-1 / 0..OWH-1
+; bounds check 0..OWW-1 / 0..OWH-1
         LDA     tgtx
         CMP     #OWW
         BCS     @oob_world
         LDA     tgty
         CMP     #OWH
         BCS     @oob_world
-        ; offset = tgty*OWW + tgtx  (OWW=64 -> *64)
+; offset = tgty*OWW + tgtx  (OWW=64 -> *64)
         LDA     tgty
         STA     ptr
         LDA     #0
@@ -281,7 +281,7 @@ tileat:
         LDA     ptr+1
         ADC     #0
         STA     ptr+1
-        ; ptr += owmap base
+; ptr += owmap base
         CLC
         LDA     ptr
         ADC     #<owmap
@@ -305,7 +305,7 @@ tileat:
         LDA     tgty
         CMP     loch
         BCS     @oob_int
-        ; offset = tgty*locw + tgtx  (locw is 32)
+; offset = tgty*locw + tgtx  (locw is 32)
         LDA     tgty
         STA     ptr
         LDA     #0
@@ -434,8 +434,8 @@ tile_addr:
 ; width of each row is not critical (target widths shown in the
 ; header rulers for readability).
 ow_src:
-        ;        0         1         2         3         4         5         6
-        ;        0123456789012345678901234567890123456789012345678901234567890123
+;        0         1         2         3         4         5         6
+;        0123456789012345678901234567890123456789012345678901234567890123
         .BYTE   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",0
         .BYTE   "~..............................................................~~",0
         .BYTE   "~..&&&......^^^^.........&&&&&...........^^^...........&&&.....~~~",0
@@ -505,8 +505,8 @@ ow_src:
 ; Authored town map (32 x 20).  '+' on the border is the exit.
 ;----------------------------------------------------------------
 town_src:
-        ;                 1         2         3
-        ;        12345678901234567890123456789012
+;                 1         2         3
+;        12345678901234567890123456789012
         .BYTE   "################################",0
         .BYTE   "#..............................#",0
         .BYTE   "#..####....####....####....###.#",0
