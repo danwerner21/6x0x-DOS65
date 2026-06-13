@@ -37,51 +37,7 @@ title_loop_outer:
 ; Title screen - draws a banner, plays the melody, waits for a key.
 ;==============================================================================
 title_screen:
-        JSR     cls_vram
-        ; draw the banner art via firmware text
-        LDX     #18
-        LDY     #4
-        JSR     locate
-        LDA     #C_TITLE
-        STA     CURCOLOR
-        PRINTMSG ttl1
-        LDX     #18
-        LDY     #5
-        JSR     locate
-        PRINTMSG ttl2
-        LDX     #18
-        LDY     #6
-        JSR     locate
-        PRINTMSG ttl3
-        LDX     #18
-        LDY     #7
-        JSR     locate
-        PRINTMSG ttl4
-
-        LDX     #24
-        LDY     #11
-        JSR     locate
-        LDA     #C_PANEL
-        STA     CURCOLOR
-        PRINTMSG ttl_by
-
-        LDX     #20
-        LDY     #14
-        JSR     locate
-        LDA     #COLOR(CO_BRYELLOW, CO_BLACK)
-        STA     CURCOLOR
-        PRINTMSG ttl_prompt
-
-        LDX     #14
-        LDY     #18
-        JSR     locate
-        LDA     #C_PANEL
-        STA     CURCOLOR
-        PRINTMSG ttl_keys1
-        LDX     #14
-        LDY     #19
-        JSR     locate
-        PRINTMSG ttl_keys2
+        JSR     draw_title_scene        ; full graphical title (title.asm)
 
         ; Settle period: for the first stretch of the title we PLAY the
         ; music but ignore (and keep draining) any keys.  This swallows
@@ -350,6 +306,7 @@ anykey:   .BYTE "Press any key...",0
         .INCLUDE "rng.asm"
         .INCLUDE "sound.asm"
         .INCLUDE "tiles.asm"
+        .INCLUDE "title.asm"
         .INCLUDE "world.asm"
         .INCLUDE "video.asm"
         .INCLUDE "ui.asm"
@@ -393,6 +350,13 @@ mvC_cnt:    .BYTE 0
 
 ; shop status-line pointer (last action / greeting)
 shopstat:   .WORD 0
+
+; title-screen logo drawing scratch
+logo_li:    .BYTE 0
+logo_lx:    .BYTE 0
+logo_ry:    .BYTE 0
+logo_cx:    .BYTE 0
+logo_bits:  .BYTE 0
 
 ; message log buffers (one screen row each)
 msgbuf0:    .RES SCRW

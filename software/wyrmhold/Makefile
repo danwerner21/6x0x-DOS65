@@ -1,6 +1,6 @@
 all: wyrmhold.com
 
-wyrmhold.out: wyrmhold.asm macro.asm defines.asm sound.asm video.asm world.asm rng.asm ui.asm entity.asm combat.asm player.asm town.asm tiles.asm
+wyrmhold.out: wyrmhold.asm macro.asm defines.asm sound.asm video.asm world.asm rng.asm ui.asm entity.asm combat.asm player.asm town.asm tiles.asm title.asm
 	ca65 wyrmhold.asm -l wyrmhold.lst
 	ld65 wyrmhold.o -vm -v -m wyrmhold.map -C dos65.cfg -o wyrmhold.out
 
