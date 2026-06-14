@@ -102,7 +102,7 @@ draw_title_scene:
         LDX     #26
         LDY     #10
         JSR     locate
-        LDA     #COLOR(CO_BRCYAN, CO_BLACK)
+        LDA     #COLOR(CO_BRTURQ, CO_BLACK)
         STA     CURCOLOR
         PRINTMSG ttl_by
 

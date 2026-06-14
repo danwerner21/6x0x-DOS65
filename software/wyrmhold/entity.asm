@@ -28,8 +28,8 @@ mtype_color:
         .BYTE   COLOR(CO_BRRED, CO_BLACK); orc
         .BYTE   COLOR(CO_BRYELLOW,CO_BLACK); snake
         .BYTE   COLOR(CO_BRWHITE,CO_BLACK); skeleton
-        .BYTE   COLOR(CO_BRMAGENTA,CO_BLACK); thief
-        .BYTE   COLOR(CO_BRCYAN,CO_BLACK); troll
+        .BYTE   COLOR(CO_VIOLET,CO_BLACK); thief
+        .BYTE   COLOR(CO_BRTURQ,CO_BLACK); troll
         .BYTE   C_BOSS          ; boss
 mtype_hp:
         .BYTE   0, 6, 4, 8, 5, 14, 40

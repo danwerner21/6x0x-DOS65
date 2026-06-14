@@ -58,20 +58,20 @@ SCRH            = 24
 ; Base palette nibbles (typical 4-bit IRGB-ish ordering used by the card)
 ;----------------------------------------------------------------
 CO_BLACK        = $0
-CO_RED          = $1
+CO_BLUE         = $1
 CO_GREEN        = $2
-CO_YELLOW       = $3
-CO_BLUE         = $4
-CO_MAGENTA      = $5
-CO_CYAN         = $6
-CO_WHITE        = $7
+CO_TURQ         = $3
+CO_RED          = $4
+CO_VIOLET       = $5
+CO_BROWN        = $6
+CO_CYAN         = $7
 CO_GREY         = $8
-CO_BRRED        = $9
+CO_BRBLUE       = $9
 CO_BRGREEN      = $A
-CO_BRYELLOW     = $B
-CO_BRBLUE       = $C
-CO_BRMAGENTA    = $D
-CO_BRCYAN       = $E
+CO_BRTURQ       = $B
+CO_BRRED        = $C
+CO_BRPURPLE     = $D
+CO_BRYELLOW     = $E
 CO_BRWHITE      = $F
 
 ; convenience: build a color byte from fg,bg nibbles
@@ -81,12 +81,12 @@ CO_BRWHITE      = $F
 ; Terrain uses colored backgrounds so adjoining cells read as landscape,
 ; while the brighter foreground pixels provide texture and landmarks.
 C_GRASS         = COLOR(CO_BRGREEN, CO_GREEN)
-C_WATER         = COLOR(CO_BRCYAN,  CO_BLUE)
+C_WATER         = COLOR(CO_BRTURQ,  CO_BLUE)
 C_FOREST        = COLOR(CO_BRGREEN, CO_BLACK)
 C_MOUNT         = COLOR(CO_BRWHITE, CO_GREY)
 C_TOWN          = COLOR(CO_BRYELLOW,CO_RED)
 C_CASTLE        = COLOR(CO_BRWHITE, CO_GREY)
-C_DUNG          = COLOR(CO_BRMAGENTA,CO_BLACK)
+C_DUNG          = COLOR(CO_BRTURQ,  CO_BLACK)
 C_ROAD          = COLOR(CO_BRYELLOW,CO_RED)
 C_BRIDGE        = COLOR(CO_BRYELLOW,CO_BLUE)
 C_FLOOR         = COLOR(CO_GREY,    CO_BLACK)
@@ -97,16 +97,16 @@ C_TREAS         = COLOR(CO_BRYELLOW,CO_BLACK)
 C_PLAYER        = COLOR(CO_BRWHITE, CO_BLACK)
 C_MONST         = COLOR(CO_BRRED,   CO_BLACK)
 C_BOSS          = COLOR(CO_BRRED,   CO_RED)
-C_BORDER        = COLOR(CO_BRCYAN,  CO_BLACK)
+C_BORDER        = COLOR(CO_BRTURQ,  CO_BLACK)
 C_PANEL         = COLOR(CO_BRWHITE, CO_BLACK)
 C_PANELHDR      = COLOR(CO_BRYELLOW,CO_BLUE)
 C_MSG           = COLOR(CO_BRWHITE, CO_BLACK)
 C_TITLE         = COLOR(CO_BRYELLOW,CO_BLACK)
-C_BLANK         = COLOR(CO_WHITE,   CO_BLACK)
+C_BLANK         = COLOR(CO_GREY,    CO_BLACK)
 
 ; shop panel colors (blue panel with bright text)
 C_SHOPBG        = COLOR(CO_BRWHITE, CO_BLUE)
-C_SHOPBRD       = COLOR(CO_BRCYAN,  CO_BLUE)
+C_SHOPBRD       = COLOR(CO_BRTURQ,  CO_BLUE)
 C_SHOPTTL       = COLOR(CO_BRYELLOW,CO_BLUE)
 C_SHOPTXT       = COLOR(CO_BRWHITE, CO_BLUE)
 C_SHOPST        = COLOR(CO_BRGREEN, CO_BLUE)
