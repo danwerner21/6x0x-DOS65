@@ -4,13 +4,32 @@
 ;  Maps are authored as ASCII rows for readability and converted to
 ;  tile codes once at startup (map_decode).  The decoded tile grids
 ;  live in RAM (owmap / locmap).  Authoring characters:
-;     . grass   & forest  ^ mountain  ~ water   h hills   % marsh
-;     T town    O dungeon C castle    : road    = bridge
-;     space->grass
+;     . grass   & forest  ^ mountain  ~ water   T town    O dungeon
+;     # castle  : road     = bridge    space->grass
 ;  For interiors (town/dungeon):
 ;     . floor   # wall     + door(exit)  $ treasure  < stairs up
 ;     S shop    ~ water
 ;______________________________________________________________________________
+
+;----------------------------------------------------------------
+; Tile glyph table  (tile code -> ASCII char)
+;----------------------------------------------------------------
+tile_glyph:
+        .BYTE   G_GRASS         ; 0  T_GRASS
+        .BYTE   G_FOREST        ; 1  T_FOREST
+        .BYTE   G_MOUNT         ; 2  T_MOUNT
+        .BYTE   G_WATER         ; 3  T_WATER
+        .BYTE   G_TOWN          ; 4  T_TOWN
+        .BYTE   G_DUNG          ; 5  T_DUNG
+        .BYTE   G_CASTLE        ; 6  T_CASTLE
+        .BYTE   G_ROAD          ; 7  T_ROAD
+        .BYTE   G_BRIDGE        ; 8  T_BRIDGE
+        .BYTE   G_FLOOR         ; 9  T_FLOOR
+        .BYTE   G_WALL          ; 10 T_WALL
+        .BYTE   G_DOOR          ; 11 T_DOOR
+        .BYTE   G_TREAS         ; 12 T_TREAS
+        .BYTE   G_UPSTAIR       ; 13 T_UPSTAIR
+        .BYTE   G_SHOP          ; 14 T_SHOP
 
 ;----------------------------------------------------------------
 ; Tile color table  (tile code -> color byte)
@@ -31,33 +50,6 @@ tile_color:
         .BYTE   C_TREAS         ; 12
         .BYTE   C_EXIT          ; 13 stairs (bright = exit)
         .BYTE   C_TOWN          ; 14 shop
-        .BYTE   C_HILLS         ; 15
-        .BYTE   C_MARSH         ; 16
-
-;----------------------------------------------------------------
-; Tile variant table  (tile code -> alternate metatile base, or 0)
-; A non-zero entry means this terrain has a 2nd art variant; the
-; renderer may use it instead of the MG_* base for some map cells
-; to break up the repeating-grid look. 0 = no variant (use base).
-;----------------------------------------------------------------
-tile_variant:
-        .BYTE   MGV_GRASS       ; 0  grass
-        .BYTE   MGV_FOREST      ; 1  forest
-        .BYTE   MGV_MOUNT       ; 2  mountain
-        .BYTE   MGV_WATER       ; 3  water
-        .BYTE   0               ; 4  town
-        .BYTE   0               ; 5  dungeon
-        .BYTE   0               ; 6  castle
-        .BYTE   0               ; 7  road
-        .BYTE   0               ; 8  bridge
-        .BYTE   0               ; 9  floor
-        .BYTE   0               ; 10 wall
-        .BYTE   0               ; 11 door
-        .BYTE   0               ; 12 treasure
-        .BYTE   0               ; 13 stairs
-        .BYTE   0               ; 14 shop
-        .BYTE   0               ; 15 hills
-        .BYTE   0               ; 16 marsh
 
 ;----------------------------------------------------------------
 ; Tile property table  (tile code -> property bits)
@@ -93,19 +85,17 @@ tile_prop:
         .BYTE   P_PASS|P_TREAS  ; 12 treasure
         .BYTE   P_PASS|P_EXIT   ; 13 stairs up (exit dungeon)
         .BYTE   P_PASS|P_SHOP   ; 14 shop
-        .BYTE   P_PASS          ; 15 hills
-        .BYTE   P_PASS          ; 16 marsh
 
 ;----------------------------------------------------------------
 ; Authoring char -> tile code translation (used by map_decode).
 ; Two parallel tables: chars[] and codes[], terminated by $00.
-; The current decoder supplies the map-specific default tile:
-; grass outdoors and floor indoors. Thus '.' and unknown/space
-; characters become the appropriate default without a table entry.
+; (Distinct chars only; '#' = wall by default. The overworld uses
+;  'C' for the decorative castle so it does not collide with walls.)
 ;----------------------------------------------------------------
 dec_chars:
-        .BYTE   "&^~TOC:=#+$<Sh%", $00
+        .BYTE   ".&^~TOC:=#+$<S", $00
 dec_codes:
+        .BYTE   T_GRASS         ; .
         .BYTE   T_FOREST        ; &
         .BYTE   T_MOUNT         ; ^
         .BYTE   T_WATER         ; ~
@@ -119,8 +109,6 @@ dec_codes:
         .BYTE   T_TREAS         ; $
         .BYTE   T_UPSTAIR       ; <
         .BYTE   T_SHOP          ; S
-        .BYTE   T_HILLS         ; h
-        .BYTE   T_MARSH         ; %
 
 ; map a single authoring char (A) to a tile code -> A
 xlate_char:
@@ -134,7 +122,7 @@ xlate_char:
         INX
         BNE     @f
 @nf:
-        LDA     cnt1            ; map-specific default tile
+        LDA     #T_GRASS
         RTS
 @ok:
         LDA     dec_codes,X
@@ -143,15 +131,14 @@ xlate_char:
 ;----------------------------------------------------------------
 ; map_decode - translate an authored ASCII map into a tile grid,
 ; row by row.  Each source row is a NUL-terminated string.  Rows
-; shorter than the map width are padded with the map default; longer
-; rows are truncated.  This makes exact source-row width unimportant.
+; shorter than the map width are padded with grass; longer rows are
+; truncated.  This makes exact source-row width unimportant.
 ;
 ;   IN : srcp -> first source row (rows packed back-to-back, each
 ;                NUL-terminated)
 ;        dstp -> destination tile-code buffer (width*height bytes)
 ;        tmp2 =  map width   (<=255)
 ;        tmp3 =  map height  (<=255)
-;        cnt1 = default tile (grass outdoors, floor indoors)
 ;----------------------------------------------------------------
 ; NOTE: the column counter is kept in cnt0 (memory), NOT in X,
 ; because xlate_char clobbers X (it uses X as a search index).
@@ -197,12 +184,12 @@ map_decode:
         INC     srcp+1
         JMP     @skip
 @padrow:
-; fill remaining columns (cnt0..width-1) with the map default
+; fill remaining columns (cnt0..width-1) with grass in dest
 @pad:
         LDA     cnt0
         CMP     tmp2
         BCS     @aftrow
-        LDA     cnt1
+        LDA     #T_GRASS
         LDY     #0
         STA     (dstp),Y
         INC     dstp
@@ -228,8 +215,6 @@ map_decode:
 decode_world:
         SETW16  srcp, ow_src
         SETW16  dstp, owmap
-        LDA     #T_GRASS
-        STA     cnt1
         LDA     #OWW
         STA     tmp2
         LDA     #OWH
@@ -239,8 +224,6 @@ decode_world:
 decode_town:
         SETW16  srcp, town_src
         SETW16  dstp, locmap
-        LDA     #T_FLOOR
-        STA     cnt1
         LDA     #TOWNW
         STA     tmp2
         LDA     #TOWNH
@@ -250,8 +233,6 @@ decode_town:
 decode_dung:
         SETW16  srcp, dung_src
         SETW16  dstp, locmap
-        LDA     #T_FLOOR
-        STA     cnt1
         LDA     #DUNGW
         STA     tmp2
         LDA     #DUNGH
@@ -449,44 +430,44 @@ tile_addr:
 ; crossed by a bridge.
 ;----------------------------------------------------------------
 ; Maps are stored as NUL-terminated rows.  The decoder pads short
-; rows with the map default and truncates long ones, so the exact
-; authored width of each row is not critical (target widths shown
-; in the header rulers for readability).
+; rows with grass and truncates long ones, so the exact authored
+; width of each row is not critical (target widths shown in the
+; header rulers for readability).
 ow_src:
 ;        0         1         2         3         4         5         6
 ;        0123456789012345678901234567890123456789012345678901234567890123
         .BYTE   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",0
         .BYTE   "~..............................................................~~",0
-        .BYTE   "~..&&&....hh^^^^hh.......&&&&&.........hh^^^hh.........&&&.....~~~",0
-        .BYTE   "~.&&&&&..hh^^^^^^hh.....&&&&&&&.......hh^^^^^hh.......&&&&&....~~~~",0
-        .BYTE   "~.&&&....hh^^^^^^^hh...&&&...&&......hh^^^^^^hh......&&&&&&&...~~~~",0
-        .BYTE   "~..&.....hh^^^^^^hh...&&.......&&....hh^^^^^hh.......&&&&&....~~~~~",0
-        .BYTE   "~.......hh^^^^hh.....&&.........&....hh^^^hh.........&&&......~~~~~",0
+        .BYTE   "~..&&&......^^^^.........&&&&&...........^^^...........&&&.....~~~",0
+        .BYTE   "~.&&&&&....^^^^^^.......&&&&&&&.........^^^^^.........&&&&&....~~~~",0
+        .BYTE   "~.&&&......^^^^^^^.....&&&...&&........^^^^^^........&&&&&&&...~~~~",0
+        .BYTE   "~..&.......^^^^^^.....&&.......&&......^^^^^.........&&&&&....~~~~~",0
+        .BYTE   "~.........^^^^.......&&.........&......^^^...........&&&......~~~~~",0
         .BYTE   "~....................................................T.......~~~~~",0
         .BYTE   "~...............:::::::::::....................::::::::......~~~~~~",0
         .BYTE   "~..&&......^^^..:..............:::::::::::::::::.......:.....~~~~~~",0
         .BYTE   "~.&&&&....^^^^^.:..............................:......:.....~~~~~~",0
-        .BYTE   "~.&&&....^^^^^^.:.............CCCCC............:......:....~~~~~~~",0
-        .BYTE   "~..&....^^^^^...:.............CCCCC............:......:...~~~~~~~~",0
-        .BYTE   "~......^^^^....::.............CCCCC............:......:...~~~~~~~~",0
+        .BYTE   "~.&&&....^^^^^^.:.............#####............:......:....~~~~~~~",0
+        .BYTE   "~..&....^^^^^...:.............#####............:......:...~~~~~~~~",0
+        .BYTE   "~......^^^^....::.............#####............:......:...~~~~~~~~",0
         .BYTE   "~.....^^^....::...............:::::............:......:..~~~~~~~~~",0
         .BYTE   "~..........::................:....:...........:......:..~~~~~~~~~~",0
         .BYTE   "~.........::...............:.......:..........:.....::..~~~~~~~~~~",0
-        .BYTE   "~........::...............:.........:.........:.....:..%%~~~~~~~~~~",0
+        .BYTE   "~........::...............:.........:.........:.....:...~~~~~~~~~~",0
         .BYTE   "~~~~~~~~==~~~~~~~~~~~~~~~~~:.........:~~~~~~~~~~:~~~~~:~~~~~~~~~~~~~",0
-        .BYTE   "~.......::...............:..........:.........:.....:..%%....~~~~~~",0
+        .BYTE   "~.......::...............:..........:.........:.....:.......~~~~~~",0
         .BYTE   "~......::...............:............:........:.....:.......~~~~~~",0
         .BYTE   "~.....::.........&&&...:.............:........:.....:.......~~~~~~",0
         .BYTE   "~....::.........&&&&&.:..............:........:.....:.......~~~~~~",0
         .BYTE   "~...::..........&&&&&:...............:........:.....:.......~~~~~~",0
         .BYTE   "~..::...........&&&&:................:........:.....:.......~~~~~~",0
         .BYTE   "~.::...........&&&:.................:.........:.....:......~~~~~~~",0
-        .BYTE   "~::...........&&:.......hh^^^^^hh..:..........:....::......~~~~~~~",0
-        .BYTE   "~:...........&:........hh^^...^^hh:...........:....:.......~~~~~~~",0
-        .BYTE   "~...........::........hh^^..O..^^h:...........:....:.......~~~~~~~",0
-        .BYTE   "~..........:.........hh^^^^...^^^h:............:....:.......~~~~~~~",0
-        .BYTE   "~.........:.........hh^^^^^^..^^^^hh..........:....:.......~~~~~~~",0
-        .BYTE   "~........:.........hh^^^^^^^...^^^^hh.........:....:.......~~~~~~~",0
+        .BYTE   "~::...........&&:.........^^^^^....:..........:....::......~~~~~~~",0
+        .BYTE   "~:...........&:..........^^...^^..:...........:....:.......~~~~~~~",0
+        .BYTE   "~...........::..........^^..O..^^.:...........:....:.......~~~~~~~",0
+        .BYTE   "~..........:...........^^^^...^^^:............:....:.......~~~~~~~",0
+        .BYTE   "~.........:...........^^^^^^..^^^^............:....:.......~~~~~~~",0
+        .BYTE   "~........:...........^^^^^^^...^^^^...........:....:.......~~~~~~~",0
         .BYTE   "~.......:...........................&&&.......:....:.......~~~~~~~",0
         .BYTE   "~......:...........&&&&............&&&&&......:....:........~~~~~~",0
         .BYTE   "~.....:...........&&&&&&..........&&&&&&&.....:....:........~~~~~~",0
@@ -498,16 +479,16 @@ ow_src:
         .BYTE   "~..:......................:::::::............:.....:.......~~~~~~",0
         .BYTE   "~..:.....................:.......:...........:.....:.......~~~~~~",0
         .BYTE   "~..::...................:.........:..........:.....:.......~~~~~~",0
-        .BYTE   "~...:................:hh^^^^hh...:.........:.....:.......~~~~~~~",0
-        .BYTE   "~...:...............:hh^^^^^^hh...:........:.....:.......~~~~~~~",0
-        .BYTE   "~...:..............:hh^^^^^^^^hh...:.......:.....:.......~~~~~~~",0
-        .BYTE   "~...&&............:hh^^^^^^^^^^hh..:.......:.....:.......~~~~~~~",0
-        .BYTE   "~..&&&&..........:hh^^^^^^^^^^^^hh..:......:.....:.......~~~~~~~",0
-        .BYTE   "~..&&&&.........:hh^^^^^^^^^^^^^^hh.:......:.....:.......~~~~~~~",0
-        .BYTE   "~...&&.........:..hh^^^^^^^^^^^^hh.:.......:.....:.......~~~~~~~",0
-        .BYTE   "~.............:....hh^^^^^^^^^^hh.:........:.....:.......~~~~~~~",0
-        .BYTE   "~............:......hh^^^^^^^hh.:.........::.....:.......~~~~~~~",0
-        .BYTE   "~...........:.........hh^^^hh.:..........:......::.......~~~~~~~",0
+        .BYTE   "~...:..................:..^^^^.....:.........:.....:.......~~~~~~",0
+        .BYTE   "~...:.................:..^^^^^^.....:........:.....:.......~~~~~~",0
+        .BYTE   "~...:................:..^^^^^^^^.....:.......:.....:.......~~~~~~",0
+        .BYTE   "~...&&..............:..^^^^^^^^^^....:.......:.....:.......~~~~~~",0
+        .BYTE   "~..&&&&............:..^^^^^^^^^^^^....:......:.....:.......~~~~~~",0
+        .BYTE   "~..&&&&...........:..^^^^^^^^^^^^^^...:......:.....:.......~~~~~~",0
+        .BYTE   "~...&&...........:....^^^^^^^^^^^^...:.......:.....:.......~~~~~~",0
+        .BYTE   "~...............:......^^^^^^^^^^...:........:.....:.......~~~~~~",0
+        .BYTE   "~..............:........^^^^^^^...:.........::.....:.......~~~~~~",0
+        .BYTE   "~.............:...........^^^...:..........:......::.......~~~~~~",0
         .BYTE   "~............:..................:..........:.......:.......~~~~~~",0
         .BYTE   "~...........:.................::...........:.......&&&......~~~~~~",0
         .BYTE   "~..........................................:......&&&&&.....~~~~~~",0
@@ -515,8 +496,8 @@ ow_src:
         .BYTE   "~...&&&&&..............................&&&&&.......&&&&......~~~~~~",0
         .BYTE   "~...&&&&&............................&&&&&&&................~~~~~~~",0
         .BYTE   "~....&&&............................&&&&&&.................~~~~~~~~",0
-        .BYTE   "~..............................%%&&&&%%.................~~~~~~~~~~",0
-        .BYTE   "~.................................................%%%~~~~~~~~~~~~~",0
+        .BYTE   "~................................&&&&...................~~~~~~~~~~",0
+        .BYTE   "~....................................................~~~~~~~~~~~~~",0
         .BYTE   "~~..............................................~~~~~~~~~~~~~~~~~~",0
         .BYTE   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",0
 
@@ -554,8 +535,8 @@ town_src:
 dung_src:
         .BYTE   "################################",0
         .BYTE   "#<.....#......#........#.......#",0
-        .BYTE   "#..###.#.####.#.######.#.#####.#",0
-        .BYTE   "#....#.#.#..#.#.#....#.#.#...#.#",0
+        .BYTE   "#.####.#.####.#.######.#.#####.#",0
+        .BYTE   "#.#..#.#.#..#.#.#....#.#.#...#.#",0
         .BYTE   "#.#$.#...#..#...#.$..#...#.$.#.#",0
         .BYTE   "#.#..####..#.####.####.###...#.#",0
         .BYTE   "#.#.......#....#....#......#.#.#",0
@@ -569,6 +550,6 @@ dung_src:
         .BYTE   "#.#.#..#...#..#....#.......#.#.#",0
         .BYTE   "#.#.#.############.#######.#.#.#",0
         .BYTE   "#...#...........$........#...#.#",0
-        .BYTE   "#.######.....##..#######.#.###.#",0
+        .BYTE   "#.#############.########.#.###.#",0
         .BYTE   "#.............................$#",0
         .BYTE   "################################",0

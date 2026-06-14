@@ -321,17 +321,24 @@ clear_panel_value:
 
 ;----------------------------------------------------------------
 ; render_view - draw the scrolling map viewport centered on the
-; player. Each world tile is a 2x2 character-cell metatile.
+; player.  Reads tiles from the active map via tileat, looks up
+; glyph + color, writes directly to VRAM, then overlays visible
+; monsters and the player glyph at the center.
 ;
 ;   uses: px,py (player world coords), loc (active map)
 ;   The top-left WORLD cell shown is (px-VPCX, py-VPCY).
 ;----------------------------------------------------------------
 render_view:
         JSR     vid_enter
-; world-tile row = 0..VPTH-1
+; vrow = 0..VPH-1
         LDA     #0
-        STA     rowidx
+        STA     rowidx          ; viewport row
 @vrow:
+; screen row = VPY0 + rowidx ; compute vptr/cptr base for it
+        CLC
+        LDA     rowidx
+        ADC     #VPY0
+        JSR     rowbase         ; vptr/cptr -> start of that screen row
 ; world y for this row = py - VPCY + rowidx
         SEC
         LDA     py
@@ -339,9 +346,9 @@ render_view:
         CLC
         ADC     rowidx
         STA     tgty
-; world-tile column loop
+; column loop
         LDA     #0
-        STA     colidx
+        STA     colidx          ; viewport column
 @vcol:
 ; world x = px - VPCX + colidx
         SEC
@@ -352,195 +359,90 @@ render_view:
         STA     tgtx
 ; fetch tile (returns tgttile)
         JSR     tileat
-; metatile base glyph = MG_TERRAIN_BASE + tile_code*4
-        LDA     tgttile
-        ASL     A
-        ASL     A
-        CLC
-        ADC     #MG_TERRAIN_BASE
-        STA     cnt0
+; look up glyph and color
         LDX     tgttile
+        LDA     tile_glyph,X
+        STA     tmp0            ; glyph
         LDA     tile_color,X
-        STA     cnt1
-; pick an alternate art variant for some cells so large regions of
-; one terrain don't show an obvious repeating grid. A terrain has a
-; variant iff tile_variant[code] != 0; we use it when the cheap
-; position hash (tgtx ^ tgty) bit0 is set.
-        LDA     tile_variant,X
-        BEQ     @novar          ; this terrain has no variant
-        LDA     tgtx
-        EOR     tgty
-        AND     #$01
-        BEQ     @novar          ; hash says keep the base art
-        LDA     tile_variant,X  ; swap in the variant metatile base
-        STA     cnt0
-@novar:
-; screen column = VPX0 + colidx*2
+        STA     tmp1            ; color
+; write to VRAM at column VPX0+colidx
+        CLC
         LDA     colidx
-        ASL     A
-        CLC
         ADC     #VPX0
-        STA     tmp2
-; screen row = VPY0 + rowidx*2
-        LDA     rowidx
-        ASL     A
-        CLC
-        ADC     #VPY0
-        STA     tmp3
-        JSR     blit_metatile_vram
+        TAY
+        LDA     tmp0
+        STA     (vptr),Y
+        LDA     tmp1
+        STA     (cptr),Y
 ; next column
         INC     colidx
         LDA     colidx
-        CMP     #VPTW
+        CMP     #VPW
         BNE     @vcol
 ; next row
         INC     rowidx
         LDA     rowidx
-        CMP     #VPTH
+        CMP     #VPH
         BNE     @vrow
 
 ; --- overlay monsters that fall within the viewport ---
         JSR     draw_monsters_vram
 
-; --- overlay the player at the fixed center metatile ---
-        LDA     #MG_PLAYER
-        STA     cnt0
+; --- overlay the player at the fixed center cell ---
+        LDA     #(VPY0+VPCY)
+        JSR     rowbase
+        LDY     #(VPX0+VPCX)
+        LDA     #G_PLAYER
+        STA     (vptr),Y
         LDA     #C_PLAYER
-        STA     cnt1
-        LDA     #(VPX0+(VPCX*2))
-        STA     tmp2
-        LDA     #(VPY0+(VPCY*2))
-        STA     tmp3
-        JSR     blit_entity_vram
+        STA     (cptr),Y
 
         JMP     vid_exit
 
 ;----------------------------------------------------------------
-; blit_metatile_vram - draw a 2x2 terrain metatile with one color.
-;   IN: cnt0=base glyph, cnt1=color, tmp2=screen col, tmp3=screen row
-;   MUST be called inside vid_enter/vid_exit.
-;----------------------------------------------------------------
-blit_metatile_vram:
-        LDA     tmp3
-        JSR     rowbase
-        LDY     tmp2
-        LDA     cnt0
-        STA     (vptr),Y
-        LDA     cnt1
-        STA     (cptr),Y
-        INY
-        LDA     cnt0
-        CLC
-        ADC     #1
-        STA     (vptr),Y
-        LDA     cnt1
-        STA     (cptr),Y
-
-        LDA     tmp3
-        CLC
-        ADC     #1
-        JSR     rowbase
-        LDY     tmp2
-        LDA     cnt0
-        CLC
-        ADC     #2
-        STA     (vptr),Y
-        LDA     cnt1
-        STA     (cptr),Y
-        INY
-        LDA     cnt0
-        CLC
-        ADC     #3
-        STA     (vptr),Y
-        LDA     cnt1
-        STA     (cptr),Y
-        RTS
-
-;----------------------------------------------------------------
-; blit_entity_vram - overlay a 2x2 entity metatile while preserving
-; each terrain cell's background color.
-;   IN: cnt0=base glyph, cnt1=entity color, tmp2=screen col,
-;       tmp3=screen row
-;   MUST be called inside vid_enter/vid_exit.
-;----------------------------------------------------------------
-blit_entity_vram:
-        LDA     tmp3
-        JSR     rowbase
-        LDY     tmp2
-        LDA     cnt0
-        STA     (vptr),Y
-        JSR     entity_color_at_y
-        INY
-        LDA     cnt0
-        CLC
-        ADC     #1
-        STA     (vptr),Y
-        JSR     entity_color_at_y
-
-        LDA     tmp3
-        CLC
-        ADC     #1
-        JSR     rowbase
-        LDY     tmp2
-        LDA     cnt0
-        CLC
-        ADC     #2
-        STA     (vptr),Y
-        JSR     entity_color_at_y
-        INY
-        LDA     cnt0
-        CLC
-        ADC     #3
-        STA     (vptr),Y
-        JSR     entity_color_at_y
-        RTS
-
-; preserve background nibble at the current cptr,Y; apply cnt1 foreground
-entity_color_at_y:
-        LDA     (cptr),Y
-        AND     #$F0
-        STA     tmp0
-        LDA     cnt1
-        AND     #$0F
-        ORA     tmp0
-        STA     (cptr),Y
-        RTS
-
-;----------------------------------------------------------------
-; plot_view_cell - overlay an entity metatile at WORLD coords
-; (tgtx,tgty) if it is visible.
-;   IN: tgtx,tgty=world coords, cnt0=base glyph, cnt1=color
-;   MUST be called inside vid_enter/vid_exit.
+; plot_view_cell - write a glyph+color to the viewport at WORLD
+; coords (tgtx,tgty) IF that cell is currently visible.  Used to
+; overlay monsters.  MUST be called inside vid_enter/vid_exit.
+;   IN: tgtx,tgty = world coords ; cnt0 = glyph ; cnt1 = color
+;       px,py = player world coords
+;   NOTE: glyph/color are passed in cnt0/cnt1, NOT tmp0/tmp1,
+;   because rowbase (called below) clobbers tmp0.
 ;----------------------------------------------------------------
 plot_view_cell:
-; viewport tile column = tgtx - px + VPCX
+; vc = tgtx - (px - VPCX) = tgtx - px + VPCX
         SEC
         LDA     tgtx
         SBC     px
         CLC
         ADC     #VPCX
-; must be 0..VPTW-1
+; must be 0..VPW-1
         BMI     @no             ; (signed underflow check via N flag)
-        CMP     #VPTW
+        CMP     #VPW
         BCS     @no
-        ASL     A
-        CLC
-        ADC     #VPX0
-        STA     tmp2            ; screen column
-; viewport tile row = tgty - py + VPCY
+        STA     tmp2            ; viewport column
+; vr = tgty - py + VPCY
         SEC
         LDA     tgty
         SBC     py
         CLC
         ADC     #VPCY
         BMI     @no
-        CMP     #VPTH
+        CMP     #VPH
         BCS     @no
-        ASL     A
+        STA     tmp3            ; viewport row
+; screen row = VPY0 + tmp3
         CLC
+        LDA     tmp3
         ADC     #VPY0
-        STA     tmp3            ; screen row
-        JMP     blit_entity_vram
+        JSR     rowbase         ; (clobbers tmp0/ptr/ptr2; tmp2/3,cnt0/1 safe)
+        CLC
+        LDA     tmp2
+        ADC     #VPX0
+        TAY
+        LDA     cnt0            ; glyph
+        STA     (vptr),Y
+        LDA     cnt1            ; color
+        STA     (cptr),Y
 @no:
         RTS
 

@@ -8,7 +8,7 @@
 
 ;----------------------------------------------------------------
 ; Per-monster-type stat tables (indexed by M_* id)
-;   mtype_glyph : 2x2 metatile base glyph
+;   mtype_glyph : ASCII glyph
 ;   mtype_color : color cell
 ;   mtype_hp    : starting HP
 ;   mtype_atk   : attack dice sides (damage 1..atk)
@@ -17,18 +17,18 @@
 ;----------------------------------------------------------------
 mtype_glyph:
         .BYTE   ' '             ; 0 none
-        .BYTE   MG_ORC          ; 1 orc
-        .BYTE   MG_SNAKE        ; 2 snake
-        .BYTE   MG_SKELETON     ; 3 skeleton
-        .BYTE   MG_THIEF        ; 4 thief
-        .BYTE   MG_TROLL        ; 5 troll
-        .BYTE   MG_BOSS         ; 6 boss (dragon)
+        .BYTE   G_ORC           ; 1 orc
+        .BYTE   G_SNAKE         ; 2 snake
+        .BYTE   G_SKELETON      ; 3 skeleton
+        .BYTE   G_THIEF         ; 4 thief
+        .BYTE   G_TROLL         ; 5 troll
+        .BYTE   G_BOSS          ; 6 boss (dragon)
 mtype_color:
         .BYTE   C_MONST         ; 0
-        .BYTE   COLOR(CO_BRRED, CO_BLACK); orc
-        .BYTE   COLOR(CO_BRYELLOW,CO_BLACK); snake
+        .BYTE   COLOR(CO_BRGREEN,CO_BLACK); orc
+        .BYTE   COLOR(CO_GREEN, CO_BLACK); snake
         .BYTE   COLOR(CO_BRWHITE,CO_BLACK); skeleton
-        .BYTE   COLOR(CO_BRMAGENTA,CO_BLACK); thief
+        .BYTE   COLOR(CO_BRYELLOW,CO_BLACK); thief
         .BYTE   COLOR(CO_BRCYAN,CO_BLACK); troll
         .BYTE   C_BOSS          ; boss
 mtype_hp:
@@ -243,35 +243,7 @@ spawn_dungeon_monsters:
         BNE     @loop
         RTS
 
-;----------------------------------------------------------------
-; draw_monsters_vram - overlay all visible monsters in the viewport.
-; Called by render_view while video is paged in.
-;----------------------------------------------------------------
-draw_monsters_vram:
-        LDX     #0
-        STX     monidx
-@dm:
-        LDX     monidx
-        LDA     mon_type,X
-        CMP     #M_NONE
-        BEQ     @next
-; set world coords + glyph/color, then plot if visible
-        LDA     mon_x,X
-        STA     tgtx
-        LDA     mon_y,X
-        STA     tgty
-        LDY     mon_type,X
-        LDA     mtype_glyph,Y
-        STA     cnt0            ; glyph (cnt0/cnt1 survive rowbase)
-        LDA     mtype_color,Y
-        STA     cnt1            ; color
-        JSR     plot_view_cell
-@next:
-        INC     monidx
-        LDA     monidx
-        CMP     #MAXMON
-        BNE     @dm
-        RTS
+; (monster overlay is now hdraw_monsters in hires.asm)
 
 ;----------------------------------------------------------------
 ; mon_act - move/attack for every monster (called once per turn).

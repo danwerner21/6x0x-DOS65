@@ -8,11 +8,9 @@
 ;     3. write 8 scanline bytes to VideoCharGenData ($A003)
 ;        (the hardware auto-advances through the 8 rows of the glyph)
 ;
-;  Each bitmap is authored as 8 bytes, top row first, with bit7 as
-;  the leftmost pixel. The video character generator displays bit0
-;  on the left, so chargen_init reverses each scanline before upload.
-;  Small title glyphs use control codes 1..31. Gameplay metatiles
-;  use $80..$DF. Printable ASCII used by the UI remains intact.
+;  Each bitmap is 8 bytes, top row first; bit7 = leftmost pixel.
+;  We redefine codes 128.. (G_* constants) so the normal ASCII font
+;  used for UI text is left intact.
 ;______________________________________________________________________________
 
 VideoCharGenOffset = $A002
@@ -36,23 +34,6 @@ cg_exit:
         RTS
 
 ;----------------------------------------------------------------
-; reverse_glyph_byte - convert authored bit7-left rows to the
-; character generator's bit0-left display order.
-;   IN/OUT: A = scanline byte
-;   trashes X,tmp0; preserves Y
-;----------------------------------------------------------------
-reverse_glyph_byte:
-        STA     tmp0
-        LDA     #0
-        LDX     #8
-@bit:
-        LSR     tmp0
-        ROL     A
-        DEX
-        BNE     @bit
-        RTS
-
-;----------------------------------------------------------------
 ; chargen_init - upload every custom glyph bitmap.
 ;
 ; Driven by a table of (charcode, 8 bytes) records.  The table ends
@@ -70,7 +51,6 @@ chargen_init:
         LDY     #1
 @row:
         LDA     (srcp),Y
-        JSR     reverse_glyph_byte
         STA     VideoCharGenData
         INY
         CPY     #9
@@ -93,52 +73,52 @@ chargen_init:
 glyphtab:
 
 ; --- terrain ---------------------------------------------------
-; Terrain uses colored backgrounds and brighter foreground texture.
-; Adjoining cells therefore read as continuous landscape.
+; Terrain is kept very light so the player and monsters read clearly
+; against it.  The cell's background color fills the empty pixels.
 
-; grass: sparse blades over a green field
+; grass: blank (color plane gives it its green)
         .BYTE   G_GRASS
         .BYTE   %00000000
-        .BYTE   %00010000
-        .BYTE   %00000010
-        .BYTE   %01000000
-        .BYTE   %00001000
         .BYTE   %00000000
-        .BYTE   %00100000
-        .BYTE   %00000100
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
 
-; forest: broad evergreen silhouette
+; forest: a single small tree, lots of empty space
         .BYTE   G_FOREST
+        .BYTE   %00000000
         .BYTE   %00011000
         .BYTE   %00111100
-        .BYTE   %01111110
         .BYTE   %00111100
-        .BYTE   %01111110
-        .BYTE   %11111111
         .BYTE   %00011000
-        .BYTE   %00111100
+        .BYTE   %00011000
+        .BYTE   %00000000
+        .BYTE   %00000000
 
-; mountain: snow-capped peak
+; mountain: a simple peak
         .BYTE   G_MOUNT
+        .BYTE   %00000000
+        .BYTE   %00000000
         .BYTE   %00011000
         .BYTE   %00111100
-        .BYTE   %00100100
         .BYTE   %01111110
-        .BYTE   %01011010
         .BYTE   %11111111
-        .BYTE   %10100101
-        .BYTE   %11111111
+        .BYTE   %00000000
+        .BYTE   %00000000
 
-; water: layered waves
+; water: a couple of gentle ripples
         .BYTE   G_WATER
-        .BYTE   %01100110
-        .BYTE   %10011001
         .BYTE   %00000000
-        .BYTE   %00110011
-        .BYTE   %11001100
         .BYTE   %00000000
         .BYTE   %01100110
         .BYTE   %10011001
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
 
 ; town: one tidy house
         .BYTE   G_TOWN
@@ -175,14 +155,14 @@ glyphtab:
 
 ; road: a faint dashed path
         .BYTE   G_ROAD
-        .BYTE   %00111100
-        .BYTE   %01111110
-        .BYTE   %01011010
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
         .BYTE   %01100110
-        .BYTE   %01011010
-        .BYTE   %01100110
-        .BYTE   %01111110
-        .BYTE   %00111100
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
 
 ; bridge: two rails with planks between
         .BYTE   G_BRIDGE
@@ -195,27 +175,27 @@ glyphtab:
         .BYTE   %11111111
         .BYTE   %00000000
 
-; floor: scattered flagstones
+; floor: blank (interior is just dark)
         .BYTE   G_FLOOR
-        .BYTE   %10000001
         .BYTE   %00000000
-        .BYTE   %00011000
         .BYTE   %00000000
-        .BYTE   %01000010
         .BYTE   %00000000
-        .BYTE   %00011000
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
+        .BYTE   %00000000
         .BYTE   %00000000
 
-; wall: masonry blocks
+; wall: solid block (fills the whole cell)
         .BYTE   G_WALL
         .BYTE   %11111111
-        .BYTE   %10001000
         .BYTE   %11111111
-        .BYTE   %00100010
         .BYTE   %11111111
-        .BYTE   %10001000
         .BYTE   %11111111
-        .BYTE   %00100010
+        .BYTE   %11111111
+        .BYTE   %11111111
+        .BYTE   %11111111
+        .BYTE   %11111111
 
 ; door: a clear doorway outline
         .BYTE   G_DOOR
@@ -342,30 +322,5 @@ glyphtab:
         .BYTE   %11011011
         .BYTE   %00100100
         .BYTE   %00000000
-
-; hills: warm rolling foothills
-        .BYTE   G_HILLS
-        .BYTE   %00000000
-        .BYTE   %00000000
-        .BYTE   %00011000
-        .BYTE   %00111100
-        .BYTE   %01100110
-        .BYTE   %11000011
-        .BYTE   %00011000
-        .BYTE   %00100100
-
-; marsh: reeds and shallow pools
-        .BYTE   G_MARSH
-        .BYTE   %00010010
-        .BYTE   %01010010
-        .BYTE   %01011010
-        .BYTE   %00011000
-        .BYTE   %00100100
-        .BYTE   %11000011
-        .BYTE   %00000000
-        .BYTE   %01100110
-
-; 2x2 gameplay metatile artwork ($80..$DF)
-        .INCLUDE "metatiles.asm"
 
         .BYTE   0               ; end of table

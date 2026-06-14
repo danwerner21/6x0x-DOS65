@@ -22,12 +22,6 @@ BEGIN:
         CLD
         JSR     psg_init
         JSR     rng_seed
-; All direct-VRAM rendering below assumes 80-byte screen rows.
-; Establish that mode before uploading glyphs or drawing anything.
-        LDA     #FC_SETMODE
-        STA     farfunct
-        LDA     #1              ; 80-column text mode
-        JSR     DO_FARCALL
         JSR     chargen_init    ; upload custom terrain/monster tiles
 ; hide the firmware text cursor; we draw our own world
         LDA     #0

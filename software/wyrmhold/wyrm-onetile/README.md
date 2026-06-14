@@ -6,20 +6,12 @@ written in 6502 assembly (ca65 syntax).
 It uses the **memory-mapped video card** directly (paged into bank `$A` like the
 SpeedScript port) for a colorful 80x24 display with custom graphics tiles, and
 the **AY-3-8910 PSG** for a title-screen melody and in-game sound effects.
-Wyrmhold explicitly selects 80-column text mode at startup before using its
-direct-VRAM renderer.
 
 This is original work — our own maps, monsters, text, tiles, and engine.
 
 ## Gameplay
 
-- A scrolling `22x10`-tile overworld viewport keeps your hero centered while
-  the world scrolls. Each world tile uses four custom characters for clean,
-  high-contrast 16x16 artwork.
-- Restrained foreground detail and strongly separated background colors make
-  fields, forests, water, mountains, roads, and interiors easy to distinguish.
-- Hills soften mountain ranges into the surrounding grasslands, while marshes
-  add wetland detail around rivers and coasts.
+- A scrolling overworld viewport keeps your hero centered while the world scrolls.
 - A right-hand panel shows HP, level, XP, gold, food, weapon and armor.
 - A two-line message log at the bottom narrates what happens.
 - **Movement:** `W` `A` `S` `D` (also `H` `J` `K` `L`).
@@ -63,7 +55,6 @@ WYRMHOLD
 | `defines.asm`  | System equates, color/tile constants, zero-page & game state |
 | `macro.asm`    | 16-bit helper macros and a `FARCALL` macro                   |
 | `tiles.asm`    | Custom 8x8 character-generator bitmaps (terrain/monsters)    |
-| `metatiles.asm` | 2x2 gameplay terrain, landmark, player and monster artwork  |
 | `video.asm`    | Video paging, frame/panel/viewport rendering, UI text output |
 | `world.asm`    | Overworld / town / dungeon map data and tile-property tables |
 | `rng.asm`      | Small xorshift pseudo-random generator                       |
@@ -77,5 +68,3 @@ The video and PSG access patterns follow the existing repo code
 (`software/speedscript/screen.asm` and `software/dbasic/ay38910.asm`), and the
 custom tiles use the character generator the way `V_PATTERN` does in
 `software/dbasic/screencmds.asm`.
-Tile bitmap sources use bit 7 for the left edge; the upload routine reverses
-each scanline for the video card's bit-0-left character generator.

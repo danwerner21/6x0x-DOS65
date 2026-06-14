@@ -78,21 +78,17 @@ CO_BRWHITE      = $F
         .DEFINE COLOR(fg,bg) (((bg)<<4)|(fg))
 
 ; named cell colors used throughout the game
-; Terrain uses colored backgrounds so adjoining cells read as landscape,
-; while the brighter foreground pixels provide texture and landmarks.
-C_GRASS         = COLOR(CO_BRGREEN, CO_GREEN)
-C_WATER         = COLOR(CO_BRCYAN,  CO_BLUE)
-C_FOREST        = COLOR(CO_BRGREEN, CO_BLACK)
-C_MOUNT         = COLOR(CO_BRWHITE, CO_GREY)
-C_TOWN          = COLOR(CO_BRYELLOW,CO_RED)
-C_CASTLE        = COLOR(CO_BRWHITE, CO_GREY)
+C_GRASS         = COLOR(CO_BRGREEN, CO_BLACK)
+C_WATER         = COLOR(CO_BRBLUE,  CO_BLUE)
+C_FOREST        = COLOR(CO_GREEN,   CO_BLACK)
+C_MOUNT         = COLOR(CO_GREY,    CO_BLACK)
+C_TOWN          = COLOR(CO_BRYELLOW,CO_BLACK)
+C_CASTLE        = COLOR(CO_BRWHITE, CO_BLACK)
 C_DUNG          = COLOR(CO_BRMAGENTA,CO_BLACK)
-C_ROAD          = COLOR(CO_BRYELLOW,CO_RED)
-C_BRIDGE        = COLOR(CO_BRYELLOW,CO_BLUE)
+C_ROAD          = COLOR(CO_BRYELLOW,CO_BLACK)
+C_BRIDGE        = COLOR(CO_YELLOW,  CO_BLACK)
 C_FLOOR         = COLOR(CO_GREY,    CO_BLACK)
 C_WALL          = COLOR(CO_BRWHITE, CO_GREY)
-C_HILLS         = COLOR(CO_BRYELLOW,CO_GREEN)
-C_MARSH         = COLOR(CO_BRGREEN, CO_BLUE)
 C_TREAS         = COLOR(CO_BRYELLOW,CO_BLACK)
 C_PLAYER        = COLOR(CO_BRWHITE, CO_BLACK)
 C_MONST         = COLOR(CO_BRRED,   CO_BLACK)
@@ -132,13 +128,18 @@ T_DOOR          = 11            ; exit tile (leave town/dungeon)
 T_TREAS         = 12            ; treasure chest
 T_UPSTAIR       = 13            ; leave dungeon
 T_SHOP          = 14            ; shop counter inside a town
-T_HILLS         = 15            ; passable rolling foothills
-T_MARSH         = 16            ; passable wetland
-NUM_TILES       = 17
+NUM_TILES       = 15
 
 ;----------------------------------------------------------------
-; Small custom glyphs used by the title scene. Gameplay uses the
-; 2x2 metatile glyphs in the upper half of the character set below.
+; Map glyphs.  These are custom characters whose 8x8 bitmaps are
+; uploaded to the character generator at startup by chargen_init
+; (see tiles.asm).
+;
+; We use codes in the CONTROL range (1..31).  The UI only ever
+; prints ASCII 32+, so these slots are free to redefine and they
+; live safely in the low 128 of the font (some cards only redefine
+; / display 128 glyphs and treat bit7 as an attribute, which broke
+; the earlier 128+ codes - monsters showed the stock font).
 ;----------------------------------------------------------------
 G_GRASS         = 1
 G_FOREST        = 2
@@ -166,62 +167,6 @@ G_THIEF         = 20
 G_TROLL         = 21
 G_BOSS          = 22
 
-G_HILLS         = 23
-G_MARSH         = 24
-
-;----------------------------------------------------------------
-; Gameplay metatile glyphs. Each world tile occupies four adjacent
-; character cells:
-;   base+0 base+1
-;   base+2 base+3
-;
-; Terrain bases are computed as MG_TERRAIN_BASE + tile_code*4.
-; $80..$DF stays clear of printable ASCII used by the UI.
-; The DBASIC PATTERN implementation accepts character numbers 0..255.
-;----------------------------------------------------------------
-MG_TERRAIN_BASE = $80
-
-MG_GRASS        = MG_TERRAIN_BASE+(T_GRASS*4)
-MG_FOREST       = MG_TERRAIN_BASE+(T_FOREST*4)
-MG_MOUNT        = MG_TERRAIN_BASE+(T_MOUNT*4)
-MG_WATER        = MG_TERRAIN_BASE+(T_WATER*4)
-MG_TOWN         = MG_TERRAIN_BASE+(T_TOWN*4)
-MG_DUNG         = MG_TERRAIN_BASE+(T_DUNG*4)
-MG_CASTLE       = MG_TERRAIN_BASE+(T_CASTLE*4)
-MG_ROAD         = MG_TERRAIN_BASE+(T_ROAD*4)
-MG_BRIDGE       = MG_TERRAIN_BASE+(T_BRIDGE*4)
-MG_FLOOR        = MG_TERRAIN_BASE+(T_FLOOR*4)
-MG_WALL         = MG_TERRAIN_BASE+(T_WALL*4)
-MG_DOOR         = MG_TERRAIN_BASE+(T_DOOR*4)
-MG_TREAS        = MG_TERRAIN_BASE+(T_TREAS*4)
-MG_UPSTAIR      = MG_TERRAIN_BASE+(T_UPSTAIR*4)
-MG_SHOP         = MG_TERRAIN_BASE+(T_SHOP*4)
-MG_HILLS        = MG_TERRAIN_BASE+(T_HILLS*4)
-MG_MARSH        = MG_TERRAIN_BASE+(T_MARSH*4)
-
-MG_PLAYER       = $C4
-MG_ORC          = $C8
-MG_SNAKE        = $CC
-MG_SKELETON     = $D0
-MG_THIEF        = $D4
-MG_TROLL        = $D8
-MG_BOSS         = $DC
-
-;----------------------------------------------------------------
-; Terrain variant metatiles ($E0..$FF). A few high-traffic field
-; terrains get a 2nd art variant so large regions don't show an
-; obvious grid. render_view picks variant 0 (the MG_* base above)
-; or variant 1 (these) from a position hash. Tiles without a
-; variant entry here are left to fall through to their base.
-;   NOTE: depends on the video card redefining glyphs >= $80; the
-;   $E0+ range is verified on hardware at build time.
-;----------------------------------------------------------------
-MGV_GRASS       = $E0
-MGV_FOREST      = $E4
-MGV_WATER       = $E8
-MGV_MOUNT       = $EC
-; $F0..$FF still free for more variants
-
 ;----------------------------------------------------------------
 ; Monster type ids
 ;----------------------------------------------------------------
@@ -236,18 +181,17 @@ NUM_MTYPE       = 7
 MAXMON          = 12            ; max simultaneously active monsters
 
 ;----------------------------------------------------------------
-; Viewport geometry (left map window). Gameplay world tiles are
-; rendered as 2x2 character-cell metatiles.
+; Viewport geometry (left map window).  Odd width/height so the
+; player sits dead center.  Interior only - the frame is drawn
+; around it.
 ;   frame at col 0..VPW+1, rows 0..VPH+1  (top bar handled separately)
 ;----------------------------------------------------------------
-VPW             = 44            ; viewport interior width in screen cells
+VPW             = 45            ; viewport interior width (cols 1..45)
 VPH             = 20            ; viewport interior height (rows 1..20)
 VPX0            = 1             ; first interior column (screen)
 VPY0            = 1             ; first interior row (screen)
-VPTW            = VPW/2         ; viewport width in world tiles
-VPTH            = VPH/2         ; viewport height in world tiles
-VPCX            = 11            ; player world-tile column within viewport
-VPCY            = 5             ; player world-tile row within viewport
+VPCX            = 22            ; player column within viewport interior (0-based)
+VPCY            = 10            ; player row within viewport interior (0-based)
 
 ; panel geometry (right side)
 PANX            = 48            ; panel text start column

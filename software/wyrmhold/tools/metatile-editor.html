@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wyrmhold Metatile Editor</title>
+<style>
+  :root{
+    --bg:#1a1a20; --panel:#23232c; --ink:#e8e8ee; --muted:#9a9aae;
+    --line:#3a3a48; --accent:#ffd86b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.4 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;color:var(--accent);font-weight:600}
+  header .hint{color:var(--muted);font-size:12px}
+  main{display:flex;gap:16px;padding:16px;align-items:flex-start;flex-wrap:wrap}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+  .panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+  label{font-size:12px;color:var(--muted)}
+  select,button,input[type=text]{
+    background:#2c2c38;color:var(--ink);border:1px solid var(--line);border-radius:6px;
+    padding:6px 9px;font:inherit
+  }
+  button{cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);color:#222;border-color:var(--accent);font-weight:600}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  canvas{display:block;image-rendering:pixelated;background:#000;border-radius:4px}
+  #edit{border:1px solid var(--line);cursor:crosshair}
+  textarea{
+    width:100%;min-height:160px;background:#16161c;color:#cfe8cf;border:1px solid var(--line);
+    border-radius:6px;padding:10px;font:12px/1.45 "Cascadia Code",Consolas,monospace;resize:vertical;
+    white-space:pre;overflow:auto
+  }
+  .out textarea{color:#ffe9a8}
+  .swatches{display:flex;gap:4px;flex-wrap:wrap;max-width:300px}
+  .sw{width:22px;height:22px;border-radius:4px;border:2px solid transparent;cursor:pointer}
+  .sw.sel{border-color:#fff}
+  .legend{font-size:11px;color:var(--muted);margin-top:8px}
+  .colorline{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .chip{width:16px;height:16px;border-radius:3px;border:1px solid #0006}
+  small.k{color:var(--accent)}
+  .tiles3 figcaption{font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Wyrmhold Metatile Editor</h1>
+  <span class="hint">Left-click = <small class="k">foreground</small> ON · Right-click = background (OFF) · drag to paint</span>
+</header>
+
+<main>
+  <!-- LEFT: editor -->
+  <section class="panel">
+    <h2>Edit (16×16 metatile = 4 glyphs)</h2>
+    <div class="row">
+      <label>Tile / color
+        <select id="tileSel"></select>
+      </label>
+      <button id="clearBtn">Clear</button>
+      <button id="invertBtn">Invert</button>
+      <label><input type="checkbox" id="gridChk" checked> grid</label>
+    </div>
+    <canvas id="edit" width="512" height="512"></canvas>
+    <div class="legend">
+      Quadrants map to <code>base+0</code> (TL) <code>base+1</code> (TR) <code>base+2</code> (BL) <code>base+3</code> (BR).
+      Each glyph is 8×8; bytes are top→bottom, bit7 = leftmost pixel.
+    </div>
+  </section>
+
+  <!-- MIDDLE: previews + palette -->
+  <section class="panel">
+    <h2>Preview</h2>
+    <div class="row" style="align-items:flex-start;gap:20px">
+      <figure style="margin:0">
+        <canvas id="prev1" width="64" height="64" style="width:96px;height:96px"></canvas>
+        <figcaption style="font-size:11px;color:var(--muted);text-align:center;margin-top:6px">1× metatile</figcaption>
+      </figure>
+      <figure class="tiles3" style="margin:0">
+        <canvas id="prev3" width="192" height="192" style="width:192px;height:192px"></canvas>
+        <figcaption>3×3 tiled (check seams)</figcaption>
+      </figure>
+    </div>
+    <h2 style="margin-top:16px">Active colors</h2>
+    <div class="colorline"><span class="chip" id="fgChip"></span> foreground <span id="fgName" style="color:var(--accent)"></span></div>
+    <div class="colorline"><span class="chip" id="bgChip"></span> background <span id="bgName" style="color:var(--accent)"></span></div>
+    <div class="legend">Colors come from the in-game <code>tile_color</code> table. Override per quadrant only by changing the tile.</div>
+
+    <h2 style="margin-top:16px">Palette (IRGB)</h2>
+    <div class="swatches" id="paletteBox"></div>
+    <div class="legend">Tweak <code>PALETTE_RGB</code> at the top of this file to match real 6502PC output.</div>
+  </section>
+
+  <!-- RIGHT: I/O -->
+  <section class="panel" style="flex:1;min-width:340px">
+    <h2>Output — paste this into metatiles.asm</h2>
+    <div class="out"><textarea id="out" readonly spellcheck="false"></textarea></div>
+    <div class="row" style="margin-top:8px">
+      <button class="primary" id="copyBtn">Copy</button>
+      <label>label base
+        <select id="labelSel"></select>
+      </label>
+    </div>
+
+    <h2 style="margin-top:18px">Import — paste .BYTE statements here</h2>
+    <textarea id="in" spellcheck="false" placeholder="Paste 4 lines like:
+        .BYTE   MG_GRASS+0, %00000000,%00100100, ...
+        .BYTE   MG_GRASS+1, ...
+        .BYTE   MG_GRASS+2, ...
+        .BYTE   MG_GRASS+3, ..."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button id="loadBtn">Load into editor</button>
+      <span class="hint" id="importMsg"></span>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ============================================================
+   PALETTE — 6502PC 16-color, IRGB ordering matching CO_* in
+   defines.asm. Index = color nibble value (0..15).
+   These are best-effort IRGB values; the hardware palette is
+   not yet verified. Edit any [r,g,b] (0-255) to match reality.
+   ============================================================ */
+const PALETTE_RGB = [
+  [  0,  0,  0],  // 0  CO_BLACK
+  [170,  0,  0],  // 1  CO_RED
+  [  0,170,  0],  // 2  CO_GREEN
+  [170, 85,  0],  // 3  CO_YELLOW  (dark yellow / brown)
+  [  0,  0,170],  // 4  CO_BLUE
+  [170,  0,170],  // 5  CO_MAGENTA
+  [  0,170,170],  // 6  CO_CYAN
+  [170,170,170],  // 7  CO_WHITE   (light grey)
+  [ 85, 85, 85],  // 8  CO_GREY    (dark grey)
+  [255, 85, 85],  // 9  CO_BRRED
+  [ 85,255, 85],  // A  CO_BRGREEN
+  [255,255, 85],  // B  CO_BRYELLOW
+  [ 85, 85,255],  // C  CO_BRBLUE
+  [255, 85,255],  // D  CO_BRMAGENTA
+  [ 85,255,255],  // E  CO_BRCYAN
+  [255,255,255],  // F  CO_BRWHITE
+];
+const CO_NAME = ["BLACK","RED","GREEN","YELLOW","BLUE","MAGENTA","CYAN","WHITE",
+                 "GREY","BRRED","BRGREEN","BRYELLOW","BRBLUE","BRMAGENTA","BRCYAN","BRWHITE"];
+const co = {};
+CO_NAME.forEach((n,i)=>co[n]=i);
+const rgb = i => `rgb(${PALETTE_RGB[i][0]},${PALETTE_RGB[i][1]},${PALETTE_RGB[i][2]})`;
+
+/* color byte = (bg<<4)|fg  -- from defines.asm COLOR(fg,bg) */
+const COLOR = (fg,bg)=>({fg,bg});
+
+/* ============================================================
+   TILES — name, MG_ label, and {fg,bg} from the in-game
+   tile_color table (world.asm) + C_* (defines.asm).
+   ============================================================ */
+const TILES = [
+  {key:"GRASS",   label:"MG_GRASS",   col:COLOR(co.BRGREEN, co.GREEN)},
+  {key:"FOREST",  label:"MG_FOREST",  col:COLOR(co.BRGREEN, co.BLACK)},
+  {key:"MOUNT",   label:"MG_MOUNT",   col:COLOR(co.BRWHITE, co.GREY)},
+  {key:"WATER",   label:"MG_WATER",   col:COLOR(co.BRCYAN,  co.BLUE)},
+  {key:"TOWN",    label:"MG_TOWN",    col:COLOR(co.BRYELLOW,co.RED)},
+  {key:"DUNG",    label:"MG_DUNG",    col:COLOR(co.BRMAGENTA,co.BLACK)},
+  {key:"CASTLE",  label:"MG_CASTLE",  col:COLOR(co.BRWHITE, co.GREY)},
+  {key:"ROAD",    label:"MG_ROAD",    col:COLOR(co.BRYELLOW,co.RED)},
+  {key:"BRIDGE",  label:"MG_BRIDGE",  col:COLOR(co.BRYELLOW,co.BLUE)},
+  {key:"FLOOR",   label:"MG_FLOOR",   col:COLOR(co.GREY,    co.BLACK)},
+  {key:"WALL",    label:"MG_WALL",    col:COLOR(co.BRWHITE, co.GREY)},
+  {key:"DOOR",    label:"MG_DOOR",    col:COLOR(co.BLACK,   co.BRGREEN)}, // C_EXIT
+  {key:"TREAS",   label:"MG_TREAS",   col:COLOR(co.BRYELLOW,co.BLACK)},
+  {key:"UPSTAIR", label:"MG_UPSTAIR", col:COLOR(co.BLACK,   co.BRGREEN)}, // C_EXIT
+  {key:"SHOP",    label:"MG_SHOP",    col:COLOR(co.BRYELLOW,co.RED)},     // C_TOWN
+  {key:"HILLS",   label:"MG_HILLS",   col:COLOR(co.BRYELLOW,co.GREEN)},
+  {key:"MARSH",   label:"MG_MARSH",   col:COLOR(co.BRGREEN, co.BLUE)},
+  // entities (always white-ish on black in render; useful for editing)
+  {key:"PLAYER",  label:"MG_PLAYER",  col:COLOR(co.BRWHITE, co.BLACK)},
+  {key:"ORC",     label:"MG_ORC",     col:COLOR(co.BRRED,   co.BLACK)},
+  {key:"SNAKE",   label:"MG_SNAKE",   col:COLOR(co.BRYELLOW,co.BLACK)},
+  {key:"SKELETON",label:"MG_SKELETON",col:COLOR(co.BRWHITE, co.BLACK)},
+  {key:"THIEF",   label:"MG_THIEF",   col:COLOR(co.BRMAGENTA,co.BLACK)},
+  {key:"TROLL",   label:"MG_TROLL",   col:COLOR(co.BRCYAN,  co.BLACK)},
+  {key:"BOSS",    label:"MG_BOSS",    col:COLOR(co.BRRED,   co.RED)},
+];
+
+/* ---- state: 16x16 bit grid (1 = foreground) ---- */
+let grid = newGrid();
+function newGrid(){ return Array.from({length:16},()=>new Array(16).fill(0)); }
+
+let curTile = TILES[0];
+
+/* ---- DOM ---- */
+const $ = id => document.getElementById(id);
+const editCv = $("edit"), ex = editCv.getContext("2d");
+const p1 = $("prev1").getContext("2d");
+const p3 = $("prev3").getContext("2d");
+const CELL = 32;            // edit pixel size
+let drawing = false, drawVal = 1;
+
+/* populate selects */
+TILES.forEach((t,i)=>{
+  const o1=document.createElement("option");o1.value=i;o1.textContent=`${t.key}  (${t.label})`;$("tileSel").appendChild(o1);
+  const o2=document.createElement("option");o2.value=t.label;o2.textContent=t.label;$("labelSel").appendChild(o2);
+});
+
+/* palette swatches (display only) */
+PALETTE_RGB.forEach((_,i)=>{
+  const d=document.createElement("div");d.className="sw";d.style.background=rgb(i);
+  d.title=`${i.toString(16).toUpperCase()} CO_${CO_NAME[i]}`;
+  $("paletteBox").appendChild(d);
+});
+
+/* ---- rendering ---- */
+function draw(){
+  // editor
+  ex.clearRect(0,0,512,512);
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+    ex.fillStyle = grid[y][x] ? rgb(curTile.col.fg) : rgb(curTile.col.bg);
+    ex.fillRect(x*CELL,y*CELL,CELL,CELL);
+  }
+  if($("gridChk").checked){
+    ex.strokeStyle="#ffffff14";ex.lineWidth=1;
+    for(let i=0;i<=16;i++){
+      ex.beginPath();ex.moveTo(i*CELL+.5,0);ex.lineTo(i*CELL+.5,512);ex.stroke();
+      ex.beginPath();ex.moveTo(0,i*CELL+.5);ex.lineTo(512,i*CELL+.5);ex.stroke();
+    }
+    // bold quadrant divider
+    ex.strokeStyle=rgb(co.BRYELLOW);ex.lineWidth=2;
+    ex.beginPath();ex.moveTo(256,0);ex.lineTo(256,512);ex.stroke();
+    ex.beginPath();ex.moveTo(0,256);ex.lineTo(512,256);ex.stroke();
+  }
+  // 1x preview (64x64 canvas, 4px per pixel)
+  drawTileTo(p1,0,0,4);
+  // 3x3 tiled
+  for(let ty=0;ty<3;ty++)for(let tx=0;tx<3;tx++)drawTileTo(p3,tx*64,ty*64,4);
+
+  // active color readouts
+  $("fgChip").style.background=rgb(curTile.col.fg);
+  $("bgChip").style.background=rgb(curTile.col.bg);
+  $("fgName").textContent="CO_"+CO_NAME[curTile.col.fg];
+  $("bgName").textContent="CO_"+CO_NAME[curTile.col.bg];
+
+  updateOutput();
+}
+function drawTileTo(ctx,ox,oy,scale){
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+    ctx.fillStyle = grid[y][x] ? rgb(curTile.col.fg) : rgb(curTile.col.bg);
+    ctx.fillRect(ox+x*scale,oy+y*scale,scale,scale);
+  }
+}
+
+/* ---- mouse painting ---- */
+function cellFromEvent(e){
+  const r=editCv.getBoundingClientRect();
+  const x=Math.floor((e.clientX-r.left)/(r.width/16));
+  const y=Math.floor((e.clientY-r.top)/(r.height/16));
+  return [x,y];
+}
+function paint(e){
+  const [x,y]=cellFromEvent(e);
+  if(x<0||x>15||y<0||y>15)return;
+  if(grid[y][x]!==drawVal){grid[y][x]=drawVal;draw();}
+}
+editCv.addEventListener("contextmenu",e=>e.preventDefault());
+editCv.addEventListener("mousedown",e=>{
+  drawing=true; drawVal = (e.button===2)?0:1; paint(e);
+});
+editCv.addEventListener("mousemove",e=>{ if(drawing)paint(e); });
+window.addEventListener("mouseup",()=>drawing=false);
+
+/* ---- output: 4 .BYTE rows in metatiles.asm format ---- */
+function bits(rowBits){ // rowBits: array of 8 (0/1), msb first
+  return "%"+rowBits.map(b=>b?1:0).join("");
+}
+function glyphRows(gx,gy){ // top-left glyph cell (0 or 8)
+  const rows=[];
+  for(let r=0;r<8;r++){
+    const rb=[];
+    for(let c=0;c<8;c++) rb.push(grid[gy+r][gx+c]);
+    rows.push(bits(rb));
+  }
+  return rows;
+}
+function updateOutput(){
+  const lbl = $("labelSel").value;
+  const quads=[[0,0],[8,0],[0,8],[8,8]]; // +0 TL, +1 TR, +2 BL, +3 BR
+  let lines=[];
+  quads.forEach(([gx,gy],i)=>{
+    const rows=glyphRows(gx,gy);
+    lines.push(`        .BYTE   ${lbl}+${i}, ${rows.join(",")}`);
+  });
+  $("out").value = lines.join("\n");
+}
+
+/* keep label select in sync when tile changes (convenience) */
+$("tileSel").addEventListener("change",()=>{
+  curTile=TILES[+$("tileSel").value];
+  $("labelSel").value=curTile.label;
+  draw();
+});
+$("labelSel").addEventListener("change",updateOutput);
+$("gridChk").addEventListener("change",draw);
+
+$("clearBtn").onclick=()=>{grid=newGrid();draw();};
+$("invertBtn").onclick=()=>{for(let y=0;y<16;y++)for(let x=0;x<16;x++)grid[y][x]^=1;draw();};
+$("copyBtn").onclick=async()=>{
+  try{await navigator.clipboard.writeText($("out").value);$("copyBtn").textContent="Copied!";
+      setTimeout(()=>$("copyBtn").textContent="Copy",900);}catch{ $("out").select(); }
+};
+
+/* ---- import: parse pasted .BYTE statements ---- */
+function parseByteValue(tok){
+  tok=tok.trim();
+  if(tok.startsWith("%")) return parseInt(tok.slice(1),2)&255;
+  if(/^\$/.test(tok))     return parseInt(tok.slice(1),16)&255;
+  if(/^0x/i.test(tok))    return parseInt(tok.slice(2),16)&255;
+  return parseInt(tok,10)&255;
+}
+$("loadBtn").onclick=()=>{
+  const text=$("in").value;
+  // find lines containing .BYTE; each = code + 8 byte values
+  const rows=[]; let detectedLabel=null;
+  text.split(/\r?\n/).forEach(line=>{
+    const m=line.match(/\.BYTE\s+(.+)$/i);
+    if(!m)return;
+    // strip trailing comment
+    let body=m[1].split(";")[0];
+    const parts=body.split(",").map(s=>s.trim()).filter(s=>s.length);
+    if(parts.length<9)return;          // need code + 8
+    // first part is the glyph code (e.g. MG_GRASS+0); capture label
+    const lm=parts[0].match(/(MG_[A-Z]+)\s*\+\s*(\d)/i);
+    if(lm){ detectedLabel=lm[1].toUpperCase(); }
+    const data=parts.slice(1,9).map(parseByteValue);
+    rows.push(data);
+  });
+  if(rows.length<4){ $("importMsg").textContent=`Found ${rows.length} .BYTE rows; need 4.`; return; }
+  const r=rows.slice(0,4); // +0 +1 +2 +3
+  const g=newGrid();
+  const place=(data,gx,gy)=>{
+    for(let row=0;row<8;row++){
+      const byte=data[row];
+      for(let c=0;c<8;c++){ g[gy+row][gx+c]=(byte>>(7-c))&1; }
+    }
+  };
+  place(r[0],0,0); place(r[1],8,0); place(r[2],0,8); place(r[3],8,8);
+  grid=g;
+  // select matching tile if label recognized
+  if(detectedLabel){
+    const idx=TILES.findIndex(t=>t.label===detectedLabel);
+    if(idx>=0){ $("tileSel").value=idx; curTile=TILES[idx]; $("labelSel").value=curTile.label; }
+  }
+  draw();
+  $("importMsg").textContent=`Loaded ${detectedLabel||"tile"} ✓`;
+};
+
+/* init */
+curTile=TILES[0];
+draw();
+</script>
+</body>
+</html>

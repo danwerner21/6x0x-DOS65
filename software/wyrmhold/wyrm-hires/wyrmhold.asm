@@ -22,13 +22,7 @@ BEGIN:
         CLD
         JSR     psg_init
         JSR     rng_seed
-; All direct-VRAM rendering below assumes 80-byte screen rows.
-; Establish that mode before uploading glyphs or drawing anything.
-        LDA     #FC_SETMODE
-        STA     farfunct
-        LDA     #1              ; 80-column text mode
-        JSR     DO_FARCALL
-        JSR     chargen_init    ; upload custom terrain/monster tiles
+        JSR     hires_mode_on   ; single HIRES + mixed mode; build scanline tables
 ; hide the firmware text cursor; we draw our own world
         LDA     #0
         STA     SHOWCRSR
@@ -77,8 +71,8 @@ new_game:
         LDA     #LOC_WORLD
         STA     loc
         JSR     spawn_overworld_monsters
-        JSR     draw_frame
-        JSR     msg_clear
+        JSR     hires_clear             ; blank the graphics area
+        JSR     msg_clear               ; clear the bottom text rows
         PRINTMSG_MSG intro_msg
         JSR     full_redraw
         RTS
@@ -209,21 +203,22 @@ confirm_quit:
 ; End-game screens
 ;==============================================================================
 victory:
-        JSR     cls_vram
-        LDX     #20
-        LDY     #8
+        JSR     hires_clear             ; blank the graphics area
+        JSR     msg_clear
+        LDX     #2
+        LDY     #STATY0
         JSR     locate
         LDA     #C_TITLE
         STA     CURCOLOR
         PRINTMSG win1
-        LDX     #16
-        LDY     #10
+        LDX     #2
+        LDY     #STATY1
         JSR     locate
         LDA     #C_PANEL
         STA     CURCOLOR
         PRINTMSG win2
-        LDX     #18
-        LDY     #14
+        LDX     #2
+        LDY     #MSGY0+1
         JSR     locate
         PRINTMSG anykey
         JSR     sfx_win
@@ -241,23 +236,24 @@ game_over_food:
 game_over_common:
         STA     strp
         STY     strp+1
-        JSR     cls_vram
-        LDX     #22
-        LDY     #8
+        JSR     hires_clear
+        JSR     msg_clear
+        LDX     #2
+        LDY     #STATY0
         JSR     locate
         LDA     #COLOR(CO_BRRED, CO_BLACK)
         STA     CURCOLOR
         PRINTMSG over1
-        LDX     #16
-        LDY     #10
+        LDX     #2
+        LDY     #STATY1
         JSR     locate
         LDA     #C_PANEL
         STA     CURCOLOR
         LDA     strp
         LDY     strp+1
         JSR     prmsg
-        LDX     #18
-        LDY     #14
+        LDX     #2
+        LDY     #MSGY0+1
         JSR     locate
         PRINTMSG anykey
         JSR     sfx_lose
@@ -328,6 +324,7 @@ anykey:
         .INCLUDE "rng.asm"
         .INCLUDE "sound.asm"
         .INCLUDE "tiles.asm"
+        .INCLUDE "hires.asm"
         .INCLUDE "title.asm"
         .INCLUDE "world.asm"
         .INCLUDE "video.asm"
@@ -408,6 +405,25 @@ logo_cx:
         .BYTE   0
 logo_bits:
         .BYTE   0
+
+; HIRES render state
+curpage:
+        .BYTE   0               ; last physical page set by the blitter
+vrow:
+        .BYTE   0               ; render_view tile-row counter
+vcol:
+        .BYTE   0               ; render_view tile-col counter
+vwy:
+        .BYTE   0               ; world-y for the current render row
+mart:
+        .BYTE   0               ; monster art id (survives across hblit)
+; per-scanline HIRES address tables (192 rows)
+hrow_pg:
+        .RES    192             ; physical page ($FA..$FE) per scanline
+hrow_lo:
+        .RES    192             ; in-window addr low  ($A0xx form)
+hrow_hi:
+        .RES    192             ; in-window addr high
 
 ; message log buffers (one screen row each)
 msgbuf0:

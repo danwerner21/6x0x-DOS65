@@ -8,7 +8,7 @@
 
 ;----------------------------------------------------------------
 ; Per-monster-type stat tables (indexed by M_* id)
-;   mtype_glyph : 2x2 metatile base glyph
+;   mtype_glyph : ASCII glyph
 ;   mtype_color : color cell
 ;   mtype_hp    : starting HP
 ;   mtype_atk   : attack dice sides (damage 1..atk)
@@ -17,18 +17,18 @@
 ;----------------------------------------------------------------
 mtype_glyph:
         .BYTE   ' '             ; 0 none
-        .BYTE   MG_ORC          ; 1 orc
-        .BYTE   MG_SNAKE        ; 2 snake
-        .BYTE   MG_SKELETON     ; 3 skeleton
-        .BYTE   MG_THIEF        ; 4 thief
-        .BYTE   MG_TROLL        ; 5 troll
-        .BYTE   MG_BOSS         ; 6 boss (dragon)
+        .BYTE   G_ORC           ; 1 orc
+        .BYTE   G_SNAKE         ; 2 snake
+        .BYTE   G_SKELETON      ; 3 skeleton
+        .BYTE   G_THIEF         ; 4 thief
+        .BYTE   G_TROLL         ; 5 troll
+        .BYTE   G_BOSS          ; 6 boss (dragon)
 mtype_color:
         .BYTE   C_MONST         ; 0
-        .BYTE   COLOR(CO_BRRED, CO_BLACK); orc
-        .BYTE   COLOR(CO_BRYELLOW,CO_BLACK); snake
+        .BYTE   COLOR(CO_BRGREEN,CO_BLACK); orc
+        .BYTE   COLOR(CO_GREEN, CO_BLACK); snake
         .BYTE   COLOR(CO_BRWHITE,CO_BLACK); skeleton
-        .BYTE   COLOR(CO_BRMAGENTA,CO_BLACK); thief
+        .BYTE   COLOR(CO_BRYELLOW,CO_BLACK); thief
         .BYTE   COLOR(CO_BRCYAN,CO_BLACK); troll
         .BYTE   C_BOSS          ; boss
 mtype_hp:
