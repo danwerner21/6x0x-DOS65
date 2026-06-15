@@ -208,7 +208,7 @@ MG_TROLL        = $D8
 MG_BOSS         = $DC
 
 ;----------------------------------------------------------------
-; Terrain variant metatiles ($E0..$FF). A few high-traffic field
+; Terrain variant metatiles ($E0..$EF). A few high-traffic field
 ; terrains get a 2nd art variant so large regions don't show an
 ; obvious grid. render_view picks variant 0 (the MG_* base above)
 ; or variant 1 (these) from a position hash. Tiles without a
@@ -220,7 +220,7 @@ MGV_GRASS       = $E0
 MGV_FOREST      = $E4
 MGV_WATER       = $E8
 MGV_MOUNT       = $EC
-; $F0..$FF still free for more variants
+; $F0..$F3 is reserved for the Wyrm Warden; $F4..$FF remains free.
 
 ;----------------------------------------------------------------
 ; Monster type ids
@@ -232,8 +232,12 @@ M_SKELETON      = 3
 M_THIEF         = 4
 M_TROLL         = 5
 M_BOSS          = 6
-NUM_MTYPE       = 7
+M_WARDEN        = 7
+NUM_MTYPE       = 8
 MAXMON          = 12            ; max simultaneously active monsters
+
+; dedicated miniboss artwork in the remaining high glyph range
+MG_WARDEN       = $F0
 
 ;----------------------------------------------------------------
 ; Viewport geometry (left map window). Gameplay world tiles are
@@ -264,11 +268,33 @@ TOWNW           = 32            ; town map width
 TOWNH           = 20            ; town map height
 DUNGW           = 32            ; dungeon map width
 DUNGH           = 20            ; dungeon map height
+CASTLEW         = 32            ; castle audience chamber width
+CASTLEH         = 20            ; castle audience chamber height
+SHRINEW         = 32            ; Sunken Shrine width
+SHRINEH         = 20            ; Sunken Shrine height
 
 ; world/location ids (which map is active)
 LOC_WORLD       = 0
 LOC_TOWN        = 1
 LOC_DUNG        = 2
+LOC_CASTLE      = 3
+LOC_SHRINE      = 4
+
+; opening quest progression
+QUEST_NONE      = 0             ; seek the castle and speak with the ruler
+QUEST_FIND_KEY  = 1             ; recover the lost Wyrm Key
+QUEST_HAVE_KEY  = 2             ; return to the ruler with the key
+QUEST_DUNG_OPEN = 3             ; dragon's ward has been broken
+
+; fixed audience-chamber landmark used for interaction and rendering
+CASTLE_RULER_X  = 15
+CASTLE_RULER_Y  = 4
+
+; overworld and interior positions for the Wyrm Key quest
+KEY_SITE_X      = 20
+KEY_SITE_Y      = 58
+WARDEN_X        = 27
+WARDEN_Y        = 17
 
 ; misc constants
 space           = 32

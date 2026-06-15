@@ -402,6 +402,9 @@ render_view:
 ; --- overlay monsters that fall within the viewport ---
         JSR     draw_monsters_vram
 
+; --- overlay fixed location characters ---
+        JSR     draw_castle_ruler_vram
+
 ; --- overlay the player at the fixed center metatile ---
         LDA     #MG_PLAYER
         STA     cnt0
@@ -414,6 +417,26 @@ render_view:
         JSR     blit_entity_vram
 
         JMP     vid_exit
+
+;----------------------------------------------------------------
+; draw_castle_ruler_vram - draw the ruler over the audience-room
+; throne using the player silhouette in royal colors.
+;----------------------------------------------------------------
+draw_castle_ruler_vram:
+        LDA     loc
+        CMP     #LOC_CASTLE
+        BNE     @done
+        LDA     #CASTLE_RULER_X
+        STA     tgtx
+        LDA     #CASTLE_RULER_Y
+        STA     tgty
+        LDA     #MG_PLAYER
+        STA     cnt0
+        LDA     #COLOR(CO_BRYELLOW,CO_RED)
+        STA     cnt1
+        JMP     plot_view_cell
+@done:
+        RTS
 
 ;----------------------------------------------------------------
 ; blit_metatile_vram - draw a 2x2 terrain metatile with one color.

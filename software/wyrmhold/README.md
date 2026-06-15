@@ -21,12 +21,17 @@ This is original work — our own maps, monsters, text, tiles, and engine.
 - Hills soften mountain ranges into the surrounding grasslands, while marshes
   add wetland detail around rivers and coasts.
 - A right-hand panel shows HP, level, XP, gold, food, weapon and armor.
+- The objective panel guides the opening quest and later progression.
 - A two-line message log at the bottom narrates what happens.
 - **Movement:** `W` `A` `S` `D` (also `H` `J` `K` `L`).
 - **Bump combat:** walk into a monster to attack it; it strikes back.
 - **Towns** (the house tile): enter to reach a shop. Buy healing, provisions,
   better weapons and armor with gold. Press the listed number keys to buy; `X`
   to leave. Step on the bright-green door to leave a town.
+- **Wyrmhold Castle** is an enterable audience chamber. Press `T` beside the
+  ruler to receive the opening commission.
+- The **Sunken Shrine** lies in the southern marshes. Its fast-moving Wyrm
+  Warden guards the key needed to open the dragon's lair.
 - **Dungeon** (the cave tile): descend, grab treasure, and defeat the **Dragon
   boss** to win. Step on the bright-green stairs to climb back out.
 - **`Q`** quits back to the DOS/65 prompt.
@@ -72,6 +77,8 @@ WYRMHOLD
 | `player.asm`   | Player state and movement / map transitions                  |
 | `combat.asm`   | Bump-combat resolution, rewards and leveling                 |
 | `town.asm`     | Town interior and shop logic                                 |
+| `castle.asm`   | Castle audience chamber, ruler interaction and quest opening |
+| `shrine.asm`   | Sunken Shrine transition and Wyrm Key quest reward            |
 
 The video and PSG access patterns follow the existing repo code
 (`software/speedscript/screen.asm` and `software/dbasic/ay38910.asm`), and the

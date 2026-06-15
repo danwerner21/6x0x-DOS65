@@ -157,7 +157,13 @@
         .BYTE   MG_BOSS+2, %00000000,%00000000,%00000011,%00001111,%00111111,%01111111,%11111111,%11111111
         .BYTE   MG_BOSS+3, %00001110,%00000111,%11100111,%11110111,%11111111,%11111111,%11111111,%11111111
 
-; --- terrain variants ($E0..$FF) -------------------------------
+; Wyrm Warden: broad spectral armor with a horned crown
+        .BYTE   MG_WARDEN+0, %00001100,%00011110,%00001111,%00000111,%00001101,%00011111,%00111001,%01111001
+        .BYTE   MG_WARDEN+1, %00110000,%01111000,%11110000,%11100000,%10110000,%11111000,%10011100,%10011110
+        .BYTE   MG_WARDEN+2, %00111111,%00011110,%00001101,%00001101,%00011100,%00111000,%01110000,%00000000
+        .BYTE   MG_WARDEN+3, %11111100,%01111000,%10110000,%10110000,%00111000,%00011100,%00001110,%00000000
+
+; --- terrain variants ($E0..$EF) -------------------------------
 ; Alternate art for high-traffic field terrains; the renderer mixes
 ; these with the MG_* base by position so regions don't read as a
 ; grid. Each variant is a DIFFERENT asymmetric arrangement.

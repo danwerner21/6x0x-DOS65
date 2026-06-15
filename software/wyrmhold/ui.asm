@@ -236,6 +236,26 @@ draw_panel:
         LDY     strp+1
         JSR     prmsg
         JSR     pad_clear
+
+; Current objective
+        LDX     #PANX
+        LDY     #14
+        JSR     locate
+        LDA     #C_PANELHDR
+        STA     CURCOLOR
+        PRINTMSG lbl_obj
+        JSR     pad_clear
+        LDX     #PANX
+        LDY     #15
+        JSR     locate
+        LDA     #C_PANEL
+        STA     CURCOLOR
+        LDA     queststate
+        JSR     name_objective
+        LDA     strp
+        LDY     strp+1
+        JSR     prmsg
+        JSR     pad_clear
         RTS
 
 ; pad_clear - print spaces out to the right screen edge to erase
@@ -278,6 +298,14 @@ name_loc:
         LDA     loc_names,X
         STA     strp
         LDA     loc_names+1,X
+        STA     strp+1
+        RTS
+name_objective:
+        ASL     A
+        TAX
+        LDA     objective_names,X
+        STA     strp
+        LDA     objective_names+1,X
         STA     strp+1
         RTS
 
@@ -353,6 +381,8 @@ lbl_arm:
         .BYTE   "Armor : ",0
 lbl_loc:
         .BYTE   "Where : ",0
+lbl_obj:
+        .BYTE   "OBJECTIVE",0
 
 wpn_names:
         .WORD   wn0, wn1, wn2, wn3
@@ -377,10 +407,25 @@ an3:
         .BYTE   "Plate",0
 
 loc_names:
-        .WORD   ln0, ln1, ln2
+        .WORD   ln0, ln1, ln2, ln3, ln4
 ln0:
         .BYTE   "Wyrmhold",0
 ln1:
         .BYTE   "Town",0
 ln2:
         .BYTE   "Dungeon",0
+ln3:
+        .BYTE   "Wyrmhold Castle",0
+ln4:
+        .BYTE   "Sunken Shrine",0
+
+objective_names:
+        .WORD   obj0, obj1, obj2, obj3
+obj0:
+        .BYTE   "Seek Wyrmhold Castle",0
+obj1:
+        .BYTE   "Find the Wyrm Key",0
+obj2:
+        .BYTE   "Return to the ruler",0
+obj3:
+        .BYTE   "Enter the dragon's lair",0

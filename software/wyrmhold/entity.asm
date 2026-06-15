@@ -23,6 +23,7 @@ mtype_glyph:
         .BYTE   MG_THIEF        ; 4 thief
         .BYTE   MG_TROLL        ; 5 troll
         .BYTE   MG_BOSS         ; 6 boss (dragon)
+        .BYTE   MG_WARDEN       ; 7 Wyrm Warden
 mtype_color:
         .BYTE   C_MONST         ; 0
         .BYTE   COLOR(CO_BRRED, CO_BLACK); orc
@@ -31,14 +32,15 @@ mtype_color:
         .BYTE   COLOR(CO_VIOLET,CO_BLACK); thief
         .BYTE   COLOR(CO_BRTURQ,CO_BLACK); troll
         .BYTE   C_BOSS          ; boss
+        .BYTE   COLOR(CO_BRPURPLE,CO_BLACK); Wyrm Warden
 mtype_hp:
-        .BYTE   0, 6, 4, 8, 5, 14, 40
+        .BYTE   0, 6, 4, 8, 5, 14, 40, 24
 mtype_atk:
-        .BYTE   0, 4, 3, 5, 3, 7, 12
+        .BYTE   0, 4, 3, 5, 3, 7, 12, 8
 mtype_xp:
-        .BYTE   0, 3, 2, 5, 4, 10, 50
+        .BYTE   0, 3, 2, 5, 4, 10, 50, 25
 mtype_gold:
-        .BYTE   0, 4, 1, 3, 12, 8, 40
+        .BYTE   0, 4, 1, 3, 12, 8, 40, 0
 
 ;----------------------------------------------------------------
 ; mon_clear_all - empty every monster slot.
@@ -189,8 +191,8 @@ spawn_overworld_monsters:
         AND     #P_PASS
         BEQ     @skip
         LDA     tile_prop,X
-        AND     #(P_TOWN|P_DUNG)
-        BNE     @skip           ; don't sit on a town/dungeon tile
+        AND     #(P_TOWN|P_DUNG|P_CASTLE)
+        BNE     @skip           ; don't sit on a location entrance
 ; not already occupied by a monster?
         JSR     mon_at
         BCS     @skip
@@ -244,6 +246,24 @@ spawn_dungeon_monsters:
         RTS
 
 ;----------------------------------------------------------------
+; spawn_shrine_monsters - the Wyrm Warden appears only while the
+; key quest is active. Once defeated, the shrine remains cleared.
+;----------------------------------------------------------------
+spawn_shrine_monsters:
+        JSR     mon_clear_all
+        LDA     queststate
+        CMP     #QUEST_FIND_KEY
+        BNE     @done
+        LDA     #WARDEN_X
+        STA     tgtx
+        LDA     #WARDEN_Y
+        STA     tgty
+        LDA     #M_WARDEN
+        JSR     mon_spawn
+@done:
+        RTS
+
+;----------------------------------------------------------------
 ; draw_monsters_vram - overlay all visible monsters in the viewport.
 ; Called by render_view while video is paged in.
 ;----------------------------------------------------------------
@@ -291,6 +311,11 @@ mon_act:
         LDA     mon_type,X
         CMP     #M_NONE
         BEQ     @next
+        CMP     #M_WARDEN
+        BNE     @normal
+        JSR     warden_act
+        JMP     @next
+@normal:
 ; distance to player: dxv = px - mon_x ; dyv = py - mon_y
 ; adjacency test (|dx|<=1 && |dy|<=1 && not both 0)
         JSR     mon_step_or_attack
@@ -300,6 +325,45 @@ mon_act:
         CMP     #MAXMON
         BNE     @ma
 @ret:
+        RTS
+
+;----------------------------------------------------------------
+; warden_act - the Wyrm Warden surges up to two tiles per turn.
+; It stops after closing to melee range, so it attacks at most once
+; per turn while remaining much harder to outrun than normal foes.
+;----------------------------------------------------------------
+warden_act:
+        JSR     mon_is_adjacent
+        BCS     @attack
+        JSR     mon_step_or_attack
+        JSR     mon_is_adjacent
+        BCS     @done
+        JMP     mon_step_or_attack
+@attack:
+        JMP     mon_step_or_attack
+@done:
+        RTS
+
+; mon_is_adjacent - C=1 if monster in monidx is beside the player.
+mon_is_adjacent:
+        LDX     monidx
+        SEC
+        LDA     px
+        SBC     mon_x,X
+        JSR     abs_a
+        CMP     #2
+        BCS     @no
+        LDX     monidx
+        SEC
+        LDA     py
+        SBC     mon_y,X
+        JSR     abs_a
+        CMP     #2
+        BCS     @no
+        SEC
+        RTS
+@no:
+        CLC
         RTS
 
 ; mon_step_or_attack - for monster in slot monidx (X on entry).
@@ -367,6 +431,10 @@ mon_step_or_attack:
         LDA     tile_prop,X
         AND     #P_PASS
         BEQ     @done           ; blocked terrain
+; monsters do not occupy map-transition landmarks
+        LDA     tile_prop,X
+        AND     #(P_TOWN|P_DUNG|P_CASTLE)
+        BNE     @done
 ; not onto the player?
         LDA     tgtx
         CMP     px

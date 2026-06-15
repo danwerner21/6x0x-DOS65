@@ -186,7 +186,14 @@ monster_dies:
 ; remove monster
         LDX     monidx
         JSR     mon_kill
-; boss?
+; quest miniboss?
+        LDA     tmp1
+        CMP     #M_WARDEN
+        BNE     @boss
+        JSR     award_wyrm_key
+        JMP     @lvl
+; final boss?
+@boss:
         LDA     tmp1
         CMP     #M_BOSS
         BNE     @lvl
@@ -317,7 +324,7 @@ arm_def:
 ; Monster name table (for messages), indexed by type id
 ;----------------------------------------------------------------
 mon_names:
-        .WORD   mn_none, mn_orc, mn_snake, mn_skel, mn_thief, mn_troll, mn_boss
+        .WORD   mn_none, mn_orc, mn_snake, mn_skel, mn_thief, mn_troll, mn_boss, mn_warden
 mn_none:
         .BYTE   "thing",0
 mn_orc:
@@ -332,6 +339,8 @@ mn_troll:
         .BYTE   "Troll",0
 mn_boss:
         .BYTE   "Dragon",0
+mn_warden:
+        .BYTE   "Wyrm Warden",0
 
 ;----------------------------------------------------------------
 ; Combat / event message fragments

@@ -7,7 +7,7 @@
 ;     . grass   & forest  ^ mountain  ~ water   h hills   % marsh
 ;     T town    O dungeon C castle    : road    = bridge
 ;     space->grass
-;  For interiors (town/dungeon):
+;  For interiors (town/dungeon/castle/shrine):
 ;     . floor   # wall     + door(exit)  $ treasure  < stairs up
 ;     S shop    ~ water
 ;______________________________________________________________________________
@@ -68,6 +68,7 @@ tile_variant:
 ;   bit4 EXIT    stepping here leaves the interior (town/dungeon)
 ;   bit5 TREAS   treasure to collect
 ;   bit6 SHOP    shop counter (open shop when adjacent/entering)
+;   bit7 CASTLE  stepping here enters Wyrmhold Castle
 ;----------------------------------------------------------------
 P_PASS          = $01
 P_WATER         = $02
@@ -76,6 +77,7 @@ P_DUNG          = $08
 P_EXIT          = $10
 P_TREAS         = $20
 P_SHOP          = $40
+P_CASTLE        = $80
 
 tile_prop:
         .BYTE   P_PASS          ; 0 grass
@@ -84,7 +86,7 @@ tile_prop:
         .BYTE   P_WATER         ; 3 water (blocked on foot)
         .BYTE   P_PASS|P_TOWN   ; 4 town
         .BYTE   P_PASS|P_DUNG   ; 5 dungeon
-        .BYTE   $00             ; 6 castle (blocked, decorative)
+        .BYTE   P_PASS|P_CASTLE ; 6 castle
         .BYTE   P_PASS          ; 7 road
         .BYTE   P_PASS          ; 8 bridge
         .BYTE   P_PASS          ; 9 floor
@@ -223,7 +225,7 @@ map_decode:
         RTS
 
 ;----------------------------------------------------------------
-; decode_world / decode_town / decode_dung - convenience wrappers
+; decode_world / decode_town / decode_dung / decode_castle / decode_shrine
 ;----------------------------------------------------------------
 decode_world:
         SETW16  srcp, ow_src
@@ -255,6 +257,28 @@ decode_dung:
         LDA     #DUNGW
         STA     tmp2
         LDA     #DUNGH
+        STA     tmp3
+        JMP     map_decode
+
+decode_castle:
+        SETW16  srcp, castle_src
+        SETW16  dstp, locmap
+        LDA     #T_FLOOR
+        STA     cnt1
+        LDA     #CASTLEW
+        STA     tmp2
+        LDA     #CASTLEH
+        STA     tmp3
+        JMP     map_decode
+
+decode_shrine:
+        SETW16  srcp, shrine_src
+        SETW16  dstp, locmap
+        LDA     #T_FLOOR
+        STA     cnt1
+        LDA     #SHRINEW
+        STA     tmp2
+        LDA     #SHRINEH
         STA     tmp3
         JMP     map_decode
 
@@ -513,7 +537,7 @@ ow_src:
         .BYTE   "~..........................................:......&&&&&.....~~~~~~",0
         .BYTE   "~....&&&.................................&&&:......&&&&&.....~~~~~~",0
         .BYTE   "~...&&&&&.........~%%..................&&&&&.......&&&&......~~~~~~",0
-        .BYTE   "~...&&&&&........~~~%................&&&&&&&................~~~~~~~",0
+        .BYTE   "~...&&&&&........~~~O................&&&&&&&................~~~~~~~",0
         .BYTE   "~....&&&..........~%%...........%%..&&&&&&.................~~~~~~~~",0
         .BYTE   "~..............................%%&&&&%%.................~~~~~~~~~~",0
         .BYTE   "~...............................%%................%%%~~~~~~~~~~~~~",0
@@ -571,4 +595,56 @@ dung_src:
         .BYTE   "#...#...........$........#...#.#",0
         .BYTE   "#.######.....##..#######.#.###.#",0
         .BYTE   "#.............................$#",0
+        .BYTE   "################################",0
+
+;----------------------------------------------------------------
+; Authored castle audience chamber (32 x 20). The ruler is drawn
+; over the central throne at CASTLE_RULER_X/Y. '+' is the exit.
+;----------------------------------------------------------------
+castle_src:
+        .BYTE   "################################",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#..........##########..........#",0
+        .BYTE   "#..........#........#..........#",0
+        .BYTE   "#..........#...#....#..........#",0
+        .BYTE   "#..........#........#..........#",0
+        .BYTE   "#..........####..####..........#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#....#####..........#####......#",0
+        .BYTE   "#....#..................#......#",0
+        .BYTE   "#....#..................#......#",0
+        .BYTE   "#....#####..........#####......#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#..............::..............#",0
+        .BYTE   "#..............::..............#",0
+        .BYTE   "#..............::..............#",0
+        .BYTE   "#..............::..............#",0
+        .BYTE   "###############+################",0
+        .BYTE   "################################",0
+
+;----------------------------------------------------------------
+; Authored Sunken Shrine (32 x 20). '<' returns to the overworld.
+; The Wyrm Warden is spawned in the southeast chamber.
+;----------------------------------------------------------------
+shrine_src:
+        .BYTE   "################################",0
+        .BYTE   "#<.............................#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#....~~~~..........~~~~........#",0
+        .BYTE   "#....~~~~..........~~~~........#",0
+        .BYTE   "#....~~~~..........~~~~........#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#.######................######.#",0
+        .BYTE   "#.#....#................#....#.#",0
+        .BYTE   "#.#....#................#....#.#",0
+        .BYTE   "#.######................######.#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#....~~~~..........~~~~........#",0
+        .BYTE   "#....~~~~..........~~~~........#",0
+        .BYTE   "#....~~~~..........~~~~........#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#..........########............#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#..............................#",0
         .BYTE   "################################",0

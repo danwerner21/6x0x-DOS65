@@ -13,15 +13,19 @@ PRICE_WEAPON    = 60            ; gold to upgrade weapon one tier
 PRICE_ARMOR     = 50            ; gold to upgrade armor one tier
 
 ;----------------------------------------------------------------
-; use_action - bound to the USE key ('T').  Only meaningful in a
-; town next to a shop counter.
+; use_action - bound to the USE key ('T'). Dispatch contextual
+; interactions for the active location.
 ;----------------------------------------------------------------
 use_action:
         LDA     loc
+        CMP     #LOC_CASTLE
+        BEQ     @incastle
         CMP     #LOC_TOWN
         BEQ     @intown
         PRINTMSG_MSG t_nothing
         RTS
+@incastle:
+        JMP     castle_use
 @intown:
 ; is a shop tile adjacent (4-neighbour) or under us?
         JSR     shop_adjacent

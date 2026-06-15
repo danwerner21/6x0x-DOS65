@@ -34,6 +34,7 @@ player_init:
         STA     loc
         LDA     #0
         STA     bosskilled
+        STA     queststate
         RTS
 
 ;----------------------------------------------------------------
@@ -81,8 +82,13 @@ try_move:
 ; check special tiles
         LDA     tmp0
         AND     #P_TOWN
-        BEQ     @ck_dung
+        BEQ     @ck_castle
         JMP     enter_town
+@ck_castle:
+        LDA     tmp0
+        AND     #P_CASTLE
+        BEQ     @ck_dung
+        JMP     enter_castle
 @ck_dung:
         LDA     tmp0
         AND     #P_DUNG
@@ -176,9 +182,60 @@ enter_town:
         RTS
 
 ;----------------------------------------------------------------
-; enter_dungeon - switch to the dungeon map and spawn its monsters.
+; enter_castle - switch to Wyrmhold Castle's audience chamber.
+;----------------------------------------------------------------
+enter_castle:
+        JSR     sfx_door
+        JSR     decode_castle
+        LDA     #LOC_CASTLE
+        STA     loc
+        LDA     #CASTLEW
+        STA     locw
+        LDA     #CASTLEH
+        STA     loch
+        LDA     px
+        STA     owretx
+        LDA     py
+        STA     owrety
+; enter on the carpet, immediately north of the exit
+        LDA     #15
+        STA     px
+        LDA     #CASTLEH-3
+        STA     py
+        JSR     mon_clear_all
+        LDA     #1
+        STA     did_move
+        PRINTMSG_MSG m_castle
+        RTS
+
+;----------------------------------------------------------------
+; enter_dungeon - dispatch cave landmarks. The southern-marsh cave
+; is the Sunken Shrine; the dragon's lair stays sealed until the
+; Wyrm Key has been returned to King Aldren.
 ;----------------------------------------------------------------
 enter_dungeon:
+        LDA     tgtx
+        CMP     #KEY_SITE_X
+        BNE     @dragon
+        LDA     tgty
+        CMP     #KEY_SITE_Y
+        BNE     @dragon
+        LDA     queststate
+        CMP     #QUEST_FIND_KEY
+        BCC     @shrine_dormant
+        JMP     enter_shrine
+@shrine_dormant:
+        JSR     sfx_blocked
+        PRINTMSG_MSG m_shrine_dormant
+        RTS
+@dragon:
+        LDA     queststate
+        CMP     #QUEST_DUNG_OPEN
+        BCS     @enter
+        JSR     sfx_blocked
+        PRINTMSG_MSG m_dung_sealed
+        RTS
+@enter:
         JSR     sfx_door
         JSR     decode_dung
         LDA     #LOC_DUNG

@@ -1,6 +1,6 @@
 all: wyrmhold.com
 
-wyrmhold.out: wyrmhold.asm macro.asm defines.asm sound.asm video.asm world.asm rng.asm ui.asm entity.asm combat.asm player.asm town.asm tiles.asm metatiles.asm title.asm
+wyrmhold.out: wyrmhold.asm macro.asm defines.asm sound.asm video.asm world.asm rng.asm ui.asm entity.asm combat.asm player.asm town.asm castle.asm shrine.asm tiles.asm metatiles.asm title.asm
 	ca65 wyrmhold.asm -l wyrmhold.lst
 	ld65 wyrmhold.o -vm -v -m wyrmhold.map -C dos65.cfg -o wyrmhold.out
 
@@ -48,5 +48,7 @@ pretty:
 	pretty6502 -p1 -a0 -du -mu -l ./backup/combat.asm combat.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/player.asm player.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/town.asm town.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/castle.asm castle.asm
+	pretty6502 -p1 -a0 -du -mu -l ./backup/shrine.asm shrine.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/tiles.asm tiles.asm
 	pretty6502 -p1 -a0 -du -mu -l ./backup/metatiles.asm metatiles.asm

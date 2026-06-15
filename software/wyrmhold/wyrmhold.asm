@@ -239,8 +239,13 @@ game_over_food:
         LDY     #>go_food
 ; fall through
 game_over_common:
-        STA     strp
-        STY     strp+1
+; stash the cause-string pointer somewhere that survives both
+; cls_vram and prmsg. NOT strp (prmsg uses it as scratch) and NOT
+; tmp0 (rowbase, called by cls_vram, clobbers it) - parking it in
+; either reprinted the "THOU HAST FALLEN" banner a second time
+; instead of the cause line. numarg is untouched on this path.
+        STA     numarg
+        STY     numarg+1
         JSR     cls_vram
         LDX     #22
         LDY     #8
@@ -253,8 +258,8 @@ game_over_common:
         JSR     locate
         LDA     #C_PANEL
         STA     CURCOLOR
-        LDA     strp
-        LDY     strp+1
+        LDA     numarg
+        LDY     numarg+1
         JSR     prmsg
         LDX     #18
         LDY     #14
@@ -296,7 +301,7 @@ ttl3:
 ttl4:
         .BYTE   "+--------------------------------+",0
 ttl_by:
-        .BYTE   "Defeat the Dragon to save the realm",0
+        .BYTE   "Answer the summons of Wyrmhold Castle",0
 ttl_prompt:
         .BYTE   "Press any key to begin thy quest",0
 ttl_keys1:
@@ -305,7 +310,7 @@ ttl_keys2:
         .BYTE   "Bump monsters to fight.  Q: quit to DOS",0
 
 intro_msg:
-        .BYTE   "Welcome to Wyrmhold. Seek and slay the dragon!",0
+        .BYTE   "Welcome to Wyrmhold. Seek the castle and speak with its ruler.",0
 q_quit:
         .BYTE   "Quit to DOS? (Y/N)",0
 
@@ -336,6 +341,8 @@ anykey:
         .INCLUDE "player.asm"
         .INCLUDE "combat.asm"
         .INCLUDE "town.asm"
+        .INCLUDE "castle.asm"
+        .INCLUDE "shrine.asm"
 
 ;==============================================================================
 ; Uninitialised game state (RAM).  Placed after all code/data.  The
@@ -375,6 +382,8 @@ owretx:
 owrety:
         .BYTE   0
 bosskilled:
+        .BYTE   0
+queststate:
         .BYTE   0
 did_move:
         .BYTE   0
@@ -434,6 +443,6 @@ mon_hp:
 owmap:
         .RES    OWW*OWH
 locmap:
-        .RES    TOWNW*TOWNH     ; town and dungeon share this (same size)
+        .RES    TOWNW*TOWNH     ; all 32x20 interiors share this buffer
 
         .END
