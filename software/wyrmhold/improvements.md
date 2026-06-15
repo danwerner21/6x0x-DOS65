@@ -130,6 +130,9 @@ fires down visible breath lanes, and victory requires returning to King Aldren.
 This structure reuses almost every existing system while giving the player a
 reason to care about the world.
 
+The original dungeon and boss limitations above are now resolved by the
+three-zone dungeon, warned breath lanes, and castle-return finale.
+
 ## Phased Roadmap
 
 ### Phase 0: Establish a Reliable Baseline
@@ -324,7 +327,7 @@ for new visuals:
 
 - Interactive castle and clear quest structure.
 - Distinct monster behaviors.
-- A real dragon encounter.
+- A real dragon encounter. **Implemented.**
 - Unique towns or clearly differentiated town services.
 - Objective display and contextual dialog.
 - Better combat and discovery feedback.
@@ -359,6 +362,7 @@ Implement **The Wyrmhold Commission** before any other large feature:
 6. Return to the castle for a reward and unlock the dungeon. **Implemented.**
 7. Add the associated sounds, messages, and visual feedback. **Implemented.**
 8. Playtest the slice on hardware and use it to set the quality bar.
+   **Implemented for the Wyrm Key quest; dragon finale playtest pending.**
 
 This milestone touches story, world interaction, UI, combat, graphics, sound,
 and progression in a controlled scope. If it feels good, the rest of the
