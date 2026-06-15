@@ -420,7 +420,7 @@ ln4:
         .BYTE   "Sunken Shrine",0
 
 objective_names:
-        .WORD   obj0, obj1, obj2, obj3
+        .WORD   obj0, obj1, obj2, obj3, obj4, obj5
 obj0:
         .BYTE   "Seek Wyrmhold Castle",0
 obj1:
@@ -429,3 +429,7 @@ obj2:
         .BYTE   "Return to the ruler",0
 obj3:
         .BYTE   "Enter the dragon's lair",0
+obj4:
+        .BYTE   "Return to King Aldren",0
+obj5:
+        .BYTE   "The realm is saved",0

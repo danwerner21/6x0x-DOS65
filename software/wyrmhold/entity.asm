@@ -206,43 +206,43 @@ spawn_overworld_monsters:
         RTS
 
 ;----------------------------------------------------------------
-; spawn_dungeon_monsters - place a few monsters and the boss.
+; spawn_dungeon_monsters - populate the three authored dungeon zones.
 ;----------------------------------------------------------------
 spawn_dungeon_monsters:
         JSR     mon_clear_all
-; the boss waits at the far corner treasure room (bottom-right)
-        LDA     #29
+        LDA     #BREATH_NONE
+        STA     boss_breath_dir
+; once slain, the dragon and its guards do not return
+        LDA     queststate
+        CMP     #QUEST_DRAGON_DEAD
+        BCS     @done
+; the dragon waits in the open southern chamber
+        LDA     #DRAGON_X
         STA     tgtx
-        LDA     #18
+        LDA     #DRAGON_Y
         STA     tgty
         LDA     #M_BOSS
         JSR     mon_spawn
-; a couple of guards on floor tiles
-        LDA     #4
-        STA     cnt0
-@loop:
-        LDA     #28
-        JSR     rng_mod
-        CLC
-        ADC     #2
+; one authored guard in each approach zone
+        LDA     #9
         STA     tgtx
-        LDA     #16
-        JSR     rng_mod
-        CLC
-        ADC     #2
+        LDA     #5
         STA     tgty
-        JSR     tileat
-        LDX     tgttile
-        CPX     #T_FLOOR
-        BNE     @skip
-        LDA     #2              ; orc or skeleton
-        JSR     rng_d
-        CLC
-        ADC     #2              ; 3..4 -> skeleton/thief mix
+        LDA     #M_SKELETON
         JSR     mon_spawn
-@skip:
-        DEC     cnt0
-        BNE     @loop
+        LDA     #14
+        STA     tgtx
+        LDA     #11
+        STA     tgty
+        LDA     #M_THIEF
+        JSR     mon_spawn
+        LDA     #23
+        STA     tgtx
+        LDA     #15
+        STA     tgty
+        LDA     #M_TROLL
+        JSR     mon_spawn
+@done:
         RTS
 
 ;----------------------------------------------------------------
@@ -294,6 +294,48 @@ draw_monsters_vram:
         RTS
 
 ;----------------------------------------------------------------
+; draw_dragon_telegraph_vram - overlay the warned fire lane while
+; the dragon is preparing a breath attack.
+; Called by render_view while video is paged in.
+;----------------------------------------------------------------
+draw_dragon_telegraph_vram:
+        LDA     loc
+        CMP     #LOC_DUNG
+        BNE     @done
+        LDA     boss_breath_dir
+        BEQ     @done
+; find the live dragon
+        LDX     #0
+@find:
+        LDA     mon_type,X
+        CMP     #M_BOSS
+        BEQ     @found
+        INX
+        CPX     #MAXMON
+        BNE     @find
+        RTS
+@found:
+        LDA     mon_x,X
+        STA     tgtx
+        LDA     mon_y,X
+        STA     tgty
+@lane:
+        JSR     dragon_advance_target
+        JSR     tileat
+        LDX     tgttile
+        LDA     tile_prop,X
+        AND     #P_PASS
+        BEQ     @done
+        LDA     #MG_BREATH
+        STA     cnt0
+        LDA     #C_BREATH
+        STA     cnt1
+        JSR     plot_view_cell
+        JMP     @lane
+@done:
+        RTS
+
+;----------------------------------------------------------------
 ; mon_act - move/attack for every monster (called once per turn).
 ; Monsters in LOC_TOWN never act (towns are safe).
 ;   A monster adjacent to the player attacks; otherwise it steps
@@ -312,8 +354,13 @@ mon_act:
         CMP     #M_NONE
         BEQ     @next
         CMP     #M_WARDEN
-        BNE     @normal
+        BNE     @ckdragon
         JSR     warden_act
+        JMP     @next
+@ckdragon:
+        CMP     #M_BOSS
+        BNE     @normal
+        JSR     dragon_act
         JMP     @next
 @normal:
 ; distance to player: dxv = px - mon_x ; dyv = py - mon_y
@@ -325,6 +372,131 @@ mon_act:
         CMP     #MAXMON
         BNE     @ma
 @ret:
+        RTS
+
+;----------------------------------------------------------------
+; dragon_act - breathe down a warned straight lane on the following
+; turn, otherwise warn when the player is in clear line of sight.
+; The dragon uses normal melee and pursuit when no breath is ready.
+;----------------------------------------------------------------
+dragon_act:
+        LDA     boss_breath_dir
+        BEQ     @ready
+        JMP     dragon_fire_breath
+@ready:
+        JSR     mon_is_adjacent
+        BCS     @normal
+        JSR     dragon_prepare_breath
+        BCS     @done
+@normal:
+        JMP     mon_step_or_attack
+@done:
+        RTS
+
+; dragon_prepare_breath - arm a breath attack if the player and
+; dragon share a clear row or column. Returns C=1 when armed.
+dragon_prepare_breath:
+        LDX     monidx
+        LDA     mon_y,X
+        CMP     py
+        BNE     @vertical
+; same row
+        LDA     mon_x,X
+        CMP     px
+        BCC     @right
+        LDA     #BREATH_LEFT
+        BNE     @armed
+@right:
+        LDA     #BREATH_RIGHT
+        BNE     @armed
+@vertical:
+        LDA     mon_x,X
+        CMP     px
+        BNE     @no
+        LDA     mon_y,X
+        CMP     py
+        BCC     @down
+        LDA     #BREATH_UP
+        BNE     @armed
+@down:
+        LDA     #BREATH_DOWN
+@armed:
+        STA     boss_breath_dir
+        JSR     dragon_line_hits_player
+        BCC     @blocked
+        JSR     sfx_breath_warn
+        PRINTMSG_MSG m_breath_warn
+        SEC
+        RTS
+@blocked:
+        LDA     #BREATH_NONE
+        STA     boss_breath_dir
+@no:
+        CLC
+        RTS
+
+; dragon_fire_breath - resolve the prepared lane after the player
+; has had one turn to step clear.
+dragon_fire_breath:
+        JSR     dragon_line_hits_player
+        BCC     @miss
+        LDA     #BREATH_NONE
+        STA     boss_breath_dir
+        JMP     dragon_fire_player
+@miss:
+        LDA     #BREATH_NONE
+        STA     boss_breath_dir
+        JSR     sfx_breath
+        PRINTMSG_MSG m_breath_miss
+        RTS
+
+; dragon_line_hits_player - trace the prepared lane from the dragon
+; until blocked. Returns C=1 if the player is currently in it.
+dragon_line_hits_player:
+        LDX     monidx
+        LDA     mon_x,X
+        STA     tgtx
+        LDA     mon_y,X
+        STA     tgty
+@trace:
+        JSR     dragon_advance_target
+        JSR     tileat
+        LDX     tgttile
+        LDA     tile_prop,X
+        AND     #P_PASS
+        BEQ     @no
+        LDA     tgtx
+        CMP     px
+        BNE     @trace
+        LDA     tgty
+        CMP     py
+        BNE     @trace
+        SEC
+        RTS
+@no:
+        CLC
+        RTS
+
+; dragon_advance_target - move tgtx/tgty one cell in the prepared
+; breath direction.
+dragon_advance_target:
+        LDA     boss_breath_dir
+        CMP     #BREATH_UP
+        BEQ     @up
+        CMP     #BREATH_DOWN
+        BEQ     @down
+        CMP     #BREATH_LEFT
+        BEQ     @left
+        INC     tgtx
+        RTS
+@up:
+        DEC     tgty
+        RTS
+@down:
+        INC     tgty
+        RTS
+@left:
+        DEC     tgtx
         RTS
 
 ;----------------------------------------------------------------

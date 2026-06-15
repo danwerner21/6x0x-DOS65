@@ -32,8 +32,9 @@ This is original work — our own maps, monsters, text, tiles, and engine.
   ruler to receive the opening commission.
 - The **Sunken Shrine** lies in the southern marshes. Its fast-moving Wyrm
   Warden guards the key needed to open the dragon's lair.
-- **Dungeon** (the cave tile): descend, grab treasure, and defeat the **Dragon
-  boss** to win. Step on the bright-green stairs to climb back out.
+- **Dungeon** (the cave tile): cross ancient halls and flooded passages to
+  confront the **Dragon**. Its glowing fire lane warns where its next breath
+  will strike. After defeating it, return to King Aldren for the ending.
 - **`Q`** quits back to the DOS/65 prompt.
 
 ## Building

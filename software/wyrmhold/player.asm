@@ -35,6 +35,7 @@ player_init:
         LDA     #0
         STA     bosskilled
         STA     queststate
+        STA     boss_breath_dir
         RTS
 
 ;----------------------------------------------------------------
@@ -257,7 +258,14 @@ enter_dungeon:
         JSR     spawn_dungeon_monsters
         LDA     #1
         STA     did_move
+        LDA     queststate
+        CMP     #QUEST_DRAGON_DEAD
+        BCS     @silent_lair
         PRINTMSG_MSG m_dungeon
+        PRINTMSG_MSG m_dragon_wakes
+        RTS
+@silent_lair:
+        PRINTMSG_MSG m_dungeon_empty
         RTS
 
 ;----------------------------------------------------------------
@@ -265,6 +273,8 @@ enter_dungeon:
 ;----------------------------------------------------------------
 leave_interior:
         JSR     sfx_door
+        LDA     #BREATH_NONE
+        STA     boss_breath_dir
         JSR     decode_world
         LDA     #LOC_WORLD
         STA     loc

@@ -97,6 +97,7 @@ C_TREAS         = COLOR(CO_BRYELLOW,CO_BLACK)
 C_PLAYER        = COLOR(CO_BRWHITE, CO_BLACK)
 C_MONST         = COLOR(CO_BRRED,   CO_BLACK)
 C_BOSS          = COLOR(CO_BRRED,   CO_RED)
+C_BREATH        = COLOR(CO_BRYELLOW,CO_RED)
 C_BORDER        = COLOR(CO_BRTURQ,  CO_BLACK)
 C_PANEL         = COLOR(CO_BRWHITE, CO_BLACK)
 C_PANELHDR      = COLOR(CO_BRYELLOW,CO_BLUE)
@@ -220,7 +221,8 @@ MGV_GRASS       = $E0
 MGV_FOREST      = $E4
 MGV_WATER       = $E8
 MGV_MOUNT       = $EC
-; $F0..$F3 is reserved for the Wyrm Warden; $F4..$FF remains free.
+; $F0..$F3 is the Wyrm Warden, $F4..$F7 is dragon breath,
+; and $F8..$FF remains free.
 
 ;----------------------------------------------------------------
 ; Monster type ids
@@ -238,6 +240,14 @@ MAXMON          = 12            ; max simultaneously active monsters
 
 ; dedicated miniboss artwork in the remaining high glyph range
 MG_WARDEN       = $F0
+MG_BREATH       = $F4
+
+; dragon breath directions
+BREATH_NONE     = 0
+BREATH_UP       = 1
+BREATH_DOWN     = 2
+BREATH_LEFT     = 3
+BREATH_RIGHT    = 4
 
 ;----------------------------------------------------------------
 ; Viewport geometry (left map window). Gameplay world tiles are
@@ -285,6 +295,8 @@ QUEST_NONE      = 0             ; seek the castle and speak with the ruler
 QUEST_FIND_KEY  = 1             ; recover the lost Wyrm Key
 QUEST_HAVE_KEY  = 2             ; return to the ruler with the key
 QUEST_DUNG_OPEN = 3             ; dragon's ward has been broken
+QUEST_DRAGON_DEAD = 4           ; return to Aldren after defeating the dragon
+QUEST_COMPLETE  = 5             ; Aldren has acknowledged the victory
 
 ; fixed audience-chamber landmark used for interaction and rendering
 CASTLE_RULER_X  = 15
@@ -295,6 +307,8 @@ KEY_SITE_X      = 20
 KEY_SITE_Y      = 58
 WARDEN_X        = 27
 WARDEN_Y        = 17
+DRAGON_X        = 27
+DRAGON_Y        = 18
 
 ; misc constants
 space           = 32

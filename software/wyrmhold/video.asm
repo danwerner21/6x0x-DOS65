@@ -402,6 +402,9 @@ render_view:
 ; --- overlay monsters that fall within the viewport ---
         JSR     draw_monsters_vram
 
+; --- overlay the dragon's warned fire lane ---
+        JSR     draw_dragon_telegraph_vram
+
 ; --- overlay fixed location characters ---
         JSR     draw_castle_ruler_vram
 

@@ -317,7 +317,7 @@ q_quit:
 win1:
         .BYTE   "*** VICTORY! ***",0
 win2:
-        .BYTE   "The dragon is slain. The land is saved!",0
+        .BYTE   "King Aldren names thee Champion of Wyrmhold!",0
 over1:
         .BYTE   "*** THOU HAST FALLEN ***",0
 go_hp:
@@ -384,6 +384,8 @@ owrety:
 bosskilled:
         .BYTE   0
 queststate:
+        .BYTE   0
+boss_breath_dir:
         .BYTE   0
 did_move:
         .BYTE   0

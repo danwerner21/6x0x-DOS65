@@ -224,6 +224,45 @@ sfx_hit:
         JSR     busywait
         JMP     psg_silence
 
+; sfx_breath_warn - rising intake before the dragon breathes
+sfx_breath_warn:
+        SETW16  ptr, $0320
+        LDA     #9
+        STA     tmp0
+        JSR     tone_on
+        LDX     #2
+        JSR     busywait
+        SETW16  ptr, $0220
+        LDA     #12
+        STA     tmp0
+        JSR     tone_on
+        LDX     #3
+        JSR     busywait
+        JMP     psg_silence
+
+; sfx_breath - forceful noise burst for dragon fire
+sfx_breath:
+        LDA     #6
+        LDY     #3
+        JSR     psgwr
+        LDA     #7
+        LDY     #%00110111
+        JSR     psgwr
+        LDA     #8
+        LDY     #15
+        JSR     psgwr
+        LDX     #5
+        JSR     busywait
+        LDA     #6
+        LDY     #10
+        JSR     psgwr
+        LDA     #8
+        LDY     #11
+        JSR     psgwr
+        LDX     #4
+        JSR     busywait
+        JMP     psg_silence
+
 ; sfx_killed - falling tone + noise
 sfx_killed:
         LDA     #6

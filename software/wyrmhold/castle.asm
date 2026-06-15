@@ -18,7 +18,9 @@ castle_use:
         BEQ     @reminder
         CMP     #QUEST_HAVE_KEY
         BEQ     @unlock
-; QUEST_DUNG_OPEN and any later state
+        CMP     #QUEST_DRAGON_DEAD
+        BEQ     @finale
+; QUEST_DUNG_OPEN while the dragon still lives
         PRINTMSG_MSG c_open
         RTS
 @commission:
@@ -48,6 +50,15 @@ castle_use:
         JSR     sfx_door
         PRINTMSG_MSG c_unlock1
         PRINTMSG_MSG c_unlock2
+        RTS
+@finale:
+        LDA     #QUEST_COMPLETE
+        STA     queststate
+        LDA     #1
+        STA     bosskilled
+        JSR     sfx_levelup
+        PRINTMSG_MSG c_finale1
+        PRINTMSG_MSG c_finale2
         RTS
 
 ;----------------------------------------------------------------
@@ -102,3 +113,7 @@ c_unlock2:
         .BYTE   "Thou art healed and provisioned. Enter the dragon's lair!",0
 c_open:
         .BYTE   "King Aldren: The way is open. Wyrmhold stands with thee.",0
+c_finale1:
+        .BYTE   "King Aldren: The wyrm is slain. The realm breathes freely!",0
+c_finale2:
+        .BYTE   "Rise, Champion of Wyrmhold. Thy courage shall be remembered.",0

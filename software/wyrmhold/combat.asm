@@ -197,8 +197,11 @@ monster_dies:
         LDA     tmp1
         CMP     #M_BOSS
         BNE     @lvl
-        LDA     #1
-        STA     bosskilled
+        LDA     #BREATH_NONE
+        STA     boss_breath_dir
+        LDA     #QUEST_DRAGON_DEAD
+        STA     queststate
+        PRINTMSG_MSG m_dragon_fallen
 @lvl:
         JSR     check_levelup
         RTS
@@ -307,6 +310,36 @@ monster_attacks_player:
         RTS
 
 ;----------------------------------------------------------------
+; dragon_fire_player - apply the dragon's telegraphed breath attack.
+; Fire ignores armor but is avoidable by leaving the warned lane.
+;----------------------------------------------------------------
+dragon_fire_player:
+        LDA     #7
+        JSR     rng_d           ; 1..7
+        CLC
+        ADC     #5              ; 6..12 damage
+        STA     tmp0
+        SEC
+        LDA     phealth
+        SBC     tmp0
+        BCS     @sethp
+        LDA     #0
+@sethp:
+        STA     phealth
+        JSR     mb_reset
+        LDA     #<c_dragonfire
+        LDY     #>c_dragonfire
+        JSR     mb_str
+        LDA     tmp0
+        JSR     mb_num
+        LDA     #<c_bang
+        LDY     #>c_bang
+        JSR     mb_str
+        JSR     mb_flush
+        JSR     sfx_breath
+        RTS
+
+;----------------------------------------------------------------
 ; Weapon power (damage sides) and armor defense tables
 ;----------------------------------------------------------------
 wpn_power:
@@ -357,6 +390,8 @@ c_dies:
         .BYTE   " dies!",0
 c_hitsyou:
         .BYTE   " hits you for ",0
+c_dragonfire:
+        .BYTE   "Dragon fire burns you for ",0
 c_levelup:
         .BYTE   "Welcome to level ",0
 
@@ -370,6 +405,16 @@ m_treasure:
 m_town:
         .BYTE   "Town. Step on the door '+' (south) to leave. T at 'S' to shop.",0
 m_dungeon:
-        .BYTE   "Dungeon! Step on the stairs '<' to climb back out.",0
+        .BYTE   "Ancient halls descend through black water toward the dragon.",0
+m_dragon_wakes:
+        .BYTE   "A furious roar rolls from the southern chamber.",0
+m_dungeon_empty:
+        .BYTE   "The flooded halls are silent. Their ancient master is dead.",0
 m_world:
         .BYTE   "You return to the land of Wyrmhold.",0
+m_dragon_fallen:
+        .BYTE   "The dragon falls! Return to King Aldren at Wyrmhold Castle.",0
+m_breath_warn:
+        .BYTE   "The Dragon draws breath! Leave the glowing fire lane!",0
+m_breath_miss:
+        .BYTE   "Dragon fire tears through the chamber, but you stand clear.",0

@@ -71,7 +71,7 @@ feedback.
   deliberate, but they should be audited.
 - `sfx_move` exists but is not used.
 - Sound effects use busy waits, temporarily stopping all other activity.
-- Only 12 permanent gameplay glyphs remain free at `$F4..$FF`; future visual
+- Only 8 permanent gameplay glyphs remain free at `$F8..$FF`; future visual
   expansion needs deliberate allocation or location-specific glyph loading.
 - There are no automated static checks for map widths, tile tables, metatile
   records, glyph collisions, or memory budget.
@@ -123,6 +123,9 @@ Give the existing world a simple three-act structure:
 - The dragon uses multiple behaviors and receives a short introduction.
 - Victory returns to the castle for a proper ending rather than ending
   immediately on the killing blow.
+
+**Implemented:** The dungeon now has three authored zones, the dragon warns and
+fires down visible breath lanes, and victory requires returning to King Aldren.
 
 This structure reuses almost every existing system while giving the player a
 reason to care about the world.
@@ -179,7 +182,7 @@ Keep bump combat as the fast default, but make encounters require observation.
   - **Skeleton:** guards rooms or wakes when approached.
   - **Thief:** steals gold, then tries to flee.
   - **Troll:** slow, powerful, and regenerates unless finished quickly.
-  - **Dragon:** breath attack at range plus a close-combat phase.
+  - **Dragon:** breath attack at range plus a close-combat phase. **Implemented.**
 - Add a `Wait/Guard` action so the player can control engagement distance.
 - Make weapons distinct rather than purely linear:
   - Dagger: low damage with a critical-hit chance.
@@ -312,7 +315,7 @@ for new visuals:
 
 1. Prefer composite landmarks built from existing terrain tiles.
 2. Reuse glyph IDs for location-specific art loaded on entry.
-3. Reserve the remaining `$F4..$FF` range for universally visible high-value
+3. Reserve the remaining `$F8..$FF` range for universally visible high-value
    assets.
 
 ## Priority Backlog
