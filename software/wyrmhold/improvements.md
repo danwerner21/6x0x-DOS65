@@ -45,10 +45,11 @@ feedback.
 
 - The entire objective is stated immediately and never develops: find the
   dungeon and kill the dragon.
-- The two overworld towns lead to the same town map and the same shop.
+- The two towns now have distinct maps, names, and shop specialties, though
+  they still need unique palettes and richer non-shop interactions.
 - The castle is decorative and cannot be entered or used.
-- Roads, forests, hills, marshes, and bridges look different but have almost no
-  gameplay identity.
+- Roads, forests, hills, marshes, and bridges now affect travel, concealment,
+  combat, and hazards; hardware balance testing remains pending.
 - Every normal monster uses the same pursue-or-attack AI.
 - Weapons and armor are linear numeric upgrades with no distinct play styles.
 - Treasure is always a small random amount of gold.
@@ -56,9 +57,10 @@ feedback.
 - The boss is statistically stronger but does not behave like a boss encounter.
 - The game is silent during normal exploration except for blocking sound effects.
 - Combat feedback is mostly message text plus the same hit sound for both sides.
-- There is no save/load support, quest log, dialog system, or contextual help.
-- The RNG always starts from the same fixed seed, making runs more predictable
-  than intended.
+- There is no save/load support, quest log, or reusable dialog system. A compact
+  field guide now provides controls, terrain hints, and the current objective.
+- The RNG now mixes title-screen key timing into its initial state; hardware
+  testing still needs to confirm that visibly different waits vary new runs.
 
 ### Technical and Content Risks to Clean Up
 
@@ -141,15 +143,23 @@ Do this before adding content so later changes remain easy to verify.
 
 - Declare `software/wyrmhold` the canonical game source.
 - Document the purpose and status of `wyrm-hires` and `wyrm-onetile`.
-- Add a static validation script that checks:
+- Add a static validation script that checks: **Implemented:** `make validate`
+  runs `tools/validate.py`.
   - Exact map row widths and row counts.
   - Tile IDs, color entries, properties, and variant-table lengths.
   - Metatile record order, four quadrants, and eight rows per glyph.
   - Duplicate or cross-labeled metatile artwork.
   - Glyph allocation collisions and remaining glyph capacity.
   - Final linked end address, with a target of staying below `$9000`.
-- Fix the fixed RNG seed by mixing in title-screen key timing.
-- Create a short hardware smoke-test checklist.
+
+The validator currently reports legacy non-64-character overworld rows and the
+known town/castle metatile label mismatch as warnings so they remain visible
+without blocking unrelated development.
+- Fix the fixed RNG seed by mixing in title-screen key timing. **Implemented:**
+  a 16-bit title-loop counter and accepted key are mixed into the xorshift state
+  before each new game, with an all-zero-state guard.
+- Create a short hardware smoke-test checklist. **Implemented:** tracked in
+  `HARDWARE_TESTS.md`.
 - Capture baseline screenshots or photographs for title, overworld, town,
   dungeon, combat, shop, victory, and defeat.
 
@@ -180,18 +190,21 @@ memorable event afterward.
 Keep bump combat as the fast default, but make encounters require observation.
 
 - Add behavior flags or behavior routines per monster type:
-  - **Snake:** fast, fragile, and may inflict short poison.
+  - **Snake:** fast, fragile, and may inflict short poison. **Implemented.**
   - **Orc:** straightforward pursuer and baseline enemy.
-  - **Skeleton:** guards rooms or wakes when approached.
-  - **Thief:** steals gold, then tries to flee.
+  - **Skeleton:** guards rooms or wakes when approached. **Implemented.**
+  - **Thief:** steals gold, then tries to flee. **Implemented.**
   - **Troll:** slow, powerful, and regenerates unless finished quickly.
+    **Implemented.**
   - **Dragon:** breath attack at range plus a close-combat phase. **Implemented.**
 - Add a `Wait/Guard` action so the player can control engagement distance.
+  **Implemented.**
 - Make weapons distinct rather than purely linear:
-  - Dagger: low damage with a critical-hit chance.
-  - Sword: reliable damage.
-  - Axe: high damage with greater variance.
+  - Dagger: low damage with a critical-hit chance. **Implemented.**
+  - Sword: reliable damage. **Implemented.**
+  - Axe: high damage with greater variance. **Implemented.**
 - Give armor a visible tradeoff or specialty instead of only flat reduction.
+  **Implemented:** leather resists venom and plate consumes extra provisions.
 - Add separate sounds and brief color flashes for:
   - Player attack.
   - Player taking damage.
@@ -199,10 +212,15 @@ Keep bump combat as the fast default, but make encounters require observation.
   - Miss or blocked attack.
   - Poison/status effect.
   - Boss breath attack.
+
+**Implemented so far:** ordinary monster behavior identities, visible poison
+status, distinct attack/hurt/critical/poison audio feedback, and the dragon
+breath attack.
 - Improve combat messages so important events are visible without becoming
   verbose.
 - Balance encounters by region and progression rather than selecting every
-  overworld monster from the same random table.
+  overworld monster from the same random table. **Implemented:** three weighted
+  regional tables gain tougher variants after the dragon's lair opens.
 
 **Exit criteria:** Every monster can be identified by behavior without looking
 at its glyph, and the dragon encounter requires more than repeated bump attacks.
@@ -210,22 +228,37 @@ at its glyph, and the dragon encounter requires more than repeated bump attacks.
 ### Phase 3: Make the World Feel Authored
 
 - Give each town a unique map, name, visual palette, and service.
+  **Partially implemented:** Eastmere and Valehaven now have distinct maps,
+  names, greetings, specialist prices, and provision quantities; unique town
+  palettes remain future presentation work.
 - Turn decorative landmarks into useful locations, encounters, or clues.
-- Add named regions and show the current region in the panel.
+- Add named regions and show the current region in the panel. **Implemented:**
+  Northreach, Wyrmhold Vale, and the Sunken March.
 - Give terrain modest gameplay identity:
-  - Roads reduce food use or avoid random encounters.
-  - Forests limit sight or favor ambushes.
-  - Hills reveal landmarks or affect encounters.
-  - Marshes cost extra food or risk poison.
+  - Roads reduce food use or avoid random encounters. **Implemented:** roads
+    and bridges waive the normal travel ration.
+  - Forests limit sight or favor ambushes. **Implemented:** distant monsters
+    lose track of a player concealed in forest.
+  - Hills reveal landmarks or affect encounters. **Implemented:** attacking
+    from hills adds two damage.
+  - Marshes cost extra food or risk poison. **Implemented:** marsh travel costs
+    an extra ration and can poison; leather reduces the risk.
 - Add a small number of handcrafted discoveries:
-  - A hidden cache.
-  - A healing shrine.
-  - A dangerous shortcut.
-  - A traveler or signpost with useful information.
+  - A hidden cache. **Implemented:** a northern forest cache grants gold and
+    provisions.
+  - A healing shrine. **Implemented as a hilltop cairn:** grants permanent
+    vitality, fully heals, and cures poison.
+  - A dangerous shortcut. **Implemented:** the Sunken March reed ford links two
+    marsh endpoints at a health and provision cost, consumes a turn, and refuses
+    if the hero is too wounded or the far side is occupied.
+  - A traveler or signpost with useful information. **Implemented:** an old
+    road waystone gives a concise route clue.
 - Replace generic treasure with a data-driven reward table containing gold,
   food, healing items, equipment, and quest items.
 - Add controlled encounter respawning so the world does not empty immediately
-  or reset unnaturally whenever an interior is left.
+  or reset unnaturally whenever an interior is left. **Implemented:** overworld
+  monsters persist through interiors, while groups below three receive limited
+  regional reinforcement attempts.
 - Reshape the overworld around routes, decisions, and sightlines after all
   landmarks have defined purposes.
 
@@ -256,6 +289,7 @@ rewards rather than only travel time.
 - Add the current objective and important status effects to the side panel.
 - Use modal bordered panels for dialog, discoveries, and major choices.
 - Add an in-game help panel listing controls and current objective.
+  **Implemented:** `?` opens a no-turn-cost field guide overlay.
 - Show equipment effects when purchasing or viewing equipment.
 - Use consistent terminology, capitalization, border style, and color roles.
 - Replace instructional map messages such as references to `'+'`, `'<'`, and
@@ -326,12 +360,13 @@ for new visuals:
 ### Must Have
 
 - Interactive castle and clear quest structure.
-- Distinct monster behaviors.
+- Distinct monster behaviors. **Implemented.**
 - A real dragon encounter. **Implemented.**
-- Unique towns or clearly differentiated town services.
+- Unique towns or clearly differentiated town services. **Implemented:** the
+  Eastmere outfitter and Valehaven market have distinct maps and specialties.
 - Objective display and contextual dialog.
 - Better combat and discovery feedback.
-- Static map/metatile/memory validation.
+- Static map/metatile/memory validation. **Implemented:** `make validate`.
 - Hardware-tested balance and complete ending sequence.
 
 ### Should Have

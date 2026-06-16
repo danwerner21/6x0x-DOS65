@@ -239,7 +239,14 @@ decode_world:
         JMP     map_decode
 
 decode_town:
-        SETW16  srcp, town_src
+        LDA     town_id
+        CMP     #TOWN_VALEHAVEN
+        BEQ     @valehaven
+        SETW16  srcp, eastmere_src
+        JMP     @decode
+@valehaven:
+        SETW16  srcp, valehaven_src
+@decode:
         SETW16  dstp, locmap
         LDA     #T_FLOOR
         STA     cnt1
@@ -281,6 +288,25 @@ decode_shrine:
         LDA     #SHRINEH
         STA     tmp3
         JMP     map_decode
+
+;----------------------------------------------------------------
+; region_from_y - classify an overworld latitude.
+;   IN : A = overworld y coordinate
+;   OUT: A = REGION_* id
+;----------------------------------------------------------------
+region_from_y:
+        CMP     #REGION_ROW_VALE
+        BCC     @northreach
+        CMP     #REGION_ROW_SUNKEN
+        BCC     @vale
+        LDA     #REGION_SUNKEN
+        RTS
+@vale:
+        LDA     #REGION_VALE
+        RTS
+@northreach:
+        LDA     #REGION_NORTHREACH
+        RTS
 
 ;----------------------------------------------------------------
 ; tileat - read the tile code at (tgtx,tgty) from the ACTIVE map.
@@ -545,9 +571,9 @@ ow_src:
         .BYTE   "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~",0
 
 ;----------------------------------------------------------------
-; Authored town map (32 x 20).  '+' on the border is the exit.
+; Eastmere: a dense coastal town and outfitter. '+' is the exit.
 ;----------------------------------------------------------------
-town_src:
+eastmere_src:
         ;                 1         2         3
         ;        12345678901234567890123456789012
         .BYTE   "################################",0
@@ -568,6 +594,31 @@ town_src:
         .BYTE   "#.:~~~~...:...#:...#..#..:~~~..#",0
         .BYTE   "#.:.......:#..#:...#..#..:.....#",0
         .BYTE   "#.:::::::::####:...####..:.....#",0
+        .BYTE   "###############+################",0
+        .BYTE   "################################",0
+
+;----------------------------------------------------------------
+; Valehaven: an open market town built around canals and gardens.
+;----------------------------------------------------------------
+valehaven_src:
+        .BYTE   "################################",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#....~~~~............~~~~......#",0
+        .BYTE   "#....~~~~............~~~~......#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#..##.###............######....#",0
+        .BYTE   "#..#....#............#....#....#",0
+        .BYTE   "#..#.S..#............#....#....#",0
+        .BYTE   "#..######............######....#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#::::::::::::....::::::::::::::#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#....####............####......#",0
+        .BYTE   "#....#..#............#..#......#",0
+        .BYTE   "#....####............####......#",0
+        .BYTE   "#..............................#",0
+        .BYTE   "#.............:::..............#",0
+        .BYTE   "#.............:::..............#",0
         .BYTE   "###############+################",0
         .BYTE   "################################",0
 

@@ -42,6 +42,24 @@ mtype_xp:
 mtype_gold:
         .BYTE   0, 4, 1, 3, 12, 8, 40, 0
 
+; Weighted overworld encounters: eight entries per region. The
+; second set is used after the dragon's lair is unlocked.
+region_encounters:
+; early Northreach, Wyrmhold Vale, Sunken March
+        .BYTE   M_ORC, M_ORC, M_ORC, M_SKELETON
+        .BYTE   M_SKELETON, M_SKELETON, M_THIEF, M_TROLL
+        .BYTE   M_ORC, M_ORC, M_SNAKE, M_SNAKE
+        .BYTE   M_SKELETON, M_THIEF, M_THIEF, M_TROLL
+        .BYTE   M_SNAKE, M_SNAKE, M_SNAKE, M_THIEF
+        .BYTE   M_THIEF, M_TROLL, M_TROLL, M_SKELETON
+; late Northreach, Wyrmhold Vale, Sunken March
+        .BYTE   M_ORC, M_ORC, M_SKELETON, M_SKELETON
+        .BYTE   M_SKELETON, M_TROLL, M_TROLL, M_THIEF
+        .BYTE   M_ORC, M_SNAKE, M_SKELETON, M_THIEF
+        .BYTE   M_THIEF, M_TROLL, M_TROLL, M_TROLL
+        .BYTE   M_SNAKE, M_SNAKE, M_THIEF, M_SKELETON
+        .BYTE   M_TROLL, M_TROLL, M_TROLL, M_TROLL
+
 ;----------------------------------------------------------------
 ; mon_clear_all - empty every monster slot.
 ;----------------------------------------------------------------
@@ -50,6 +68,7 @@ mon_clear_all:
         LDA     #M_NONE
 @c:
         STA     mon_type,X
+        STA     mon_state,X
         INX
         CPX     #MAXMON
         BNE     @c
@@ -92,6 +111,8 @@ mon_spawn:
         LDY     tmp0
         LDA     mtype_hp,Y
         STA     mon_hp,X
+        LDA     #0
+        STA     mon_state,X
 @full:
         RTS
 
@@ -126,16 +147,81 @@ mon_at:
 mon_kill:
         LDA     #M_NONE
         STA     mon_type,X
+        STA     mon_state,X
+        RTS
+
+;----------------------------------------------------------------
+; save_overworld_monsters / restore_overworld_monsters
+; Preserve the roaming group while an interior reuses mon_*.
+;----------------------------------------------------------------
+save_overworld_monsters:
+        LDX     #0
+@save:
+        LDA     mon_type,X
+        STA     ow_mon_type,X
+        LDA     mon_x,X
+        STA     ow_mon_x,X
+        LDA     mon_y,X
+        STA     ow_mon_y,X
+        LDA     mon_hp,X
+        STA     ow_mon_hp,X
+        LDA     mon_state,X
+        STA     ow_mon_state,X
+        INX
+        CPX     #MAXMON
+        BNE     @save
+        RTS
+
+restore_overworld_monsters:
+        LDX     #0
+@restore:
+        LDA     ow_mon_type,X
+        STA     mon_type,X
+        LDA     ow_mon_x,X
+        STA     mon_x,X
+        LDA     ow_mon_y,X
+        STA     mon_y,X
+        LDA     ow_mon_hp,X
+        STA     mon_hp,X
+        LDA     ow_mon_state,X
+        STA     mon_state,X
+        INX
+        CPX     #MAXMON
+        BNE     @restore
+; only reinforce a world reduced below three living monsters
+        JSR     count_live_monsters
+        CMP     #3
+        BCS     @done
+        LDA     #4              ; four placement attempts, not four guarantees
+        STA     cnt0
+        JMP     spawn_overworld_attempts
+@done:
+        RTS
+
+; count_live_monsters - return live slot count in A.
+count_live_monsters:
+        LDX     #0
+        LDY     #0
+@count:
+        LDA     mon_type,X
+        BEQ     @next
+        INY
+@next:
+        INX
+        CPX     #MAXMON
+        BNE     @count
+        TYA
         RTS
 
 ;----------------------------------------------------------------
 ; spawn_overworld_monsters - scatter a handful of monsters on the
-; overworld at random passable land tiles near the centre.
+; overworld at random passable land tiles near the player.
 ;----------------------------------------------------------------
 spawn_overworld_monsters:
         JSR     mon_clear_all
         LDA     #4              ; only a few roaming monsters at a time
         STA     cnt0
+spawn_overworld_attempts:
 @loop:
 ; place in a ring roughly 6..21 tiles from the player: far
 ; enough not to crowd you, near enough to be encountered.
@@ -196,13 +282,36 @@ spawn_overworld_monsters:
 ; not already occupied by a monster?
         JSR     mon_at
         BCS     @skip
-; pick a random monster type 1..5
-        LDA     #5
-        JSR     rng_d           ; 1..5
+; select a weighted encounter for this monster's region. Once the
+; lair is open, use the tougher second half of the encounter table.
+        LDA     #REGION_ENC_SIZE
+        JSR     rng_mod
+        STA     tmp2
+        LDA     tgty
+        JSR     region_from_y
+        ASL     A
+        ASL     A
+        ASL     A               ; region * REGION_ENC_SIZE
+        STA     tmp3
+        LDA     queststate
+        CMP     #QUEST_DUNG_OPEN
+        BCC     @encounter_index
+        LDA     tmp3
+        CLC
+        ADC     #REGION_LATE_OFS
+        STA     tmp3
+@encounter_index:
+        LDA     tmp3
+        CLC
+        ADC     tmp2
+        TAY
+        LDA     region_encounters,Y
         JSR     mon_spawn
 @skip:
         DEC     cnt0
-        BNE     @loop
+        BEQ     @done
+        JMP     @loop
+@done:
         RTS
 
 ;----------------------------------------------------------------
@@ -345,7 +454,10 @@ draw_dragon_telegraph_vram:
 mon_act:
         LDA     loc
         CMP     #LOC_TOWN
-        BEQ     @ret            ; safe in town
+        BNE     :+
+        RTS                     ; safe in town
+:
+        INC     turn_phase
         LDX     #0
         STX     monidx
 @ma:
@@ -353,6 +465,26 @@ mon_act:
         LDA     mon_type,X
         CMP     #M_NONE
         BEQ     @next
+        CMP     #M_SNAKE
+        BNE     @ckskeleton
+        JSR     snake_act
+        JMP     @next
+@ckskeleton:
+        CMP     #M_SKELETON
+        BNE     @ckthief
+        JSR     skeleton_act
+        JMP     @next
+@ckthief:
+        CMP     #M_THIEF
+        BNE     @cktroll
+        JSR     thief_act
+        JMP     @next
+@cktroll:
+        CMP     #M_TROLL
+        BNE     @ckwarden
+        JSR     troll_act
+        JMP     @next
+@ckwarden:
         CMP     #M_WARDEN
         BNE     @ckdragon
         JSR     warden_act
@@ -370,8 +502,75 @@ mon_act:
         INC     monidx
         LDA     monidx
         CMP     #MAXMON
-        BNE     @ma
+        BEQ     @ret
+        JMP     @ma
 @ret:
+        RTS
+
+;----------------------------------------------------------------
+; Ordinary monster identities.
+;----------------------------------------------------------------
+
+; Snakes surge up to two cells per turn, like a weaker Warden.
+snake_act:
+        JMP     warden_act
+
+; Skeletons hold their ground until the player comes within four
+; cells, then remain awake and pursue normally.
+skeleton_act:
+        LDX     monidx
+        LDA     mon_state,X
+        BNE     @awake
+        SEC
+        LDA     px
+        SBC     mon_x,X
+        JSR     abs_a
+        CMP     #5
+        BCS     @done
+        LDX     monidx
+        SEC
+        LDA     py
+        SBC     mon_y,X
+        JSR     abs_a
+        CMP     #5
+        BCS     @done
+        LDX     monidx
+        LDA     #1
+        STA     mon_state,X
+        PRINTMSG_MSG m_skeleton_wakes
+@awake:
+        JMP     mon_step_or_attack
+@done:
+        RTS
+
+; Thieves approach until adjacent, steal once, then flee.
+thief_act:
+        LDX     monidx
+        LDA     mon_state,X
+        BEQ     @hunting
+        JMP     mon_step_away
+@hunting:
+        JSR     mon_is_adjacent
+        BCC     @approach
+        JMP     thief_steals_player
+@approach:
+        JMP     mon_step_or_attack
+
+; Trolls act every other turn and recover one HP before acting.
+troll_act:
+        LDA     turn_phase
+        AND     #1
+        BNE     @done
+        LDX     monidx
+        LDY     #M_TROLL
+        LDA     mon_hp,X
+        CMP     mtype_hp,Y
+        BCS     @act
+        INC     mon_hp,X
+        PRINTMSG_MSG m_troll_regens
+@act:
+        JMP     mon_step_or_attack
+@done:
         RTS
 
 ;----------------------------------------------------------------
@@ -540,6 +739,21 @@ mon_is_adjacent:
 
 ; mon_step_or_attack - for monster in slot monidx (X on entry).
 mon_step_or_attack:
+; forests conceal the player from distant pursuers
+        LDA     #0
+        STA     cnt1
+        LDA     loc
+        BNE     @distance
+        LDA     px
+        STA     tgtx
+        LDA     py
+        STA     tgty
+        JSR     tileat
+        LDA     tgttile
+        CMP     #T_FOREST
+        BNE     @distance
+        INC     cnt1
+@distance:
 ; compute signed dx = px - mon_x  -> tmp0 ; dy -> tmp1
         LDX     monidx
         SEC
@@ -557,6 +771,20 @@ mon_step_or_attack:
         LDA     tmp1
         JSR     abs_a
         STA     tmp3            ; |dy|
+; while concealed, monsters outside a five-cell square lose track
+        LDA     cnt1
+        BEQ     @adjacency
+        LDA     tmp2
+        CMP     #6
+        BCC     :+
+        JMP     @done
+:
+        LDA     tmp3
+        CMP     #6
+        BCC     :+
+        JMP     @done
+:
+@adjacency:
 ; adjacency: |dx|<=1 and |dy|<=1
         LDA     tmp2
         CMP     #2
@@ -619,6 +847,65 @@ mon_step_or_attack:
         JSR     mon_at
         BCS     @done           ; occupied
 ; commit move
+        LDX     monidx
+        LDA     tgtx
+        STA     mon_x,X
+        LDA     tgty
+        STA     mon_y,X
+@done:
+        RTS
+
+; mon_step_away - move the monster in monidx one cell away from the
+; player along the larger distance axis.
+mon_step_away:
+        LDX     monidx
+        SEC
+        LDA     mon_x,X
+        SBC     px
+        STA     tmp0
+        SEC
+        LDA     mon_y,X
+        SBC     py
+        STA     tmp1
+        LDA     tmp0
+        JSR     abs_a
+        STA     tmp2
+        LDA     tmp1
+        JSR     abs_a
+        STA     tmp3
+        LDX     monidx
+        LDA     mon_x,X
+        STA     tgtx
+        LDA     mon_y,X
+        STA     tgty
+        LDA     tmp2
+        CMP     tmp3
+        BCC     @vert
+        LDA     tmp0
+        BMI     @left
+        INC     tgtx
+        JMP     @try
+@left:
+        DEC     tgtx
+        JMP     @try
+@vert:
+        LDA     tmp1
+        BMI     @up
+        INC     tgty
+        JMP     @try
+@up:
+        DEC     tgty
+@try:
+        JSR     tileat
+        LDX     tgttile
+        LDA     tile_prop,X
+        AND     #P_PASS
+        BEQ     @done
+        LDA     tile_prop,X
+        AND     #(P_TOWN|P_DUNG|P_CASTLE)
+        BNE     @done
+        JSR     mon_at
+        BCS     @done
         LDX     monidx
         LDA     tgtx
         STA     mon_x,X

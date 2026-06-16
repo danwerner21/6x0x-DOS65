@@ -238,6 +238,10 @@ M_WARDEN        = 7
 NUM_MTYPE       = 8
 MAXMON          = 12            ; max simultaneously active monsters
 
+; player attack feedback flags
+ATTACK_CRITICAL = $01
+ATTACK_HIGH     = $02           ; attacking from hills
+
 ; dedicated miniboss artwork in the remaining high glyph range
 MG_WARDEN       = $F0
 MG_BREATH       = $F4
@@ -289,6 +293,42 @@ LOC_TOWN        = 1
 LOC_DUNG        = 2
 LOC_CASTLE      = 3
 LOC_SHRINE      = 4
+
+; town identities and their overworld landmarks
+TOWN_EASTMERE   = 0
+TOWN_VALEHAVEN  = 1
+NUM_TOWNS       = 2
+EASTMERE_X      = 53
+EASTMERE_Y      = 7
+VALEHAVEN_X     = 28
+VALEHAVEN_Y     = 39
+
+; overworld regions, selected by latitude
+REGION_NORTHREACH = 0          ; rows 0..20
+REGION_VALE       = 1          ; rows 21..43
+REGION_SUNKEN     = 2          ; rows 44..63
+NUM_REGIONS       = 3
+REGION_ROW_VALE   = 21
+REGION_ROW_SUNKEN = 44
+REGION_ENC_SIZE   = 8          ; weighted entries per regional table
+REGION_LATE_OFS   = NUM_REGIONS*REGION_ENC_SIZE
+
+; handcrafted overworld discoveries and persistent flag bits
+DISC_CACHE       = $01
+DISC_CAIRN       = $02
+DISC_WAYSTONE    = $04
+CACHE_X          = 30
+CACHE_Y          = 4
+CAIRN_X          = 31
+CAIRN_Y          = 26
+WAYSTONE_X       = 29
+WAYSTONE_Y       = 40
+SHORTCUT_A_X     = 20          ; risky reed ford, west endpoint
+SHORTCUT_A_Y     = 57
+SHORTCUT_B_X     = 32          ; risky reed ford, east endpoint
+SHORTCUT_B_Y     = 59
+SHORTCUT_HP_COST = 6
+SHORTCUT_FOOD_COST = 20
 
 ; opening quest progression
 QUEST_NONE      = 0             ; seek the castle and speak with the ruler
@@ -351,8 +391,8 @@ monidx          = $2F           ; current monster index
 seedlo          = $30           ; RNG state low
 seedhi          = $31           ; RNG state high
 ; $32 = farfunct (system)
-seed2lo         = $33           ; RNG state 2 low
-seed2hi         = $34           ; RNG state 2 high
+seed2lo         = $33           ; title timing counter low
+seed2hi         = $34           ; title timing counter high
 
 ;----------------------------------------------------------------
 ; Game state (in TEA RAM, defined as labels in wyrmhold.asm BSS area)

@@ -7,10 +7,18 @@
 ;  and the menu returns to the map.
 ;______________________________________________________________________________
 
-PRICE_HEAL      = 10            ; gold per visit (full heal)
-PRICE_FOOD      = 20            ; gold for +100 food
-PRICE_WEAPON    = 60            ; gold to upgrade weapon one tier
-PRICE_ARMOR     = 50            ; gold to upgrade armor one tier
+; Eastmere's outfitter favors equipment; Valehaven's market favors
+; healing and provisions. All services remain available in both.
+shop_heal_price:
+        .BYTE   15, 5
+shop_food_price:
+        .BYTE   25, 15
+shop_food_amount:
+        .BYTE   75, 150
+shop_weapon_price:
+        .BYTE   45, 75
+shop_armor_price:
+        .BYTE   35, 65
 
 ;----------------------------------------------------------------
 ; use_action - bound to the USE key ('T'). Dispatch contextual
@@ -18,12 +26,16 @@ PRICE_ARMOR     = 50            ; gold to upgrade armor one tier
 ;----------------------------------------------------------------
 use_action:
         LDA     loc
+        CMP     #LOC_WORLD
+        BEQ     @inworld
         CMP     #LOC_CASTLE
         BEQ     @incastle
         CMP     #LOC_TOWN
         BEQ     @intown
         PRINTMSG_MSG t_nothing
         RTS
+@inworld:
+        JMP     overworld_use
 @incastle:
         JMP     castle_use
 @intown:
@@ -103,46 +115,62 @@ shop_adjacent:
 shop_menu:
         JSR     sfx_door
 ; start with the greeting as the status line
-        LDA     #<t_greet
-        STA     shopstat
-        LDA     #>t_greet
-        STA     shopstat+1
+        JSR     shop_set_greeting
 @redraw:
         JSR     shop_draw
 @key:
         JSR     getkey_block
         CMP     #'1'
-        BEQ     @heal
+        BNE     :+
+        JMP     @heal
+:
         CMP     #'2'
-        BEQ     @food
+        BNE     :+
+        JMP     @food
+:
         CMP     #'3'
-        BEQ     @weapon
+        BNE     :+
+        JMP     @weapon
+:
         CMP     #'4'
-        BEQ     @armor
+        BNE     :+
+        JMP     @armor
+:
         CMP     #'X'
-        BEQ     @goleave
+        BNE     :+
+        JMP     @goleave
+:
         CMP     #'x'
-        BEQ     @goleave
+        BNE     :+
+        JMP     @goleave
+:
         JMP     @key
 @goleave:
         JMP     @leave
 @heal:
-        LDA     #PRICE_HEAL
+        LDX     town_id
+        LDA     shop_heal_price,X
         JSR     spend_gold
         BCS     :+
         JMP     @poor
 :
         LDA     pmaxhp
         STA     phealth
+        LDA     #0
+        STA     poison_turns
         SETSTAT t_healed
         JMP     @redraw
 @food:
-        LDA     #PRICE_FOOD
+        LDX     town_id
+        LDA     shop_food_price,X
         JSR     spend_gold
-        BCC     @poor
+        BCS     :+
+        JMP     @poor
+:
+        LDX     town_id
         CLC
         LDA     pfood
-        ADC     #100
+        ADC     shop_food_amount,X
         STA     pfood
         LDA     pfood+1
         ADC     #0
@@ -153,9 +181,12 @@ shop_menu:
         LDA     pweapon
         CMP     #3
         BCS     @maxwpn
-        LDA     #PRICE_WEAPON
+        LDX     town_id
+        LDA     shop_weapon_price,X
         JSR     spend_gold
-        BCC     @poor
+        BCS     :+
+        JMP     @poor
+:
         INC     pweapon
         SETSTAT t_boughtw
         JMP     @redraw
@@ -166,9 +197,12 @@ shop_menu:
         LDA     parmor
         CMP     #3
         BCS     @maxarm
-        LDA     #PRICE_ARMOR
+        LDX     town_id
+        LDA     shop_armor_price,X
         JSR     spend_gold
-        BCC     @poor
+        BCS     :+
+        JMP     @poor
+:
         INC     parmor
         SETSTAT t_boughta
         JMP     @redraw
@@ -210,6 +244,42 @@ spend_gold:
 @no:
         CLC
         RTS
+
+;----------------------------------------------------------------
+; shop_set_greeting - select a greeting for the active town.
+;----------------------------------------------------------------
+shop_set_greeting:
+        LDA     town_id
+        ASL     A
+        TAX
+        LDA     shop_greetings,X
+        STA     shopstat
+        LDA     shop_greetings+1,X
+        STA     shopstat+1
+        RTS
+
+;----------------------------------------------------------------
+; shop_print_line - print a town-specific shop line.
+;   IN: A = line index (SHOPTXT_*)
+;----------------------------------------------------------------
+SHOPTXT_HEADER  = 0
+SHOPTXT_HEAL    = 1
+SHOPTXT_FOOD    = 2
+SHOPTXT_WEAPON  = 3
+SHOPTXT_ARMOR   = 4
+
+shop_print_line:
+        ASL     A
+        ASL     A               ; two town pointers per line
+        STA     tmp0
+        LDA     town_id
+        ASL     A
+        CLC
+        ADC     tmp0
+        TAX
+        LDA     shop_text_table,X
+        LDY     shop_text_table+1,X
+        JMP     prmsg
 
 ;----------------------------------------------------------------
 ; Shop box geometry - a clean panel drawn inside the viewport,
@@ -273,30 +343,39 @@ shop_draw:
         LDX     #SHOP_X0+8
         LDY     #SHOP_Y0
         JSR     locate
-        PRINTMSG t_header
+        LDA     #SHOPTXT_HEADER
+        JSR     shop_print_line
 
         LDA     #C_SHOPTXT
         STA     CURCOLOR
         LDX     #SHOP_X0+3
         LDY     #SHOP_Y0+2
         JSR     locate
-        PRINTMSG t_opt1
+        LDA     #SHOPTXT_HEAL
+        JSR     shop_print_line
         LDX     #SHOP_X0+3
         LDY     #SHOP_Y0+3
         JSR     locate
-        PRINTMSG t_opt2
+        LDA     #SHOPTXT_FOOD
+        JSR     shop_print_line
         LDX     #SHOP_X0+3
         LDY     #SHOP_Y0+4
         JSR     locate
-        PRINTMSG t_opt3
+        LDA     #SHOPTXT_WEAPON
+        JSR     shop_print_line
         LDX     #SHOP_X0+3
         LDY     #SHOP_Y0+5
         JSR     locate
-        PRINTMSG t_opt4
+        LDA     #SHOPTXT_ARMOR
+        JSR     shop_print_line
         LDX     #SHOP_X0+3
         LDY     #SHOP_Y0+6
         JSR     locate
         PRINTMSG t_optx
+        LDX     #SHOP_X0+3
+        LDY     #SHOP_Y0+7
+        JSR     locate
+        PRINTMSG t_weapon_hint
 
 ; gold line
         LDX     #SHOP_X0+3
@@ -307,6 +386,10 @@ shop_draw:
         PRINTMSG t_gold
         COPY16  pgold, numarg
         JSR     displaynum
+        LDX     #SHOP_X0+3
+        LDY     #SHOP_Y0+9
+        JSR     locate
+        PRINTMSG t_armor_hint
 
 ; status line (last action / greeting)
         LDX     #SHOP_X0+3
@@ -322,23 +405,47 @@ shop_draw:
 ;----------------------------------------------------------------
 ; Shop strings
 ;----------------------------------------------------------------
-t_header:
-        .BYTE   "- SHOP -",0
-t_opt1:
-        .BYTE   "1) Heal to full     10 gold",0
-t_opt2:
-        .BYTE   "2) Provisions +100  20 gold",0
-t_opt3:
-        .BYTE   "3) Better weapon    60 gold",0
-t_opt4:
-        .BYTE   "4) Better armor     50 gold",0
+shop_text_table:
+        .WORD   t_east_header, t_vale_header
+        .WORD   t_east_heal, t_vale_heal
+        .WORD   t_east_food, t_vale_food
+        .WORD   t_east_weapon, t_vale_weapon
+        .WORD   t_east_armor, t_vale_armor
+t_east_header:
+        .BYTE   "- EASTMERE OUTFITTER -",0
+t_vale_header:
+        .BYTE   "- VALEHAVEN MARKET -",0
+t_east_heal:
+        .BYTE   "1) Heal to full     15 gold",0
+t_vale_heal:
+        .BYTE   "1) Heal to full      5 gold",0
+t_east_food:
+        .BYTE   "2) Provisions +75   25 gold",0
+t_vale_food:
+        .BYTE   "2) Provisions +150  15 gold",0
+t_east_weapon:
+        .BYTE   "3) Better weapon    45 gold",0
+t_vale_weapon:
+        .BYTE   "3) Better weapon    75 gold",0
+t_east_armor:
+        .BYTE   "4) Better armor     35 gold",0
+t_vale_armor:
+        .BYTE   "4) Better armor     65 gold",0
 t_optx:
         .BYTE   "X) Leave the shop",0
+t_weapon_hint:
+        .BYTE   "Dagger crit; sword steady; axe wild",0
 t_gold:
         .BYTE   "Thy gold: ",0
+t_armor_hint:
+        .BYTE   "Leather resists venom; plate eats 2",0
 
-t_greet:
-        .BYTE   "Welcome! What dost thou need?",0
+shop_greetings:
+        .WORD   t_east_greet, t_vale_greet
+t_east_greet:
+        .BYTE   "Eastmere arms the bold.",0
+t_vale_greet:
+        .BYTE   "Valehaven restores the weary.",0
 t_nothing:
         .BYTE   "Nothing happens.",0
 t_noshop:

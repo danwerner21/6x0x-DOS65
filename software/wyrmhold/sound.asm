@@ -224,6 +224,61 @@ sfx_hit:
         JSR     busywait
         JMP     psg_silence
 
+; sfx_hurt - low impact when the player takes melee damage
+sfx_hurt:
+        SETW16  ptr, $0280
+        LDA     #11
+        STA     tmp0
+        JSR     tone_on
+        LDX     #3
+        JSR     busywait
+        LDA     #6
+        LDY     #14
+        JSR     psgwr
+        LDA     #7
+        LDY     #%00110111
+        JSR     psgwr
+        LDA     #8
+        LDY     #8
+        JSR     psgwr
+        LDX     #2
+        JSR     busywait
+        JMP     psg_silence
+
+; sfx_critical - bright double strike
+sfx_critical:
+        SETW16  ptr, $0080
+        LDA     #15
+        STA     tmp0
+        JSR     tone_on
+        LDX     #2
+        JSR     busywait
+        SETW16  ptr, $0050
+        JSR     tone_on
+        LDX     #3
+        JSR     busywait
+        JMP     psg_silence
+
+; sfx_poison - short, uneasy descending hiss
+sfx_poison:
+        LDA     #6
+        LDY     #8
+        JSR     psgwr
+        LDA     #7
+        LDY     #%00110111
+        JSR     psgwr
+        LDA     #8
+        LDY     #9
+        JSR     psgwr
+        LDX     #3
+        JSR     busywait
+        LDA     #6
+        LDY     #18
+        JSR     psgwr
+        LDX     #2
+        JSR     busywait
+        JMP     psg_silence
+
 ; sfx_breath_warn - rising intake before the dragon breathes
 sfx_breath_warn:
         SETW16  ptr, $0320

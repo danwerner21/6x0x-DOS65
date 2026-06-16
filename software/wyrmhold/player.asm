@@ -33,9 +33,15 @@ player_init:
         LDA     #LOC_WORLD
         STA     loc
         LDA     #0
+        STA     town_id
+        STA     discovery_flags
         STA     bosskilled
         STA     queststate
         STA     boss_breath_dir
+        STA     poison_turns
+        STA     turn_phase
+        STA     guard_active
+        STA     attack_flags
         RTS
 
 ;----------------------------------------------------------------
@@ -84,16 +90,19 @@ try_move:
         LDA     tmp0
         AND     #P_TOWN
         BEQ     @ck_castle
+        JSR     save_overworld_monsters
         JMP     enter_town
 @ck_castle:
         LDA     tmp0
         AND     #P_CASTLE
         BEQ     @ck_dung
+        JSR     save_overworld_monsters
         JMP     enter_castle
 @ck_dung:
         LDA     tmp0
         AND     #P_DUNG
         BEQ     @ck_exit
+        JSR     save_overworld_monsters
         JMP     enter_dungeon
 @ck_exit:
         LDA     tmp0
@@ -114,10 +123,56 @@ try_move:
         BEQ     @food
         JSR     collect_treasure
 @food:
-; consume a unit of food per step
+; terrain sets the base travel cost: roads and bridges are free,
+; ordinary ground costs one ration, and marshes cost two.
+        LDA     #1
+        STA     tmp2
+        LDA     loc
+        BNE     @armor_cost
+        LDA     tgttile
+        CMP     #T_ROAD
+        BEQ     @easy_travel
+        CMP     #T_BRIDGE
+        BEQ     @easy_travel
+        CMP     #T_MARSH
+        BNE     @armor_cost
+        LDA     #2
+        STA     tmp2
+        JMP     @armor_cost
+@easy_travel:
+        LDA     #0
+        STA     tmp2
+@armor_cost:
+; plate armor adds one ration to any successful step
+        LDX     parmor
+        CPX     #3
+        BNE     @consume_food
+        INC     tmp2
+@consume_food:
+        LDA     tmp2
+        BEQ     @terrain_effect
+        JSR     consume_food_unit
+        DEC     tmp2
+        JMP     @consume_food
+@terrain_effect:
+; marshes may poison the traveler after movement is committed
+        LDA     loc
+        BNE     @discoveries
+        LDA     tgttile
+        CMP     #T_MARSH
+        BNE     @discoveries
+        JSR     marsh_hazard
+@discoveries:
+        JSR     check_overworld_discovery
+        RTS
+
+;----------------------------------------------------------------
+; consume_food_unit - consume one provision if any remain.
+;----------------------------------------------------------------
+consume_food_unit:
         LDA     pfood
         ORA     pfood+1
-        BEQ     @nofood
+        BEQ     @done
         SEC
         LDA     pfood
         SBC     #1
@@ -125,7 +180,210 @@ try_move:
         LDA     pfood+1
         SBC     #0
         STA     pfood+1
-@nofood:
+@done:
+        RTS
+
+;----------------------------------------------------------------
+; marsh_hazard - marsh travel can inflict poison. Leather armor
+; reduces the chance from one-in-eight to one-in-sixteen.
+;----------------------------------------------------------------
+marsh_hazard:
+        LDX     parmor
+        CPX     #1
+        BNE     @normal_risk
+        LDA     #16
+        BNE     @roll
+@normal_risk:
+        LDA     #8
+@roll:
+        JSR     rng_d
+        CMP     #1
+        BNE     @safe
+        LDA     poison_turns
+        BNE     @refresh
+        LDA     #$84            ; skip the immediate status tick
+        STA     poison_turns
+        JMP     @poisoned
+@refresh:
+        LDA     #4
+        STA     poison_turns
+@poisoned:
+        JSR     sfx_poison
+        PRINTMSG_MSG m_marsh_poison
+@safe:
+        RTS
+
+;----------------------------------------------------------------
+; check_overworld_discovery - award one-time authored discoveries
+; when the player reaches their overworld coordinates.
+;----------------------------------------------------------------
+check_overworld_discovery:
+        LDA     loc
+        BEQ     :+
+        RTS
+:
+        LDA     discovery_flags
+        AND     #DISC_CACHE
+        BNE     @cairn_check
+        LDA     px
+        CMP     #CACHE_X
+        BNE     @cairn_check
+        LDA     py
+        CMP     #CACHE_Y
+        BNE     @cairn_check
+        JMP     discover_cache
+@cairn_check:
+        LDA     discovery_flags
+        AND     #DISC_CAIRN
+        BNE     @waystone_check
+        LDA     px
+        CMP     #CAIRN_X
+        BNE     @waystone_check
+        LDA     py
+        CMP     #CAIRN_Y
+        BNE     @waystone_check
+        JMP     discover_cairn
+@waystone_check:
+        LDA     discovery_flags
+        AND     #DISC_WAYSTONE
+        BNE     @done
+        LDA     px
+        CMP     #WAYSTONE_X
+        BNE     @done
+        LDA     py
+        CMP     #WAYSTONE_Y
+        BNE     @done
+        JMP     discover_waystone
+@done:
+        RTS
+
+; A hunter's hidden cache provides both money and travel supplies.
+discover_cache:
+        LDA     discovery_flags
+        ORA     #DISC_CACHE
+        STA     discovery_flags
+        CLC
+        LDA     pgold
+        ADC     #40
+        STA     pgold
+        LDA     pgold+1
+        ADC     #0
+        STA     pgold+1
+        CLC
+        LDA     pfood
+        ADC     #75
+        STA     pfood
+        LDA     pfood+1
+        ADC     #0
+        STA     pfood+1
+        JSR     sfx_treasure
+        PRINTMSG_MSG m_discover_cache
+        RTS
+
+; The hilltop cairn grants a permanent vitality blessing.
+discover_cairn:
+        LDA     discovery_flags
+        ORA     #DISC_CAIRN
+        STA     discovery_flags
+        CLC
+        LDA     pmaxhp
+        ADC     #5
+        STA     pmaxhp
+        STA     phealth
+        LDA     #0
+        STA     poison_turns
+        JSR     sfx_levelup
+        PRINTMSG_MSG m_discover_cairn
+        RTS
+
+; The old waystone gives a concise route clue.
+discover_waystone:
+        LDA     discovery_flags
+        ORA     #DISC_WAYSTONE
+        STA     discovery_flags
+        JSR     sfx_treasure
+        PRINTMSG_MSG m_discover_waystone
+        RTS
+
+;----------------------------------------------------------------
+; overworld_use - contextual overworld interaction. The discovered
+; waystone can be read again with T so its route clue is not lost.
+;----------------------------------------------------------------
+overworld_use:
+        LDA     px
+        CMP     #WAYSTONE_X
+        BNE     @shortcut_a
+        LDA     py
+        CMP     #WAYSTONE_Y
+        BNE     @shortcut_a
+        PRINTMSG_MSG m_discover_waystone
+        RTS
+@shortcut_a:
+        LDA     px
+        CMP     #SHORTCUT_A_X
+        BNE     @shortcut_b
+        LDA     py
+        CMP     #SHORTCUT_A_Y
+        BNE     @shortcut_b
+        LDA     #SHORTCUT_B_X
+        STA     tgtx
+        LDA     #SHORTCUT_B_Y
+        STA     tgty
+        JMP     shortcut_cross
+@shortcut_b:
+        LDA     px
+        CMP     #SHORTCUT_B_X
+        BNE     @nothing
+        LDA     py
+        CMP     #SHORTCUT_B_Y
+        BNE     @nothing
+        LDA     #SHORTCUT_A_X
+        STA     tgtx
+        LDA     #SHORTCUT_A_Y
+        STA     tgty
+        JMP     shortcut_cross
+@nothing:
+        PRINTMSG_MSG t_nothing
+        RTS
+
+; The reed ford is a deliberate shortcut through the Sunken March:
+; useful, but costly enough that using it wounded is a bad idea.
+shortcut_cross:
+        LDA     phealth
+        CMP     #SHORTCUT_HP_COST+1
+        BCS     @can_cross
+        JSR     sfx_blocked
+        PRINTMSG_MSG m_shortcut_weak
+        RTS
+@can_cross:
+        JSR     mon_at
+        BCC     @destination_clear
+        JSR     sfx_blocked
+        PRINTMSG_MSG m_shortcut_blocked
+        RTS
+@destination_clear:
+        SEC
+        LDA     phealth
+        SBC     #SHORTCUT_HP_COST
+        STA     phealth
+
+        LDX     #SHORTCUT_FOOD_COST
+@food:
+        LDA     pfood
+        ORA     pfood+1
+        BEQ     @move
+        JSR     consume_food_unit
+        DEX
+        BNE     @food
+@move:
+        LDA     tgtx
+        STA     px
+        LDA     tgty
+        STA     py
+        LDA     #1
+        STA     did_move
+        JSR     sfx_move
+        PRINTMSG_MSG m_shortcut_cross
         RTS
 
 ;----------------------------------------------------------------
@@ -156,6 +414,14 @@ collect_treasure:
 ; enter_town - switch to the town interior map.
 ;----------------------------------------------------------------
 enter_town:
+; identify the landmark before effects or map decoding use scratch state
+        LDA     #TOWN_EASTMERE
+        LDX     tgty
+        CPX     #VALEHAVEN_Y
+        BNE     @town_selected
+        LDA     #TOWN_VALEHAVEN
+@town_selected:
+        STA     town_id
         JSR     sfx_door
         JSR     decode_town
         LDA     #LOC_TOWN
@@ -179,7 +445,12 @@ enter_town:
         JSR     mon_clear_all
         LDA     #1
         STA     did_move
-        PRINTMSG_MSG m_town
+        LDA     town_id
+        BEQ     @eastmere_msg
+        PRINTMSG_MSG m_valehaven
+        RTS
+@eastmere_msg:
+        PRINTMSG_MSG m_eastmere
         RTS
 
 ;----------------------------------------------------------------
@@ -282,7 +553,7 @@ leave_interior:
         STA     px
         LDA     owrety
         STA     py
-        JSR     spawn_overworld_monsters
+        JSR     restore_overworld_monsters
         LDA     #1
         STA     did_move
         PRINTMSG_MSG m_world

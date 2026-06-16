@@ -56,6 +56,7 @@ title_screen:
 @settle:
         PHX
         JSR     music_tick
+        JSR     rng_timing_tick
         JSR     getkey          ; read & discard whatever shows up
         PLX
         DEX
@@ -63,8 +64,11 @@ title_screen:
         JSR     drainkeys       ; clear anything still buffered
 @spin:
         JSR     music_tick
+        JSR     rng_timing_tick
         JSR     getkey
         BEQ     @spin
+        STA     keych
+        JSR     rng_mix_timing
         JSR     psg_silence
         RTS
 
@@ -122,38 +126,82 @@ game_loop:
 
         LDA     keych
         CMP     #'w'
-        BEQ     @up
+        BNE     :+
+        JMP     @up
+:
         CMP     #'W'
-        BEQ     @up
+        BNE     :+
+        JMP     @up
+:
         CMP     #'k'
-        BEQ     @up
+        BNE     :+
+        JMP     @up
+:
         CMP     #'s'
-        BEQ     @down
+        BNE     :+
+        JMP     @down
+:
         CMP     #'S'
-        BEQ     @down
+        BNE     :+
+        JMP     @down
+:
         CMP     #'j'
-        BEQ     @down
+        BNE     :+
+        JMP     @down
+:
         CMP     #'a'
-        BEQ     @left
+        BNE     :+
+        JMP     @left
+:
         CMP     #'A'
-        BEQ     @left
+        BNE     :+
+        JMP     @left
+:
         CMP     #'h'
-        BEQ     @left
+        BNE     :+
+        JMP     @left
+:
         CMP     #'d'
-        BEQ     @right
+        BNE     :+
+        JMP     @right
+:
         CMP     #'D'
-        BEQ     @right
+        BNE     :+
+        JMP     @right
+:
         CMP     #'l'
-        BEQ     @right
+        BNE     :+
+        JMP     @right
+:
 
+        CMP     #'g'
+        BNE     :+
+        JMP     @guard
+:
+        CMP     #'G'
+        BNE     :+
+        JMP     @guard
+:
         CMP     #'t'
-        BEQ     @use
+        BNE     :+
+        JMP     @use
+:
         CMP     #'T'
-        BEQ     @use
+        BNE     :+
+        JMP     @use
+:
+        CMP     #'?'
+        BNE     :+
+        JMP     @help
+:
         CMP     #'q'
-        BEQ     @quit
+        BNE     :+
+        JMP     @quit
+:
         CMP     #'Q'
-        BEQ     @quit
+        BNE     :+
+        JMP     @quit
+:
         JMP     @loop           ; unknown key
 
 @up:
@@ -173,17 +221,40 @@ game_loop:
         STA     dx
 @domove:
         JSR     try_move
-; if a turn was consumed and we're not in town, monsters act
+        JMP     @doturn
+@guard:
+        LDA     #1
+        STA     guard_active
+        STA     did_move
+        PRINTMSG_MSG m_guard
+@doturn:
+; if a turn was consumed, monsters and status effects act
         LDA     did_move
         BEQ     @after
         JSR     mon_act
+        JSR     process_status
 @after:
+        LDA     #0
+        STA     guard_active
         JSR     full_redraw
         JMP     @loop
 
 @use:
+        LDA     #0
+        STA     did_move
         JSR     use_action
+        LDA     did_move
+        BEQ     @use_redraw
+        JSR     mon_act
+        JSR     process_status
+@use_redraw:
         JSR     full_redraw
+        JMP     @loop
+
+@help:
+        JSR     help_menu
+        JSR     full_redraw
+        JSR     msg_redraw
         JMP     @loop
 
 @quit:
@@ -305,9 +376,9 @@ ttl_by:
 ttl_prompt:
         .BYTE   "Press any key to begin thy quest",0
 ttl_keys1:
-        .BYTE   "Move: W A S D (or H J K L)   T: use/shop",0
+        .BYTE   "Move: W A S D (or H J K L)   G: guard   T: use/shop",0
 ttl_keys2:
-        .BYTE   "Bump monsters to fight.  Q: quit to DOS",0
+        .BYTE   "Bump monsters to fight.  ?: help   Q: quit to DOS",0
 
 intro_msg:
         .BYTE   "Welcome to Wyrmhold. Seek the castle and speak with its ruler.",0
@@ -373,6 +444,10 @@ parmor:
         .BYTE   0
 loc:
         .BYTE   0
+town_id:
+        .BYTE   0
+discovery_flags:
+        .BYTE   0
 locw:
         .BYTE   0
 loch:
@@ -386,6 +461,14 @@ bosskilled:
 queststate:
         .BYTE   0
 boss_breath_dir:
+        .BYTE   0
+poison_turns:
+        .BYTE   0
+turn_phase:
+        .BYTE   0
+guard_active:
+        .BYTE   0
+attack_flags:
         .BYTE   0
 did_move:
         .BYTE   0
@@ -439,6 +522,20 @@ mon_x:
 mon_y:
         .RES    MAXMON
 mon_hp:
+        .RES    MAXMON
+mon_state:
+        .RES    MAXMON
+
+; overworld monster snapshot while an interior owns mon_*
+ow_mon_type:
+        .RES    MAXMON
+ow_mon_x:
+        .RES    MAXMON
+ow_mon_y:
+        .RES    MAXMON
+ow_mon_hp:
+        .RES    MAXMON
+ow_mon_state:
         .RES    MAXMON
 
 ; map tile buffers

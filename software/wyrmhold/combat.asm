@@ -100,15 +100,75 @@ mb_flush:
 
 ;----------------------------------------------------------------
 ; player_attacks_monster - X = monster slot.
-;   Damage = 1..(weapon_power) + small bonus.  Apply, possibly kill.
+;   Fists are weak, daggers can critically strike, swords are
+;   reliable, and axes have the widest damage range.
 ;----------------------------------------------------------------
 player_attacks_monster:
         STX     monidx
-; damage roll: base from weapon
+        LDA     #0
+        STA     attack_flags
         LDX     pweapon
-        LDA     wpn_power,X
-        JSR     rng_d           ; 1..power
-        STA     tmp0            ; damage
+        CPX     #1
+        BEQ     @dagger
+        CPX     #2
+        BEQ     @sword
+        CPX     #3
+        BEQ     @axe
+; fists: 1..2
+        LDA     #2
+        JSR     rng_d
+        JMP     @rolled
+@dagger:
+; dagger: 1..4, with a one-in-four critical strike for +4
+        LDA     #4
+        JSR     rng_d
+        STA     tmp0
+        LDA     #4
+        JSR     rng_d
+        CMP     #1
+        BNE     @dagger_normal
+        LDA     #ATTACK_CRITICAL
+        STA     attack_flags
+        LDA     tmp0
+        CLC
+        ADC     #4
+        JMP     @rolled
+@dagger_normal:
+        LDA     tmp0
+        JMP     @rolled
+@sword:
+; sword: reliable 4..7
+        LDA     #4
+        JSR     rng_d
+        CLC
+        ADC     #3
+        JMP     @rolled
+@axe:
+; axe: volatile 1..12
+        LDA     #12
+        JSR     rng_d
+@rolled:
+        STA     cnt0            ; preserve damage while checking terrain
+        LDA     loc
+        BNE     @damage_ready
+        LDA     px
+        STA     tgtx
+        LDA     py
+        STA     tgty
+        JSR     tileat
+        LDA     tgttile
+        CMP     #T_HILLS
+        BNE     @damage_ready
+        CLC
+        LDA     cnt0
+        ADC     #2
+        STA     cnt0
+        LDA     attack_flags
+        ORA     #ATTACK_HIGH
+        STA     attack_flags
+@damage_ready:
+        LDA     cnt0
+        STA     tmp0            ; final damage
 ; subtract from monster hp
         LDX     monidx
         SEC
@@ -132,7 +192,20 @@ player_attacks_monster:
         LDY     #>c_bang
         JSR     mb_str
         JSR     mb_flush
+        LDA     attack_flags
+        AND     #ATTACK_CRITICAL
+        BEQ     @normal_hit
+        JSR     sfx_critical
+        PRINTMSG_MSG m_critical
+        JMP     @terrain_feedback
+@normal_hit:
         JSR     sfx_hit
+@terrain_feedback:
+        LDA     attack_flags
+        AND     #ATTACK_HIGH
+        BEQ     @deadcheck
+        PRINTMSG_MSG m_high_ground
+@deadcheck:
 ; dead?  (hp <= 0 i.e. hp was <= damage -> result negative/zero)
         LDX     monidx
         LDA     mon_hp,X
@@ -242,6 +315,8 @@ check_levelup:
         ADC     #8
         STA     pmaxhp
         STA     phealth
+        LDA     #0
+        STA     poison_turns
         JSR     sfx_levelup
         JSR     mb_reset
         LDA     #<c_levelup
@@ -278,6 +353,16 @@ monster_attacks_player:
         BPL     @ok
         LDA     #1              ; minimum 1 damage
 @ok:
+        BNE     @guard
+        LDA     #1
+@guard:
+        LDX     guard_active
+        BEQ     @apply
+        SEC
+        SBC     #2
+        BPL     :+
+        LDA     #1
+:
         BNE     @apply
         LDA     #1
 @apply:
@@ -306,7 +391,99 @@ monster_attacks_player:
         LDY     #>c_bang
         JSR     mb_str
         JSR     mb_flush
-        JSR     sfx_hit
+; snake bites may inflict four turns of poison
+        LDA     tmp1
+        CMP     #M_SNAKE
+        BNE     @normal_sfx
+        LDX     parmor
+        CPX     #1
+        BNE     @normal_venom
+; leather armor reduces the poison chance from one-in-three to one-in-six
+        LDA     #6
+        BNE     @roll_venom
+@normal_venom:
+        LDA     #3
+@roll_venom:
+        JSR     rng_d
+        CMP     #1
+        BNE     @normal_sfx
+        LDA     poison_turns
+        BNE     @refresh_poison
+        LDA     #$84            ; high bit skips the immediate status tick
+        STA     poison_turns
+        JMP     @poisoned
+@refresh_poison:
+        LDA     #4              ; refreshed poison still ticks this turn
+        STA     poison_turns
+@poisoned:
+        JSR     sfx_poison
+        PRINTMSG_MSG m_poisoned
+        RTS
+@normal_sfx:
+        JSR     sfx_hurt
+        RTS
+
+;----------------------------------------------------------------
+; thief_steals_player - steal up to eight gold, then mark this
+; thief as fleeing. If the player is broke, attack normally.
+;----------------------------------------------------------------
+thief_steals_player:
+        LDA     pgold
+        ORA     pgold+1
+        BNE     @hasgold
+        JMP     monster_attacks_player
+@hasgold:
+        LDA     #8
+        JSR     rng_d
+        STA     tmp0
+        LDA     pgold+1
+        BNE     @subtract
+        LDA     pgold
+        CMP     tmp0
+        BCS     @subtract
+        STA     tmp0
+@subtract:
+        SEC
+        LDA     pgold
+        SBC     tmp0
+        STA     pgold
+        LDA     pgold+1
+        SBC     #0
+        STA     pgold+1
+        LDX     monidx
+        LDA     #1
+        STA     mon_state,X
+        JSR     mb_reset
+        LDA     #<c_thiefsteals
+        LDY     #>c_thiefsteals
+        JSR     mb_str
+        LDA     tmp0
+        JSR     mb_num
+        LDA     #<c_goldflees
+        LDY     #>c_goldflees
+        JSR     mb_str
+        JSR     mb_flush
+        JSR     sfx_blocked
+        RTS
+
+;----------------------------------------------------------------
+; process_status - apply player status effects after a consumed turn.
+;----------------------------------------------------------------
+process_status:
+        LDA     poison_turns
+        BEQ     @done
+        BMI     @fresh
+        DEC     poison_turns
+        LDA     phealth
+        BEQ     @done
+        DEC     phealth
+        JSR     sfx_poison
+        PRINTMSG_MSG m_poison_tick
+        RTS
+@fresh:
+        AND     #$7F
+        STA     poison_turns
+@done:
         RTS
 
 ;----------------------------------------------------------------
@@ -340,13 +517,8 @@ dragon_fire_player:
         RTS
 
 ;----------------------------------------------------------------
-; Weapon power (damage sides) and armor defense tables
+; Armor defense table
 ;----------------------------------------------------------------
-wpn_power:
-        .BYTE   2               ; 0 fists
-        .BYTE   4               ; 1 dagger
-        .BYTE   7               ; 2 sword
-        .BYTE   10              ; 3 axe
 arm_def:
         .BYTE   0               ; 0 clothes
         .BYTE   1               ; 1 leather
@@ -392,6 +564,10 @@ c_hitsyou:
         .BYTE   " hits you for ",0
 c_dragonfire:
         .BYTE   "Dragon fire burns you for ",0
+c_thiefsteals:
+        .BYTE   "The Thief steals ",0
+c_goldflees:
+        .BYTE   " gold and flees!",0
 c_levelup:
         .BYTE   "Welcome to level ",0
 
@@ -402,8 +578,10 @@ m_blocked:
         .BYTE   "Blocked!",0
 m_treasure:
         .BYTE   "You found gold in a chest!",0
-m_town:
-        .BYTE   "Town. Step on the door '+' (south) to leave. T at 'S' to shop.",0
+m_eastmere:
+        .BYTE   "Eastmere. Its outfitter offers the realm's best equipment.",0
+m_valehaven:
+        .BYTE   "Valehaven. Its market offers cheap healing and provisions.",0
 m_dungeon:
         .BYTE   "Ancient halls descend through black water toward the dragon.",0
 m_dragon_wakes:
@@ -418,3 +596,31 @@ m_breath_warn:
         .BYTE   "The Dragon draws breath! Leave the glowing fire lane!",0
 m_breath_miss:
         .BYTE   "Dragon fire tears through the chamber, but you stand clear.",0
+m_poisoned:
+        .BYTE   "The Snake's venom courses through your veins!",0
+m_poison_tick:
+        .BYTE   "Poison burns for 1 damage.",0
+m_marsh_poison:
+        .BYTE   "Marsh venom seeps through the mire!",0
+m_skeleton_wakes:
+        .BYTE   "The Skeleton wakes and leaves its guard post!",0
+m_troll_regens:
+        .BYTE   "The Troll's wounds begin to knit.",0
+m_guard:
+        .BYTE   "You brace for the enemy's next attack.",0
+m_critical:
+        .BYTE   "Critical strike!",0
+m_high_ground:
+        .BYTE   "High ground adds 2 damage.",0
+m_discover_cache:
+        .BYTE   "Hidden cache! You recover 40 gold and 75 provisions.",0
+m_discover_cairn:
+        .BYTE   "The hilltop cairn blesses you with 5 maximum health.",0
+m_discover_waystone:
+        .BYTE   "Waystone: castle north; dragon cave northwest; shrine south.",0
+m_shortcut_cross:
+        .BYTE   "You force the reed ford, losing health and provisions.",0
+m_shortcut_weak:
+        .BYTE   "The reed ford is too dangerous while so wounded.",0
+m_shortcut_blocked:
+        .BYTE   "A monster blocks the far side of the reed ford.",0

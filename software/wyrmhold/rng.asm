@@ -10,7 +10,49 @@ rng_seed:
         STA     seedlo
         LDA     #$1C
         STA     seedhi
+        LDA     #0
+        STA     seed2lo
+        STA     seed2hi
         RTS
+
+;----------------------------------------------------------------
+; rng_timing_tick - increment the title-screen timing counter.
+;----------------------------------------------------------------
+rng_timing_tick:
+        INC     seed2lo
+        BNE     @done
+        INC     seed2hi
+@done:
+        RTS
+
+;----------------------------------------------------------------
+; rng_mix_timing - mix title wait time and accepted key into the
+;                  generator, then diffuse the new state.
+;                  IN: keych = accepted title-screen key
+;----------------------------------------------------------------
+rng_mix_timing:
+        LDA     seedlo
+        EOR     seed2lo
+        EOR     keych
+        STA     seedlo
+
+        LDA     keych
+        ASL     A
+        EOR     seedhi
+        EOR     seed2hi
+        STA     seedhi
+
+; The xorshift generator must never enter its all-zero lockup state.
+        LDA     seedlo
+        ORA     seedhi
+        BNE     @diffuse
+        LDA     #$A3
+        STA     seedlo
+        LDA     #$1C
+        STA     seedhi
+@diffuse:
+        JSR     rng_next
+        JMP     rng_next
 
 ;----------------------------------------------------------------
 ; rng_next - advance the 16-bit xorshift state, return low byte

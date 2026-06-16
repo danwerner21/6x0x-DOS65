@@ -40,6 +40,8 @@ castle_use:
 ; royal reward: full healing and fresh provisions
         LDA     pmaxhp
         STA     phealth
+        LDA     #0
+        STA     poison_turns
         CLC
         LDA     pfood
         ADC     #100

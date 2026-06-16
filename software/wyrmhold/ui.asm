@@ -256,6 +256,59 @@ draw_panel:
         LDY     strp+1
         JSR     prmsg
         JSR     pad_clear
+
+; Current status
+        LDX     #PANX
+        LDY     #17
+        JSR     locate
+        LDA     #C_PANELHDR
+        STA     CURCOLOR
+        PRINTMSG lbl_status
+        JSR     pad_clear
+        LDX     #PANX
+        LDY     #18
+        JSR     locate
+        LDA     #C_PANEL
+        STA     CURCOLOR
+        LDA     poison_turns
+        BEQ     @healthy
+        PRINTMSG status_poison
+        JMP     @status_done
+@healthy:
+        LDA     loc
+        BNE     @plain_healthy
+        LDA     px
+        STA     tgtx
+        LDA     py
+        STA     tgty
+        JSR     tileat
+        LDA     tgttile
+        CMP     #T_ROAD
+        BEQ     @road
+        CMP     #T_BRIDGE
+        BEQ     @road
+        CMP     #T_FOREST
+        BEQ     @forest
+        CMP     #T_HILLS
+        BEQ     @hills
+        CMP     #T_MARSH
+        BEQ     @marsh
+@plain_healthy:
+        PRINTMSG status_healthy
+        JMP     @status_done
+@road:
+        PRINTMSG status_road
+        JMP     @status_done
+@forest:
+        PRINTMSG status_forest
+        JMP     @status_done
+@hills:
+        PRINTMSG status_hills
+        JMP     @status_done
+@marsh:
+        PRINTMSG status_marsh
+@status_done:
+        JSR     pad_clear
         RTS
 
 ; pad_clear - print spaces out to the right screen edge to erase
@@ -293,6 +346,29 @@ name_armor:
         STA     strp+1
         RTS
 name_loc:
+        CMP     #LOC_WORLD
+        BNE     @not_world
+        LDA     py
+        JSR     region_from_y
+        ASL     A
+        TAX
+        LDA     region_names,X
+        STA     strp
+        LDA     region_names+1,X
+        STA     strp+1
+        RTS
+@not_world:
+        CMP     #LOC_TOWN
+        BNE     @interior
+        LDA     town_id
+        ASL     A
+        TAX
+        LDA     town_names,X
+        STA     strp
+        LDA     town_names+1,X
+        STA     strp+1
+        RTS
+@interior:
         ASL     A
         TAX
         LDA     loc_names,X
@@ -307,6 +383,106 @@ name_objective:
         STA     strp
         LDA     objective_names+1,X
         STA     strp+1
+        RTS
+
+;----------------------------------------------------------------
+; In-game help panel. Opening and closing it consumes no game turn.
+;----------------------------------------------------------------
+HELP_X0         = 3
+HELP_X1         = 42
+HELP_Y0         = 3
+HELP_Y1         = 17
+
+help_menu:
+        JSR     help_draw
+        JSR     drainkeys       ; do not close on a buffered '?' repeat
+        JSR     getkey_block
+        RTS
+
+help_draw:
+; Paint a bordered overlay inside the viewport.
+        JSR     vid_enter
+        LDA     #HELP_Y0
+        STA     rowidx
+@bgrow:
+        LDA     rowidx
+        JSR     rowbase
+        LDY     #HELP_X0
+@bgcol:
+        CPY     #HELP_X0
+        BEQ     @edge
+        CPY     #HELP_X1
+        BEQ     @edge
+        LDA     rowidx
+        CMP     #HELP_Y0
+        BEQ     @edge
+        CMP     #HELP_Y1
+        BEQ     @edge
+        LDA     #space
+        STA     (vptr),Y
+        LDA     #C_SHOPBG
+        STA     (cptr),Y
+        JMP     @bgnext
+@edge:
+        LDA     #space
+        STA     (vptr),Y
+        LDA     #C_SHOPBRD
+        STA     (cptr),Y
+@bgnext:
+        INY
+        CPY     #HELP_X1+1
+        BNE     @bgcol
+        INC     rowidx
+        LDA     rowidx
+        CMP     #HELP_Y1+1
+        BNE     @bgrow
+        JSR     vid_exit
+
+        LDA     #C_SHOPTTL
+        STA     CURCOLOR
+        LDX     #HELP_X0+13
+        LDY     #HELP_Y0
+        JSR     locate
+        PRINTMSG help_title
+
+        LDA     #C_SHOPTXT
+        STA     CURCOLOR
+        LDX     #HELP_X0+2
+        LDY     #HELP_Y0+2
+        JSR     locate
+        PRINTMSG help_move
+        LDX     #HELP_X0+2
+        LDY     #HELP_Y0+3
+        JSR     locate
+        PRINTMSG help_actions
+        LDX     #HELP_X0+2
+        LDY     #HELP_Y0+4
+        JSR     locate
+        PRINTMSG help_combat
+        LDX     #HELP_X0+2
+        LDY     #HELP_Y0+6
+        JSR     locate
+        PRINTMSG help_terrain1
+        LDX     #HELP_X0+2
+        LDY     #HELP_Y0+7
+        JSR     locate
+        PRINTMSG help_terrain2
+        LDX     #HELP_X0+2
+        LDY     #HELP_Y0+9
+        JSR     locate
+        PRINTMSG help_objective
+        LDA     queststate
+        JSR     name_objective
+        LDA     strp
+        LDY     strp+1
+        JSR     prmsg
+
+        LDA     #C_SHOPST
+        STA     CURCOLOR
+        LDX     #HELP_X0+8
+        LDY     #HELP_Y1-1
+        JSR     locate
+        PRINTMSG help_return
         RTS
 
 ;----------------------------------------------------------------
@@ -383,6 +559,20 @@ lbl_loc:
         .BYTE   "Where : ",0
 lbl_obj:
         .BYTE   "OBJECTIVE",0
+lbl_status:
+        .BYTE   "STATUS",0
+status_healthy:
+        .BYTE   "Healthy",0
+status_poison:
+        .BYTE   "Poisoned",0
+status_road:
+        .BYTE   "Road: saves ration",0
+status_forest:
+        .BYTE   "Forest cover",0
+status_hills:
+        .BYTE   "High ground +2",0
+status_marsh:
+        .BYTE   "Marsh: costly",0
 
 wpn_names:
         .WORD   wn0, wn1, wn2, wn3
@@ -419,6 +609,22 @@ ln3:
 ln4:
         .BYTE   "Sunken Shrine",0
 
+region_names:
+        .WORD   rn0, rn1, rn2
+rn0:
+        .BYTE   "Northreach",0
+rn1:
+        .BYTE   "Wyrmhold Vale",0
+rn2:
+        .BYTE   "Sunken March",0
+
+town_names:
+        .WORD   tn0, tn1
+tn0:
+        .BYTE   "Eastmere",0
+tn1:
+        .BYTE   "Valehaven",0
+
 objective_names:
         .WORD   obj0, obj1, obj2, obj3, obj4, obj5
 obj0:
@@ -433,3 +639,20 @@ obj4:
         .BYTE   "Return to King Aldren",0
 obj5:
         .BYTE   "The realm is saved",0
+
+help_title:
+        .BYTE   "- FIELD GUIDE -",0
+help_move:
+        .BYTE   "Move: W A S D or H J K L",0
+help_actions:
+        .BYTE   "G: guard   T: interact   Q: quit",0
+help_combat:
+        .BYTE   "Walk into enemies to attack.",0
+help_terrain1:
+        .BYTE   "Roads save food; forests conceal.",0
+help_terrain2:
+        .BYTE   "Hills aid attacks; marshes are risky.",0
+help_objective:
+        .BYTE   "Objective: ",0
+help_return:
+        .BYTE   "Press any key to return",0

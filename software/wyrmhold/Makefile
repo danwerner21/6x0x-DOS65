@@ -1,4 +1,11 @@
+.PHONY: all validate clean cleandust pretty
+
+PYTHON ?= python3
+
 all: wyrmhold.com
+
+validate:
+	$(PYTHON) tools/validate.py
 
 wyrmhold.out: wyrmhold.asm macro.asm defines.asm sound.asm video.asm world.asm rng.asm ui.asm entity.asm combat.asm player.asm town.asm castle.asm shrine.asm tiles.asm metatiles.asm title.asm
 	ca65 wyrmhold.asm -l wyrmhold.lst
